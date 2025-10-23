@@ -1,0 +1,1 @@
+﻿abstract class AdisyonKalemleri {int getSortValue();}

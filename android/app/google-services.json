@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "51858922753",
+    "project_id": "randevumcepte-uygulamalar",
+    "storage_bucket": "randevumcepte-uygulamalar.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:cf5f2801c6af46a98ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.aronguzellik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
