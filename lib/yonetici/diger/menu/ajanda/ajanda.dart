@@ -29,6 +29,8 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
   int totalPages = 1;
   bool firsttimetyping = true;
   String? lastQuery;
+  bool _isDisposed = false; // Yeni: dispose kontrolü
+
   @override
   void initState() {
     super.initState();
@@ -87,18 +89,25 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
   }
 
   void _onLoadingStateChanged() {
-    setState(() {
-      // This empty setState function triggers a rebuild when the loading state changes
-    });
+    if (!_isDisposed && mounted) {
+      setState(() {
+        // Sadece mounted ve disposed değilse setState çağır
+      });
+    }
   }
 
   @override
   void dispose() {
-    _debounce?.cancel(); // Cancel the debounce timer when the widget is disposed
+    _isDisposed = true;
+    _debounce?.cancel();
     _controller.dispose();
+    // DataSource'i dispose et
+    if (_ajandaDataGridSource.isLoadingNotifier.hasListeners) {
+      _ajandaDataGridSource.isLoadingNotifier.removeListener(_onLoadingStateChanged);
+    }
+    _ajandaDataGridSource.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
@@ -114,7 +123,7 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
         FocusScope.of(context).unfocus(); // Hide the keyboard
       },
       child: Scaffold(
-        resizeToAvoidBottomInset: false,
+
         appBar: AppBar(
           title: Text('Ajanda', style: TextStyle(color: Colors.black, fontSize: 18)),
           /*leading: IconButton(
@@ -133,14 +142,15 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
             ),
             IconButton(
               onPressed: () {
-                Navigator.of(context).pop();
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => AjandaEkle(
-                          isletmebilgi: widget.isletmebilgi,
-                          ajandaDataSource: _ajandaDataGridSource,
-                        )));
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AjandaEkle(
+                      isletmebilgi: widget.isletmebilgi,
+                      ajandaDataSource: _ajandaDataGridSource,
+                    ),
+                  ),
+                );
               },
               icon: Icon(Icons.add, color: Colors.black),
               iconSize: 26,
@@ -225,19 +235,7 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
                             )),
                       );
                     },
-                    onCellTap: (DataGridCellTapDetails details) {
-                      final tappedRow = _ajandaDataGridSource.rows[details.rowColumnIndex.rowIndex - 1];
-                      Navigator.of(context).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => AjandaDuzenle(
-                              isletmebilgi: widget.isletmebilgi,
-                              ajandaDataSource: _ajandaDataGridSource,
-                              notdetayi: tappedRow.getCells()[0].value,
-                            )),
-                      );
-                    },
+                
                     columns: <GridColumn>[
                       GridColumn(
                         width: width * 0,

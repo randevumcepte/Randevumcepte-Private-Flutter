@@ -11,6 +11,7 @@ import 'package:randevu_sistem/Models/adisyonlar.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
+import '../../../../Frontend/lazyload.dart';
 import '../../../../Frontend/popupdialogs.dart';
 import '../../../../Models/adisyonpaketler.dart';
 import '../../../../Models/paketler.dart';
@@ -35,7 +36,9 @@ import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
 class PaketSatislari extends StatefulWidget {
   final Kullanici kullanici;
   final dynamic isletmebilgi;
-  PaketSatislari ({Key? key, required this.kullanici,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  final String adisyonId;
+  PaketSatislari ({Key? key,required this.adisyonId, required this.kullanici,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
   @override
   _PaketSatislariState createState() => _PaketSatislariState();
 }
@@ -117,7 +120,6 @@ class _PaketSatislariState extends State<PaketSatislari> {
   Future<void> initialize() async
   {
     seciliisletme = await secilisalonid();
-    musteris = await musterilistegetir(seciliisletme!);
 
     List <Personel> personelliste = await personellistegetir(seciliisletme!);
     widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
@@ -156,7 +158,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
       Widget build(BuildContext context) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: PaketSatislari(kullanici: widget.kullanici,isletmebilgi: widget.isletmebilgi,),
+          home: PaketSatislari( adisyonId: widget.adisyonId, kullanici: widget.kullanici,isletmebilgi: widget.isletmebilgi,kullanicirolu: widget.kullanicirolu,),
         );
       }
     });
@@ -216,7 +218,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => PaketEkle(kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi, )),
+                      builder: (context) => PaketEkle(kullanicirolu: widget.kullanicirolu, kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi, )),
                 );
               }, icon:  Icon(Icons.add,color:Colors.black,),iconSize: 26,),
 
@@ -344,22 +346,12 @@ class _PaketSatislariState extends State<PaketSatislari> {
                         },
                         columns: <GridColumn>[
                           GridColumn(
-
                             width: width * 0.1,
                             columnName: 'checkbox',
                             label: Container(
-
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Checkbox(
-                                  value: _paketDataGridSource.selectAll.value,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _paketDataGridSource.hepsiniSec(value!);
-                                    });
-                                  },
-                                  activeColor: Colors.purple[800],
-                                )
+                              padding: EdgeInsets.all(5.0),
+                              alignment: Alignment.centerLeft,
+                              child: Text(''), // Sadece başlık olarak "Seç" yazısı
                             ),
                           ),
                           GridColumn(
@@ -645,7 +637,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                       ),
                       SizedBox(height: 10),
                       Container(
-                        height: 40,
+                        height: 60,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -653,69 +645,16 @@ class _PaketSatislariState extends State<PaketSatislari> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: DropdownButtonHideUnderline(
-                          child: DropdownButton2<MusteriDanisan>(
-                            isExpanded: true,
-                            hint: Text(
-                              'Seç',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(context).hintColor,
-                              ),
-                            ),
-                            items: musteris.map((item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(
-                                item.name,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            )).toList(),
-                            value: selectedmusteri,
+                          child:  LazyDropdown(
+                            salonId: widget.isletmebilgi['id'].toString(),
+                            selectedItem: selectedmusteri,
                             onChanged: (value) {
+
                               setState(() {
                                 selectedmusteri = value;
                               });
-                            },
-                            buttonStyleData: const ButtonStyleData(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              height: 50,
-                              width: 100,
-                            ),
-                            dropdownStyleData: const DropdownStyleData(
-                              maxHeight: 200,
-                            ),
-                            menuItemStyleData: const MenuItemStyleData(
-                              height: 40,
-                            ),
-                            dropdownSearchData: DropdownSearchData(
-                              searchController: musteriController,
-                              searchInnerWidgetHeight: 50,
-                              searchInnerWidget: Container(
-                                height: 50,
-                                padding: const EdgeInsets.all(8),
-                                child: TextFormField(
-                                  expands: true,
-                                  maxLines: null,
-                                  controller: musteriController,
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                    hintText: 'Ara..',
-                                    hintStyle: const TextStyle(fontSize: 12),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              searchMatchFn: (item, searchValue) {
-                                final musteriAdi = item.value?.name?.toLowerCase();
-                                return musteriAdi != null && musteriAdi.contains(searchValue.toLowerCase());
-                              },
-                            ),
-                            onMenuStateChange: (isOpen) {
-                              if (!isOpen) {
-                                musteriController.clear();
-                              }
+
+
                             },
                           ),
                         ),
@@ -1196,7 +1135,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                       if(valid)
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (builder) => TahsilatEkrani(isletmebilgi: isletme_bilgi, musteridanisanid: selectedmusteri?.id ?? "",),
+                            builder: (builder) => TahsilatEkrani(adisyonId: widget.adisyonId, kullanicirolu: widget.kullanicirolu, isletmebilgi: isletme_bilgi, musteridanisanid: selectedmusteri?.id ?? "",),
                           ),
                         );
 

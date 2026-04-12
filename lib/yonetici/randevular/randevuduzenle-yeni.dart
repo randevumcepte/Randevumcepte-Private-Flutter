@@ -1315,6 +1315,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                         context,
                       'salon',
                       '1',
+                      widget.isletmebilgi
 
                     );
                   }

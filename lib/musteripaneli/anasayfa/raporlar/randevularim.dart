@@ -14,7 +14,8 @@ import '../../randevularim/randevual.dart';
 class MusteriRandevularDashboard extends StatefulWidget {
   final dynamic isletmebilgi;
   final String musteriId;
-  MusteriRandevularDashboard({Key? key,required this.isletmebilgi,required this.musteriId}) : super(key: key);
+  final int kullanicirolu;
+  MusteriRandevularDashboard({Key? key,required this.isletmebilgi,required this.musteriId,required this.kullanicirolu}) : super(key: key);
   @override
   _TumRandevularState createState() => _TumRandevularState();
 }
@@ -74,7 +75,7 @@ class _TumRandevularState extends State<MusteriRandevularDashboard> {
     setState(() {
 
 
-      _randevuDataGridSource = RandevuDataSource(isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: "Tümü", olusturma: "Tümü",salonid: '',tarih:"Bugün",context: context,musteriid: widget.musteriId,personelid: "",cihazid: "",musteriMi: true);
+      _randevuDataGridSource = RandevuDataSource(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: "Tümü", olusturma: "Tümü",salonid: '',tarih:"Bugün",context: context,musteriid: widget.musteriId,personelid: "",cihazid: "",musteriMi: true);
       _randevuDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
       _isLoading = false;
 

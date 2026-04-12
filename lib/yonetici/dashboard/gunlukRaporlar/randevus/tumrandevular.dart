@@ -11,7 +11,8 @@ import '../../../../Frontend/sfdatatable.dart';
 
 class TumRandevular extends StatefulWidget {
   final dynamic isletmebilgi;
-  TumRandevular({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  TumRandevular({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
   @override
   _TumRandevularState createState() => _TumRandevularState();
 }
@@ -71,7 +72,7 @@ class _TumRandevularState extends State<TumRandevular> {
     setState(() {
 
 
-      _randevuDataGridSource = RandevuDataSource(isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: "Tümü", olusturma: "Tümü",salonid: seciliisletme!,tarih:"Bugün",context: context,musteriid: "",personelid: "",cihazid: "",musteriMi: false);
+      _randevuDataGridSource = RandevuDataSource( kullanicirolu:widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: "Tümü", olusturma: "Tümü",salonid: seciliisletme!,tarih:"Bugün",context: context,musteriid: "",personelid: "",cihazid: "",musteriMi: false);
       _randevuDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
       _isLoading = false;
 

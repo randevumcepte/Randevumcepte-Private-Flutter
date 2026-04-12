@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../Backend/backend.dart';
@@ -21,7 +22,8 @@ import 'musteriliste.dart';
 class MusteriDuzenle extends StatefulWidget {
   final MusteriDanisan md;
   final dynamic isletmebilgi;
-  const MusteriDuzenle({Key? key,required this.md,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  const MusteriDuzenle({Key? key,required this.md,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _MusteriDuzenleState createState() => _MusteriDuzenleState();
@@ -40,7 +42,10 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
   late TextEditingController musteriemail;
   late TextEditingController musterinotlar;
   late TextEditingController cinsiyet;
-
+  final phoneMask = MaskTextInputFormatter(
+    mask: '0### ### ## ##',
+    filter: { "#": RegExp(r'[0-9]') },
+  );
 
   String _selectedGender = '';
   final List<Referans> musterireferans = [
@@ -65,11 +70,11 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
     }
 
     musteriid=TextEditingController(text:widget.md.id);
-    musteriadi=TextEditingController(text:widget.md.name);
-    musteritelefon=TextEditingController(text:widget.md.cep_telefon);
-    musteritarih=TextEditingController(text:widget.md.dogum_tarihi);
-    musteriemail=TextEditingController(text:widget.md.eposta);
-    musterinotlar=TextEditingController(text:widget.md.ozel_notlar);
+    musteriadi=TextEditingController(text:widget.md.name != 'null' ? widget.md.name : '');
+    musteritelefon=TextEditingController(text:widget.md.cep_telefon != 'null' ? '0'+widget.md.cep_telefon : '');
+    musteritarih=TextEditingController(text:widget.md.dogum_tarihi != 'null' ? widget.md.dogum_tarihi : '');
+    musteriemail=TextEditingController(text:widget.md.eposta != 'null' ? widget.md.eposta : '');
+    musterinotlar=TextEditingController(text:widget.md.ozel_notlar!= 'null' ? widget.md.ozel_notlar : '');
     selectedmusterireferans = musterireferans.firstWhere(
           (item) => item.id == widget.md.musteri_tipi,
       orElse: () => musterireferans.first, // return the first element if no match
@@ -171,11 +176,30 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
         TextFormField(
 
           keyboardType: TextInputType.phone,
-
+          inputFormatters: [phoneMask],
           controller: musteritelefon,
           onSaved: (value) {
 
             musteritelefon.text = value!;
+          },
+          onTap: () {
+            // Cursor daima +90'ın sonuna gelsin
+            if (musteritelefon.text.length < 2) {
+              musteritelefon.text = "0";
+            }
+            musteritelefon.selection = TextSelection.fromPosition(
+              TextPosition(offset: musteritelefon.text.length),
+            );
+          },
+
+          onChanged: (value) {
+            // Kullanıcı +90 kısmını silmeye çalışırsa düzelt
+            if (!value.startsWith("0")) {
+              musteritelefon.text = "0";
+              musteritelefon.selection = TextSelection.fromPosition(
+                TextPosition(offset: musteritelefon.text.length),
+              );
+            }
           },
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -214,12 +238,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
             musteriemail.text = value!;
 
           },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Bu alan zorunludur!';
-            }
-            return null;
-          },
+
 
 
           decoration: InputDecoration(
@@ -254,12 +273,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
             onSaved: (value) {
               musteritarih.text=value!;
             },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Bu alan zorunludur!';
-              }
-              return null;
-            },
+
             //editing controller of this TextField
             decoration: InputDecoration(
 
@@ -434,12 +448,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
             musterinotlar.text = value!;
           },
           maxLines: 3,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Bu alan zorunludur!';
-            }
-            return null;
-          },
+
 
 
           decoration: InputDecoration(
@@ -496,55 +505,54 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
       return null;
     }
   }
+  Future<void> submitForm(dynamic isletmebilgi,String musteri_id,String salonid,String musteriad,String telefon,String e_posta,String dogumtarihi,String cinsiyet,String referans,String notlar,context)async {
+    SharedPreferences localStorage = await SharedPreferences.getInstance();
+    log('müşteri adı : '+musteriad);
+
+    Map<String,dynamic> formData={
+      'ad_soyad':musteriad,
+      'telefon':telefon,
+      'email':e_posta,
+      'dogum_tarihi':dogumtarihi,
+      'cinsiyet':cinsiyet,
+      'musteri_tipi':referans,
+      'ozel_notlar':notlar,
+      'musteri_id':musteri_id
 
 
-}
-Future<void> submitForm(dynamic isletmebilgi,String musteri_id,String salonid,String musteriad,String telefon,String e_posta,String dogumtarihi,String cinsiyet,String referans,String notlar,context)async {
-  SharedPreferences localStorage = await SharedPreferences.getInstance();
-  log('müşteri adı : '+musteriad);
+    };
 
-  Map<String,dynamic> formData={
-    'ad_soyad':musteriad,
-    'telefon':telefon,
-    'email':e_posta,
-    'dogum_tarihi':dogumtarihi,
-    'cinsiyet':cinsiyet,
-    'musteri_tipi':referans,
-    'ozel_notlar':notlar,
-    'musteri_id':musteri_id
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/'+salonid.toString()),
 
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(formData),
+    );
+    log('Response status: ${response.statusCode}');
+    log('Response body: ${response.body}');
+    log(dogumtarihi);
+    if (response.statusCode == 200) {
+      log('müşteri ekleme : '+response.body);
+      if (response.body.isNotEmpty) {
+        log('Response body: ${response.body}');
+      } else {
+        log('Response body is empty');
+      }
+      Navigator.of(context).pop();
 
-  };
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => MusteriListesi(kullanicirolu: widget.kullanicirolu ,isletmebilgi:isletmebilgi)),
+      );
 
-  final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/'+salonid.toString()),
-
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(formData),
-  );
-  log('Response status: ${response.statusCode}');
-  log('Response body: ${response.body}');
-  log(dogumtarihi);
-  if (response.statusCode == 200) {
-    log('müşteri ekleme : '+response.body);
-    if (response.body.isNotEmpty) {
-      log('Response body: ${response.body}');
     } else {
-      log('Response body is empty');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Müşteri eklenirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
+        ),
+      );
+      debugPrint('Error: ${response.body}');
     }
-    Navigator.of(context).pop();
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => MusteriListesi(isletmebilgi:isletmebilgi)),
-    );
-
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Müşteri eklenirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
-      ),
-    );
-    debugPrint('Error: ${response.body}');
   }
+
 }

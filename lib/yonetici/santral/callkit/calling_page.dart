@@ -1,9 +1,9 @@
-import 'dart:convert';
+/*import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_callkit_incoming/entities/entities.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+/*import 'package:flutter_callkit_incoming/entities/entities.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';**/
 import 'navigation_service.dart';
 import 'package:http/http.dart';
 
@@ -17,7 +17,7 @@ class CallingPage extends StatefulWidget {
 }
 
 class CallingPageState extends State<CallingPage> {
-  late CallKitParams? calling;
+  //late CallKitParams? calling;
 
   Timer? _timer;
   int _start = 0;
@@ -51,7 +51,7 @@ class CallingPageState extends State<CallingPage> {
     final params = jsonDecode(jsonEncode(
         ModalRoute.of(context)!.settings.arguments as Map<dynamic, dynamic>));
     print(ModalRoute.of(context)!.settings.arguments);
-    calling = CallKitParams.fromJson(params);
+    //calling = CallKitParams.fromJson(params);
 
     var timeDisplay = intToTimeLeft(_start);
 
@@ -121,4 +121,4 @@ class CallingPageState extends State<CallingPage> {
     _timer?.cancel();
     if (calling != null) FlutterCallkitIncoming.endCall(calling!.id!);
   }
-}
+}*/

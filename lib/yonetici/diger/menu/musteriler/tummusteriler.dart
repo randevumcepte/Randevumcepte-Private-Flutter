@@ -28,7 +28,8 @@ import '../ayarlar/urunler/urunduzenle.dart';
 
 class TumMusteriler extends StatefulWidget {
 	final dynamic isletmebilgi;
-	const TumMusteriler({Key? key,required this.isletmebilgi}) : super(key: key);
+	final int kullanicirolu;
+	const TumMusteriler({Key? key,required this.isletmebilgi, required this.kullanicirolu}) : super(key: key);
 	@override
 	_MusterilerState createState() => _MusterilerState();
 }
@@ -104,7 +105,7 @@ class _MusterilerState extends State<TumMusteriler> {
 		setState(() {
 
 
-			_musteriDanisanDataSource = MusteriDanisanDataSource(isletmebilgi:widget.isletmebilgi,rowsPerPage:10,salonid: seciliisletme!,context: context,durum: '3',arama: _controller.text);
+			_musteriDanisanDataSource = MusteriDanisanDataSource(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,rowsPerPage:10,salonid: seciliisletme!,context: context,durum: '3',arama: _controller.text);
 			_musteriDanisanDataSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
 			_isLoading = false;
 
@@ -152,7 +153,7 @@ class _MusterilerState extends State<TumMusteriler> {
 
 						children: [
 							Padding(
-								padding: const EdgeInsets.all(2.0),
+								padding: const EdgeInsets.all(16.0),
 								child: TextFormField(
 
 									controller: _controller,

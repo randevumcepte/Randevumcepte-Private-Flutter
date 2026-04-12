@@ -1,18 +1,13 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../../../Models/ajanda.dart';
-import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
-import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import '../../../../Frontend/sfdatatable.dart';
 import '../../../../Models/e_asistan.dart';
-import '../../../dashboard/gunlukRaporlar/gunlukajandanotlari.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
 
-
- class BugunlukGorevler extends StatefulWidget {
+class BugunlukGorevler extends StatefulWidget {
   final dynamic isletmebilgi;
-BugunlukGorevler({Key? key, required this.isletmebilgi}) : super(key: key);
+  BugunlukGorevler({Key? key, required this.isletmebilgi}) : super(key: key);
 
   @override
   _BugunlukGorevlerState createState() => _BugunlukGorevlerState();
@@ -21,176 +16,180 @@ BugunlukGorevler({Key? key, required this.isletmebilgi}) : super(key: key);
 class _BugunlukGorevlerState extends State<BugunlukGorevler> {
   TextEditingController _controller = TextEditingController();
   late EAsistanDataSource _easistanDataGridSource;
-  late List<bool> selectedRows;
   late String? seciliisletme;
   bool _isLoading = true;
-  Timer? _debounce;
-  Timer? _throttle;// Timer for debouncing
-  int totalPages = 1;
-  bool firsttimetyping = true;
-  String? lastQuery;
   DateTime today = DateTime.now();
+
   @override
   void initState() {
     super.initState();
     initialize();
-
-
   }
 
   Future<void> initialize() async {
     seciliisletme = await secilisalonid();
-    setState(() {
-      _easistanDataGridSource = EAsistanDataSource(
-        isletmebilgi: widget.isletmebilgi,
-        rowsPerPage: 10,
-        salonid: seciliisletme!,
-        context: context,
-        bugunyarin: today.toString(), // Bugün tarihini filtre olarak gönderiyoruz
-      );
-      _easistanDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
-      _isLoading = false;
+    _easistanDataGridSource = EAsistanDataSource(
+      isletmebilgi: widget.isletmebilgi,
+      rowsPerPage: 10,
+      salonid: seciliisletme!,
+      context: context,
+      bugunyarin: today.toString(),
+    );
+    _easistanDataGridSource.isLoadingNotifier.addListener(() {
+      setState(() {}); // Loading state değişirse rebuild
     });
-  }
-
-
-  void _onLoadingStateChanged() {
     setState(() {
-      // This empty setState function triggers a rebuild when the loading state changes
+      _isLoading = false;
     });
   }
 
   @override
   void dispose() {
-    _debounce?.cancel(); // Cancel the debounce timer when the widget is disposed
     _controller.dispose();
     super.dispose();
+  }
+
+  // Text yüksekliğini hesaplayan fonksiyon
+  double calculateTextHeight(String text, double maxWidth, TextStyle style, {int maxLines = 3}) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: maxLines,
+    );
+    textPainter.layout(maxWidth: maxWidth);
+    return textPainter.height + 10; // padding
   }
 
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-
-    // Determine if the keyboard is visible by checking the view insets (keyboard height)
-    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return _isLoading
         ? Center(child: CircularProgressIndicator())
         : GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus(); // Hide the keyboard
-      },
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            return Column(
-              children: [
-
-                // build metodu içinde Expanded yerine şu yapıyı kullan:
-                Expanded(
-                  child: _easistanDataGridSource.rows.isEmpty
-                      ? Center(
-                    child: Text(
-                      "Tabloda herhangi bir veri bulunmamaktadır",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  )
-                      : SfDataGrid(
-                    source: _easistanDataGridSource,
-                    shrinkWrapRows: true,
-                    columnWidthMode: ColumnWidthMode.fill,
-                    defaultColumnWidth: 120,
-                    allowSwiping: true,
-                    onSwipeStart: (details) {
-                      if (details.swipeDirection == DataGridRowSwipeDirection.startToEnd) {
-                        details.setSwipeMaxOffset(50);
-                      } else if (details.swipeDirection == DataGridRowSwipeDirection.endToStart) {
-                        details.setSwipeMaxOffset(50);
-                      }
-                      return true;
-                    },
-                    onCellTap: (DataGridCellTapDetails details) {
-                      if (details.rowColumnIndex.rowIndex > 0) { // Başlık satırını atlamak için
-                        final int rowIndex = details.rowColumnIndex.rowIndex - 1;
-                        final task = _easistanDataGridSource.rows[details.rowColumnIndex.rowIndex - 1];
-
-                        _easistanDataGridSource.showTaskDetails(context, task.getCells()[0].value);
-                      }
-                    },
-                    columns: <GridColumn>[
-                      GridColumn(
-                        width: width * 0,
-                        columnName: 'asistan',
-                        label: Container(
-                          padding: EdgeInsets.all(5.0),
-                          alignment: Alignment.centerLeft,
-                          child: Text('a'),
-                        ),
-                      ),
-                      GridColumn(
-                        width: width * 0,
-                        columnName: 'id',
-                        label: Container(
-                          padding: EdgeInsets.all(5.0),
-                          alignment: Alignment.centerLeft,
-                          child: Text('#'),
-                        ),
-                      ),
-                      GridColumn(
-                        width: width * 0.30,
-                        columnName: 'baslik',
-                        label: Container(
-                          padding: EdgeInsets.all(5.0),
-                          alignment: Alignment.centerLeft,
-                          child: Text('Başlık'),
-                        ),
-                      ),
-                      GridColumn(
-                        width: width * 0.30,
-                        columnName: 'aramasaati',
-                        label: Container(
-                          padding: EdgeInsets.all(5.0),
-                          alignment: Alignment.centerLeft,
-                          child: Text('Arama Saati'),
-                        ),
-                      ),
-                      GridColumn(
-                        width: width * 0.40,
-                        columnName: 'sonuc',
-                        label: Container(
-                          padding: EdgeInsets.all(5.0),
-                          alignment: Alignment.centerLeft,
-                          child: Text('Sonuç'),
-                        ),
-                      ),
-                      GridColumn(
-                        width: width * 0.1,
-                        columnName: 'islem',
-                        label: Container(
-                            padding: EdgeInsets.all(5.0),
-                            alignment: Alignment.center,
-                            child: Text("")),
-                      ),
-                    ],
-                  ),
+        body: Column(
+          children: [
+            Expanded(
+              child: _easistanDataGridSource.rows.isEmpty
+                  ? Center(
+                child: Text(
+                  "Tabloda herhangi bir veri bulunmamaktadır",
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
+              )
+                  : SfDataGrid(
+                source: _easistanDataGridSource,
+                shrinkWrapRows: true,
+                columnWidthMode: ColumnWidthMode.fill,
+                defaultColumnWidth: 120,
+                allowSwiping: true,
+                onQueryRowHeight: (details) {
+                  if (details.rowIndex == 0) {
+                    return details.rowHeight; // header
+                  }
 
-                _buildPaginationControls(),
-              ],
-            );
-          },
+                  final row = _easistanDataGridSource
+                      .effectiveRows[details.rowIndex - 1];
+
+                  // Tüm kolonlar için genişlikler
+                  final columnWidths = {
+                    'asistan': width * 0.0,
+                    'id': width * 0.0,
+                    'baslik': width * 0.35 - 10,
+                    'aramasaati': width * 0.25 - 10,
+                    'sonuc': width * 0.40 - 10,
+                    'islem': width * 0.1 - 10,
+                  };
+
+                  double maxHeight = 0;
+                  row.getCells().forEach((cell) {
+                    if (columnWidths.containsKey(cell.columnName)) {
+                      final cellText = cell.value.toString();
+                      final cellHeight = calculateTextHeight(
+                        cellText,
+                        columnWidths[cell.columnName]!,
+                        const TextStyle(fontSize: 14),
+                      );
+                      if (cellHeight > maxHeight) {
+                        maxHeight = cellHeight;
+                      }
+                    }
+                  });
+
+                  return maxHeight;
+                },
+                onCellTap: (DataGridCellTapDetails details) {
+                  if (details.rowColumnIndex.rowIndex > 0) {
+                    final task = _easistanDataGridSource.rows[
+                    details.rowColumnIndex.rowIndex - 1];
+                    _easistanDataGridSource.showTaskDetails(
+                        context, task.getCells()[0].value);
+                  }
+                },
+                columns: [
+                  GridColumn(
+                    columnName: 'asistan',
+                    width: width * 0.0,
+                    label: Container(),
+                  ),
+                  GridColumn(
+                    columnName: 'id',
+                    width: width * 0.0,
+                    label: Container(),
+                  ),
+                  GridColumn(
+                    columnName: 'baslik',
+                    width: width * 0.30,
+                    label: Container(
+                      padding: EdgeInsets.all(5),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Müşteri/Danışan'),
+                    ),
+                  ),
+                  GridColumn(
+                    columnName: 'aramasaati',
+                    width: width * 0.20,
+                    label: Container(
+                      padding: EdgeInsets.all(5),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Arama Saati'),
+                    ),
+                  ),
+                  GridColumn(
+                    columnName: 'sonuc',
+                    width: width * 0.50,
+                    label: Container(
+                      padding: EdgeInsets.all(5),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Sonuç'),
+                    ),
+                  ),
+                  GridColumn(
+                    columnName: 'islem',
+                    width: width * 0.0,
+                    label: Container(
+                      padding: EdgeInsets.all(5),
+                      alignment: Alignment.center,
+                      child: Text(''),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _buildPaginationControls(),
+          ],
         ),
       ),
     );
   }
 
-
   Widget _buildPaginationControls() {
     final totalPages = (_easistanDataGridSource.totalPages).ceil();
-    return  Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
@@ -198,7 +197,8 @@ class _BugunlukGorevlerState extends State<BugunlukGorevler> {
           onPressed: _easistanDataGridSource.currentPage > 1
               ? () {
             setState(() {
-              _easistanDataGridSource.setPage(_easistanDataGridSource.currentPage - 1);
+              _easistanDataGridSource
+                  .setPage(_easistanDataGridSource.currentPage - 1);
             });
           }
               : null,
@@ -209,14 +209,13 @@ class _BugunlukGorevlerState extends State<BugunlukGorevler> {
           onPressed: _easistanDataGridSource.currentPage < totalPages
               ? () {
             setState(() {
-              _easistanDataGridSource.setPage(_easistanDataGridSource.currentPage + 1);
+              _easistanDataGridSource
+                  .setPage(_easistanDataGridSource.currentPage + 1);
             });
           }
               : null,
         ),
       ],
-
     );
-
   }
 }

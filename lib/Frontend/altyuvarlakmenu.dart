@@ -1,4 +1,4 @@
-﻿import 'package:circular_menu/circular_menu.dart';
+﻿/*import 'package:circular_menu/circular_menu.dart';
 import 'package:flutter/material.dart';
 
 import '../yonetici/adisyonlar/satislar/tahsilat.dart';
@@ -95,4 +95,4 @@ class AltYuvarlakYeniEkleMenu extends StatelessWidget {
       ],
     );
   }
-}
+}*/

@@ -8,6 +8,7 @@ import 'package:dropdown_model_list/drop_down/select_drop_list.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,7 +28,8 @@ class Yenimusteri extends StatefulWidget {
     final String telefon;
     final String isim;
     final bool sadeceekranikapat;
-    const Yenimusteri({Key? key,required this.isletmebilgi,required this.telefon,required this.sadeceekranikapat, required this.isim}) : super(key: key);
+    final int kullanicirolu;
+    const Yenimusteri({Key? key,required this.kullanicirolu, required this.isletmebilgi,required this.telefon,required this.sadeceekranikapat, required this.isim}) : super(key: key);
 
     @override
     _YenimusteriState createState() => _YenimusteriState();
@@ -35,6 +37,10 @@ class Yenimusteri extends StatefulWidget {
 
 
 class _YenimusteriState extends State<Yenimusteri> {
+    final phoneMask = MaskTextInputFormatter(
+        mask: '0### ### ## ##',
+        filter: { "#": RegExp(r'[0-9]') },
+    );
     final List<Referans> musterireferans = [
         Referans(id: "", referans: "Yok"),
         Referans(id: "1", referans: "İnternet"),
@@ -59,6 +65,7 @@ class _YenimusteriState extends State<Yenimusteri> {
     @override
     void initState() {
         dogumtarihi.text = ""; //set the initial value of text field
+        telefon.text = "0";
         super.initState();
         initialize();
     }
@@ -91,16 +98,7 @@ class _YenimusteriState extends State<Yenimusteri> {
                         icon: Icon(Icons.clear_rounded, color: Colors.black),
                         onPressed: () => Navigator.of(context).pop(),
                     ),
-                    actions: [
-                        if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-                        Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: SizedBox(
-                                width: 100, // <-- Your width
-                                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
-                            ),
-                        ),
-                    ],
+
 
                 ),
                 
@@ -157,14 +155,32 @@ class _YenimusteriState extends State<Yenimusteri> {
                                         Container(
                                             height: 40,
                                             child: TextFormField(
-
+                                                inputFormatters: [phoneMask],
                                                 keyboardType: TextInputType.phone,
 
                                                 controller: telefon,
                                                 onSaved: (value){
                                                     telefon.text=value!;
                                                 },
+                                                onTap: () {
+                                                    // Cursor daima +90'ın sonuna gelsin
+                                                    if (telefon.text.length < 2) {
+                                                        telefon.text = "0";
+                                                    }
+                                                    telefon.selection = TextSelection.fromPosition(
+                                                        TextPosition(offset: telefon.text.length),
+                                                    );
+                                                },
 
+                                                onChanged: (value) {
+                                                    // Kullanıcı +90 kısmını silmeye çalışırsa düzelt
+                                                    if (!value.startsWith("0")) {
+                                                        telefon.text = "0";
+                                                        telefon.selection = TextSelection.fromPosition(
+                                                            TextPosition(offset: telefon.text.length),
+                                                        );
+                                                    }
+                                                },
                                                 decoration: InputDecoration(
 
                                                     focusColor:Color(0xFF6A1B9A) ,
@@ -437,7 +453,7 @@ class _YenimusteriState extends State<Yenimusteri> {
                                                         if(!widget.sadeceekranikapat)
                                                             Navigator.push(
                                                                 context,
-                                                                MaterialPageRoute(builder: (context) => MusteriListesi(isletmebilgi:widget.isletmebilgi)),
+                                                                MaterialPageRoute(builder: (context) => MusteriListesi(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi)),
                                                             );
 
                                                     }

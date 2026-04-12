@@ -13,7 +13,8 @@ import 'package:randevu_sistem/yonetici/dashboard/gunlukRaporlar/randevus/webuze
 
 class RandevularDashboard extends StatefulWidget {
   final dynamic isletmebilgi;
-  const RandevularDashboard({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  const RandevularDashboard({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _RandevularDashboardState createState() =>
@@ -128,10 +129,10 @@ class _RandevularDashboardState extends State<RandevularDashboard> {
 
           body: TabBarView(
             children: <Widget>[
-              TumRandevular(isletmebilgi: widget.isletmebilgi),
-              SalonTarafindan(isletmebilgi: widget.isletmebilgi),
-              WebUzerinden(isletmebilgi: widget.isletmebilgi),
-              UygulamaUzerinden(isletmebilgi: widget.isletmebilgi)
+              TumRandevular(isletmebilgi: widget.isletmebilgi, kullanicirolu: widget.kullanicirolu,),
+              SalonTarafindan(isletmebilgi: widget.isletmebilgi, kullanicirolu: widget.kullanicirolu),
+              WebUzerinden(isletmebilgi: widget.isletmebilgi, kullanicirolu: widget.kullanicirolu),
+              UygulamaUzerinden(isletmebilgi: widget.isletmebilgi, kullanicirolu: widget.kullanicirolu)
 
             ],
           ),

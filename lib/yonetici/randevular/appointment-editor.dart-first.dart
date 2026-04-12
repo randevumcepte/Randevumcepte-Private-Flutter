@@ -22,9 +22,11 @@ class AppointmentEditor extends StatefulWidget {
   final dynamic isletmebilgi;
   final String tarihsaat;
   final String personel_id;
+  final int kullanicirolu;
 
   const AppointmentEditor(
       {super.key,
+        required this.kullanicirolu,
       required this.isletmebilgi,
       required this.tarihsaat,
       required this.personel_id});
@@ -137,7 +139,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
     final selectedItem = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Musteri(isletmebilgi: widget.isletmebilgi),
+        builder: (context) => Musteri (kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi),
       ),
     );
 

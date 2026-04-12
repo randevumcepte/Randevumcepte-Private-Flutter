@@ -123,7 +123,7 @@ class _SubeSecimiState extends State<SubeSecimi> {
                             padding: EdgeInsets.only(top: 0),
                             child: Column(
                               children: [
-                                Image.asset('images/aronshine-land.png', height: 140,),
+                                Image.asset('images/bercislina.png', height: 140,),
 
 
                               ],

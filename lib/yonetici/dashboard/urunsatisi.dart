@@ -1,9 +1,7 @@
-﻿import 'dart:developer';
-
-import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:flutter/cupertino.dart';
+﻿import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Frontend/tlrakamacevir.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonurunler.dart';
@@ -12,17 +10,27 @@ import 'package:randevu_sistem/Models/personel.dart';
 import '../../Backend/backend.dart';
 import '../../Models/urunler.dart';
 
-
 class UrunSatisi extends StatefulWidget {
   final String musteriid;
   final bool senetlisatis;
   final dynamic isletmebilgi;
-  UrunSatisi({Key? key,required this.musteriid,required this.senetlisatis,required this.isletmebilgi}) : super(key: key);
+  final String? mevcutadisyonId;
+  final int kullanicirolu;
+  UrunSatisi({
+    Key? key,
+    required this.musteriid,
+    required this.senetlisatis,
+    required this.isletmebilgi,
+    this.mevcutadisyonId,
+    required this.kullanicirolu,
+  }) : super(key: key);
+
   @override
   _HUrunSatisiState createState() => _HUrunSatisiState();
 }
+
 class _HUrunSatisiState extends State<UrunSatisi> {
-  var tryformat = NumberFormat.currency(locale: 'tr_TR',symbol: "");
+  var tryformat = NumberFormat.currency(locale: 'tr_TR', symbol: "");
   bool isloading = true;
   late List<Personel> satici;
   late List<Urun> urun;
@@ -33,392 +41,631 @@ class _HUrunSatisiState extends State<UrunSatisi> {
   TextEditingController saticisec = TextEditingController();
   TextEditingController urunsec = TextEditingController();
   TextEditingController adet = TextEditingController(text: "1");
-  TextEditingController fiyat = TextEditingController();
+  TextEditingController fiyat = TextEditingController(text: "0,00");
 
+  @override
   void initState() {
     super.initState();
     initialize();
-
   }
-  Future<void> initialize() async{
+
+  Future<void> initialize() async {
     seciliisletme = (await secilisalonid())!;
-    List <Personel> personelliste = await personellistegetir(seciliisletme!);
-    List <Urun> urunliste = await urun_liste(seciliisletme!);
+    List<Personel> personelliste = await personellistegetir(seciliisletme!);
+    List<Urun> urunliste = await urun_liste(seciliisletme!);
+    Personel seciliSatici = await seciliPersonelgetir(widget.isletmebilgi);
     setState(() {
+      if(widget.kullanicirolu == 5)
+        selectedSatici =seciliSatici;
       satici = personelliste;
-      urun  = urunliste;
+      urun = urunliste;
       isloading = false;
     });
   }
+
+  // Fiyat formatlama fonksiyonu
+  String formatFiyat(String fiyatStr) {
+    if (fiyatStr.isEmpty) return "0,00";
+
+    // Noktayı virgüle çevir
+    fiyatStr = fiyatStr.replaceAll('.', ',');
+
+    // Sayısal değeri kontrol et
+    double? fiyatDouble = double.tryParse(fiyatStr.replaceAll(',', '.'));
+    if (fiyatDouble == null) return "0,00";
+
+    // İki ondalık basamakla formatla
+    return NumberFormat("#,##0.00", "tr_TR").format(fiyatDouble);
+  }
+
+  // Adet formatlama fonksiyonu
+  String formatAdet(String adetStr) {
+    if (adetStr.isEmpty) return "1";
+
+    int? adetInt = int.tryParse(adetStr);
+    if (adetInt == null || adetInt < 1) return "1";
+
+    return adetInt.toString();
+  }
+
+  // Toplam fiyat hesaplama fonksiyonu
+  void hesaplaToplamFiyat() {
+    if (selectedUrun != null && adet.text.isNotEmpty) {
+      double urunFiyati = double.tryParse(selectedUrun!.fiyat ?? "0") ?? 0;
+      int adetSayisi = int.tryParse(adet.text) ?? 1;
+      double toplam = urunFiyati * adetSayisi;
+
+      setState(() {
+        fiyat.text = formatFiyat(toplam.toString());
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title:  const Text('Yeni Ürün Satışı',style: TextStyle(color: Colors.black),),
-
+        title: Text(
+          'Ürün Satışı',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+        ),
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon:
+          Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey.shade700),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        toolbarHeight: 60,
+        toolbarHeight: 70,
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 100, // <-- Your width
-              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
             ),
-          ),
-
-
         ],
         backgroundColor: Colors.white,
+        elevation: 0,
+        shadowColor: Colors.black.withOpacity(0.05),
       ),
-      body: isloading ? Center(child: CircularProgressIndicator(),) : SingleChildScrollView(
+      body: isloading
+          ? Center(
+        child: CircularProgressIndicator(
+          color: Colors.purple.shade700,
+        ),
+      )
+          :   GestureDetector(
+    onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+    child:  SingleChildScrollView(
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Ürün',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
+            // Başlık Kartı
             Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
+              margin: EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
-
-                //you can set more BoxShadow() here
-
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.shopping_bag_outlined,
+                      color: Colors.purple.shade700,
+                      size: 20,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ürün Satışı',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        Text(
+                          'Müşteriye yeni ürün ekleyin',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Ürün Seçimi
+            _buildInputCard(
+              icon: Icons.shopping_bag_outlined,
+              title: 'Ürün',
               child: DropdownButtonHideUnderline(
-
-                  child: DropdownButton2<Urun>(
-
-                    isExpanded: true,
-                    hint: Text(
-                      'Ürün Seç',
+                child: DropdownButton2<Urun>(
+                  isExpanded: true,
+                  hint: Text(
+                    'Ürün seçin',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  items: urun
+                      .map((item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(
+                      item.urun_adi,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).hintColor,
+                        color: Colors.grey.shade800,
                       ),
                     ),
-                    items: urun
-                        .map((item) => DropdownMenuItem(
-
-                      value: item,
-                      child: Text(
-                        item.urun_adi,
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ))
-                        .toList(),
-                    value: selectedUrun,
-                    onChanged: (value) {
+                  ))
+                      .toList(),
+                  value: selectedUrun,
+                  onChanged: (value) {
+                    if (value != null) {
                       setState(() {
                         selectedUrun = value;
-                        log(selectedUrun?.fiyat ?? "");
-
-                        fiyat.text = tryformat.format(double.parse(
-                            (double.parse(adet.text) *
-                                double.parse(
-                                    selectedUrun?.fiyat ?? "0"))
-                                .toString()));
-
+                        // Ürün fiyatını göster
+                        double urunFiyati =
+                            double.tryParse(value.fiyat ?? "0") ?? 0;
+                        fiyat.text = formatFiyat(urunFiyati.toString());
+                        // Adet'i 1 olarak ayarla
+                        adet.text = "1";
                       });
-                    },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
+                    }
+                  },
+                  buttonStyleData: ButtonStyleData(
+                    padding: EdgeInsets.symmetric(horizontal: 0),
+                    height: 40,
+                  ),
+                  dropdownStyleData: DropdownStyleData(
+                    maxHeight: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                    ),
+                  ),
+                  menuItemStyleData: MenuItemStyleData(height: 40),
+                  dropdownSearchData: DropdownSearchData(
+                    searchController: urunsec,
+                    searchInnerWidgetHeight: 50,
+                    searchInnerWidget: Container(
                       height: 50,
-                      width: 400,
-                    ),
-
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
-                      height: 40,
-                    ),
-                    dropdownSearchData: DropdownSearchData(
-                      searchController: urunsec,
-                      searchInnerWidgetHeight: 50,
-                      searchInnerWidget: Container(
-                        height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
-                        child: TextFormField(
-
-                          expands: true,
-                          maxLines: null,
-                          controller: urunsec,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Ürün Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                      padding: EdgeInsets.all(8),
+                      child: TextFormField(
+                        controller: urunsec,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          hintText: 'Ürün ara...',
+                          hintStyle: TextStyle(fontSize: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                       ),
-                      searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
-                      },
                     ),
-                    //This to clear the search value when you close the menu
-                    onMenuStateChange: (isOpen) {
-                      if (!isOpen) {
-                        urunsec.clear();
-                      }
+                    searchMatchFn: (item, searchValue) {
+                      return (item.value as Urun)
+                          .urun_adi
+                          .toLowerCase()
+                          .contains(searchValue.toLowerCase());
                     },
-
-                  )),
+                  ),
+                  onMenuStateChange: (isOpen) {
+                    if (!isOpen) {
+                      urunsec.clear();
+                    }
+                  },
+                ),
+              ),
             ),
-            SizedBox(height: 10,),
 
+            SizedBox(height: 16),
 
+            // Adet ve Fiyat Satırı
             Row(
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Adet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextFormField(
-                          controller: adet,
-
-                          onSaved: (value){
-                            if(value == "")
-                              adet.text = "0";
-                            else
-                              adet.text = value!;
-                          },
-                          onChanged: (value){
-                            fiyat.text = tryformat.format(double.parse(
-                                (double.parse(adet.text) *
-                                    double.parse(
-                                        selectedUrun?.fiyat ?? "0"))
-                                    .toString()));
-
-
-                          },
-                          keyboardType: TextInputType.phone,
-
-                          enabled:true,
-
-                          decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Fiyat',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextFormField(
-                          controller: fiyat,
-                          keyboardType: TextInputType.phone,
-                          onSaved: (value){
-                            fiyat.text = tryformat.format(double.parse(value!));
-                          },
-                          decoration: InputDecoration(
-                            enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            ),
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Satıcı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
-
-                //you can set more BoxShadow() here
-
-              ),
-              child: DropdownButtonHideUnderline(
-
-                  child: DropdownButton2<Personel>(
-
-                    isExpanded: true,
-                    hint: Text(
-                      'Satıcı Seç',
+                  child: _buildInputCard(
+                    icon: Icons.format_list_numbered_outlined,
+                    title: 'Adet',
+                    child: TextFormField(
+                      controller: adet,
+                      keyboardType: TextInputType.number,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).hintColor,
+                        color: Colors.grey.shade800,
                       ),
-                    ),
-                    items: satici
-                        .map((item) => DropdownMenuItem(
-                      value: item,
-                      child: Text(
-                        item.personel_adi,
-                        style: const TextStyle(
-                          fontSize: 14,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '',
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade500,
                         ),
                       ),
-                    ))
-                        .toList(),
-                    value: selectedSatici,
+                      onChanged: (value) {
+                        // Tüm metni temizle ve sadece sayıları al
+                        String cleanedValue = value.replaceAll(RegExp(r'[^0-9]'), '');
 
-                    onChanged: (value) {
-                      setState(() {
-                        selectedSatici = value;
-                      });
-                    },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 50,
-                      width: 400,
-                    ),
+                        if (cleanedValue.isEmpty) {
+                          setState(() {
+                            adet.text = "";
+                          });
+                        } else {
+                          setState(() {
+                            adet.text = cleanedValue;
+                            // Kursorü en sona taşı
+                            adet.selection = TextSelection.collapsed(offset: cleanedValue.length);
+                          });
+                        }
 
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
-                      height: 40,
-                    ),
-                    dropdownSearchData: DropdownSearchData(
-                      searchController: saticisec,
-                      searchInnerWidgetHeight: 50,
-                      searchInnerWidget: Container(
-                        height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
-                        child: TextFormField(
-                          expands: true,
-                          maxLines: null,
-                          controller: saticisec,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Personel Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
+                        // Fiyatı hesapla
+                        if (cleanedValue.isNotEmpty) {
+                          hesaplaToplamFiyat();
+                        }
                       },
                     ),
-                    //This to clear the search value when you close the menu
-                    onMenuStateChange: (isOpen) {
-                      if (!isOpen) {
-                        saticisec.clear();
-                      }
-                    },
+                  ),
+                ),
+                SizedBox(width: 12),
+                // Fiyat alanını değiştirin
+                Expanded(
+                  child: _buildInputCard(
+                    icon: Icons.currency_lira,
+                    title: 'Toplam Fiyat',
+                    child: TextFormField(
+                      controller: fiyat,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade800,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '0,00',
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        // Önceki karakteri sakla
+                        if (value.isNotEmpty) {
+                          // Virgülü noktaya çevir ve sayısal kontrol yap
+                          String cleanedValue = value.replaceAll(',', '.');
 
-                  )),
-            ),
+                          // Son karakteri kontrol et
+                          String lastChar = value.substring(value.length - 1);
 
-            SizedBox(height: 20,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(onPressed: () async{
+                          // Eğer son karakter sayı değilse ve virgül/nokta değilse, kaldır
+                          if (!RegExp(r'[0-9.,]').hasMatch(lastChar)) {
+                            // Geçersiz karakteri kaldır
+                            value = value.substring(0, value.length - 1);
+                            fiyat.text = value;
+                            fiyat.selection = TextSelection.collapsed(offset: value.length);
+                            return;
+                          }
 
-                  final AdisyonUrun urun = AdisyonUrun(islem_tarihi: DateFormat("yyyy-MM-dd").format(DateTime.now()), id:"",adisyon_id: "", urun_id: selectedUrun?.id ?? "", adet: adet.text, fiyat: tlyirakamacevir(fiyat.text).toString(), personel_id: selectedSatici?.id ?? "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "false", aciklama: "",urun: selectedUrun?.toJson() ?? "", personel: selectedSatici?.toJson() ?? "");
-                  if(!widget.senetlisatis){
-                    AdisyonUrun eklenenurun = await adisyonurunekle(urun,widget.musteriid ,context,seciliisletme!,true);
-                    Navigator.pop(context,  eklenenurun);
-                  }
-                  else
-                    Navigator.pop(context,  urun);
+                          // Birden fazla ondalık ayracı kontrol et
+                          int decimalCount = value.replaceAll(RegExp(r'[^.,]'), '').length;
+                          if (decimalCount > 1) {
+                            // Fazla ondalık ayraçları kaldır
+                            value = value.substring(0, value.length - 1);
+                            fiyat.text = value;
+                            fiyat.selection = TextSelection.collapsed(offset: value.length);
+                            return;
+                          }
 
-                },
-                  child: Text('Kaydet'),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      minimumSize: Size(90, 40)
+                          setState(() {
+                            fiyat.text = value;
+                            // Kürsörü en sona taşı
+                            fiyat.selection = TextSelection.collapsed(offset: value.length);
+                          });
+
+                          // Adeti güncelle (eğer ürün fiyatı biliniyorsa)
+                          if (selectedUrun != null) {
+                            double? urunBirimFiyati = double.tryParse(selectedUrun!.fiyat ?? "0");
+                            if (urunBirimFiyati != null && urunBirimFiyati > 0) {
+                              double? toplamFiyat = double.tryParse(value.replaceAll(',', '.'));
+                              if (toplamFiyat != null && toplamFiyat > 0) {
+                                int yeniAdet = (toplamFiyat / urunBirimFiyati).round();
+                                if (yeniAdet > 0) {
+                                  adet.text = yeniAdet.toString();
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      onTap: () {
+                        // Tıkladığında tüm metni seç
+                        Future.delayed(Duration.zero, () {
+                          fiyat.selection = TextSelection(
+                            baseOffset: 0,
+                            extentOffset: fiyat.text.length,
+                          );
+                        });
+                      },
+                    ),
                   ),
                 ),
               ],
-            )
+            ),
+
+            // Ürün Bilgisi (seçildiğinde göster)
+
+
+            SizedBox(height: 16),
+
+            // Satıcı Seçimi
+            _buildInputCard(
+              icon: Icons.person_outline,
+              title: 'Satıcı',
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton2<Personel>(
+                  isExpanded: true,
+                  hint: Text(
+                    'Satıcı seçin',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  items: satici
+                      .map((item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(
+                      item.personel_adi,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ))
+                      .toList(),
+                  value: selectedSatici,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedSatici = value;
+                    });
+                  },
+                  buttonStyleData: ButtonStyleData(
+                    padding: EdgeInsets.symmetric(horizontal: 0),
+                    height: 40,
+                  ),
+                  dropdownStyleData: DropdownStyleData(
+                    maxHeight: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                    ),
+                  ),
+                  menuItemStyleData: MenuItemStyleData(height: 40),
+                  dropdownSearchData: DropdownSearchData(
+                    searchController: saticisec,
+                    searchInnerWidgetHeight: 50,
+                    searchInnerWidget: Container(
+                      height: 50,
+                      padding: EdgeInsets.all(8),
+                      child: TextFormField(
+                        controller: saticisec,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          hintText: 'Satıcı ara...',
+                          hintStyle: TextStyle(fontSize: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    searchMatchFn: (item, searchValue) {
+                      return (item.value as Personel)
+                          .personel_adi
+                          .toLowerCase()
+                          .contains(searchValue.toLowerCase());
+                    },
+                  ),
+                  onMenuStateChange: (isOpen) {
+                    if (!isOpen) {
+                      saticisec.clear();
+                    }
+                  },
+                ),
+              ),
+            ),
+
+            SizedBox(height: 32),
+
+            // Kaydet Butonu
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16),
+              child: ElevatedButton(
+                onPressed: () async {
+                  // Kontroller
+                  if (selectedUrun == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Lütfen bir ürün seçin'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (selectedSatici == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Lütfen bir satıcı seçin'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Stok kontrolü
+                  int? stokMiktari = int.tryParse(selectedUrun!.stok_adedi ?? "0");
+                  int adetMiktari = int.tryParse(adet.text) ?? 1;
+                  if (stokMiktari != null && adetMiktari > stokMiktari) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Yetersiz stok! Mevcut stok: $stokMiktari, İstenen: $adetMiktari'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Fiyat null kontrolü
+                  String fiyatDegeri = fiyat.text.replaceAll(',', '.');
+                  double? fiyatDouble = double.tryParse(fiyatDegeri) ?? 0;
+
+                  final AdisyonUrun urun = AdisyonUrun(
+                    islem_tarihi:
+                    DateFormat("yyyy-MM-dd").format(DateTime.now()),
+                    id: "",
+                    adisyon_id: widget.mevcutadisyonId ?? "",
+                    urun_id: selectedUrun!.id ?? "",
+                    adet: adet.text,
+                    fiyat: tlyirakamacevir(fiyat.text).toString(),
+                    personel_id: selectedSatici!.id,
+                    taksitli_tahsilat_id: "",
+                    senet_id: "",
+                    indirim_tutari: "",
+                    hediye: "false",
+                    aciklama: "",
+                    urun: selectedUrun!.toJson(),
+                    personel: selectedSatici!.toJson(),
+                  );
+
+                  if (!widget.senetlisatis) {
+                    AdisyonUrun eklenenurun = await adisyonurunekle(
+                      urun,
+                      widget.musteriid,
+                      context,
+                      seciliisletme!,
+                      true,
+                    );
+                    Navigator.pop(context, eklenenurun);
+                  } else {
+                    Navigator.pop(context, urun);
+                  }
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'KAYDET',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade700,
+                  foregroundColor: Colors.white,
+                  minimumSize: Size(double.infinity, 54),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
           ],
         ),
       ),
-    );
+    ));
   }
 
+  Widget _buildInputCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 16, top: 12, right: 16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
 }

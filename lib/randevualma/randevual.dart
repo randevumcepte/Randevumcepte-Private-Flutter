@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:ui';
 
@@ -119,9 +120,14 @@ class AppointmentEditorState extends State<RandevuAl> {
     String salonId = '';
 
     final isletmeVerileri = await isletmeVerileriGetir(salonId,true,await appBundleAl(),'','',0,0);
+
     List<Salonlar> isletmesubeler = isletmeVerileri['subeler'];
     List<IsletmeHizmet> isletmehizmetleriliste = isletmesubeler.length==1 ? isletmeVerileri['hizmetler'] : [];
+    final hizmetlerRaw = isletmeVerileri['hizmetler'];
 
+    log('hizmetler runtime type: ${hizmetlerRaw.runtimeType}');
+    log('hizmetler içerik: $hizmetlerRaw');
+    log('hizmetler uzunluğu: ${(hizmetlerRaw as List).length}');
 
     setState(() {
       hizmet.add(TextEditingController());
@@ -135,6 +141,7 @@ class AppointmentEditorState extends State<RandevuAl> {
         seciliSube = isletmesubeler[0];
       String hizmetsecimtext = '';
       if(isletmehizmetliste.length==0)
+
         hizmetsecimtext= 'Önce şube seçmeniz gerekir!';
       else
         hizmetsecimtext = 'Hizmet seç...';
@@ -481,7 +488,11 @@ class AppointmentEditorState extends State<RandevuAl> {
                                             hint: Text(hizmetSecimHintText[index], style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
                                             items: isletmehizmetliste.map((item) => DropdownMenuItem(
                                               value: item,
-                                              child: Text(item.hizmet['hizmet_adi'], style: TextStyle(fontSize: 14)),
+                                              child: Text(
+                                                  item.hizmet['hizmet_adi'], style: TextStyle(fontSize: 14) ,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                             )).toList(),
                                             value: secilihizmet[index],
                                             onChanged: (value) {
@@ -499,7 +510,7 @@ class AppointmentEditorState extends State<RandevuAl> {
                                             },
                                             buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 10), height: 50, width: 400),
                                             dropdownStyleData: DropdownStyleData(maxHeight: 400),
-                                            menuItemStyleData: MenuItemStyleData(height: 40),
+                                            menuItemStyleData: MenuItemStyleData(height: 60),
                                             dropdownSearchData: DropdownSearchData(
                                               searchController: hizmet[index],
                                               searchInnerWidgetHeight: 50,
@@ -782,7 +793,7 @@ class AppointmentEditorState extends State<RandevuAl> {
 
                                               Navigator.push(
                                                 context,
-                                                MaterialPageRoute(builder: (context) => RandevuOnay(seciliHizmetler: randevuhizmetleri, tarih: DateFormat("dd.MM.yyyy").format(stringiDateTimeYap(secilenTarih!)), saat: secilenSaat!,salonid: seciliSube?.id ?? '',)),
+                                                MaterialPageRoute(builder: (context) => RandevuOnay(isletmebilgi:{}, seciliHizmetler: randevuhizmetleri, tarih: DateFormat("dd.MM.yyyy").format(stringiDateTimeYap(secilenTarih!)), saat: secilenSaat!,salonid: seciliSube?.id ?? '',)),
                                               );
 
                                             }

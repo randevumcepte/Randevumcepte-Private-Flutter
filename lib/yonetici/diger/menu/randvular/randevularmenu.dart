@@ -65,7 +65,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
 
   ];
   int totalPages = 1;
-  String? selectedrandevuolusturma = 'Salon';
+  String? selectedrandevuolusturma = 'Tümü';
   TextEditingController randevuolusturmacontroller = TextEditingController();
   String? lastQuery;
   String? selectedrandevudurum = 'Tümü';
@@ -137,7 +137,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
       setState(() {
 
 
-        _randevuDataGridSource = RandevuDataSource(isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: selectedrandevudurum!, olusturma: selectedrandevuolusturma!,salonid: seciliisletme!,tarih:selectedrandevutarih!,context: context,musteriid: "",personelid: widget.personelid,cihazid: widget.cihazid,musteriMi: false);
+        _randevuDataGridSource = RandevuDataSource(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: selectedrandevudurum!, olusturma: selectedrandevuolusturma!,salonid: seciliisletme!,tarih:selectedrandevutarih!,context: context,musteriid: "",personelid: widget.personelid,cihazid: widget.cihazid,musteriMi: false);
         _randevuDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
         _isLoading = false;
 

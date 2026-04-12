@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/MusteriDanisanSecimLazyLoad.dart';
 import '../Models/musteri_danisanlar.dart';
 
-
 class LazyDropdown extends StatefulWidget {
   final String salonId;
   final MusteriDanisan? selectedItem;
@@ -16,10 +15,10 @@ class LazyDropdown extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _LazyDropdownState createState() => _LazyDropdownState();
+  LazyDropdownState createState() => LazyDropdownState();
 }
 
-class _LazyDropdownState extends State<LazyDropdown> {
+class LazyDropdownState extends State<LazyDropdown> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
 
@@ -40,16 +39,28 @@ class _LazyDropdownState extends State<LazyDropdown> {
     selectedItem = widget.selectedItem;
     fetchMore();
 
-    scrollController.addListener(() {
-      if (scrollController.position.pixels >=
-          scrollController.position.maxScrollExtent - 50 &&
-          !isLoading &&
-          hasMore) {
-        fetchMore();
-      }
-    });
-  }
 
+    scrollController.addListener(() {
+    if (scrollController.position.pixels >=
+    scrollController.position.maxScrollExtent - 50 &&
+    !isLoading &&
+    hasMore) {
+    fetchMore();
+    }
+    });
+
+
+  }
+  @override
+  void didUpdateWidget(covariant LazyDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedItem != widget.selectedItem) {
+      setState(() {
+        selectedItem = widget.selectedItem;
+      });
+    }
+  }
   @override
   void dispose() {
     scrollController.dispose();
@@ -64,23 +75,25 @@ class _LazyDropdownState extends State<LazyDropdown> {
     setState(() => isLoading = true);
 
     final result = await MusteriDanisanSecimLazyLoad.fetch(
-      salonId: widget.salonId,
-      search: searchController.text,
-      offset: offset,
-      limit: limit,
+    seciliMusteri: selectedItem?.id ?? '',
+    salonId: widget.salonId,
+    search: searchController.text,
+    offset: offset,
+    limit: limit,
     );
 
     setState(() {
-      if (offset == 0) items = result;
-      else items.addAll(result);
+    if (offset == 0) items = result;
+    else items.addAll(result);
 
-      offset += limit;
-      isLoading = false;
-      if (result.length < limit) hasMore = false;
+    offset += limit;
+    isLoading = false;
+    if (result.length < limit) hasMore = false;
     });
 
-    // Overlay rebuild
     _overlayEntry?.markNeedsBuild();
+
+
   }
 
   void toggleDropdown() {
@@ -98,73 +111,96 @@ class _LazyDropdownState extends State<LazyDropdown> {
     var size = renderBox.size;
 
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: Offset(0.0, size.height + 5.0),
-          child: Material(
-            elevation: 4.0,
-            child: Container(
-              height: 300,
-              color: Colors.white,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.all(8),
-                    child: TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Müşteri/Danışan Ara...',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        offset = 0;
-                        items.clear();
-                        hasMore = true;
-                        fetchMore();
-                      },
-                    ),
-                  ),
-                  Expanded(
-                    child: items.isEmpty && !isLoading
-                        ? Center(child: Text('Veri bulunamadı'))
-                        : ListView.builder(
-                      controller: scrollController,
-                      itemCount: items.length + (hasMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index < items.length) {
-                          final item = items[index];
-                          return ListTile(
-                            title: Text(item.name),
-                            onTap: () {
-                              setState(() {
-                                selectedItem = item;
-                              });
-                              if (widget.onChanged != null)
-                                widget.onChanged!(item);
-                              toggleDropdown();
-                            },
-                          );
-                        } else {
-                          return Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+    builder: (context) => Positioned(
+    width: size.width,
+    child: CompositedTransformFollower(
+    link: _layerLink,
+    showWhenUnlinked: false,
+    offset: Offset(0.0, size.height + 0.0),
+    child: Material(
+    elevation: 0.0,
+    child: Container(
+    height: 300,
+    color: Colors.white,
+    child: Column(
+    children: [
+    Padding(
+    padding:
+    EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    child: TextField(
+    controller: searchController,
+    decoration: InputDecoration(
+    hintText: 'Müşteri/Danışan Ara...',
+    isDense: true,
+    contentPadding:
+    EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+    border: OutlineInputBorder(),
+    ),
+    onChanged: (value) {
+    offset = 0;
+    items.clear();
+    hasMore = true;
+    fetchMore();
+    },
+    ),
+    ),
+    Expanded(
+    child: items.isEmpty && !isLoading
+    ? Center(child: Text('Veri bulunamadı'))
+        : ListView.builder(
+    controller: scrollController,
+    padding: EdgeInsets.zero,
+    itemCount: items.length + (hasMore ? 1 : 0),
+    itemBuilder: (context, index) {
+    if (index < items.length) {
+    final item = items[index];
+    return InkWell(
+    onTap: () {
+    setState(() {
+    selectedItem = item;
+    });
+    widget.onChanged?.call(item);
+    toggleDropdown();
+    },
+    child: Container(
+    padding: EdgeInsets.symmetric(
+    vertical: 10, horizontal: 10),
+    child: Text(
+    item.name,
+    style: TextStyle(fontSize: 16),
+    ),
+    ),
     );
+    } else {
+    return Center(
+    child: Padding(
+    padding: EdgeInsets.all(8.0),
+    child: CircularProgressIndicator(),
+    ),
+    );
+    }
+    },
+    ),
+    ),
+    ],
+    ),
+    ),
+    ),
+    ),
+    ),
+    );
+
+
+  }
+
+// ✅ Yeni müşteri ekleyip seçme metodu
+  void addItemAndSelect(MusteriDanisan newItem) {
+    setState(() {
+      items.insert(0, newItem); // listenin başına ekle
+      selectedItem = newItem;
+    });
+    widget.onChanged?.call(newItem);
+    _overlayEntry?.markNeedsBuild();
   }
 
   @override
@@ -174,7 +210,7 @@ class _LazyDropdownState extends State<LazyDropdown> {
       child: GestureDetector(
         onTap: toggleDropdown,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             border: Border.all(color: Color(0xFF6A1B9A)),
             borderRadius: BorderRadius.circular(10),
@@ -183,7 +219,7 @@ class _LazyDropdownState extends State<LazyDropdown> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(selectedItem?.name ?? 'Müşteri/Danışan Seç'),
+              Text(selectedItem?.name ?? 'Müşteri Seçin'),
               Icon(Icons.arrow_drop_down),
             ],
           ),

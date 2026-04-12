@@ -19,7 +19,8 @@ import '../../../../../Models/satisturleri.dart';
 class MusteriALinanUrunlerDashboard extends StatefulWidget {
   final MusteriDanisan kullanici;
   final dynamic isletmebilgi;
-  MusteriALinanUrunlerDashboard({Key? key, required this.kullanici,required this.isletmebilgi}) : super(key: key);
+  final dynamic kullanicirolu;
+  MusteriALinanUrunlerDashboard({Key? key, required this.kullanici,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
   @override
   _MusteriAdiayonlariState createState() => _MusteriAdiayonlariState();
 }
@@ -67,6 +68,8 @@ class _MusteriAdiayonlariState extends State<MusteriALinanUrunlerDashboard> {
 
       selectedadisyonicerigi = adisyonicerigi[0];
       _satisDataGridSource = SatisDataSource(
+        kullanicirolu: widget.kullanicirolu,
+        personelMi: false,
         musteriMi: true,
         isletmebilgi: widget.isletmebilgi,
         rowsPerPage: 10,

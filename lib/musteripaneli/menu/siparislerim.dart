@@ -72,6 +72,8 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
       selectedadisyonicerigi = adisyonicerigi[0];
       _satisDataGridSource = SatisDataSource(
         musteriMi: true,
+        personelMi: false,
+        kullanicirolu: 0,
         isletmebilgi: widget.isletmebilgi,
         rowsPerPage: 10,
         salonid: widget.isletmebilgi['id'].toString(),

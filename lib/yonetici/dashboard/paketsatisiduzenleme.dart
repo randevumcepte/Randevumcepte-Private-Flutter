@@ -53,8 +53,8 @@ class _PaketSatisiState extends State<PaketSatisiDuzenleme> {
       selectedPaketSatici = paketsatici.firstWhere((element) => element.id == widget.mevcutpaket.personel_id);
       pfiyat.text = tryformat.format(double.parse(widget.mevcutpaket.fiyat)).toString();
       pseans.text = widget.mevcutpaket.seans_araligi;
-      baslangictarihi.text = widget.mevcutpaket.seanslar![0]["seans_tarih"];
-      randevusaati.text = widget.mevcutpaket.seanslar![0]["seans_saat"];
+
+
       isloading = false;
     });
   }
@@ -300,130 +300,7 @@ class _PaketSatisiState extends State<PaketSatisiDuzenleme> {
                   )),
             ),
             SizedBox(height: 10,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Randevu Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child:  TextFormField(
 
-                          controller: baslangictarihi,
-                          enabled:true,
-                          //editing controller of this TextField
-                          decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                          readOnly: true,
-                          //set it true, so that user will not able to edit text
-
-                          onTap: () async {
-                            DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(1950),
-                                //DateTime.now() - not to allow to choose before today.
-                                lastDate: DateTime(2100));
-
-                            if (pickedDate != null) {
-                              print(
-                                  pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
-                              String formattedDate =
-                              DateFormat('yyyy-MM-dd').format(pickedDate);
-                              print(
-                                  formattedDate); //formatted date output using intl package =>  2021-03-16
-                              setState(() {
-                                baslangictarihi.text =
-                                    formattedDate; //set output date to TextField value.
-                              });
-                            } else {}
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Randevu Saati',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextFormField(
-                          controller: randevusaati,
-                          onTap: () async {
-                            TimeOfDay? pickedTime = await showTimePicker(
-                              context: context, initialTime: TimeOfDay.now(),
-                              builder: (BuildContext context, Widget? child) {
-                                return MediaQuery(
-                                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-                                  child: child!,
-                                );
-                              },
-
-                            );
-
-                            if (pickedTime != null && pickedTime != _selectedTime) {
-                              setState(() {
-                                _selectedTime = pickedTime;
-                                randevusaati.text = DateFormat.Hm().format(
-                                  DateTime(
-                                    2023, // You can use any year, month, and day here.
-                                    1,    // You can use any month and day here.
-                                    1,    // You can use any month and day here.
-                                    pickedTime.hour,
-                                    pickedTime.minute,
-                                  ),
-                                );
-                              });
-                            }
-                          },
-
-                          decoration: InputDecoration(
-                            enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            ),
 
 
 
@@ -522,6 +399,7 @@ class _PaketSatisiState extends State<PaketSatisiDuzenleme> {
                 },
                   child: Text('Kaydet'),
                   style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
                       backgroundColor: Colors.green,
                       minimumSize: Size(90, 40)
                   ),

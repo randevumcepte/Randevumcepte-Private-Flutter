@@ -20,7 +20,8 @@ import '../../../../../Models/randevular.dart';
 class MusteriRandevulariMenu extends StatefulWidget {
   final dynamic isletmebilgi;
   final MusteriDanisan md;
-  const MusteriRandevulariMenu({Key? key,required this.isletmebilgi, required this.md}) : super(key: key);
+  final int kullanicirolu;
+  const MusteriRandevulariMenu({Key? key,required this.isletmebilgi, required this.md,required this.kullanicirolu}) : super(key: key);
   @override
   _MusteriRandevulariMenuState createState() => _MusteriRandevulariMenuState();
 }
@@ -61,7 +62,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
 
   ];
   int totalPages = 1;
-  String? selectedrandevuolusturma = 'Salon';
+  String? selectedrandevuolusturma = 'Tümü';
   TextEditingController randevuolusturmacontroller = TextEditingController();
   String? lastQuery;
   String? selectedrandevudurum = 'Tümü';
@@ -133,7 +134,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
     setState(() {
 
 
-      _randevuDataGridSource = RandevuDataSource(isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: selectedrandevudurum!, olusturma: selectedrandevuolusturma!,salonid: seciliisletme!,tarih:selectedrandevutarih!,context: context, musteriid: widget.md.id,personelid: "",cihazid: "",musteriMi: false);
+      _randevuDataGridSource = RandevuDataSource(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: selectedrandevudurum!, olusturma: selectedrandevuolusturma!,salonid: seciliisletme!,tarih:selectedrandevutarih!,context: context, musteriid: widget.md.id,personelid: "",cihazid: "",musteriMi: false);
       _randevuDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
       _isLoading = false;
 

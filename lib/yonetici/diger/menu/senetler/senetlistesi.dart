@@ -10,7 +10,8 @@ import 'tumsenetler.dart';
 class SenetListesi extends StatefulWidget {
 
   final dynamic isletmebilgi;
-  const SenetListesi({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  const SenetListesi({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _SenetListesiState createState() =>
@@ -46,7 +47,7 @@ class _SenetListesiState extends State<SenetListesi> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => YeniSenet(isletmebilgi: widget.isletmebilgi,musteridanisanid: "",)),
+                        builder: (context) => YeniSenet(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi,musteridanisanid: "",)),
                   );
                 }, icon:  Icon(Icons.add,color:Colors.black,),iconSize: 26,),
 

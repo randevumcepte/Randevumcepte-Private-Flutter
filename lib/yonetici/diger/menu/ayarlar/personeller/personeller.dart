@@ -10,7 +10,8 @@ import '../../../../../Frontend/sfdatatable.dart';
 
 class Personeller extends StatefulWidget {
   final dynamic isletmebilgi;
-  Personeller({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  Personeller({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _PersonellerState createState  () => _PersonellerState();
@@ -38,6 +39,7 @@ class _PersonellerState extends State<Personeller> {
     seciliisletme = await secilisalonid();
     setState(() {
       _personelDataGridSource = PersonelDataSource(
+        kullanicirolu: widget.kullanicirolu,
         rowsPerPage: 10,
         salonid: seciliisletme!,
         context: context,
@@ -46,9 +48,14 @@ class _PersonellerState extends State<Personeller> {
         showYukleniyor: true,
       );
       _isLoading = false;
+      _personelDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
     });
   }
-
+  void _onLoadingStateChanged() {
+    setState(() {
+      // This empty setState function just triggers a rebuild of the widget when the loading state changes
+    });
+  }
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
@@ -59,10 +66,10 @@ class _PersonellerState extends State<Personeller> {
       onTap: () {
         FocusManager.instance.primaryFocus?.unfocus(); // Hide the keyboard
       },
-          child: Scaffold(
-            resizeToAvoidBottomInset: false,
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
 
-      appBar: AppBar(
+        appBar: AppBar(
           backgroundColor: Colors.white,
           toolbarHeight: 60,
           leading: IconButton(
@@ -92,8 +99,8 @@ class _PersonellerState extends State<Personeller> {
               iconSize: 26,
             ),
           ],
-      ),
-      body: GestureDetector(
+        ),
+        body: GestureDetector(
           child: Column(
             children: [
               Padding(
@@ -248,13 +255,13 @@ class _PersonellerState extends State<Personeller> {
               _buildPaginationControls(),
             ],
           ),
+        ),
       ),
-    ),
-        );
+    );
   }
-
   Widget _buildPaginationControls() {
-    final totalPages = (_personelDataGridSource.totalPages).ceil();
+    final totalPages = _personelDataGridSource.totalPages;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -263,8 +270,10 @@ class _PersonellerState extends State<Personeller> {
           onPressed: _personelDataGridSource.currentPage > 1
               ? () {
             setState(() {
-              _personelDataGridSource
-                  .setPage(_personelDataGridSource.currentPage - 1);
+              _personelDataGridSource.setPage(
+                  _personelDataGridSource.currentPage - 1,
+                  _controller.text // Randevular'daki gibi arama terimini geç
+              );
             });
           }
               : null,
@@ -275,8 +284,10 @@ class _PersonellerState extends State<Personeller> {
           onPressed: _personelDataGridSource.currentPage < totalPages
               ? () {
             setState(() {
-              _personelDataGridSource
-                  .setPage(_personelDataGridSource.currentPage + 1);
+              _personelDataGridSource.setPage(
+                  _personelDataGridSource.currentPage + 1,
+                  _controller.text // Randevular'daki gibi arama terimini geç
+              );
             });
           }
               : null,

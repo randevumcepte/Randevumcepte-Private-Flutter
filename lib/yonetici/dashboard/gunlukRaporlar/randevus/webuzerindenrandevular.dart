@@ -13,7 +13,8 @@ import '../../../../Backend/backend.dart';
 import '../../../../Frontend/sfdatatable.dart';
 class WebUzerinden extends StatefulWidget {
   final dynamic isletmebilgi;
-  WebUzerinden({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  WebUzerinden({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
   @override
   _WebUzerindenState createState() => _WebUzerindenState();
 }
@@ -74,7 +75,7 @@ class _WebUzerindenState extends State<WebUzerinden> {
     setState(() {
 
 
-      _randevuDataGridSource = RandevuDataSource(isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: "Tümü", olusturma: "Web",salonid: seciliisletme!,tarih:"Bugün",context: context,musteriid: "",personelid: "",cihazid: "",musteriMi: false);
+      _randevuDataGridSource = RandevuDataSource(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: "Tümü", olusturma: "Web",salonid: seciliisletme!,tarih:"Bugün",context: context,musteriid: "",personelid: "",cihazid: "",musteriMi: false);
       _randevuDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
       _isLoading = false;
 

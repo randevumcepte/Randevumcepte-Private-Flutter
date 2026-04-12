@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yonetici/dashboard/gunlukRaporlar/ajandaduzenle.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
@@ -12,7 +13,9 @@ import 'ongorusmeekle.dart';
 
 class OnGorusmeler extends StatefulWidget {
 	final dynamic isletmebilgi;
-	const OnGorusmeler({Key? key,required this.isletmebilgi}) : super(key: key);
+	final int kullanicirolu;
+
+	const OnGorusmeler({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 	@override
 	_OnGorusmelerState createState() => _OnGorusmelerState();
 }
@@ -78,6 +81,7 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 	}
 
 	Future<void> initialize() async {
+
 		seciliisletme = await secilisalonid();
 		setState(() {
 			_ongorusmeDataGridSource = OnGorusmeDataSource(
@@ -86,6 +90,7 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 				salonid: seciliisletme!,
 				context: context,
 				arama: _controller.text,
+
 			);
 			_ongorusmeDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
 			_isLoading = false;
@@ -132,7 +137,7 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 		  					Navigator.push(
 		  						context,
 		  						MaterialPageRoute(
-		  							builder: (context) => YeniOnGorusme(ongorusmedatasource: _ongorusmeDataGridSource,isletmebilgi: widget.isletmebilgi,),
+		  							builder: (context) => YeniOnGorusme(kullanicirolu: widget.kullanicirolu, ongorusmedatasource: _ongorusmeDataGridSource,isletmebilgi: widget.isletmebilgi,),
 		  						),
 		  					);
 		  				},

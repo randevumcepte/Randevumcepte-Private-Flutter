@@ -21,7 +21,8 @@ import 'birhizmetdaha.dart';
 class PaketEkle extends StatefulWidget {
   final Kullanici kullanici;
   final dynamic isletmebilgi;
-  const PaketEkle({Key? key, required this.kullanici,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  const PaketEkle({Key? key, required this.kullanici,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _PaketEkleState createState() => _PaketEkleState();
@@ -338,7 +339,7 @@ bool _isloading=true;
 
       Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => PaketSatislari(kullanici: kullanici,isletmebilgi: widget.isletmebilgi),
+          MaterialPageRoute(builder: (context) => PaketSatislari(adisyonId: "", kullanicirolu: widget.kullanicirolu, kullanici: kullanici,isletmebilgi: widget.isletmebilgi),
     ));
     } else {
     // Show error message

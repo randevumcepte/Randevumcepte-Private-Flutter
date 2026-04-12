@@ -154,34 +154,7 @@ class _HizmetlerState extends State<Hizmetler> {
                     }
                     return true;
                   },
-                  startSwipeActionsBuilder:
-                      (BuildContext context, DataGridRow row, int rowIndex) {
-                    return GestureDetector(
-                      onTap: () {
-                        // Handle edit action
-                      },
-                      child: Container(
-                        color: Colors.purple,
-                        child: Center(
-                          child: Icon(Icons.edit, color: Colors.white),
-                        ),
-                      ),
-                    );
-                  },
-                  endSwipeActionsBuilder:
-                      (BuildContext context, DataGridRow row, int rowIndex) {
-                    return GestureDetector(
-                      onTap: () async {
-                        // Handle delete action
-                      },
-                      child: Container(
-                        color: Colors.red,
-                        child: Center(
-                          child: Icon(Icons.delete, color: Colors.white),
-                        ),
-                      ),
-                    );
-                  },
+
                   onCellTap: (DataGridCellTapDetails details) {
                     final tappedRow = _hizmetDataGridSource
                         .rows[details.rowColumnIndex.rowIndex - 1];
@@ -217,7 +190,7 @@ class _HizmetlerState extends State<Hizmetler> {
                       ),
                     ),
                     GridColumn(
-                      width: width * 0.6,
+                      width: width * 0.75,
                       columnName: 'personel',
                       label: Container(
                         padding: EdgeInsets.all(5.0),
@@ -227,15 +200,7 @@ class _HizmetlerState extends State<Hizmetler> {
 
                     ),
 
-                    GridColumn(
-                      width: width * 0.1,
-                      columnName: 'islem',
-                      label: Container(
-                        padding: EdgeInsets.all(5.0),
-                        alignment: Alignment.center,
-                        child: Text(''),
-                      ),
-                    ),
+
                   ],
                 ),
               ),

@@ -1,5 +1,4 @@
-﻿
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:core';
 import 'dart:developer';
 
@@ -16,374 +15,479 @@ import '../../../../../Models/personel.dart';
 import '../../../../../Models/personelcihaz.dart';
 import 'hizmetler.dart';
 
-
-
-
 class ListedeOlmayanHizmet extends StatefulWidget {
   final dynamic isletmebilgi;
-  const ListedeOlmayanHizmet({Key? key,required this.isletmebilgi}) : super(key: key);
+  const ListedeOlmayanHizmet({Key? key, required this.isletmebilgi})
+      : super(key: key);
 
   @override
   _ListedeOlmayanHizmetState createState() => _ListedeOlmayanHizmetState();
 }
-enum SingingCharacter { kadin, erkek,unisex }
 
 class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
-  late List<Cihaz>cihazliste;
+  late List<Cihaz> cihazliste;
   late List<HizmetKategorisi> hizmetkategorisi;
   List<PersonelCihaz> personelcihazliste = [];
   HizmetKategorisi? selectedhizmetkategorisi;
   TextEditingController hizmetkategorisicontroller = TextEditingController();
   List<PersonelCihaz> seciliYardimci = [];
-  Personel ?secilipersonel;
-  Cihaz ?secilicihaz;
   String _selectedGender = '';
-  String dropdownValue = 'Seçiniz';
-  bool isloading=true;
-  TextEditingController hizmet_adi=TextEditingController();
-  TextEditingController hizmet_sure=TextEditingController();
-  TextEditingController hizmet_fiyat=TextEditingController();
+  bool isloading = true;
+  TextEditingController hizmet_adi = TextEditingController();
+  TextEditingController hizmet_sure = TextEditingController();
+  TextEditingController hizmet_fiyat = TextEditingController();
 
+  // Yeni kategori ekleme dialog'u için controller
+  TextEditingController yeniKategoriController = TextEditingController();
 
+  // ScrollController ve form key
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ScrollController _scrollController = ScrollController();
+  AutovalidateMode _autoValidate = AutovalidateMode.disabled;
+
+  @override
   void initState() {
-
     super.initState();
     initialize();
-
-
   }
-  Future<void> initialize() async
-  {
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    hizmet_adi.dispose();
+    hizmet_sure.dispose();
+    hizmet_fiyat.dispose();
+    hizmetkategorisicontroller.dispose();
+    yeniKategoriController.dispose();
+    super.dispose();
+  }
+
+  Future<void> initialize() async {
     var seciliisletme = await secilisalonid();
-    List<HizmetKategorisi> isletmehizmetkategorileriliste = await hizmetkategorileri();
-    List<Personel> isletmepersonellerliste = await personellistegetir(seciliisletme!);
-    List<Cihaz>isletmecihazliste = await isletmecihazlari(seciliisletme!);
+    List<HizmetKategorisi> isletmehizmetkategorileriliste =
+    await hizmetkategorileri();
+    List<Personel> isletmepersonellerliste =
+    await personellistegetir(seciliisletme!);
+    List<Cihaz> isletmecihazliste = await isletmecihazlari(seciliisletme!);
     setState(() {
       hizmetkategorisi = isletmehizmetkategorileriliste;
       cihazliste = isletmecihazliste;
       isletmepersonellerliste.forEach((element) {
-         personelcihazliste.add(element);
+        personelcihazliste.add(element);
       });
       isletmecihazliste.forEach((element) {
-         personelcihazliste.add(element);
+        personelcihazliste.add(element);
       });
-
-      isloading=false;
-
+      isloading = false;
     });
   }
+
   void _showDetailsDialog(BuildContext context) {
-    final _formKey = GlobalKey<FormState>();
+    final _kategoriFormKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          insetPadding: EdgeInsets.zero,
-          content: Container(
-
-            height: 200,
-            width: 280,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: <Widget>[
-
-                Positioned(
-                  right: -40,
-                  top: -40,
-                  child: InkResponse(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const CircleAvatar(
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.close),
+          title: const Text(
+            'Yeni Hizmet Kategorisi',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(  // <-- EKLENDI (scroll ekledi)
+            child: Form(
+              key: _kategoriFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: yeniKategoriController,
+                    autofocus: true,  // <-- EKLENDI (direkt odaklansın)
+                    textInputAction: TextInputAction.done,  // <-- EKLENDI (klavyede "bitti" butonu)
+                    decoration: InputDecoration(
+                      labelText: 'Kategori Adı',
+                      hintText: 'Örn: Saç Kesim, Cilt Bakımı...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(  // <-- EKLENDI
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Kategori adı giriniz';
+                      }
+                      if (value.length < 2) {
+                        return 'En az 2 karakter giriniz';
+                      }
+                      return null;
+                    },
+                    onFieldSubmitted: (value) {  // <-- EKLENDI (enter'a basınca kaydet)
+                      if (_kategoriFormKey.currentState!.validate()) {
+                        _saveNewCategory(context, _kategoriFormKey);
+                      }
+                    },
                   ),
-                ),
-
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-
-                    children: <Widget>[
-
-                    Text('Özel Hizmet Kategorisi',style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold),),
-                      Divider(height: 30,color: Colors.black,),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 5.0),
-                            child: Text('Kategori Adı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        height: 40,
-                        child: TextField(
-
-                          keyboardType: TextInputType.text,
-
-
-
-                          decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 30,),
-                      ElevatedButton(onPressed: (){
-
-
-
-                      },
-                        child: Text('Kaydet'),
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            minimumSize: Size(90, 40)
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                yeniKategoriController.clear();
+                Navigator.of(context).pop();
+              },
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_kategoriFormKey.currentState!.validate()) {
+                  _saveNewCategory(context, _kategoriFormKey);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Kaydet'),
+            ),
+          ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24), // <-- EKLENDI
         );
       },
     );
   }
 
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  AutovalidateMode _autoValidate = AutovalidateMode.disabled;
+// Yeni kategori kaydetme işlemini ayrı metoda aldım
+  void _saveNewCategory(BuildContext context, GlobalKey<FormState> formKey) {
+    if (formKey.currentState!.validate()) {
+      setState(() {
+        HizmetKategorisi yeniKategori = HizmetKategorisi(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          hizmet_kategori_adi: yeniKategoriController.text,
+        );
+        hizmetkategorisi.add(yeniKategori);
+        selectedhizmetkategorisi = yeniKategori;
+      });
+      yeniKategoriController.clear();
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Yeni kategori eklendi'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.shortestSide >= 600;
+    final isLandscape = screenSize.width > screenSize.height;
+
+    final horizontalPadding = isTablet ? 32.0 : 16.0;
+    final verticalPadding = isTablet ? 24.0 : 16.0;
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: new AppBar(
-          title: const Text('Yeni Hizmet',style: TextStyle(color: Colors.black),),
+      home: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
           backgroundColor: Colors.white,
-          leading: IconButton(
-            icon: Icon(Icons.clear_rounded, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
+          appBar: AppBar(
+            title: const Text(
+              'Yeni Hizmet',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.white,
+            elevation: 1,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            actions: [
+              if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: SizedBox(
+                    width: 100,
+                    child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
+                  ),
+                ),
+            ],
           ),
-          actions: [
-            if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: SizedBox(
-                width: 100, // <-- Your width
-                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
-              ),
-            ),
-          ],
-
-        ),
-
-        body: isloading?Center(child:CircularProgressIndicator()):SingleChildScrollView(
-          child: Container(
-            margin: const EdgeInsets.all(15.0),
-            child: Form(
-              key: _formKey,
-              autovalidateMode: _autoValidate,
-              child: formUI(),
-            ),
+          body: isloading
+              ? const Center(child: CircularProgressIndicator())
+              : LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                controller: _scrollController,
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - verticalPadding * 2,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    autovalidateMode: _autoValidate,
+                    child: _buildFormUI(isTablet, isLandscape),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget formUI() {
+  Widget _buildFormUI(bool isTablet, bool isLandscape) {
+    if (isTablet && !isLandscape) {
+      return _buildTwoColumnLayout();
+    } else {
+      return _buildSingleColumnLayout();
+    }
+  }
+
+  Widget _buildSingleColumnLayout() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Hizmet Adı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+      children: [
+        _buildTextField(
+          label: 'Hizmet Adı',
+          controller: hizmet_adi,
+          hint: 'Örn: Saç Kesim, Manikür...',
         ),
-        SizedBox(height: 10,),
-        Container(
-          height: 40,
-          child: TextFormField(
+        const SizedBox(height: 16),
+        _buildTextField(
+          label: 'Hizmet Süresi (dk)',
+          controller: hizmet_sure,
+          hint: 'Örn: 30',
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        _buildTextField(
+          label: 'Hizmet Fiyatı (₺)',
+          controller: hizmet_fiyat,
+          hint: 'Örn: 150',
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 24),
+        _buildPersonelCihazSelector(),
+        const SizedBox(height: 24),
+        _buildKategoriSelector(),
+        const SizedBox(height: 16),
+        _buildCinsiyetSelector(),
+        const SizedBox(height: 24),
+        _buildKaydetButton(),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
 
-            keyboardType: TextInputType.text,
-
-
-            controller: hizmet_adi,
-
-
-            onSaved: (value) {
-
-
-              hizmet_adi.text = value!;
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Bu alan zorunludur!';
-              }
-              return null;
-            },
-            decoration: InputDecoration(
-
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-              contentPadding:  EdgeInsets.all(15.0),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-              border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+  Widget _buildTwoColumnLayout() {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildTextField(
+                label: 'Hizmet Adı',
+                controller: hizmet_adi,
+                hint: 'Örn: Saç Kesim, Manikür...',
               ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildTextField(
+                label: 'Hizmet Süresi (dk)',
+                controller: hizmet_sure,
+                hint: 'Örn: 30',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildTextField(
+                label: 'Hizmet Fiyatı (₺)',
+                controller: hizmet_fiyat,
+                hint: 'Örn: 150',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Container(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _buildPersonelCihazSelector(),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildKategoriSelector(),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildCinsiyetSelector(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _buildKaydetButton(),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    String? hint,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 5, bottom: 8),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        SizedBox(height: 10,),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Hizmet Süresi (dk)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        Container(
-          height: 40,
-          child: TextFormField(
-
-            keyboardType: TextInputType.phone,
-            controller: hizmet_sure,
-
-
-            onSaved: (value) {
-
-
-              hizmet_sure.text = value!;
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Bu alan zorunludur!';
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          textInputAction: TextInputAction.next,
+          style: const TextStyle(fontSize: 16),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.red),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Bu alan zorunludur';
+            }
+            if (keyboardType == TextInputType.number) {
+              if (double.tryParse(value) == null) {
+                return 'Geçerli bir sayı giriniz';
               }
-              return null;
-            },
+              if (double.parse(value) <= 0) {
+                return '0\'dan büyük bir değer giriniz';
+              }
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
 
+  Widget _buildPersonelCihazSelector() {
+    final bool hasError = seciliYardimci.isEmpty && _autoValidate == AutovalidateMode.always;
 
-            decoration: InputDecoration(
-
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-              contentPadding:  EdgeInsets.all(15.0),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-              border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 5, bottom: 8),
+          child: Text(
+            'Hizmeti Sunan Personel & Cihazlar ${hasError ? '*' : ''}',
+            style: TextStyle(
+              fontSize: 14,
+              color: hasError ? Colors.red : Colors.black87,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        SizedBox(height: 10,),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Hizmet Fiyatı (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
         Container(
-          height: 40,
-          child: TextFormField(
-
-            keyboardType: TextInputType.phone,
-            controller: hizmet_fiyat,
-
-
-            onSaved: (value) {
-
-
-              hizmet_fiyat.text = value!;
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Bu alan zorunludur!';
-              }
-              return null;
-            },
-
-
-            decoration: InputDecoration(
-
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-              contentPadding:  EdgeInsets.all(15.0),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-              border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-              ),
-            ),
-          ),
-        ),
-
-        SizedBox(height: 20,),
-        Container(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Hizmeti Sunan Personeller & Cihazlar',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        Container(
-          alignment: Alignment.center,
-          height: 40,
-          width: MediaQuery.of(context).size.width * 0.9, // Adjusted width
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
-            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: hasError ? Colors.red : Colors.grey[300]!,
+              width: hasError ? 1.5 : 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton2(
-              isExpanded: true, // Ensure the dropdown expands to full width
-              hint: Text(
-                seciliYardimci.isEmpty
-                    ? 'Personel ve Cihaz Seç'
-                    : seciliYardimci.map((e) {
-                  if (e is Personel) {
-                    return e.personel_adi;
-                  } else if (e is Cihaz) {
-                    return e.cihaz_adi;
-                  }
-                  return 'Unknown';
-                }).join(', '), // Display selected items in the hint
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).hintColor,
+            child: DropdownButton2<PersonelCihaz>(
+              isExpanded: true,
+              hint: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  seciliYardimci.isEmpty
+                      ? 'Personel ve Cihaz Seçiniz'
+                      : seciliYardimci.map((e) {
+                    if (e is Personel) {
+                      return e.personel_adi;
+                    } else if (e is Cihaz) {
+                      return e.cihaz_adi;
+                    }
+                    return 'Unknown';
+                  }).join(', '),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: seciliYardimci.isEmpty ? Colors.grey[600] : Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
               items: personelcihazliste.map((item) {
                 bool isSelected = seciliYardimci.contains(item);
-
                 return DropdownMenuItem<PersonelCihaz>(
                   value: item,
                   child: StatefulBuilder(
@@ -392,14 +496,13 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                         onTap: () {
                           setState(() {
                             if (isSelected) {
-                              seciliYardimci.remove(item); // Deselect if already selected
+                              seciliYardimci.remove(item);
                             } else {
-                              seciliYardimci.add(item); // Select if not selected
+                              seciliYardimci.add(item);
                             }
                             isSelected = !isSelected;
                           });
-
-                          menuSetState(() {}); // Update the checkbox state
+                          menuSetState(() {});
                         },
                         child: Container(
                           height: double.infinity,
@@ -408,7 +511,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                             children: [
                               Icon(
                                 isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                color: isSelected ? Colors.blue : null,
+                                color: isSelected ? const Color(0xFF6A1B9A) : null,
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -428,295 +531,427 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                   ),
                 );
               }).toList(),
-              onChanged: (_) {
-                // No action needed here since we are using InkWell for handling selection
-              },
-
-              // Button styling
+              onChanged: (_) {},
               buttonStyleData: const ButtonStyleData(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 height: 50,
                 width: double.infinity,
               ),
-
-              // Dropdown styling
               dropdownStyleData: const DropdownStyleData(maxHeight: 400),
               menuItemStyleData: const MenuItemStyleData(height: 40),
             ),
           ),
         ),
-
-
-        SizedBox(height: 20,),
-        Container(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Hizmet Kategorisi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        Container(
-
-          alignment: Alignment.center,
-
-          height: 40,
-          width:double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
-            borderRadius: BorderRadius.circular(10), //border corner radius
-
-            //you can set more BoxShadow() here
-
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 5),
+            child: Text(
+              'En az bir personel veya cihaz seçmelisiniz',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red[700],
+              ),
+            ),
           ),
-          child: DropdownButtonHideUnderline(
-
-              child: DropdownButton2<HizmetKategorisi>(
-
-                isExpanded: true,
-                hint: Text(
-                  'Seçiniz..',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).hintColor,
-                  ),
-                ),
-                items: hizmetkategorisi
-                    .map((item) => DropdownMenuItem(
-                  value: item,
-                  child: Text(
-                    item.hizmet_kategori_adi,
-                    style: const TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
-                ))
-                    .toList(),
-                value: selectedhizmetkategorisi,
-
-
-                onChanged: (value) {
-                  setState(() {
-                    selectedhizmetkategorisi = value;
-                  });
-                },
-                buttonStyleData: const ButtonStyleData(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  height: 50,
-                  width: 400,
-                ),
-
-                dropdownStyleData: const DropdownStyleData(
-                  maxHeight: 200,
-                ),
-                menuItemStyleData: const MenuItemStyleData(
-                  height: 40,
-                ),
-                dropdownSearchData: DropdownSearchData(
-                  searchController: hizmetkategorisicontroller,
-                  searchInnerWidgetHeight: 50,
-                  searchInnerWidget: Container(
-                    height: 50,
-                    padding: const EdgeInsets.only(
-                      top: 8,
-                      bottom: 4,
-                      right: 8,
-                      left: 8,
-                    ),
-                    child: TextFormField(
-                      expands: true,
-                      maxLines: null,
-                      controller: hizmetkategorisicontroller,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        hintText: 'Ara...',
-                        hintStyle: const TextStyle(fontSize: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  searchMatchFn: (item, searchValue) {
-                    return item.value.toString().contains(searchValue);
-                  },
-                ),
-                //This to clear the search value when you close the menu
-                onMenuStateChange: (isOpen) {
-                  if (!isOpen) {
-                    hizmetkategorisicontroller.clear();
-                  }
-                },
-
-              )),
-        ),
-        SizedBox(height: 20,),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Hizmetin Sunulduğu Müşteri Cinsiyeti',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Radio<String>(
-              value: '0',
-              groupValue: _selectedGender,
-              activeColor: Colors.purple[800],
-              onChanged: (value) {
-                setState(() {
-                  _selectedGender = value!;
-                });
-              },
-            ),
-            Text('Kadın',style: TextStyle(fontSize: 16),),
-            SizedBox(width: 30,),
-            Radio<String>(
-              value: '1',
-              groupValue: _selectedGender,
-              activeColor: Colors.purple[800],
-              onChanged: (value) {
-                setState(() {
-                  _selectedGender = value!;
-                });
-              },
-            ),
-            Text('Erkek',style: TextStyle(fontSize: 16),),
-            SizedBox(width: 25,),
-            Radio<String>(
-              value: '2',
-              groupValue: _selectedGender,
-              activeColor: Colors.purple[800],
-              onChanged: (value) {
-                setState(() {
-                  _selectedGender = value!;
-                });
-              },
-            ),
-            Text('Unisex',style: TextStyle(fontSize: 16),)
-
-          ],
-        ),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                _showDetailsDialog(context);
-              },
-              child: Row(
-                children: [
-                  Icon(Icons.add),
-                  Text('Yeni Hizmet Kategorisi Ekle'),
-                ],
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple[800],
-                minimumSize: Size(150, 40),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0)
-                ),
-                elevation: 5,
-              ),
-
-            ),
-          ],
-        ),
-        const SizedBox(
-          height: 20.0,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(onPressed: (){
-              submitForm();
-            },
-              child: Text('Kaydet'),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  minimumSize: Size(90, 40)
-              ),
-            ),
-          ],
-        )
       ],
     );
   }
-  String? validateName(String? value) {
-    if (value!.isEmpty) {
-      return 'İsmi boş bırakmayınız';
-    }
-    if (value.length < 3) {
-      return '2 karakterden fazla olmalıdır';
-    } else {
-      return null;
-    }
+
+  Widget _buildKategoriSelector() {
+    final bool hasError = selectedhizmetkategorisi == null && _autoValidate == AutovalidateMode.always;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 5, bottom: 8),
+          child: Text(
+            'Hizmet Kategorisi ${hasError ? '*' : ''}',
+            style: TextStyle(
+              fontSize: 14,
+              color: hasError ? Colors.red : Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Dropdown - genişlik 8 birim (flex)
+            Expanded(
+              flex: 8,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: hasError ? Colors.red : Colors.grey[300]!,
+                    width: hasError ? 1.5 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton2<HizmetKategorisi>(
+                    isExpanded: true,
+                    hint: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'Kategori Seçiniz',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                    items: hizmetkategorisi.map((item) => DropdownMenuItem<HizmetKategorisi>(
+                      value: item,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          item.hizmet_kategori_adi,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    )).toList(),
+                    value: selectedhizmetkategorisi,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedhizmetkategorisi = value;
+                      });
+                    },
+                    buttonStyleData: ButtonStyleData(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      height: 50,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    dropdownStyleData: const DropdownStyleData(
+                      maxHeight: 300,
+                      width: double.infinity,
+                    ),
+                    menuItemStyleData: const MenuItemStyleData(height: 45),
+                    dropdownSearchData: DropdownSearchData(
+                      searchController: hizmetkategorisicontroller,
+                      searchInnerWidgetHeight: 50,
+                      searchInnerWidget: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: TextFormField(
+                          controller: hizmetkategorisicontroller,
+                          decoration: InputDecoration(
+                            hintText: 'Kategori Ara...',
+                            hintStyle: const TextStyle(fontSize: 12),
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                      ),
+                      searchMatchFn: (item, searchValue) {
+                        return item.value
+                            .toString()
+                            .toLowerCase()
+                            .contains(searchValue.toLowerCase());
+                      },
+                    ),
+                    onMenuStateChange: (isOpen) {
+                      if (!isOpen) {
+                        hizmetkategorisicontroller.clear();
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Artı butonu - genişlik 1 birim (flex)
+            Expanded(
+              flex: 1,
+              child: InkWell(
+                onTap: () => _showDetailsDialog(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                  ),
+                  child: Icon(
+                    Icons.add,
+                    color: Colors.green[600],
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 5),
+            child: Text(
+              'Lütfen bir hizmet kategorisi seçiniz',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red[700],
+              ),
+            ),
+          ),
+      ],
+    );
   }
+
+  Widget _buildCinsiyetSelector() {
+    final bool hasError = _selectedGender.isEmpty && _autoValidate == AutovalidateMode.always;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 5, bottom: 8),
+          child: Text(
+            'Müşteri Cinsiyeti ${hasError ? '*' : ''}',
+            style: TextStyle(
+              fontSize: 14,
+              color: hasError ? Colors.red : Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: hasError ? Colors.red : Colors.grey[300]!,
+              width: hasError ? 1.5 : 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildRadioOption('Kadın', '0'),
+              _buildRadioOption('Erkek', '1'),
+              _buildRadioOption('Unisex', '2'),
+            ],
+          ),
+        ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 5),
+            child: Text(
+              'Lütfen müşteri cinsiyetini seçiniz',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red[700],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRadioOption(String label, String value) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Radio<String>(
+          value: value,
+          groupValue: _selectedGender,
+          activeColor: const Color(0xFF6A1B9A),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          onChanged: (val) {
+            setState(() {
+              _selectedGender = val!;
+            });
+          },
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKaydetButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: submitForm,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        child: const Text(
+          'Hizmeti Kaydet',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
   Future<void> submitForm() async {
-    log(seciliYardimci.length.toString());
-    List <String> personelidler = [];
-    List <String> cihazidler = [];
+    // Tüm alanları kontrol et
+    List<String> eksikAlanlar = [];
+
+    if (hizmet_adi.text.trim().isEmpty) {
+      eksikAlanlar.add('Hizmet Adı');
+    }
+    if (hizmet_sure.text.trim().isEmpty) {
+      eksikAlanlar.add('Hizmet Süresi');
+    }
+    if (hizmet_fiyat.text.trim().isEmpty) {
+      eksikAlanlar.add('Hizmet Fiyatı');
+    }
+    if (selectedhizmetkategorisi == null) {
+      eksikAlanlar.add('Hizmet Kategorisi');
+    }
+    if (_selectedGender.isEmpty) {
+      eksikAlanlar.add('Müşteri Cinsiyeti');
+    }
+    if (seciliYardimci.isEmpty) {
+      eksikAlanlar.add('Personel/Cihaz');
+    }
+
+    // Eksik alan varsa genel uyarı göster
+    if (eksikAlanlar.isNotEmpty) {
+      setState(() {
+        _autoValidate = AutovalidateMode.always;
+      });
+
+      _scrollToFirstError();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Lütfen tüm alanları doldurunuz:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(eksikAlanlar.join(', ')),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Form validasyonu
+    if (!_formKey.currentState!.validate()) {
+      setState(() {
+        _autoValidate = AutovalidateMode.always;
+      });
+      return;
+    }
+
+    List<String> personelidler = [];
+    List<String> cihazidler = [];
+
     seciliYardimci.forEach((element) {
-      if(element is Personel)
+      if (element is Personel) {
         personelidler.add(element.id);
-      else if(element is Cihaz)
+        log('yeni hizmet için eklenen personel id ' + element.id.toString());
+      } else if (element is Cihaz) {
         cihazidler.add(element.id);
-    });
-
-
-    personelidler.forEach((element) {
-
-      log("personel id : "+element);
-    });
-    cihazidler.forEach((element) {
-
-      log("cihaz id : "+element);
+      }
     });
 
     final Map<String, dynamic> formData = {
-        'hizmet_kategorisi': selectedhizmetkategorisi?.id ?? "",
-        'hizmet_adi':hizmet_adi.text,
-
-
-      'hizmet_sure': hizmet_sure.text,
-      'hizmet_fiyati':hizmet_fiyat.text,
-      'cinsiyet':_selectedGender,
-
-      'personel_id':personelidler,
-      'cihaz_id':cihazidler,
-      'sube':widget.isletmebilgi["id"],
-
-
-
-      // Add other form fields
+      'hizmet_kategorisi': selectedhizmetkategorisi?.id ?? "",
+      'hizmet_adi': hizmet_adi.text.trim(),
+      'hizmet_sure': hizmet_sure.text.trim(),
+      'hizmet_fiyati': hizmet_fiyat.text.trim(),
+      'cinsiyet': _selectedGender,
+      'personel_id': personelidler,
+      'cihaz_id': cihazidler,
+      'sube': widget.isletmebilgi["id"],
     };
-    log(formData.toString());
-    /*final response = await http.post(
-      Uri.parse('https://webapp.randevumcepte.com.tr/api/v1/sistemeyenihizmetekle'),
 
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(formData),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    if (response.statusCode == 200) {
-
-      Navigator.of(context).pop();
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => Hizmetler(isletmebilgi:widget.isletmebilgi)),
+    try {
+      final response = await http.post(
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/sistemeyenihizmetekle'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(formData),
       );
 
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Hizmet eklenirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
-        ),
-      );
-      debugPrint('Error: ${response.body}');
-    }*/
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (response.statusCode == 200) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Hizmet başarıyla eklendi'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          Navigator.of(context).pop();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Hizmetler(isletmebilgi: widget.isletmebilgi),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Hizmet eklenirken hata oluştu! Hata: ${response.statusCode}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          debugPrint('Error: ${response.body}');
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bağlantı hatası: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
+  void _scrollToFirstError() {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
 }

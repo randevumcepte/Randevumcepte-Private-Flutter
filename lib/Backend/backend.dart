@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
@@ -43,6 +44,7 @@ import '../Models/hizmetler.dart';
 import '../Models/isletmecalismasaatleri.dart';
 import '../Models/isletmehizmetleri.dart';
 import '../Models/molasaatleri.dart';
+import '../Models/musterisayilari.dart';
 import '../Models/ongorusmeler.dart';
 import '../Models/randevuhizmetleri.dart';
 import '../Models/randevuhizmetyardimcipersonelleri.dart';
@@ -70,6 +72,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../yonetici/diger/menu/musteriler/rehberdekimusteriler.dart';
+import '../yonetici/diger/menu/musteriler/yeni_musteri.dart';
 
 Future<Map<String,dynamic>> ajandagetir(String salonid,String currpage,String baslik) async {
   SharedPreferences localStorage = await SharedPreferences.getInstance();
@@ -173,24 +176,68 @@ Future<List<MusteriDanisan>> musterilistegetir(String salonid) async {
     var reset = response.headers['x-ratelimit-reset'];
 
     logyaz2("Müşteriler. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
-    List jsonResponse = json.decode(response.body);
 
-    return jsonResponse.map((e) => MusteriDanisan.fromJson(e)).toList();
+    // JSON yanıtını decode et
+    var jsonResponse = json.decode(response.body);
+
+    // Eğer yanıt bir map ise ve içinde data anahtarı varsa, onu kullan
+    List jsonList;
+    if (jsonResponse is Map<String, dynamic>) {
+      if (jsonResponse.containsKey('data')) {
+        jsonList = jsonResponse['data'];
+      } else if (jsonResponse.containsKey('musteriler')) {
+        jsonList = jsonResponse['musteriler'];
+      } else {
+        // Map'in direkt kendisini liste olarak kullan
+        jsonList = [jsonResponse];
+      }
+    } else if (jsonResponse is List) {
+      jsonList = jsonResponse;
+    } else {
+      throw Exception('Beklenmeyen yanıt formatı: ${jsonResponse.runtimeType}');
+    }
+
+    return jsonList.map((e) => MusteriDanisan.fromJson(e)).toList();
   } else {
-    logyaz(response.statusCode,response.reasonPhrase);
+    logyaz(response.statusCode, response.reasonPhrase);
     throw Exception(response.reasonPhrase);
   }
 }
-Future<List<MusteriDanisan>> musterilistegetirSayfali(
-    String salonid, String filter, String limit, String offset) async {
 
-  final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriler?salonid='+salonid+'&search='+filter),
+Future<MusteriDanisan> musterilistegetirTahsilat(String userId) async {
+  final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteritahsilat?userId='+userId)
   );
 
   if (response.statusCode == 200) {
-    List jsonResponse = json.decode(response.body);
-    return jsonResponse.map((e) => MusteriDanisan.fromJson(e)).toList();
+    var rateLimit = response.headers['x-ratelimit-limit'];
+    var remaining = response.headers['x-ratelimit-remaining'];
+    var reset = response.headers['x-ratelimit-reset'];
+
+    logyaz2("Müşteriler. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
+
+    // JSON yanıtını decode et
+    var jsonResponse = json.decode(response.body);
+    log('müşteri tahsilat json response '+response.body);
+    return MusteriDanisan.fromJson(jsonResponse);
+  } else {
+    logyaz(response.statusCode, response.reasonPhrase);
+    throw Exception(response.reasonPhrase);
+  }
+}
+
+Future<List<MusteriDanisan>> musterilistegetirSayfali(String seciliMusteri,
+    String salonid, String filter, String limit, String offset) async {
+
+  final response = await http.get(Uri.parse(
+      'https://app.randevumcepte.com.tr/api/v1/musteriler/$salonid?search=$filter&limit=$limit&offset=$offset&seciliMusteri?$seciliMusteri'));
+
+  if (response.statusCode == 200) {
+    final jsonResponse = json.decode(response.body);
+
+    // API'den gelen "data" listesini çekiyoruz
+    List data = jsonResponse['data'];
+    return data.map((e) => MusteriDanisan.fromJson(e)).toList();
   } else {
     throw Exception('Failed to load');
   }
@@ -634,11 +681,14 @@ Future<File> _fileFromImageUrl() async {
   return file;
 }
 Future <Map<String, dynamic>> ongorusmeler(String Salonid,  String currpage,String musteridanisanadi) async {
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  var user = jsonDecode(localStorage.getString('user')!);
   Map<String, dynamic> formData = {
 
     'salon_id': Salonid,
 
     'musteridanisan': musteridanisanadi,
+    'userId':user['id'],
 
     // Add other form fields
   };
@@ -693,7 +743,7 @@ Future <Map<String, dynamic>> ongorusmelergunluk(String Salonid,  String currpag
     throw Exception(response.reasonPhrase);
   }
 }
-Future<List<Cdr>> santralraporlari(String salonId, String tarih1, String tarih2) async {
+Future<List<Cdr>> santralraporlari(String salonId, String tarih1, String tarih2,int currentoffset) async {
   try {
     print('santralraporlari: backend fonksiyona girildi');
 
@@ -704,7 +754,7 @@ Future<List<Cdr>> santralraporlari(String salonId, String tarih1, String tarih2)
     buffer.write("salonId=$salonId");
     buffer.write("&tarih1=$tarih1");
     buffer.write("&tarih2=$tarih2");
-    buffer.write("&offset=0");
+    buffer.write("&offset=$currentoffset");
 
     final uri = Uri.parse("https://app.randevumcepte.com.tr/api/v1/cdrraporson?${buffer.toString()}");
 
@@ -729,7 +779,7 @@ Future<List<Cdr>> santralraporlari(String salonId, String tarih1, String tarih2)
 }
 
 
-Future <Map<String, dynamic>> randevularigetir(String musteri_id,String Salonid,String olusturma,String durum,String tarih, String currpage,String musteridanisanadi,String personelid,String cihazid,bool musteriMi) async {
+Future <Map<String, dynamic>>   randevularigetir(String musteri_id,String Salonid,String olusturma,String durum,String tarih, String currpage,String musteridanisanadi,String personelid,String cihazid,bool musteriMi) async {
   bool web = false;
   bool salon = false;
   bool uygulama = false;
@@ -835,7 +885,7 @@ Future <Map<String, dynamic>> randevularigetir(String musteri_id,String Salonid,
     // Add other form fields
   };
 
-
+  log('randevu liste '+jsonEncode(formData));
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevular?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
@@ -1250,7 +1300,7 @@ Future <Map<String, dynamic>> musteridanisanlistesi(String Salonid , String curr
     // Add other form fields
   };
 
-
+log('curr page '+currpage.toString());
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/musterilistegetir/'+Salonid+'?page='+currpage.toString()),
 
@@ -1263,10 +1313,11 @@ Future <Map<String, dynamic>> musteridanisanlistesi(String Salonid , String curr
     var remaining = response.headers['x-ratelimit-remaining'];
     var reset = response.headers['x-ratelimit-reset'];
 
-    logyaz2("Müşteriliste. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
+    log('müşteri josn response '+response.body);
     return  json.decode(response.body);
 
   } else {
+    log('Hata oluştu '+response.body);
     logyaz(response.statusCode,response.reasonPhrase);
     throw Exception(response.reasonPhrase);
   }
@@ -1514,6 +1565,32 @@ Future <Map<String, dynamic>> kasaraporu(String Salonid , String tarih,String od
   }
 
 }
+
+// backend.dart dosyasına ekleyin
+
+Future<Map<String, dynamic>> devredenAylar(String salonId, int year) async {
+  Map<String, dynamic> formData = {
+    'salonId': salonId,
+    'yil': year,
+
+    // Add other form fields
+  };
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/devredenAylar'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+
+  );
+
+  if (response.statusCode == 200) {
+    return json.decode(response.body);
+  } else {
+    throw Exception('Devreden aylar yüklenirken hata oluştu: ${response.reasonPhrase}');
+  }
+}
+
+
+
 void logout(BuildContext context) async {
   try {
     // Show a confirmation dialog
@@ -1584,6 +1661,7 @@ Future <Map<String, dynamic>> seanslarigetir(String Salonid , String currpage,St
     var reset = response.headers['x-ratelimit-reset'];
 
     logyaz2("Seanslar. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
+
     return  json.decode(response.body);
 
   } else {
@@ -1604,6 +1682,7 @@ Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tar
 
     // Add other form fields
   };
+  log('randevu personel id '+personelid);
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevular/'+seciliisletme+'/0'),
 
@@ -1614,6 +1693,7 @@ Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tar
   if(yukleniyor)
     Navigator.of(context,rootNavigator: true).pop();
   if (response.statusCode == 200) {
+    log("randevudata "+response.body);
     return json.decode(response.body);
   }
   else
@@ -1818,58 +1898,147 @@ void showErrorDialog(BuildContext context, String? message) {
     },
   );
 }
-Future<void> randevugeldiisaretle(String randevuid,String dogrulamakodu, BuildContext context) async {
+
+Future<int> randevuGeldiGelmediIsaretiKaldir(
+    String randevuid,
+
+    BuildContext context,
+
+    ) async {
   showProgressLoading(context);
-  TextEditingController dogrulama_kodu = TextEditingController();
-  log("doğrulama kodu "+dogrulamakodu);
   Map<String, dynamic> formData = {
     'randevuid': randevuid,
-    'dogrulama_kodu': dogrulamakodu,
-    // Add other form fields
+
   };
 
-
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevugeldiisaretle'),
-
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuGeldiGelmediIsaretiKaldir'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
 
   if (response.statusCode == 200) {
-    Navigator.of(context,rootNavigator:true).pop();
-    dynamic result =  json.decode(response.body);
-    log("randevu result : "+result.toString());
-    if(result["hatali"] == "2" || result["hatali"] == "1"){
+    if (!context.mounted) return 0;
+    Navigator.of(context).pop();
+    log('işaret kaldır sonucu '+response.body);
+    return response.statusCode;
 
-      randevudogrulamapopup(result, dogrulama_kodu, context, randevuid);
+
+
+
+  } else {
+    log("işaret kaldır sonucu "+response.body);
+    logyaz(response.statusCode, response.reasonPhrase);
+    return -1;
+  }
+}
+
+
+
+Future<void> randevugeldiisaretle(
+    String randevuid,
+    String dogrulamakodu2,
+    BuildContext context,
+    String onayKodu2,
+    ) async {
+  showProgressLoading(context);
+
+  log("doğrulama kodu: $dogrulamakodu2, onay kodu: $onayKodu2");
+
+  Map<String, dynamic> formData = {
+    'randevuid': randevuid,
+    'dogrulama_kodu': dogrulamakodu2,
+    'kvkkKodu': onayKodu2,
+  };
+
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevugeldiisaretle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+
+  if (response.statusCode == 200) {
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
+    dynamic result = json.decode(response.body);
+    log("randevu result: $result");
+
+    String dogrulamaKodu = dogrulamakodu2;
+    String onayKodu = onayKodu2;
+    log('popup çıkacak mı '+result["hatali"]);
+    // 1️⃣ Doğrulama popup'ı
+    if ((result["hatali"].toString() == "2" || result["hatali"].toString() == "1") && dogrulamaKodu.isEmpty) {
+      final popupKod = await randevudogrulamapopup(
+        result,
+        TextEditingController(),
+        context,
+        randevuid,
+        TextEditingController(),
+      );
+
+      if (popupKod != null && popupKod.isNotEmpty) {
+        dogrulamaKodu = popupKod;
+
+        if (!context.mounted) return;
+        // recursive çağrı, KVKK kodu zaten varsa geçecek
+        await randevugeldiisaretle(randevuid, dogrulamaKodu, context, onayKodu);
+        return; // recursive çağrı sonrası devam etme
+      }
     }
 
-  }
-  else {
-    logyaz(response.statusCode,response.reasonPhrase);
+    // 2️⃣ KVKK popup'ı
+    if (result["hatali"] == "3" && onayKodu.isEmpty) {
+      final popupOnay = await kvkkPopup(
+        result,
+        TextEditingController(),
+        context,
+        randevuid,
+        TextEditingController(),
+      );
+
+      if (popupOnay != null && popupOnay.isNotEmpty) {
+        onayKodu = popupOnay;
+
+        if (!context.mounted) return;
+        // recursive çağrı, doğrulama kodu zaten varsa geçecek
+        await randevugeldiisaretle(randevuid, dogrulamaKodu, context, onayKodu);
+        return; // recursive çağrı sonrası devam etme
+      }
+    }
+
+    // 3️⃣ Başarılı veya hatalı durumlar artık popup'lar tamamlandıktan sonra buraya gelir
+    if (result["hatali"] == "0") {
+      log("Randevu başarıyla işaretlendi.");
+    }
+
+  } else {
+    logyaz(response.statusCode, response.reasonPhrase);
     throw Exception(response.reasonPhrase);
   }
-
 }
-Future<bool?> randevudogrulamapopup(
+
+// Doğrulama popup'ı
+Future<String?> randevudogrulamapopup(
     var result,
     TextEditingController dogrulama_kodu,
     BuildContext context,
     String randevuid,
+    TextEditingController onayKodu,
     ) {
-
-  return showDialog<bool>(
+  return showDialog<String>(
     context: context,
+    barrierDismissible: false,
     builder: (BuildContext context2) {
       return AlertDialog(
         title: const Text('RANDEVU DOĞRULAMA'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(result["mesaj"] ?? "Bir hata oluştu."),
+            Text(result["mesaj"]),
             const SizedBox(height: 16),
             TextFormField(
+              keyboardType: TextInputType.number,
               controller: dogrulama_kodu,
               decoration: InputDecoration(
                 isDense: true,
@@ -1890,15 +2059,72 @@ Future<bool?> randevudogrulamapopup(
           TextButton(
             child: const Text('VAZGEÇ'),
             onPressed: () {
-              Navigator.of(context2).pop(false); // Return `false` for "Cancel"
+              Navigator.of(context2).pop(''); // boş dönüyor, recursive çağrı tetiklenmez
             },
           ),
           TextButton(
             child: const Text('GÖNDER'),
             onPressed: () {
               if (dogrulama_kodu.text.isNotEmpty) {
-                Navigator.of(context2).pop(true); // Return `true` for "Send"
-                randevugeldiisaretle(randevuid, dogrulama_kodu.text, context);
+                Navigator.of(context2).pop(dogrulama_kodu.text); // doğru kodu döndür
+              }
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+// KVKK popup'ı
+Future<String?> kvkkPopup(
+    var result,
+    TextEditingController dogrulama_kodu,
+    BuildContext context,
+    String randevuid,
+    TextEditingController onayKodu,
+    ) {
+  return showDialog<String>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context2) {
+      return AlertDialog(
+        title: const Text('UYARI'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Müşteri bilgilerini sisteme kaydetmeden önce verilerinin işlenmesine ve kayıtlı iletişim adresleri üzerinden SMS, e-posta ve aramalar vasıtasıyla ticari elektronik ileti gönderimine izin verdiğine dair cep telefonuna gönderilen onay kodunu girmeniz gerekmektedir."),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: onayKodu,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                hintText: 'Onay kodu..',
+                hintStyle: const TextStyle(fontSize: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('VAZGEÇ'),
+            onPressed: () {
+              Navigator.of(context2).pop(''); // boş dönüyor, recursive çağrı tetiklenmez
+            },
+          ),
+          TextButton(
+            child: const Text('GÖNDER'),
+            onPressed: () {
+              if (onayKodu.text.isNotEmpty) {
+                Navigator.of(context2).pop(onayKodu.text); // doğru kodu döndür
               }
             },
           ),
@@ -1962,13 +2188,15 @@ Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildC
     throw Exception('Failed to load resources');
   }
 }
-Future<Map<String, dynamic>> senetvetaksitler(String salonid, String musteriid) async{
+Future<Map<String, dynamic>> senetvetaksitler(String salonid, String musteriid,String adisyonId) async{
   late String tur;
   Map<String, dynamic> formData = {
     'musteri_id': musteriid,
     'salon_id' : salonid,
+    'adisyon_id': adisyonId,
 
   };
+  log('tahsilat verisi '+jsonEncode(formData));
   final response = await http.post(
     Uri.parse("https://app.randevumcepte.com.tr/api/v1/tum-alacaklar"),
 
@@ -1987,7 +2215,7 @@ Future<Map<String, dynamic>> senetvetaksitler(String salonid, String musteriid) 
     throw Exception('Failed to load resources');
   }
 }
-Future <String> taksitekleguncelle(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim) async {
+Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim) async {
   showProgressLoading(context);
   log("kalem sayısı "+adisyonkalemleri.length.toString());
 
@@ -2032,7 +2260,7 @@ Future <String> taksitekleguncelle(BuildContext context, String Salonid,List<Adi
   SharedPreferences localStorage = await SharedPreferences.getInstance();
   var user = jsonDecode(localStorage.getString('user')!);
   Map<String, dynamic> formData = {
-    'ad_soyad':musteridanisan,
+    'tahsilat_musteri_id':musteridanisan,
     'sube': Salonid,
     'vade_baslangic_tarihi':ilkodemetarih,
     'taksit_tutar':toplamtutar,
@@ -2051,11 +2279,7 @@ Future <String> taksitekleguncelle(BuildContext context, String Salonid,List<Adi
     'odeme_yontemi':odemeyontemi,
     'indirimli_toplam_tahsilat_tutari':odenentutar,
     'tahsilat_tarihi':tahsilattarihi,
-    'tahsilat_notlari':notlar
-
-
-
-
+    'tahsilat_notlari':notlar,
     // Add other form fields
   };
   final response = await http.post(
@@ -2064,33 +2288,8 @@ Future <String> taksitekleguncelle(BuildContext context, String Salonid,List<Adi
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
-
-  if (response.statusCode == 200) {
-    var rateLimit = response.headers['x-ratelimit-limit'];
-    var remaining = response.headers['x-ratelimit-remaining'];
-    var reset = response.headers['x-ratelimit-reset'];
-
-    logyaz2("Taksit ekle. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
-    Navigator.of(context,rootNavigator: true).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Taksitlendirme başarıyla kaydedildi'),
-      ),
-    );
-    debugPrint("sonuç "+response.body);
-    return  response.body;
-
-  } else {
-    Navigator.of(context,rootNavigator: true).pop();
-    debugPrint(response.body);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Taksitlendirme işlenirken bir hata oluştu. Hata kodu : '+response.statusCode.toString()),
-      ),
-    );
-    logyaz(response.statusCode,response.reasonPhrase);
-    throw Exception(response.reasonPhrase);
-  }
+  return response.statusCode;
+  /**/
 
 }
 
@@ -2163,11 +2362,6 @@ Future <String> tahsilet(BuildContext context, String Salonid,List<AdisyonKaleml
     'tahsilat_notlari':notlar,
     'senet_vade_id':adisyonsenetidler,
     'taksit_vade_id':adisyontaksitidler,
-
-
-
-
-
     // Add other form fields
   };
   final response = await http.post(
@@ -2615,9 +2809,9 @@ Future<String> musteriDanisanTuru(String salonid, String musteriid) async{
   }
 }
 
-Future<Map<String, dynamic>> satislar(String Salonid , String currpage,String tarih1,String tarih2,String musteriid,String tur,String personel_id,bool musteriMi,String user_id) async {
+Future<Map<String, dynamic>> satislar(String Salonid , String currpage,String tarih1,String tarih2,String musteriid,String tur,String personel_id,bool musteriMi,String user_id,int acikKapali) async {
 
-  log('Personel id '+personel_id);
+
   Map<String, dynamic> formData = {
     'salonid': Salonid,
     'tarih1':tarih1,
@@ -2628,17 +2822,18 @@ Future<Map<String, dynamic>> satislar(String Salonid , String currpage,String ta
     'musteriMi': musteriMi,
     'user_id':user_id,
     'appBundle':await appBundleAl(),
+    'acikKapali':acikKapali
     // Add other form fields
   };
 
-
+  log('satış data filter '+jsonEncode(formData));
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/satislar?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
-
+  log('satış verisi '+response.body);
   if (response.statusCode == 200) {
     var rateLimit = response.headers['x-ratelimit-limit'];
     var remaining = response.headers['x-ratelimit-remaining'];
@@ -2710,117 +2905,144 @@ void logyaz2(String logstr) async {
 }
 Future<void> randevuEkleGuncelle(
     String cakismavarmi,
-    cakisanrandevuekle,
+    String cakisanrandevuekle, // Bu parametreyi String yap
     String randevuid,
     MusteriDanisan secilimusteridanisan,
     String randevutarihi,
     String randevusaati,
-    List<RandevuHizmet>randevuhizmetleri,
-    List<RandevuHizmetYardimciPersonelleri>yardimcipersoneller,
+    List<RandevuHizmet> randevuhizmetleri,
+    List<RandevuHizmetYardimciPersonelleri> yardimcipersoneller,
     bool tekrarlayan,
     String tekrarsayisi,
     String? siklik,
     String notlar,
     String salonid,
-
-
     BuildContext context,
     String kaynak,
     String durum,
-
+    dynamic isletmebilgi,
     ) async {
-
   showProgressLoading(context);
   SharedPreferences localStorage = await SharedPreferences.getInstance();
-
+  log('randevu hizmet data ' + jsonEncode(randevuhizmetleri));
   var user = jsonDecode(localStorage.getString('user')!);
+
   Map<String, dynamic> formData = {
     'randevu_id': randevuid,
     'user_id': secilimusteridanisan.id,
-
     'randevu_tarihi': randevutarihi,
-    'randevu_saati':randevusaati,
-    'hizmetler':randevuhizmetleri,
-    'yardimcipersoneller' : yardimcipersoneller,
-    'tekrarlayan':tekrarlayan,
-    'tekrar_sayisi':tekrarsayisi,
-    'tekrar_sikligi':siklik,
-    'notlar':notlar,
-    'salonid':salonid,
-    'cakisma_varmi':cakismavarmi,
-    'cakisanrandevuekle':cakisanrandevuekle,
-    'olusturan': kaynak == 'salon'  ? user["id"] : null,
-    'olusturanMusteri': kaynak=='uygulama'? secilimusteridanisan.id : null,
-
-    'randevuKaynak':kaynak,
-    'durum':durum,
-    'appBundle':await appBundleAl(),
-
-
-    // Add other form fields
+    'randevu_saati': randevusaati,
+    'hizmetler': randevuhizmetleri,
+    'yardimcipersoneller': yardimcipersoneller,
+    'tekrarlayan': tekrarlayan,
+    'tekrar_sayisi': tekrarsayisi,
+    'tekrar_sikligi': siklik,
+    'notlar': notlar,
+    'salonid': salonid,
+    'cakisma_varmi': cakismavarmi,
+    'cakisanrandevuekle': cakisanrandevuekle, // Burada string olarak gönder
+    'olusturan': kaynak == 'salon' ? user["id"] : null,
+    'olusturanMusteri': kaynak == 'uygulama' ? secilimusteridanisan.id : null,
+    'randevuKaynak': kaynak,
+    'durum': durum,
+    'appBundle': await appBundleAl(),
   };
 
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuekleguncelle'),
-
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
 
   if (response.statusCode == 200) {
     var result = json.decode(response.body);
-    if(result["cakismavar"]=="1")
-    {
-      Navigator.of(context,rootNavigator: true).pop();
-      showDialog<bool>(
-        context: context,
-        builder: (BuildContext context2) {
-          return AlertDialog(
-            title: Text('UYARI'),
-            content: Text('Oluşturduğunuz randevu aşağıdakilerle çakışmaktadır!\n\n'+result["cakisanunsurlar"].replaceAll(r'\n', '\n')),
-            actions: <Widget>[
-              TextButton(
-                child: Text('VAZGEÇ'),
-                onPressed: () {
-                  Navigator.of(context2).pop();
-                },
-              ),
-              TextButton(
-                child: Text('YİNE DE RANDEVUYU OLUŞTUR'),
-                onPressed: () {
-                  Navigator.of(context2).pop();
-                  randevuEkleGuncelle('','1',  randevuid,
-                    secilimusteridanisan,
-                    randevutarihi,
-                    randevusaati,
-                    randevuhizmetleri,
-                    yardimcipersoneller,
-                    tekrarlayan,
-                    tekrarsayisi,
-                    siklik,
-                    notlar,
-                    salonid,
-                    context,
-                     kaynak,
-                     durum,
-                  );
+    if (result["cakismavar"] == "1") {
+      Navigator.of(context, rootNavigator: true).pop();
 
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-    else
-    {
+      // EĞER cakisanrandevuekle zaten "1" ise (yani kullanıcı daha önce "Yine de oluştur" dediyse)
+      // tekrar sorma, direkt olarak "yine de oluştur" modunda çağır
+      if (cakisanrandevuekle == "1") {
+        // Zaten "yine de oluştur" modundayız, bu yüzden tekrar recursive çağırma
+        // Bu durumda işlemi iptal et ve hata mesajı göster
+        showDialog<bool>(
+          context: context,
+          builder: (BuildContext context2) {
+            return AlertDialog(
+              title: Text('HATA'),
+              content: Text('Randevu oluşturulamadı. Lütfen farklı bir tarih/saat deneyin.'),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('TAMAM'),
+                  onPressed: () {
+                    Navigator.of(context2).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        // İlk kez çakışma tespit edildi, kullanıcıya sor
+        showDialog<bool>(
+          context: context,
+          builder: (BuildContext context2) {
+            return AlertDialog(
+              title: Text('UYARI'),
+              content: Text('Oluşturduğunuz randevu aşağıdakilerle çakışmaktadır!\n\n' +
+                  result["cakisanunsurlar"].replaceAll(r'\n', '\n')),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('VAZGEÇ'),
+                  onPressed: () {
+                    Navigator.of(context2).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('YİNE DE RANDEVUYU OLUŞTUR'),
+                  onPressed: () {
+                    Navigator.of(context2).pop();
+                    // Recursive çağrıda cakisanrandevuekle = "1" olarak gönder
+                    randevuEkleGuncelle(
+                      '1', // cakismavarmi
+                      '1', // cakisanrandevuekle - ARTIK "1" olarak gönder
+                      randevuid,
+                      secilimusteridanisan,
+                      randevutarihi,
+                      randevusaati,
+                      randevuhizmetleri,
+                      yardimcipersoneller,
+                      tekrarlayan,
+                      tekrarsayisi,
+                      siklik,
+                      notlar,
+                      salonid,
+                      context,
+                      kaynak,
+                      durum,
+                      isletmebilgi,
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } else {
+      // Başarılı
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.of(context).pop();
-      if(kaynak=='uygulama'){
+
+      if (kaynak == 'uygulama') {
         Navigator.of(context).pop();
+        log('işletme bilgi');
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (builder) => MusteriAltBar(musteriId: secilimusteridanisan,isletmebilgi :'',scaffoldMessengerKey: scaffoldMessengerKey),
+            builder: (builder) => MusteriAltBar(
+              musteriId: secilimusteridanisan,
+              isletmebilgi: isletmebilgi,
+              scaffoldMessengerKey: scaffoldMessengerKey,
+            ),
           ),
         );
       }
@@ -2828,11 +3050,12 @@ Future<void> randevuEkleGuncelle(
       showDialog<bool>(
         context: context,
         builder: (BuildContext context2) {
-          String returntext  ='';
-          if(durum=='0')
+          String returntext = '';
+          if (durum == '0')
             returntext = 'Randevu talebiniz alınmıştır. Talebiniz kısa sürede sonuçlanacaktır. İlginiz için teşekkür ederiz!';
           else
-            returntext = "Randevu başarıyla "+(randevuid!="" ? "güncellendi." :"oluşturuldu" );
+            returntext = "Randevu başarıyla " + (randevuid != "" ? "güncellendi." : "oluşturuldu");
+
           return AlertDialog(
             title: Text('BAŞARILI'),
             content: Text(returntext),
@@ -2841,8 +3064,6 @@ Future<void> randevuEkleGuncelle(
                 child: Text('TAMAM'),
                 onPressed: () {
                   Navigator.of(context2).pop(true);
-
-
                 },
               ),
             ],
@@ -2850,9 +3071,7 @@ Future<void> randevuEkleGuncelle(
         },
       );
     }
-
   } else {
-
     debugPrint('Error: ${response.body}');
   }
 }
@@ -2902,11 +3121,12 @@ Future<Map<String, dynamic>> personelgetir(String salonid, String currpage, Stri
 
   Map<String, dynamic> formData = {
     'baslik': baslik,
+
     // Add other form fields
   };
 
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.tr/api/v1/personelgetir/$salonid?page=$currpage"),
+      Uri.parse("https://app.randevumcepte.com.tr/api/v1/personelgetir/$salonid?page=$currpage"),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3248,8 +3468,10 @@ Future<List<Map<String, dynamic>>> fetchCustomerAppointments(String musteriId) a
 Future<void>bildirimkimligiekleguncelle(String yetkiliId,String seciliisletme,String usertype,String bildirimkimligi) async
 {
   SharedPreferences localStorage = await SharedPreferences.getInstance();
+  final String appBundle = await appBundleAl(); // Önce değişkene atayın
+
   var user = jsonDecode(localStorage.getString('user')!);
-  final String url = 'https://app.randevumcepte.com.tr/api/v1/bildirimkimligiekleguncelle';
+    final String url = 'https://app.randevumcepte.com.tr/api/v1/bildirimkimligiekleguncelle';
   log("bildirim işin Seçili işletme : "+seciliisletme);
   log("bildirim için kimlik : "+bildirimkimligi);
   log("yetkili veya user id : "+user["id"].toString());
@@ -3260,6 +3482,7 @@ Future<void>bildirimkimligiekleguncelle(String yetkiliId,String seciliisletme,St
     'sube':seciliisletme,
     "bildirim_kimligi":bildirimkimligi,
     "cihaz":cihaz,
+    "appBundle":appBundle
   });
   log('Yetkili request body '+requestBody);
 // Body'yi logluyoruz
@@ -3274,18 +3497,20 @@ Future<void>bildirimkimligiekleguncelle(String yetkiliId,String seciliisletme,St
       'sube':seciliisletme,
       "bildirim_kimligi":bildirimkimligi,
       "cihaz":cihaz,
+      "appBundle":appBundle
     }),
 
 
   );
   // Log the response status and body
-  log('Response status: ${response.statusCode}');
-  log('Response body: ${response.body}');
-  if (response.statusCode == 200) {
 
+  if (response.statusCode == 200) {
+    log('Response status: ${response.statusCode}');
+    log('Response body: ${response.body}');
 
   } else {
-    debugPrint(response.body);
+    log('bildirim kimliği kaydetmedi '+response.body);
+
     throw Exception('bildirim kinliği kaydedilemedi');
   }
 }
@@ -3333,7 +3558,7 @@ Future<MusteriOzet> dashboardGunlukRaporMusteri() async{
 
 Future<Map<String, dynamic>> easistan(String salonid, String currpage, int bugunYarin) async {
   try {
-    final uri = Uri.parse('https://demoapp.randevumcepte.com.tr/api/v1/easistandata/$bugunYarin/$salonid?page=$currpage');
+    final uri = Uri.parse('https://demoapptest.randevumcepte.com.tr/api/v1/easistandata/$bugunYarin/$salonid?page=$currpage');
 
     final response = await http.get(
       uri,
@@ -3384,10 +3609,6 @@ Future<List<EAsistan>> easistandashboard(String salonid, int bugunYarin) async {
 }
 Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlSayfasi,String appbundle,String musteriArama,String hizmetArama,int limit, int offset) async {
 
-
-
-
-
   Map<String, dynamic> formData = {
     'salonid': salonid,
     'randevuAlSayfasi':randevuAlSayfasi,
@@ -3410,20 +3631,18 @@ Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlS
   if (response.statusCode == 200) {
 
     final data = json.decode(response.body);
+
     List<OnGorusmeNedeni> loadedItems = [];
     if(!randevuAlSayfasi)
       {
         loadedItems.addAll((data['paketler'] as List).map((item) => Paket.fromJson(item)).toList());
-
-
-        loadedItems.addAll((data['urunler'] as List).map((item) => Urun.fromJson(item)).toList());
-
-        loadedItems.addAll((data['hizmetler'] as List).map((item) => IsletmeHizmet.fromJson(item)).toList());
+        /*loadedItems.addAll((data['urunler'] as List).map((item) => Urun.fromJson(item)).toList());
+        loadedItems.addAll((data['hizmetler'] as List).map((item) => IsletmeHizmet.fromJson(item)).toList());*/
       }
 
     return {
-      'personeller': salonid != '' && data['personeller']!=''? (data['personeller'] as List).map((e) => Personel.fromJson(e)).toList() : [],
-      'hizmetler': salonid != '' && data['hizmetler']!='' ? (data['hizmetler'] as List).map((e) => IsletmeHizmet.fromJson(e)).toList() : [],
+      'personeller':   data['personeller']!=''? (data['personeller'] as List).map((e) => Personel.fromJson(e)).toList() : [],
+      'hizmetler':     data['hizmetler']!='' ? (data['hizmetler'] as List).map((e) => IsletmeHizmet.fromJson(e)).toList() : [],
       'odalar': !randevuAlSayfasi ? (data['odalar'] as List).map((e) => Oda.fromJson(e)).toList() : [],
       'cihazlar': !randevuAlSayfasi ? (data['cihazlar'] as List).map((e) => Cihaz.fromJson(e)).toList(): [],
       'musteriler': !randevuAlSayfasi ?(data['musteriler'] as List).map((e) => MusteriDanisan.fromJson(e)).toList(): [],
@@ -3432,6 +3651,7 @@ Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlS
       'sehirler': !randevuAlSayfasi ? (data['sehirler'] as List).map((e) => Sehir.fromJson(e)).toList() : [],
       'subeler' : randevuAlSayfasi ? (data['subeler'] as List).map((e) => Salonlar.fromJson(e)).toList() : [],
       'onGorusmeNedeni':loadedItems,
+      'formlar': !randevuAlSayfasi ? (data ['formlar'] as List).map((e)=>Sozlesme.fromJson(e)).toList() : [],
     };
   } else {
     throw Exception("Veriler alınamadı: ${response.reasonPhrase}");
@@ -3550,12 +3770,12 @@ Future<Map<String, dynamic>> personelAdiminaGec(String salonid,String appbundle,
     throw Exception("Veriler alınamadı: ${response.reasonPhrase}");
   }
 }
-Future<void> rehberdenTopluSec(BuildContext context,dynamic isletmebilgi) async {
+Future<void> rehberdenTopluSec(BuildContext context,dynamic isletmebilgi,int kullancirolu) async {
   if (await Permission.contacts.request().isGranted) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ContactSelectionPage(isletmebilgi: isletmebilgi),
+        builder: (context) => ContactSelectionPage(kullanicirolu: kullancirolu, isletmebilgi: isletmebilgi),
       ),
     );
   } else {
@@ -3564,4 +3784,333 @@ Future<void> rehberdenTopluSec(BuildContext context,dynamic isletmebilgi) async 
     );
   }
 }
+Future<MusteriSayilari> musteriSayilariGetir(String salonId) async {
+  try {
+    final response = await http.get(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri_sayilari_getir/$salonId'),
+      headers: {'Content-Type': 'application/json'},
+    );
 
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      if (jsonResponse['success'] == true) {
+        return MusteriSayilari.fromJson(jsonResponse['data']);
+      } else {
+        throw Exception(jsonResponse['message'] ?? 'Müşteri sayıları alınamadı');
+      }
+    } else {
+      throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+    }
+  } catch (e) {
+    print('Müşteri sayıları getirme hatası: $e');
+    rethrow;
+  }
+}
+Future<MusteriDanisan?> rehberdenSecAlternatif(BuildContext context,dynamic isletmebilgi,int kullanicirolu) async {
+  try {
+    PermissionStatus status = await Permission.contacts.status;
+
+    if (status != PermissionStatus.granted) {
+      status = await Permission.contacts.request();
+    }
+
+    if (status == PermissionStatus.granted) {
+      final contact = await FlutterContacts.openExternalPick();
+
+      if (contact != null) {
+        final fullContact = await FlutterContacts.getContact(contact.id, withProperties: true);
+
+        if (fullContact != null) {
+          String isim = fullContact.displayName.trim();
+          String telefon = fullContact.phones.isNotEmpty ? fullContact.phones.first.number : "";
+          telefon = telefon.trim().replaceAll('+90', '');
+
+          telefon = telefon.trim().replaceAll('-', '');
+          telefon = telefon.trim().replaceAll(' ', '');
+          telefon = telefon.trim().replaceFirst('0', '');
+          MusteriDanisan md = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Yenimusteri(
+                kullanicirolu: kullanicirolu,
+                isletmebilgi: isletmebilgi,
+                isim: isim,
+                telefon: telefon,
+                sadeceekranikapat: true,
+              ),
+            ),
+          );
+          return md;
+        }
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Rehber erişim izni reddedildi!")),
+      );
+    }
+  } catch (e) {
+    print("Hata: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Bir hata oluştu: $e")),
+    );
+  }
+}
+Future<List<dynamic>> hizmetRaporlari(String salonId,String tarih1,String tarih2, String personel) async {
+  try {
+    Map<String, dynamic> formData = {
+      'salonId': salonId,
+
+      'tarih1': tarih1,
+      'tarih2':tarih2,
+      'personel':personel,
+
+
+      // Add other form fields
+    };
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetRaporlari'),
+      headers: {'Content-Type': 'application/json'},
+      body:jsonEncode(formData),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      log(response.body);
+      return jsonResponse;
+    } else {
+      throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+    }
+  } catch (e) {
+    print('Hizmet raporu getirme hatası: $e');
+    rethrow;
+  }
+}
+
+Future<List<dynamic>> urunRaporlari(String salonId,String tarih1,String tarih2, String personel) async {
+  try {
+    Map<String, dynamic> formData = {
+      'salonId': salonId,
+
+      'tarih1': tarih1,
+      'tarih2':tarih2,
+      'personel':personel,
+
+
+      // Add other form fields
+    };
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunRaporlari'),
+      headers: {'Content-Type': 'application/json'},
+      body:jsonEncode(formData),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+
+      return jsonResponse;
+    } else {
+      throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+    }
+  } catch (e) {
+    print('Ürün raporu getirme hatası: $e');
+    rethrow;
+  }
+}
+Future<List<dynamic>> paketRaporlari(String salonId,String tarih1,String tarih2, String personel) async {
+  try {
+    Map<String, dynamic> formData = {
+      'salonId': salonId,
+
+      'tarih1': tarih1,
+      'tarih2':tarih2,
+      'personel':personel,
+
+
+      // Add other form fields
+    };
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketRaporlari'),
+      headers: {'Content-Type': 'application/json'},
+      body:jsonEncode(formData),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+
+      return jsonResponse;
+    } else {
+      throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+    }
+  } catch (e) {
+    print('Paket raporu getirme hatası: $e');
+    rethrow;
+  }
+}
+
+Future<List<dynamic>> personelRaporlari(String salonId,String tarih1,String tarih2) async {
+  try {
+    Map<String, dynamic> formData = {
+      'salonId': salonId,
+
+      'tarih1': tarih1,
+      'tarih2':tarih2,
+
+
+
+      // Add other form fields
+    };
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelRaporlari'),
+      headers: {'Content-Type': 'application/json'},
+      body:jsonEncode(formData),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+
+      return jsonResponse;
+    } else {
+      throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+    }
+  } catch (e) {
+    print('Paket raporu getirme hatası: $e');
+    rethrow;
+  }
+}
+
+// Backend.dart dosyanıza ekleyin
+Future<List<dynamic>> hizmetMusteriListesiGetir(
+    String salonId,
+    String hizmetId,
+    String tarih1,
+    String tarih2,
+    String personelId, // Yeni parametre: isteğe bağlı personelId
+    ) async {
+  try {
+    Map<String, dynamic> formData = {
+      'salonId': salonId,
+      'tarih1': tarih1,
+      'tarih2': tarih2,
+      'hizmetId': hizmetId,
+      'personelId': personelId,
+    };
+
+    // Personel ID'si varsa ekle
+    if (personelId != null && personelId.isNotEmpty) {
+      formData['personelId'] = personelId;
+    }
+
+    log(jsonEncode(formData));
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmet-musteri-listes'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(formData),
+    );
+    log(response.body);
+
+    if (response.statusCode == 200) {
+      log('hizmet müşterileri ' + response.body);
+      return jsonDecode(response.body);
+    }
+    return [];
+  } catch (e) {
+    log('Hizmet müşteri listesi getirme hatası: $e');
+    return [];
+  }
+}
+
+Future<List<dynamic>> urunMusteriListesiGetir(
+    String salonId,
+    String urunId,
+    String tarih1,
+    String tarih2,
+    String personelId // Yeni parametre: isteğe bağlı personelId
+    ) async {
+  try {
+    Map<String, dynamic> formData = {
+      'salonId': salonId,
+      'tarih1': tarih1,
+      'tarih2': tarih2,
+      'urunId': urunId,
+      'personelId': personelId,
+    };
+
+    // Personel ID'si varsa ekle
+    if (personelId != null && personelId.isNotEmpty) {
+      formData['personelId'] = personelId;
+    }
+
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/urun-musteri-listesi'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(formData),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  } catch (e) {
+    log('Ürün müşteri listesi getirme hatası: $e');
+    return [];
+  }
+}
+
+Future<List<dynamic>> paketMusteriListesiGetir(
+    String salonId,
+    String paketId,
+    String tarih1,
+    String tarih2,
+    String personelId // Yeni parametre: isteğe bağlı personelId
+    ) async {
+  try {
+    Map<String, dynamic> formData = {
+      'salonId': salonId,
+      'tarih1': tarih1,
+      'tarih2': tarih2,
+      'paketId': paketId,
+      'personelId': paketId,
+    };
+
+    // Personel ID'si varsa ekle
+    if (personelId != null && personelId.isNotEmpty) {
+      formData['personelId'] = personelId;
+    }
+
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paket-musteri-listesi'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(formData),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  } catch (e) {
+    log('Paket müşteri listesi getirme hatası: $e');
+    return [];
+  }
+}
+// backend.dart dosyasına ekleyin
+Future<Map<String, dynamic>> adisyonSil(String adisyonId) async {
+  try {
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/adisyonSil'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'adisyon_id': adisyonId
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Silme işlemi başarısız: ${response.statusCode}');
+    }
+  } catch (e) {
+    throw Exception('Silme hatası: $e');
+  }
+}

@@ -7,7 +7,8 @@ import 'hizmet_calisan.dart';
 
 
 class Unisex extends StatefulWidget {
-    const Unisex({Key? key}) : super(key: key);
+    final dynamic isletmebilgi;
+    const Unisex({Key? key,required this.isletmebilgi}) : super(key: key);
 
     @override
     _UnisexState createState() =>
@@ -33,7 +34,7 @@ class _UnisexState extends State<Unisex> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => HizmetCalisan()),
+                                builder: (context) => HizmetCalisan(isletmebilgi: widget.isletmebilgi,)),
                         );
                     },
                 ),

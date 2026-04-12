@@ -105,7 +105,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
   void hizmetsatisi() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => HizmetSatisi(musteriid: "",senetlisatis: false,isletmebilgi: null,)),
+      MaterialPageRoute(builder: (context) => HizmetSatisi( kullanicirolu: 0, musteriid: "",senetlisatis: false,isletmebilgi: null,)),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -127,7 +127,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
   void urunsatisi() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => UrunSatisi(musteriid: "",senetlisatis: false,isletmebilgi: null)),
+      MaterialPageRoute(builder: (context) => UrunSatisi(kullanicirolu: 0, musteriid: "",senetlisatis: false,isletmebilgi: null)),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -147,7 +147,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
   void paketsatisi() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => PaketSatisi(musteriid: "",senetlisatis: false,isletmebilgi: null)),
+      MaterialPageRoute(builder: (context) => PaketSatisi(kullanicirolu: 0, musteriid: "",senetlisatis: false,isletmebilgi: null)),
     );
 
     if (result != null && result is Map<String, dynamic>) {

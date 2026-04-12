@@ -1,7 +1,7 @@
 name: randevu_sistem
-description: Aron Güzellik Randevu Sistemi Uygulaması
+description: Bercislina Güzellik Salonu Randevu Sistemi Uygulaması
 publish_to: 'none'
-version: 1.0.1+1
+version: 1.0.6+14
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -90,7 +90,6 @@ dependencies:
 
   # Audio / SIP / Background
   audioplayers: ^6.4.0
-  flutter_callkit_incoming: ^2.0.4+2
   flutter_background_service: ^5.1.0
 
   # PDF & Printing
@@ -108,7 +107,6 @@ dependencies:
   progress_dialog_null_safe: ^3.0.0
   flutter_countdown_timer: ^4.1.0
   syncfusion_flutter_datagrid: ^29.1.39
-  flutter_native_splash: ^2.4.6
   flutter_rating_bar: ^4.0.1
   file_picker: ^10.1.2
   csc_picker: ^0.2.7
@@ -117,6 +115,14 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   crop_your_image: ^2.0.0
   sip_ua: ^1.0.1
+  html: ^0.15.6
+  flutter_native_splash: ^2.4.7
+  mask_text_input_formatter: ^2.9.0
+  share_plus: ^12.0.1
+  connectivity_plus: ^7.0.0
+  table_calendar: ^3.2.0
+  kalender: ^0.15.0
+  fl_chart: ^0.68.0  # veya 0.69.0
 
 
 dev_dependencies:
@@ -125,16 +131,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   change_app_package_name: ^1.2.0
 
-flutter_icons:
-  android: "launcher_icon"
-  ios: false
-  image_path: "images/aronshine.png"
-flutter_native_splash:
-  color: "#ffffff"
-  image: images/aronshine-land.png
-  android: true
-  ios: true
-  web: false
+
 
 flutter:
   uses-material-design: true
@@ -142,14 +139,21 @@ flutter:
 
   assets:
     - images/
-    - images/aronshine-land.png
-    - images/aronshine-yatay.png
+    - images/bercislina.png
+    - images/bercislina.png
     - images/ring.mp3
-    - images/aronshine.png
     - images/announcement.png
     - images/hesapsil.png
 
-  fonts:
-    - family: AbhayaLibre-Medium
-      fonts:
-        - asset: assets/AbhayaLibre-Medium.ttf
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "images/bercislina.png"
+  remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: images/bercislina.png
+  android: true
+  ios: true
+  web: false

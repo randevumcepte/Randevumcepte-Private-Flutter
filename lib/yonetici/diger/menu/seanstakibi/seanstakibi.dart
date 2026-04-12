@@ -1,622 +1,416 @@
-import 'dart:developer';
-
-
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:randevu_sistem/Frontend/progressloading.dart';
-import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
-import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/datetimeformatting.dart';
-import '../../../../Frontend/popupdialogs.dart';
-import '../../../../Models/randevular.dart';
-import '../../../../Models/seanstakibi.dart';
-import '../../../../Models/urunler.dart';
-import '../../../../yeni/urun_ekle.dart';
-import '../../../adisyonlar/adisyonpage.dart';
-import '../../../adisyonlar/musteri_detay.dart';
-import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
-import 'package:randevu_sistem/Models/form.dart';
-import 'package:randevu_sistem/Frontend/sfdatatable.dart';
-
-import '../ayarlar/urunler/urunduzenle.dart';
-
-
-class SeansTakibi extends StatefulWidget {
+class SeansTakibiYeni extends StatefulWidget {
   final dynamic isletmebilgi;
-  const SeansTakibi({Key? key,required this.isletmebilgi,}) : super(key: key);
+  const SeansTakibiYeni({Key? key, required this.isletmebilgi}) : super(key: key);
+
   @override
-  _SeansTakibiState createState() => _SeansTakibiState();
+  State<SeansTakibiYeni> createState() => _SeansTakibiState();
 }
 
-class _SeansTakibiState extends State<SeansTakibi> {
-  MusteriDanisan? selectedmusteri;
-  late List<MusteriDanisan> musteris;
-  List<TextEditingController> urunadet = [];
-  late SeansDataSource _seansDataGridSource;
-  late List<bool> selectedRows;
-  List<Urun> _urun = [];
-  late List<Urun> _filteredUrun = [];
-  late String? seciliisletme;
-  bool  _isLoading= true;
-  TextEditingController musteriController = TextEditingController();
-  int totalPages = 1;
-  bool anyChecked = false;
-  bool selectAll = false;
+class _SeansTakibiState extends State<SeansTakibiYeni> {
+  List<SeansModel> _seanslar = [];
 
-
-  TextEditingController _controller = TextEditingController();
   @override
   void initState() {
-
     super.initState();
-    initialize();
-
-
-    _controller.addListener(() {
-      //filterRandevuData(_controller.text,_randevuDataGridSource,_randevu)
-      _seansDataGridSource.search(_controller.text);
-
-      log(_controller.text);
-    });
-  }
-
-  Future<void> initialize() async
-  {
-    seciliisletme = await secilisalonid();
-    musteris = await musterilistegetir(seciliisletme!);
-    urunlerigetir(seciliisletme!,'1','').then((data) {
-      setState(() {
-
-
-        _seansDataGridSource = SeansDataSource(rowsPerPage:10,salonid: seciliisletme!,context: context,musteriid: "",musteriMi: false);
-        _seansDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
-        _isLoading = false;
-
-      });
-    });
-  }
-
-  void _onLoadingStateChanged() {
-    setState(() {
-      // This empty setState function just triggers a rebuild of the widget when the loading state changes
-    });
-  }
-
-  Future<void> _refreshPage() async {
-    // Simulate a network request for new data
-
-    setState(() {
-      @override
-      Widget build(BuildContext context) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: SeansTakibi(isletmebilgi: widget.isletmebilgi,),
-        );
-      }
-    });
+    _seanslar = [
+      SeansModel(
+        id: '1',
+        paketAdi: 'G5 Masajı',
+        toplamSeans: 16,
+        kullanilan: 1,
+        kalan: 15,
+        kullanilmayan: 0,
+        seansDurumlari: List.generate(16, (index) => index < 1 ? 'kullanildi' : 'kalan'),
+      ),
+      SeansModel(
+        id: '2',
+        paketAdi: 'Sırt Masajı',
+        toplamSeans: 8,
+        kullanilan: 3,
+        kalan: 5,
+        kullanilmayan: 0,
+        seansDurumlari: List.generate(8, (index) => index < 3 ? 'kullanildi' : 'kalan'),
+      ),
+      SeansModel(
+        id: '3',
+        paketAdi: 'Full Body',
+        toplamSeans: 12,
+        kullanilan: 7,
+        kalan: 5,
+        kullanilmayan: 0,
+        seansDurumlari: List.generate(12, (index) => index < 7 ? 'kullanildi' : 'kalan'),
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final double width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-    return   _isLoading
-        ? Center(child: CircularProgressIndicator())
-        : Scaffold(
-
-
-
-        appBar:AppBar(
-          title:Text('Seans Takibi',style: TextStyle(color: Colors.black),),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          toolbarHeight: 60,
-          actions: [
-            if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: SizedBox(
-                width: 100, // <-- Your width
-                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
-              ),
-            ),
-
-
-          ],
-          backgroundColor: Colors.white,
-
-
-
-
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
-        body:GestureDetector(
-          onTap: () {
-            FocusScope.of(context).unfocus(); // Hide the keyboard
-          },
-          child: Column(
-
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextFormField(
-
-                  controller: _controller,
-                  keyboardType: TextInputType.text,
-
-                  decoration: InputDecoration(
-                    hintText: 'Müşteri/Paket Adı...',
-                    enabled:true,
-                    focusColor:Color(0xFF6A1B9A) ,
-                    hoverColor: Color(0xFF6A1B9A) ,
-                    hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                    contentPadding:  EdgeInsets.all(5.0),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                        color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                    border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                ),
-
-              ),
-              Expanded(
-
-                // Adjust the height based on your requirements
-                child: SfDataGrid(
-                  source: _seansDataGridSource,
-                  shrinkWrapRows: true,
-                  columnWidthMode: ColumnWidthMode.fill,
-                  defaultColumnWidth: 120,
-
-
-
-
-                  onSwipeStart: (details) {
-                    if (details.swipeDirection == DataGridRowSwipeDirection.startToEnd) {
-                      details.setSwipeMaxOffset(50);
-                    } else if (details.swipeDirection == DataGridRowSwipeDirection.endToStart) {
-                      details.setSwipeMaxOffset(50);
-                    }
-                    return true;
-                  },
-
-
-
-                  onCellTap: (DataGridCellTapDetails details) {
-
-                    final tappedRow = _seansDataGridSource.rows[details.rowColumnIndex.rowIndex - 1];
-                    seansdetaylari(context, tappedRow.getCells()[0].value);
-                    /*ArsivDetayGosterDialog(context );
-                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => KampanyaDetay(kampanyadetayi: tappedRow.getCells()[0].value,)),
-                  );*/
-
-                  },
-                  columns: <GridColumn>[
-
-                    GridColumn(
-
-                      width: width*0,
-                      columnName: 'paket',
-                      label: Container(
-
-                        padding: EdgeInsets.all(5.0),
-                        alignment: Alignment.centerLeft,
-                        child: Text('Müşteri/Paket'),
-                      ),
-                    ),
-
-                    GridColumn(
-
-                      width: width*0.30,
-                      columnName: 'musteridanisanpaket',
-                      label: Container(
-
-                        padding: EdgeInsets.all(5.0),
-                        alignment: Alignment.centerLeft,
-                        child: Text('Müşteri/Paket'),
-                      ),
-                    ),
-
-
-
-                    GridColumn(
-
-                      width: width*0,
-                      columnName: 'beklenen',
-                      label: Container(
-
-                        padding: EdgeInsets.all(5.0),
-                        alignment: Alignment.centerLeft,
-                        child: Text('beklenen'),
-                      ),
-                    ),
-                    GridColumn(
-
-                      width: width*0,
-                      columnName: 'gelinen',
-                      label: Container(
-
-                        padding: EdgeInsets.all(5.0),
-                        alignment: Alignment.centerLeft,
-                        child: Text('gelinen'),
-                      ),
-                    ),
-                    GridColumn(
-
-                      width: width*0,
-                      columnName: 'gelinmeyen',
-                      label: Container(
-
-                        padding: EdgeInsets.all(5.0),
-                        alignment: Alignment.centerLeft,
-                        child: Text('gelinmeyen'),
-                      ),
-                    ),
-                    GridColumn(
-                      width: width*0.70,
-                      columnName: 'seansdetay',
-                      label: Container(
-                        padding: EdgeInsets.all(5.0),
-                        alignment: Alignment.center,
-                        child: Text('Seans Detayları'),
-                      ),
-                    ),
-
-
-                  ],
-                ),
-              ),
-
-
-              _buildPaginationControls()
-            ],
+        title: const Text(
+          'Seans Takibi',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
-
-        )
-
-
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Color(0xFF4A90E2)),
+            onPressed: _yeniSeansEkle,
+          ),
+        ],
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _seanslar.length,
+        itemBuilder: (context, index) {
+          return _buildKart(_seanslar[index]);
+        },
+      ),
     );
-
-
-
   }
 
+  Widget _buildKart(SeansModel seans) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Üst kısım - Hizmet adı ve seans sayısı
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                seans.paketAdi,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A90E2).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${seans.toplamSeans} Seans',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4A90E2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
 
-  Widget _buildPaginationControls() {
+          // Seans butonları - Küçük yuvarlaklar
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(seans.toplamSeans, (index) {
+              String durum = seans.seansDurumlari[index];
+              return GestureDetector(
+                onTap: () => _seansTiklandi(seans, index),
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: durum == 'kullanildi'
+                        ? Colors.green
+                        : durum == 'kullanilmayan'
+                        ? Colors.red
+                        : Colors.transparent,
+                    border: durum == 'kalan'
+                        ? Border.all(
+                      color: Colors.grey.shade400,
+                      width: 2,
+                    )
+                        : null,
+                  ),
+                  child: durum == 'kullanildi'
+                      ? const Icon(
+                    Icons.check,
+                    color: Colors.white,
+                    size: 16,
+                  )
+                      : durum == 'kullanilmayan'
+                      ? const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 16,
+                  )
+                      : null,
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
 
-    final totalPages = (_seansDataGridSource.totalPages).ceil();
+          // Alt istatistikler
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildIstatistik(
+                  label: 'Kullanıldı',
+                  value: seans.kullanilan.toString(),
+                  renk: Colors.green,
+                ),
+                Container(
+                  width: 1,
+                  height: 30,
+                  color: Colors.grey.shade300,
+                ),
+                _buildIstatistik(
+                  label: 'Kalan',
+                  value: seans.kalan.toString(),
+                  renk: Colors.grey,
+                ),
+                Container(
+                  width: 1,
+                  height: 30,
+                  color: Colors.grey.shade300,
+                ),
+                _buildIstatistik(
+                  label: 'Kullanılmadı',
+                  value: seans.kullanilmayan.toString(),
+                  renk: Colors.red,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildIstatistik({
+    required String label,
+    required String value,
+    required Color renk,
+  }) {
+    return Column(
       children: [
-        IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: _seansDataGridSource.currentPage > 1
-              ? () {
-            setState(() {
-
-              _seansDataGridSource.setPage(_seansDataGridSource.currentPage - 1);
-            });
-          }
-              : null,
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: renk,
+          ),
         ),
-        Text('Sayfa ${_seansDataGridSource.currentPage} / $totalPages'),
-        IconButton(
-          icon: Icon(Icons.arrow_forward),
-          onPressed: _seansDataGridSource.currentPage < totalPages
-              ? () {
-            setState(() {
-              _seansDataGridSource.setPage(_seansDataGridSource.currentPage + 1);
-            });
-          }
-              : null,
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
+          ),
         ),
       ],
     );
   }
-  void seansdetaylari(BuildContext context, SeansTakip seanstakip)
-  {
+
+  void _seansTiklandi(SeansModel seans, int index) {
+    String durum = seans.seansDurumlari[index];
+
+    if (durum == 'kullanildi') {
+      // Kullanıldı ise kullanılmadı yap
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(seans.paketAdi),
+          content: const Text('Bu seansı kullanılmadı olarak işaretlemek istediğinizden emin misiniz?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  seans.seansDurumlari[index] = 'kullanilmayan';
+                  seans.kullanilan--;
+                  seans.kullanilmayan++;
+                  seans.kalan = seans.toplamSeans - seans.kullanilan - seans.kullanilmayan;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Evet', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    } else if (durum == 'kullanilmayan') {
+      // Kullanılmadı ise kalan yap
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(seans.paketAdi),
+          content: const Text('Bu seansı kullanılmadıdan kaldırmak istediğinizden emin misiniz?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  seans.seansDurumlari[index] = 'kalan';
+                  seans.kullanilmayan--;
+                  seans.kalan++;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Evet', style: TextStyle(color: Colors.orange)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Kalan ise kullanıldı yap
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(seans.paketAdi),
+          content: const Text('Bu seansı kullanıldı olarak işaretlemek istediğinizden emin misiniz?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  seans.seansDurumlari[index] = 'kullanildi';
+                  seans.kullanilan++;
+                  seans.kalan--;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Evet', style: TextStyle(color: Colors.green)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _yeniSeansEkle() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return AlertDialog(
-              contentPadding:EdgeInsets.all(5.0),
-              title: Text(
-                seanstakip.musteri["name"] +" "+ seanstakip.paket +" Seans Detayları",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+      builder: (context) {
+        final TextEditingController paketController = TextEditingController();
+        final TextEditingController seansController = TextEditingController();
 
-                      Column(
-                        children: List.generate(seanstakip.seanslar.length, (index) {
-                          var item = seanstakip.seanslar[index];
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                item["seans_no"] == 1 ? Text(item["hizmet"]["hizmet_adi"]+ " Seansları",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold
-                                  ),
-                                ) : Text(""),
-                                SizedBox(height: 10),
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 0.0),
-                                  child: Text(item["seans_no"].toString()+ " Seans",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold
-                                    ),
-                                  ),
-                                ),
-                                //1. satır
-                                Container(
-                                  color:Color(0xFFE2E2E2),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text("Tarih & Saat",
-                                                style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.bold
-                                                ),
-                                              ),
-                                            ),
-
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text(tarihsaatdonustur(item["seans_tarih"],item["seans_saat"])
-                                                ,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-
-                                          ],
-                                        ),
-                                      ),
-
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text("Personel",
-                                                style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.bold
-                                                ),
-                                              ),
-                                            ),
-
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text(item["personel"] != null ? item["personel"]["personel_adi"] : "Belirtilmemiş"
-                                                ,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text("Oda",
-                                                style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black, fontWeight: FontWeight.bold
-                                                ),
-                                              ),
-                                            ),
-
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text(item["oda"] != null ? item["oda"]["oda_adi"] : "Belirtilmemiş"
-                                                ,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  color:Color(0xFFE2E2E2),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text("Cihaz",
-                                                style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black, fontWeight: FontWeight.bold
-                                                ),
-                                              ),
-                                            ),
-
-                                            SizedBox(height: 10),
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: Text(item["cihaz"] != null ? item["cihaz"]["cihaz_adi"] : "Belirtilmemiş",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-
-                                          ],
-                                        ),
-                                      ),
-
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            SizedBox(height: 20),
-
-
-
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 0.0),
-                                              child: item["geldi"] == null ?
-                                              ElevatedButton(
-                                                onPressed: () {},
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.yellow,
-
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-                                                  minimumSize: Size(70, 20),
-                                                ),
-                                                child: Text("Beklemede",
-                                                  style: TextStyle(color: Colors.black,fontSize: 10),
-                                                ),
-                                              )
-                                                  : item["geldi"]== 0 ?
-                                              ElevatedButton(
-                                                onPressed: () {},
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.red[600],
-                                                  foregroundColor: Colors.white,
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-                                                  minimumSize: Size(70, 20),
-                                                ),
-                                                child: Text("Gelmedi",
-                                                  style: TextStyle(color: Colors.white,fontSize: 10),
-                                                ),
-                                              )
-                                                  :
-                                              ElevatedButton(
-                                                onPressed: () {},
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.green,
-                                                  foregroundColor: Colors.white,
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-                                                  minimumSize: Size(70, 20),
-                                                ),
-                                                child: Text("Geldi",
-                                                  style: TextStyle(color: Colors.black,fontSize: 10),
-                                                ),
-                                              ),
-                                            ),
-
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            SizedBox(height: 10),
-                                            ElevatedButton(
-                                                onPressed: () {},
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.green,
-                                                  foregroundColor: Colors.white,
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-                                                  minimumSize: Size(40, 40),
-                                                ),
-                                                child: Icon(Icons.calendar_today_rounded,color: Colors.white,)
-                                            ),
-
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                //2. satır
-
-
-                              ],
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
+        return AlertDialog(
+          title: const Text('Yeni Seans Paketi'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: paketController,
+                decoration: const InputDecoration(
+                  labelText: 'Paket Adı',
+                  hintText: 'Örn: G5 Masajı',
                 ),
               ),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("KAPAT"),
+              const SizedBox(height: 12),
+              TextField(
+                controller: seansController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Toplam Seans',
+                  hintText: 'Seans sayısı',
                 ),
-
-              ],
-            );
-          },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (paketController.text.isNotEmpty &&
+                    seansController.text.isNotEmpty) {
+                  int toplam = int.tryParse(seansController.text) ?? 0;
+                  setState(() {
+                    _seanslar.add(SeansModel(
+                      id: DateTime.now().toString(),
+                      paketAdi: paketController.text,
+                      toplamSeans: toplam,
+                      kullanilan: 0,
+                      kalan: toplam,
+                      kullanilmayan: 0,
+                      seansDurumlari: List.generate(toplam, (index) => 'kalan'),
+                    ));
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Ekle'),
+            ),
+          ],
         );
       },
     );
   }
+}
+class SeansModel {
+  final String id;
+  final String paketAdi;
+  final int toplamSeans;
+  int kullanilan;
+  int kalan;
+  int kullanilmayan;
+  List<String> seansDurumlari; // 'kullanildi', 'kalan', 'kullanilmayan'
 
-
-
-
-
-
+  SeansModel({
+    required this.id,
+    required this.paketAdi,
+    required this.toplamSeans,
+    required this.kullanilan,
+    required this.kalan,
+    required this.kullanilmayan,
+    required this.seansDurumlari,
+  });
 }

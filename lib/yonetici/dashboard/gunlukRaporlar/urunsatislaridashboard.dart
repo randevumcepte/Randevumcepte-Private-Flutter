@@ -14,7 +14,8 @@ import '../../adisyonlar/musteri_detay.dart';
 
 class UrunSatislariDashboard   extends StatefulWidget {
   final dynamic isletmebilgi;
-  UrunSatislariDashboard  ({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  UrunSatislariDashboard  ({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
   @override
   _UrunSatislariDashboardState createState() => _UrunSatislariDashboardState();
 }
@@ -41,7 +42,7 @@ class _UrunSatislariDashboardState extends State<UrunSatislariDashboard  > {
       setState(() {
 
 
-        _urunSatisDataSource = UrunSatisDataSource(rowsPerPage:10,salonid: seciliisletme!,context: context);
+        _urunSatisDataSource = UrunSatisDataSource(kullanicirolu: widget.kullanicirolu, rowsPerPage:10,salonid: seciliisletme!,context: context);
         _urunSatisDataSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
         _isLoading = false;
 

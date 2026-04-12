@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.randevumcepte.aronguzellik</string>
+	<string>com.randevumcepte.naturelkuafor</string>
 	<key>PROJECT_ID</key>
 	<string>randevumcepte-uygulamalar</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:51858922753:ios:42b0a8a3e83173128ccf00</string>
+	<string>1:51858922753:ios:c61d9d97e8cf6eec8ccf00</string>
 </dict>
 </plist>

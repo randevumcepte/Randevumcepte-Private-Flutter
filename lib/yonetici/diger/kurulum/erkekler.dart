@@ -7,7 +7,8 @@ import 'hizmet_calisan.dart';
 
 
 class Erkekler extends StatefulWidget {
-  const Erkekler({Key? key}) : super(key: key);
+  final dynamic isletmebilgi;
+  const Erkekler({Key? key,required this.isletmebilgi}) : super(key: key);
 
   @override
   _ErkeklerState createState() =>
@@ -33,7 +34,7 @@ class _ErkeklerState extends State<Erkekler> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => HizmetCalisan()),
+                  builder: (context) => HizmetCalisan(isletmebilgi: widget.isletmebilgi,)),
             );
           },
         ),

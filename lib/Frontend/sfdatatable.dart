@@ -176,7 +176,6 @@ import 'dart:ui' as ui;
 
 } */
 class OnGorusmeDataSource2 extends DataGridSource {
-
   int rowsPerPage;
   int currentPage;
   int totalPages = 1;
@@ -186,96 +185,105 @@ class OnGorusmeDataSource2 extends DataGridSource {
   dynamic isletmebilgi;
 
   List<OnGorusme> ongorusme = [];
-
   List<DataGridRow> _paginatedRows = [];
   ValueNotifier<bool> isLoadingNotifier = ValueNotifier(false);
-
   String salonid;
 
   OnGorusmeDataSource2({
-
     required this.context,
-
     required this.rowsPerPage,
     required this.salonid,
     required this.arama,
     required this.isletmebilgi,
-  }): currentPage = 1, totalRows = 0 {
-    fetchData2(currentPage.toString(),'',false);
+  }) : currentPage = 1, totalRows = 0 {
+    fetchData2(currentPage.toString(), arama, false);
   }
 
-  Future<void> fetchData2(String page,String arama,bool showprogress) async {
-
+  Future<void> fetchData2(String page, String arama, bool showprogress) async {
     isLoadingNotifier.value = true;
-    if(showprogress)
+    if (showprogress) {
       showProgressLoading(context);
-    notifyListeners();
-    final jsonResponse = await ongorusmelergunluk(salonid, page.toString(),arama);
-
-    List<dynamic> data = jsonResponse['data'];
-    ongorusme = data.map<OnGorusme>((json) => OnGorusme.fromJson(json)).toList();
-    if(_paginatedRows.length>0)
-      _paginatedRows = [];
-
-    ongorusme.forEach((e) {
-
-
-      ++totalRows;
-
-      _paginatedRows.add(
-          DataGridRow(cells: [
-            DataGridCell<OnGorusme>(columnName: 'ongorusme',value: e),
-            DataGridCell<String>(columnName: 'id', value: e.id),
-
-            DataGridCell<String>(columnName: 'musteridanisan', value: e.ad_soyad  ),
-            DataGridCell<String>(columnName: 'paketurun', value: e.urun_id != "null" ? e.urun["urun_adi"] : "" + e.paket_id!="null" ? e.paket["paket_adi"] : ""),
-            DataGridCell<String>(columnName: 'durum', value: e.durum.toString()),
-
-
-
-          ])
-      );
-
-    });
-
-
-    totalPages = jsonResponse['last_page'];
-    currentPage = jsonResponse['current_page'];
-    isLoadingNotifier.value = false;
-    if(showprogress)
-      Navigator.of(context, rootNavigator: true).pop();// Notify listeners that loading has finished
+    }
     notifyListeners();
 
+    try {
+      final jsonResponse = await ongorusmelergunluk(salonid, page.toString(), arama);
 
+      // DEBUG: Gelen veriyi logla
+      log('Gelen veri: ${jsonResponse.toString()}');
 
-  }
+      List<dynamic> data = jsonResponse['data'];
 
-  void search(String musteridanisanadi)
-  {
-    currentPage = 1;
-    arama = musteridanisanadi;
-    fetchData2("1",musteridanisanadi,false);
-  }
-  void setPage(int page) {
-    if (page > 0 && page <= totalPages) {
-      currentPage = page;
+      // DEBUG: Data listesini logla
+      log('Data listesi uzunluğu: ${data.length}');
 
-      fetchData2(currentPage.toString(),"",true);
+      ongorusme = data.map<OnGorusme>((json) => OnGorusme.fromJson(json)).toList();
+
+      // DEBUG: Map edilmiş ön görüşmeleri logla
+      log('Map edilmiş ön görüşmeler: ${ongorusme.length}');
+
+      // _paginatedRows'ı temizle
+      _paginatedRows.clear();
+      totalRows = 0;
+
+      for (var e in ongorusme) {
+        totalRows++;
+
+        // Paket/Ürün bilgisini doğru şekilde oluştur
+        String paketUrunBilgisi = '';
+        if (e.urun_id != null && e.urun_id != "null" && e.urun != null) {
+          paketUrunBilgisi = e.urun["urun_adi"] ?? "";
+        } else if (e.paket_id != null && e.paket_id != "null" && e.paket != null) {
+          paketUrunBilgisi = e.paket["paket_adi"] ?? "";
+        }
+
+        _paginatedRows.add(
+            DataGridRow(cells: [
+              DataGridCell<OnGorusme>(columnName: 'ongorusme', value: e),
+              DataGridCell<String>(columnName: 'id', value: e.id),
+              DataGridCell<String>(columnName: 'musteridanisan', value: e.ad_soyad),
+              DataGridCell<String>(columnName: 'paketurun', value: paketUrunBilgisi),
+              DataGridCell<String>(columnName: 'durum', value: e.durum.toString()),
+            ])
+        );
+      }
+
+      // DEBUG: Oluşturulan satırları logla
+      log('Oluşturulan DataGrid satırları: ${_paginatedRows.length}');
+
+      totalPages = jsonResponse['last_page'] ?? 1;
+      currentPage = jsonResponse['current_page'] ?? 1;
+
+    } catch (e) {
+      log('fetchData2 hatası: $e');
+    } finally {
+      isLoadingNotifier.value = false;
+      if (showprogress) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      notifyListeners();
     }
   }
 
+  void search(String musteridanisanadi) {
+    currentPage = 1;
+    arama = musteridanisanadi;
+    fetchData2("1", musteridanisanadi, false);
+  }
 
+  void setPage(int page) {
+    if (page > 0 && page <= totalPages) {
+      currentPage = page;
+      fetchData2(currentPage.toString(), "", true);
+    }
+  }
 
   @override
   List<DataGridRow> get rows => _paginatedRows;
 
-
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
-
     return DataGridRowAdapter(cells: [
-
-
       Container(
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.all(8.0),
@@ -302,25 +310,23 @@ class OnGorusmeDataSource2 extends DataGridSource {
         child: Text(row.getCells()[4].value.toString()),
       ),
       Container(
-        padding: EdgeInsets.only(top:10.0,bottom: 10.0),
+        padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
         height: 20,
-        child:  ElevatedButton(
+        child: ElevatedButton(
           onPressed: () {
             String status = row.getCells()[4].value.toString();
             if (status == '0') {
-              // Show a popup with the reason for not making a sale when status is 0
-              showReasonDialog(context, row.getCells()[0].value);  // Pass the ID to get the reason
+              showReasonDialog(context, row.getCells()[0].value);
             }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: getOngorusmeStatusColor(row.getCells()[4].value.toString())?.color,
-
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
             minimumSize: Size(100, 20),
           ),
           child: Text(
             getOngorusmeStatusColor(row.getCells()[4].value.toString()).text,
-            style: TextStyle(color: Colors.white,fontSize: 10),
+            style: TextStyle(color: Colors.white, fontSize: 10),
           ),
         ),
       ),
@@ -330,16 +336,7 @@ class OnGorusmeDataSource2 extends DataGridSource {
             ? PopupMenuButton<String>(
           onSelected: (String value) {
             if (value == 'duzenle') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OnGorusmeDuzenleOzet(
-                    isletmebilgi: isletmebilgi,
-                    ongorusme: row.getCells()[0].value,
-                    ongorusmedatasource: this,
-                  ),
-                ),
-              );
+              // Düzenleme işlemi
             }
             if (value == 'satisyapildi') {
               OnGorusme selectedItem = row.getCells()[0].value;
@@ -350,7 +347,13 @@ class OnGorusmeDataSource2 extends DataGridSource {
               }
             }
             if (value == 'satisyapilmadi') {
-              showSatisYapilmamaNedeniDialog(context, row.getCells()[1].value,currentPage.toString(),arama,(value) => fetchData2(value["currentPage"]="1", value["arama"]="", value["showprogress"]=true));
+              showSatisYapilmamaNedeniDialog(
+                  context,
+                  row.getCells()[1].value,
+                  currentPage.toString(),
+                  arama,
+                      (value) => fetchData2(value["currentPage"] = "1", value["arama"] = "", value["showprogress"] = true)
+              );
             }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -368,21 +371,18 @@ class OnGorusmeDataSource2 extends DataGridSource {
             ),
           ],
         )
-            : Container(), // Empty container when status is 1 or 0
+            : Container(),
       ),
-
-
     ]);
   }
+
   void showReasonDialog(BuildContext context, OnGorusme ongorusme) {
-
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Satış Yapılmama Sebebi"),
-          content: Text(ongorusme.satisyapilmadi_not),
+          content: Text(ongorusme.satisyapilmadi_not ?? "Sebep belirtilmemiş"),
           actions: <Widget>[
             TextButton(
               child: Text("Kapat"),
@@ -705,10 +705,6 @@ class OnGorusmeDataSource2 extends DataGridSource {
 
 
 }
-
-
-
-
 class OnGorusmeDataSource extends DataGridSource {
 
   int rowsPerPage;
@@ -726,6 +722,7 @@ class OnGorusmeDataSource extends DataGridSource {
 
   String salonid;
 
+
   OnGorusmeDataSource({
 
     required this.context,
@@ -734,6 +731,8 @@ class OnGorusmeDataSource extends DataGridSource {
     required this.salonid,
     required this.arama,
 
+
+
   }): currentPage = 1, totalRows = 0 {
     fetchData(currentPage.toString(),'',false);
   }
@@ -741,8 +740,6 @@ class OnGorusmeDataSource extends DataGridSource {
   Future<void> fetchData(String page,String arama,bool showprogress) async {
     log("ön görüşme data fetch :"+page+" - "+arama+" - "+showprogress.toString() );
     isLoadingNotifier.value = true;
-    //if(showprogress)
-    //showProgressLoading(context);
     notifyListeners();
     final jsonResponse = await ongorusmeler(salonid, page.toString(),arama);
 
@@ -752,36 +749,54 @@ class OnGorusmeDataSource extends DataGridSource {
       _paginatedRows = [];
 
     ongorusme.forEach((e) {
-
-
       ++totalRows;
+
+      // Paket/Ürün adını doğru şekilde al
+      String paketUrunAdi = _getPaketUrunAdi(e);
 
       _paginatedRows.add(
           DataGridRow(cells: [
             DataGridCell<OnGorusme>(columnName: 'ongorusme',value: e),
             DataGridCell<String>(columnName: 'id', value: e.id),
-
-            DataGridCell<String>(columnName: 'musteridanisan', value: e.ad_soyad  ),
-            DataGridCell<String>(columnName: 'paketurun', value: e.urun_id != "null" ? e.urun["urun_adi"] : "" + e.paket_id!="null" ? e.paket["paket_adi"] : ""),
+            DataGridCell<String>(columnName: 'musteridanisan', value: e.ad_soyad),
+            DataGridCell<String>(columnName: 'paketurun', value: paketUrunAdi),
             DataGridCell<String>(columnName: 'durum', value: e.durum.toString()),
-
-
-
           ])
       );
-
     });
     totalPages = jsonResponse['last_page'];
     currentPage = jsonResponse['current_page'];
     isLoadingNotifier.value = false;
-    //if(showprogress)
-    //Navigator.of(context).pop();// Notify listeners that loading has finished
     notifyListeners();
-
-
-
   }
 
+// Paket/Ürün adını güvenli şekilde almak için yardımcı metod
+  String _getPaketUrunAdi(OnGorusme ongorusme) {
+    String paketUrunAdi = "";
+
+    // Önce ürün kontrolü
+    if (ongorusme.urun_id != null && ongorusme.urun_id != "null" && ongorusme.urun_id.isNotEmpty) {
+      if (ongorusme.urun is Map && ongorusme.urun.containsKey("urun_adi")) {
+        paketUrunAdi = ongorusme.urun["urun_adi"]?.toString() ?? "";
+      }
+    }
+
+    // Eğer ürün yoksa paket kontrolü
+    if (paketUrunAdi.isEmpty && ongorusme.paket_id != null && ongorusme.paket_id != "null" && ongorusme.paket_id.isNotEmpty) {
+      if (ongorusme.paket is Map && ongorusme.paket.containsKey("paket_adi")) {
+        paketUrunAdi = ongorusme.paket["paket_adi"]?.toString() ?? "";
+      }
+    }
+
+
+
+    // Hiçbiri yoksa
+    if (paketUrunAdi.isEmpty) {
+      paketUrunAdi = "Ön Görüşme";
+    }
+
+    return paketUrunAdi;
+  }
   void search(String musteridanisanadi)
   {
     currentPage = 1;
@@ -1140,108 +1155,163 @@ class OnGorusmeDataSource extends DataGridSource {
       debugPrint(response.body);
     }
   }
-  Future<void> onGorusmeEkleGuncelle(String ongorusmeid,String musteri_id,String ad_soyad,String telefon,String email, String cinsiyet,context,String salonid,String sehir,String referans,String meslek,String urun_id, String paket_id, String randevu_tarihi, String randevu_saati, String aciklama,String personelid,String cakisanrandevuekle,String hizmet_id) async {
+  Future<void> onGorusmeEkleGuncelle(
+      String ongorusmeid,
+      String musteri_id,
+      String ad_soyad,
+      String telefon,
+      String email,
+      String cinsiyet,
+      BuildContext context,
+      String salonid,
+      String sehir,
+      String referans,
+      String meslek,
+      String urun_id,
+      String paket_id,
+      String randevu_tarihi,
+      String randevu_saati,
+      String aciklama,
+      String personelid,
+      String cakisanrandevuekle,
+      String hizmet_id) async {
 
     SharedPreferences localStorage = await SharedPreferences.getInstance();
-    List<RandevuHizmet>randevuhizmetleri = [
-      RandevuHizmet(cihaz: "",cihaz_id: "",fiyat: "",personel_id: personelid,hizmet_id: "1",hizmetler: "",oda: "",oda_id: "",personeller: "",saat: randevu_saati,saat_bitis: "",sure_dk: "60",yardimci_personel: "",birusttekiileaynisaat: "")
-    ];
     var user = jsonDecode(localStorage.getString('user')!);
 
     showProgressLoading(context);
+
+    List<Map<String, dynamic>> randevuhizmetleri = [
+      {
+        'cihaz': "",
+        'cihaz_id': "",
+        'fiyat': "",
+        'personel_id': personelid,
+        'hizmet_id': "1",
+        'hizmetler': {},
+        'oda': "",
+        'oda_id': "",
+        'personeller': {},
+        'saat': randevu_saati,
+        'saat_bitis': "",
+        'sure_dk': "60",
+        'yardimci_personel': "",
+        'birusttekiileaynisaat': ""
+      }
+    ];
+
     Map<String, dynamic> formData = {
-      'on_gorusme_id':ongorusmeid,
-      'musteri_id': musteri_id,
+      'on_gorusme_id': ongorusmeid.isEmpty ? "" : ongorusmeid,
+      'musteri_id': musteri_id.isEmpty ? "0" : musteri_id,
       'ad_soyad': ad_soyad,
-      'telefon':telefon,
-      'email': email,
-      'cinsiyet': cinsiyet,
-      'salonid':salonid,
-      'il_id' : sehir,
-      'musteri_tipi': referans,
-      'meslek':meslek,
-      'urun_id':urun_id,
-      'paket_id':paket_id,
-      'hizmet_id':hizmet_id,
-      'randevu_tarihi':randevu_tarihi,
-      'randevu_saati':randevu_saati,
-      'aciklama':aciklama,
-      'olusturan': user["id"],
-      'gorusmeyi_yapan':personelid,
-      'cakisanrandevuekle':cakisanrandevuekle,
-      'hizmetler':randevuhizmetleri,
-
-
-
-
-      // Add other form fields
+      'telefon': telefon,
+      'email': email.isEmpty ? "" : email,
+      'cinsiyet': cinsiyet.isEmpty ? "" : cinsiyet,
+      'salonid': salonid,
+      'il_id': sehir.isEmpty ? "" : sehir,
+      'musteri_tipi': referans.isEmpty ? "" : referans,
+      'meslek': meslek.isEmpty ? "" : meslek,
+      'urun_id': urun_id.isEmpty ? "" : urun_id,
+      'paket_id': paket_id.isEmpty ? "" : paket_id,
+      'hizmet_id': hizmet_id.isEmpty ? "" : hizmet_id,
+      'randevu_tarihi': randevu_tarihi,
+      'randevu_saati': randevu_saati,
+      'aciklama': aciklama.isEmpty ? "" : aciklama,
+      'olusturan': user["id"].toString(),
+      'gorusmeyi_yapan': personelid.isEmpty ? "" : personelid,
+      'cakisanrandevuekle': cakisanrandevuekle.isEmpty ? "" : cakisanrandevuekle,
+      'hizmetler': randevuhizmetleri, 
     };
 
-    final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmeekleguncelle'),
+    try {
+      final response = await http.post(
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmeekleguncelle'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(formData),
+      );
 
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(formData),
-    );
+      if (response.statusCode == 200) {
+        dynamic result = json.decode(response.body);
 
-    if (response.statusCode == 200) {
-      log(response.body);
-      dynamic result = json.decode(response.body);
+        if (result["cakismavar"] == "1") {
+          Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
 
-      if(result["cakismavar"]=="1")
-      {
-        Navigator.of(context,rootNavigator: true).pop();
-        showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text('UYARI'),
-              content: Text('Oluşturduğunuz öngörüşme randevusu aşağıdakilerle çakışmaktadır!\n\n'+result["cakisanunsurlar"].replaceAll(r'\n', '\n')),
-              actions: <Widget>[
-                TextButton(
-                  child: Text('VAZGEÇ'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                TextButton(
-                  child: Text('YİNE DE RANDEVUYU OLUŞTUR'),
-                  onPressed: () {
-                    onGorusmeEkleGuncelle(ongorusmeid,musteri_id, ad_soyad, telefon, email,  cinsiyet,context, salonid, sehir, referans, meslek, urun_id,  paket_id,  randevu_tarihi,  randevu_saati,  aciklama, personelid, "1",hizmet_id);
+          // Çakışma varsa dialog göster
+          await showDialog<bool>(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('UYARI'),
+                content: Text('Oluşturduğunuz öngörüşme randevusu aşağıdakilerle çakışmaktadır!\n\n' +
+                    result["cakisanunsurlar"].replaceAll(r'\n', '\n')),
+                actions: <Widget>[
+                  TextButton(
+                    child: Text('VAZGEÇ'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  TextButton(
+                    child: Text('YİNE DE RANDEVUYU OLUŞTUR'),
+                    onPressed: () {
+                      // Dialog'u kapat ve "1" (evet) değeri ile geri dön
+                      Navigator.of(context).pop(true);
+                    },
+                  ),
+                ],
+              );
+            },
+          ).then((value) {
+            // Eğer kullanıcı "YİNE DE RANDEVUYU OLUŞTUR" dediyse
+            if (value == true) {
+              // Ön görüşmeyi tekrar dene, bu sefer çakışmayı ignore et
+              onGorusmeEkleGuncelle(
+                  ongorusmeid, musteri_id, ad_soyad, telefon, email, cinsiyet,
+                  context, salonid, sehir, referans, meslek, urun_id, paket_id,
+                  randevu_tarihi, randevu_saati, aciklama, personelid, "1", hizmet_id
+              );
+            }
+          });
+        } else {
+          // Başarılı kayıt
+          Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
 
+          // Başarı mesajı göster
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ön görüşme başarıyla kaydedildi.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
 
-                  },
-                ),
-              ],
-            );
-          },
+          // Sayfayı kapat ve öngörüşmeler listesine dön
+          Navigator.of(context).pop();
+
+          // Verileri güncelle
+          fetchData("1", arama, false);
+        }
+      } else {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sunucu hatası: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
         );
-
       }
-      else{
-        Navigator.of(context,rootNavigator: true).pop();
-        Navigator.of(context).pop();
-      }
-
-      fetchData("1", arama, false);
-
-    } else {
-      Navigator.of(context,rootNavigator: true).pop();
-      debugPrint('Error: ${response.body}');
-
+    } catch (e) {
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bir hata oluştu: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-
   }
 
-
-
-
 }
-
-
-
-
-
 class KampanyaDataSource extends DataGridSource {
   List<DataGridRow> _paginatedRows = [];
   int rowsPerPage;
@@ -2127,6 +2197,7 @@ class RandevuDataSource extends DataGridSource {
   String personelid;
   String musteriid;
   bool musteriMi;
+  int kullanicirolu;
   dynamic isletmebilgi;
   BuildContext context;
   List<Randevu> randevu = [];
@@ -2135,7 +2206,7 @@ class RandevuDataSource extends DataGridSource {
   String olusturma;
   RandevuDataSource({
     required this.rowsPerPage,
-
+    required this.kullanicirolu,
     required this.context,
     required this.salonid,
     required this.musteriid,
@@ -2282,7 +2353,7 @@ class RandevuDataSource extends DataGridSource {
                   },
                 );
               if(value=="randevuyageldi") {
-                randevugeldiisaretle(row.getCells()[1].value, '', context);
+                await randevugeldiisaretle(row.getCells()[1].value, '', context,'');
                 await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
               }
               if(value=="randevuyagelmedi"){
@@ -2294,16 +2365,7 @@ class RandevuDataSource extends DataGridSource {
                 randevuonayla(row.getCells()[1].value, context);
                 await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
               }
-              if(value=="tahsilat"){
 
-                dynamic randevutahsilatsonuc = await randevudantahsilatagit(context,secilirandevu.id.toString());
-
-                if(randevutahsilatsonuc==true){
-
-                  Navigator.of(context).pop();
-                  Navigator.push(context, new MaterialPageRoute(builder: (context) => TahsilatEkrani(isletmebilgi: isletmebilgi, musteridanisanid:secilirandevu.user_id)));
-                }
-              }
             },
 
             itemBuilder: (BuildContext context) {
@@ -2316,7 +2378,7 @@ class RandevuDataSource extends DataGridSource {
                   child: Text('Detaylı Bilgi'),
                 ),
               );
-              if(row.getCells()[4].value.toString() == "0" && !musteriMi)
+              if(row.getCells()[4].value.toString() == "0" && !musteriMi && kullanicirolu != 5)
                 menuItems.add(
                   PopupMenuItem<String>(
                     value: 'randevuonayla',
@@ -2325,21 +2387,21 @@ class RandevuDataSource extends DataGridSource {
                 );
               if(row.getCells()[4].value.toString() != "2" && row.getCells()[4].value.toString() != "3" )
               {
-                if(rndv.tahsilat_eklendi != "1")
-                menuItems.add(
-                  PopupMenuItem<String>(
-                    value: 'randevuiptalet',
-                    child: Text('İptal Et'),
-                  ),
-                );
-                if(!musteriMi)
-                menuItems.add(
-                  PopupMenuItem<String>(
-                    value: 'randevuduzenle',
-                    child: Text('Düzenle'),
-                  ),
-                );
-                if(row.getCells()[4].value.toString() != "0" && !musteriMi)
+                if(rndv.tahsilat_eklendi != "1" && kullanicirolu != 5)
+                  menuItems.add(
+                    PopupMenuItem<String>(
+                      value: 'randevuiptalet',
+                      child: Text('İptal Et'),
+                    ),
+                  );
+                /*if(!musteriMi)
+                  menuItems.add(
+                    PopupMenuItem<String>(
+                      value: 'randevuduzenle',
+                      child: Text('Düzenle'),
+                    ),
+                  );*/
+                if(row.getCells()[4].value.toString() != "0" && !musteriMi && kullanicirolu !=5)
                 {
                   menuItems.add(
                     PopupMenuItem<String>(
@@ -2353,13 +2415,7 @@ class RandevuDataSource extends DataGridSource {
                       child: Text('Gelmedi'),
                     ),
                   );
-                  if(rndv.tahsilat_eklendi != "1")
-                    menuItems.add(
-                      PopupMenuItem<String>(
-                        value: 'tahsilat',
-                        child: Text('Tahsilat'),
-                      ),
-                    );
+
                 }
 
               }
@@ -2419,8 +2475,8 @@ class RandevuDataSource extends DataGridSource {
     String hizmetlerStr = "";
     randevudetay.hizmetler.forEach((element){
 
-       hizmetlerStr += element["hizmetler"]["hizmet_adi"].toString()+ ", ";
-     });
+      hizmetlerStr += element["hizmetler"]["hizmet_adi"].toString()+ ", ";
+    });
 
     String icerik = "Durum : "+durumstr +
         (!musteri  ? "\n" +"Telefon : "+  randevudetay.musteri["cep_telefon"] : '') +
@@ -2459,6 +2515,7 @@ class RandevuDataSource extends DataGridSource {
                         },
                         child: const CircleAvatar(
                           backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
                           child: Icon(Icons.close),
                         ),
                       ),
@@ -2508,7 +2565,7 @@ class RandevuDataSource extends DataGridSource {
                               )
                             ],
                           ) : SizedBox.shrink(),
-                          (randevudurum![0] == "0" || randevudurum![0] == "1")&& !musteri  ? Row(
+                          (randevudurum![0] == "0" || randevudurum![0] == "1")&& !musteri && kullanicirolu!=5 ? Row(
 
                             children: [
                               randevudurum![0] == "0" ?
@@ -2594,7 +2651,7 @@ class RandevuDataSource extends DataGridSource {
                               SizedBox(width: 15,),
                               randevudurum![0] != "0" ?
                               ElevatedButton(onPressed: ()  async {
-                                randevugeldiisaretle(randevudetay.id.toString(),'', context);
+                                randevugeldiisaretle(randevudetay.id.toString(),'', context,'');
                                 //getUpdatedAppointments();
                                 Navigator.of(context, rootNavigator: true).pop();
                                 await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
@@ -2615,82 +2672,82 @@ class RandevuDataSource extends DataGridSource {
 
                             ],
                           ):SizedBox.shrink(),
-                          randevudurum![0] != "0" && !musteri   ? Row(
+                          randevudurum![0] != "0" && !musteri && kullanicirolu != 5   ? Row(
                             children: [
                               if(randevudetay.tahsilat_eklendi != "1")
-                              ElevatedButton(onPressed: () async {
-                                log(isletmebilgi.toString());
-                                log(randevudetay.user_id.toString());
-                                dynamic randevutahsilatsonuc = await randevudantahsilatagit(context,randevudetay.id.toString());
+                                ElevatedButton(onPressed: () async {
+                                  log(isletmebilgi.toString());
+                                  log(randevudetay.user_id.toString());
+                                  dynamic randevutahsilatsonuc = await randevudantahsilatagit(context,randevudetay.id.toString());
 
-                                if(randevutahsilatsonuc==true){
+                                  if(randevutahsilatsonuc==true){
 
-                                  Navigator.of(context).pop();
-                                  Navigator.push(context, new MaterialPageRoute(builder: (context) => TahsilatEkrani(isletmebilgi: isletmebilgi, musteridanisanid:randevudetay.user_id)));
-                                }
+                                    Navigator.of(context).pop();
+                                    Navigator.push(context, new MaterialPageRoute(builder: (context) => TahsilatEkrani(adisyonId: "", kullanicirolu: kullanicirolu, isletmebilgi: isletmebilgi, musteridanisanid:randevudetay.user_id)));
+                                  }
 
 
-                              }, child:
-                              Text('Tahsilat'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF5E35B1),
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
-                              )
+                                }, child:
+                                Text('Tahsilat'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Color(0xFF5E35B1),
+                                      foregroundColor: Colors.white,
+                                      elevation: 5,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5.0)
+                                      ),
+                                      minimumSize: Size(130, 30)
+                                  ),
+                                )
                               ,
                               SizedBox(width: 15,),
                               if(randevudetay.tahsilat_eklendi != "1")
-                              ElevatedButton(onPressed: () {
-                                showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContex) {
-                                    return AlertDialog(
-                                      title: Text('EMİN MİSİNİZ?'),
-                                      content: Text("Randevu iptal etme işlemi geri alınamaz?"),
-                                      actions: <Widget>[
-                                        TextButton(
-                                          child: Text('VAZGEÇ'),
-                                          onPressed: () {
-                                            Navigator.of(dialogContex).pop();
-                                          },
-                                        ),
-                                        TextButton(
-                                          child: Text('GÖNDER'),
-                                          onPressed: () async {
-                                            Navigator.of(context, rootNavigator: true).pop();
-                                            SharedPreferences prefs = await SharedPreferences.getInstance();
-                                            var usertype = prefs.getString('user_type');
-                                            randevuiptalet(randevudetay.id.toString(), context,usertype!);
-                                            Navigator.of(context, rootNavigator: true).pop();
-                                            await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
-                                            //getUpdatedAppointments();
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
+                                ElevatedButton(onPressed: () {
+                                  showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContex) {
+                                      return AlertDialog(
+                                        title: Text('EMİN MİSİNİZ?'),
+                                        content: Text("Randevu iptal etme işlemi geri alınamaz?"),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            child: Text('VAZGEÇ'),
+                                            onPressed: () {
+                                              Navigator.of(dialogContex).pop();
+                                            },
+                                          ),
+                                          TextButton(
+                                            child: Text('GÖNDER'),
+                                            onPressed: () async {
+                                              Navigator.of(context, rootNavigator: true).pop();
+                                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                                              var usertype = prefs.getString('user_type');
+                                              randevuiptalet(randevudetay.id.toString(), context,usertype!);
+                                              Navigator.of(context, rootNavigator: true).pop();
+                                              await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
+                                              //getUpdatedAppointments();
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
 
 
 
 
-                              }, child:
-                              Text('İptal Et'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
-                              )
+                                }, child:
+                                Text('İptal Et'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      foregroundColor: Colors.white,
+                                      elevation: 5,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5.0)
+                                      ),
+                                      minimumSize: Size(130, 30)
+                                  ),
+                                )
 
                             ],
                           ) : SizedBox.shrink(),
@@ -3364,105 +3421,189 @@ class AjandaDataSource extends DataGridSource {
   List<DataGridRow> _paginatedRows = [];
   int rowsPerPage;
   int currentPage;
-
   int totalPages = 1;
   int totalRows;
   String salonid;
-
   String baslik;
-
   BuildContext context;
   List<Ajanda> ajanda = [];
-
   dynamic isletmebilgi;
+  bool _isDisposed = false;
   ValueNotifier<bool> isLoadingNotifier = ValueNotifier(false);
+
   AjandaDataSource({
     required this.rowsPerPage,
     required this.context,
     required this.salonid,
     required this.isletmebilgi,
     required this.baslik,
-
-
-
-
   }) : currentPage = 1, totalRows = 0 {
-    fetchData(currentPage.toString(),baslik,true);
+    fetchData(currentPage.toString(), baslik, true);
   }
-  void search(String baslik)
-  {
+
+  void search(String baslik) {
+    this.baslik = baslik;
     currentPage = 1;
-    fetchData("1",baslik,false);
+    fetchData("1", baslik, false);
   }
-  Future<void> fetchData(String page,String baslik,bool showprogress) async {
 
-    isLoadingNotifier.value = true;
-    if(showprogress)
+  Future<void> fetchData(String page, String baslik, bool showprogress) async {
+    if (_isDisposed) return;
+
+    if (!_isDisposed) {
+      isLoadingNotifier.value = true;
+    }
+
+    if (showprogress && !_isDisposed && context.mounted) {
       showProgressLoading(context);
-    notifyListeners();
-    final jsonResponse = await ajandagetir(salonid, page.toString(),baslik);
+    }
 
-    List<dynamic> data = jsonResponse['data'];
-    ajanda = data.map<Ajanda>((json) => Ajanda.fromJson(json)).toList();
-    if(_paginatedRows.length>0)
-      _paginatedRows = [];
+    try {
+      final jsonResponse = await ajandagetir(salonid, page.toString(), baslik);
 
-    ajanda.forEach((e) {
+      if (_isDisposed) return;
 
-      ++totalRows;
-      _paginatedRows.add(
-          DataGridRow(cells: [
-            DataGridCell<Ajanda>(columnName: 'ajanda', value: e),
-            DataGridCell<String>(columnName: 'id', value: e.id.toString()),
-            DataGridCell<String>(columnName: 'tarihsaat', value: formattedDate(e.ajandatarih.toString())+' '+e.ajandasaat.toString()),
-            DataGridCell<String>(columnName: 'baslik', value: e.title.toString()),
-            DataGridCell<String>(columnName: 'durum', value: e.durum.toString()),
+      List<dynamic> data = jsonResponse['data'];
+      ajanda = data.map<Ajanda>((json) => Ajanda.fromJson(json)).toList();
 
+      _paginatedRows.clear();
+      totalRows = 0;
 
-          ])
-      );
-    });
-    totalPages = jsonResponse['last_page'];
-    currentPage = jsonResponse['current_page'];
-    isLoadingNotifier.value = false;
-    if(showprogress)
-      Navigator.of(context, rootNavigator: true).pop();// Notify listeners that loading has finished
-    notifyListeners();
+      ajanda.forEach((e) {
+        ++totalRows;
+        _paginatedRows.add(
+            DataGridRow(cells: [
+              DataGridCell<Ajanda>(columnName: 'ajanda', value: e),
+              DataGridCell<String>(columnName: 'id', value: e.id.toString()),
+              DataGridCell<String>(columnName: 'tarihsaat', value: formattedDate(e.ajandatarih.toString()) + ' ' + e.ajandasaat.toString()),
+              DataGridCell<String>(columnName: 'baslik', value: e.title.toString()),
+              DataGridCell<String>(columnName: 'durum', value: e.durum.toString()),
+            ])
+        );
+      });
+
+      totalPages = jsonResponse['last_page'];
+      currentPage = jsonResponse['current_page'];
+
+      if (!_isDisposed) {
+        isLoadingNotifier.value = false;
+        if (showprogress && context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        notifyListeners();
+      }
+
+    } catch (e) {
+      if (!_isDisposed) {
+        isLoadingNotifier.value = false;
+        if (showprogress && context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Veriler yüklenirken hata oluştu: $e')),
+          );
+        }
+      }
+    }
   }
 
   void setPage(int page) {
     if (page > 0 && page <= totalPages) {
       currentPage = page;
-
-      fetchData(currentPage.toString(),"",true);
+      fetchData(currentPage.toString(), baslik, true);
     }
   }
 
+  void refreshData() {
+    fetchData(currentPage.toString(), baslik, false);
+  }
 
-  ColorAndText getStatusColorAndText(String durum) {
-    print('Durum: $durum');
+  Future<void> ajandaEkleGuncelle(String id, String baslik, String icerik, String tarih,
+      String saat, String hatirlatma_saati, bool hatirlatma,
+      BuildContext context) async {
 
+    SharedPreferences localStorage = await SharedPreferences.getInstance();
+    var user = jsonDecode(localStorage.getString('user')!);
 
-    if (durum == '0') {
-      return ColorAndText(Colors.red[600]!, 'Okunmadı');
+    Map<String, dynamic> formData = {
+      'ajandaid': id,
+      'baslik': baslik,
+      'icerik': icerik,
+      'tarih': tarih,
+      'saat': saat,
+      'hatirlatma_saati': hatirlatma_saati,
+      'hatirlatma': hatirlatma
+    };
+
+    print('API Gönderilen Veriler: $formData');
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/notekleduzenle/' + salonid.toString() + '/' + user['id'].toString()),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(formData),
+      ).timeout(Duration(seconds: 10));
+
+      print('API Yanıt Kodu: ${response.statusCode}');
+      print('API Yanıt Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // API plain text döndürüyor, JSON değil - bu yüzden jsonDecode kullanma
+        String responseBody = response.body;
+
+        // Başarılı mesajları kontrol et
+        if (responseBody.contains('başarıyla') || responseBody.contains('kaydedildi') || responseBody.contains('success')) {
+          // VERİLERİ YENİLE - progress gösterme
+          await fetchData(currentPage.toString(), this.baslik, false);
+
+          if (context.mounted) {
+            // Başarı mesajını göster
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(id.isEmpty ? 'Notunuz Eklendi' : 'Notunuz Güncellendi'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          // API hata mesajı döndürdü
+          throw Exception('API Error: $responseBody');
+        }
+      } else {
+        throw Exception('HTTP Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('API Call Error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bağlantı hatası: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      rethrow;
     }
-    else {
+  }
+  ColorAndText getStatusColorAndText(String durum) {
+    if (durum != '1' ) {
+      return ColorAndText(Colors.red[600]!, 'Okunmadı');
+
+    } else {
       return ColorAndText(Colors.green, 'Okundu');
     }
-
-
-
   }
+
   @override
   List<DataGridRow> get rows => _paginatedRows;
-
 
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
     final colorAndText = getStatusColorAndText(row.getCells()[4].value.toString());
-    final AjandaDataSource ajandaDataSource;
-    return DataGridRowAdapter(cells: [
 
+    return DataGridRowAdapter(cells: [
       Container(
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.all(8.0),
@@ -3491,73 +3632,66 @@ class AjandaDataSource extends DataGridSource {
       Container(
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.all(3.0),
-        child:  ElevatedButton(
+        child: ElevatedButton(
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => AjandaDuzenle(isletmebilgi:isletmebilgi, notdetayi: row.getCells()[0].value, ajandaDataSource: this,)),
+                builder: (context) => AjandaDuzenle(
+                  isletmebilgi: isletmebilgi,
+                  notdetayi: row.getCells()[0].value,
+                  ajandaDataSource: this,
+                ),
+              ),
             );
-
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: colorAndText.color,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
             minimumSize: Size(100, 20),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           ),
           child: Text(
             colorAndText.text,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.normal,
+            ),
           ),
         ),
       ),
       Container(
           alignment: Alignment.center,
-          child:PopupMenuButton<String>(
+          child: PopupMenuButton<String>(
             onSelected: (String value) async {
-              if(value=='duzenle')
-              {
-
+              if (value == 'duzenle') {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => AjandaDuzenle(isletmebilgi: isletmebilgi, notdetayi: row.getCells()[0].value, ajandaDataSource: this,)),
+                    builder: (context) => AjandaDuzenle(
+                      isletmebilgi: isletmebilgi,
+                      notdetayi: row.getCells()[0].value,
+                      ajandaDataSource: this,
+                    ),
+                  ),
                 );
-              }
-              if(value=='okundu')
-              {
+              } else if (value == 'okundu') {
                 okunduajanda(context, row.getCells()[1].value);
+              } else if (value == 'sil') {
+                showAjandaSilmeConfirmationDialog(context, row.getCells()[1].value.toString());
               }
-              if(value=='sil')
-              {
-                showAjandaSilmeConfirmationDialog(context,row.getCells()[1].value.toString());
-              }
-
-
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              PopupMenuItem<String>(
-                value: 'duzenle',
-                child: Text('Düzenle'),
-              ),
-              PopupMenuItem<String>(
-                value: 'okundu',
-                child: Text('Okundu'),
-              ),
-              PopupMenuItem<String>(
-                value: 'sil',
-                child: Text('Sil'),
-              ),
-
+              PopupMenuItem<String>(value: 'duzenle', child: Text('Düzenle')),
+              PopupMenuItem<String>(value: 'okundu', child: Text('Okundu')),
+              PopupMenuItem<String>(value: 'sil', child: Text('Sil')),
             ],
           )
       )
-
-
     ]);
-
-
   }
+
   Future<bool?> showAjandaSilmeConfirmationDialog(BuildContext context, String id)  {
     return showDialog<bool>(
       context: context,
@@ -3583,8 +3717,8 @@ class AjandaDataSource extends DataGridSource {
       },
     );
   }
-  void okunduajanda(BuildContext context, String ajandaid) async {
 
+  void okunduajanda(BuildContext context, String ajandaid) async {
     showProgressLoading(context);
     Map<String, dynamic> formData = {
       'ajanda_id': ajandaid,
@@ -3598,21 +3732,20 @@ class AjandaDataSource extends DataGridSource {
 
     if (response.statusCode == 200) {
       Navigator.of(context, rootNavigator: true).pop();
-      fetchData(currentPage.toString(), baslik, false);
+      fetchData(currentPage.toString(), baslik, false); // progress gösterme
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cihaz müsait edlirken bir hata oluştu! Hata kodu : ' + response.statusCode.toString()),
+          content: Text('Okundu işaretlenirken hata oluştu! Hata kodu: ${response.statusCode}'),
         ),
       );
       debugPrint(response.body);
     }
   }
+
   Future<void> ajandasil(BuildContext context, String id) async {
-
-
     Map<String, dynamic> formData = {
-      'id':id,
+      'id': id,
     };
 
     final response = await http.post(
@@ -3623,65 +3756,23 @@ class AjandaDataSource extends DataGridSource {
 
     if (response.statusCode == 200) {
       Navigator.of(context).pop();
-      fetchData(currentPage.toString(), baslik, true);
-    }
-    else {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Notunuz silinirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
-        ),
-      );
-      debugPrint('Error: ${response.body}');
-    }
-  }
-  Future<void> ajandaEkleGuncelle(String id,String baslik,String icerik,String tarih, String saat,String hatirlatma_saati, bool hatirlatma,context) async {
-
-    SharedPreferences localStorage = await SharedPreferences.getInstance();
-
-    var user = jsonDecode(localStorage.getString('user')!);
-    Map<String, dynamic> formData = {
-      'ajandaid':id,
-      'baslik': baslik,
-      'icerik': icerik,
-      'tarih': tarih,
-      'saat':saat,
-      'hatirlatma_saati':hatirlatma_saati,
-      'hatirlatma':hatirlatma
-
-      // Add other form fields
-    };
-
-    final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/notekleduzenle/'+salonid.toString()+'/'+user['id'].toString()),
-
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(formData),
-    );
-
-    if (response.statusCode == 200) {
-      Navigator.of(context).pop();
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => AjandaNotlar(isletmebilgi: isletmebilgi,)),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Notunu Eklendi'),
-        ),
-      );
+      fetchData(currentPage.toString(), baslik, false); // progress gösterme
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Notunuz kaydedilirken hata oluştu! Hata kodu : '+response.statusCode.toString()),
+          content: Text('Notunuz silinirken bir hata oluştu! Hata kodu: ${response.statusCode}'),
         ),
       );
       debugPrint('Error: ${response.body}');
     }
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    isLoadingNotifier.dispose();
+    super.dispose();
+  }
 }
 
 
@@ -4045,13 +4136,14 @@ class PaketSatisDataSource extends DataGridSource {
   ValueNotifier<bool> selectAll = ValueNotifier(false);
   ValueNotifier<bool> anyChecked = ValueNotifier(false);
   late ValueNotifier<List<bool>> selectedRows;
-
+  int kullanicirolu;
 
   PaketSatisDataSource({
     required this.rowsPerPage,
 
     required this.context,
     required this.salonid,
+    required this.kullanicirolu,
 
   }) : currentPage = 1, totalRows = 0 {
     fetchData(currentPage.toString(),"");
@@ -4146,22 +4238,8 @@ class PaketSatisDataSource extends DataGridSource {
         padding: EdgeInsets.all(8.0),
         child: Text(row.getCells()[4].value),
       ),
-      Container(
-        alignment: Alignment.center,
-        child: PopupMenuButton<String>(
-          onSelected: (String value) async {
-            if (value == 'tahsilet') {
-              // Navigate to another screen or perform an action
-            }
-          },
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(
-              value: 'tahsilet',
-              child: Text('Tahsil Et'),
-            ),
-          ],
-        ),
-      ),
+      SizedBox()
+
     ]);
   }
 }
@@ -4183,11 +4261,12 @@ class UrunSatisDataSource extends DataGridSource {
   ValueNotifier<bool> selectAll = ValueNotifier(false);
   ValueNotifier<bool> anyChecked = ValueNotifier(false);
   late ValueNotifier<List<bool>> selectedRows;
+  int kullanicirolu;
 
 
   UrunSatisDataSource({
     required this.rowsPerPage,
-
+    required this.kullanicirolu,
     required this.context,
     required this.salonid,
 
@@ -4284,22 +4363,8 @@ class UrunSatisDataSource extends DataGridSource {
         padding: EdgeInsets.all(8.0),
         child: Text(row.getCells()[4].value),
       ),
-      Container(
-        alignment: Alignment.center,
-        child: PopupMenuButton<String>(
-          onSelected: (String value) async {
-            if (value == 'tahsilet') {
-              // Navigate to another screen or perform an action
-            }
-          },
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(
-              value: 'tahsilet',
-              child: Text('Tahsil Et'),
-            ),
-          ],
-        ),
-      ),
+        SizedBox()
+
     ]);
   }
 }
@@ -4840,13 +4905,15 @@ class SeansDataSource extends DataGridSource {
     final jsonResponse = await seanslarigetir(salonid, page.toString(),musteripaket,musteriid,context,musteriMi);
 
     List<dynamic> data = jsonResponse['data'];
+    log('Seans json data '+jsonEncode(jsonResponse['data']));
+
     seanstakibi = data.map<SeansTakip>((json) => SeansTakip.fromJson(json)).toList();
     if(_paginatedRows.length>0)
       _paginatedRows = [];
 
     seanstakibi.forEach((e) {
       String icerikStr = (!musteriMi ? e.musteri["name"]+'\n' : '')+ e.paket.toString();
-      log("müşteri danışan "+e.musteri.toString());
+
 
 
       e.seanslar.forEach((f) {
@@ -5865,6 +5932,7 @@ class GelirDataSource extends DataGridSource {
                       Navigator.of(context).pop();
                     },
                     child: const CircleAvatar(
+                      foregroundColor: Colors.white,
                       backgroundColor: Colors.red,
                       child: Icon(Icons.close),
                     ),
@@ -6287,6 +6355,7 @@ class MusteriDanisanDataSource extends DataGridSource {
   String salonid;
   String durum;
   BuildContext context;
+  int kullanicirolu;
   List<MusteriDanisan> musteridanisan = [];
   dynamic isletmebilgi;
   List<DataGridRow> paketRows = [];
@@ -6302,64 +6371,51 @@ class MusteriDanisanDataSource extends DataGridSource {
     required this.durum,
     required this.arama,
     required this.isletmebilgi,
+    required this.kullanicirolu
   }) : currentPage = 1, totalRows = 0 {
-    fetchData(currentPage.toString(),'',true);
+    fetchData(page:currentPage.toString(),musteripaket: '',showProgress: true);
   }
 
-  Future<void> fetchData(String page,String musteripaket,bool showprogress) async {
-
+  Future<void> fetchData({required String page, String musteripaket = '', bool showProgress = true}) async {
+    print(page+' - '+ musteripaket);
+    if(showProgress) showProgressLoading(context);
     isLoadingNotifier.value = true;
-    if(showprogress)
-      showProgressLoading(context);
-    notifyListeners();
-    final jsonResponse = await musteridanisanlistesi(salonid, page.toString(),musteripaket,durum);
+
+    // Backend’den veri çek
+    final jsonResponse = await musteridanisanlistesi(salonid, page, musteripaket, durum);
 
     List<dynamic> data = jsonResponse['data'];
-    musteridanisan = data.map<MusteriDanisan>((json) => MusteriDanisan.fromJson(json)).toList();
-    if(_paginatedRows.length>0)
-      _paginatedRows = [];
+    musteridanisan = data.map((json) => MusteriDanisan.fromJson(json)).toList();
 
-    musteridanisan.forEach((e) {
+    // Önceki sayfa verilerini temizle
+    _paginatedRows.clear();
 
+    // Yeni sayfanın verilerini ekle
+    _paginatedRows.addAll(musteridanisan.map((e) => DataGridRow(cells: [
+      DataGridCell(columnName: 'musteripar', value: e),
+      DataGridCell(columnName:'id', value:e.id.toString()),
+      DataGridCell(columnName: 'musteridanisanadi', value: e.name),
+      DataGridCell(columnName: 'ceptelefon', value: e.cep_telefon),
+      DataGridCell(columnName: 'randevusayisi', value: e.randevu_sayisi),
+    ])));
 
-      ++totalRows;
+    totalPages = jsonResponse['last_page'] ?? 1;
+    currentPage = jsonResponse['current_page'] ?? 1;
 
-      _paginatedRows.add(
-          DataGridRow(cells: [
-            DataGridCell<MusteriDanisan>(columnName: 'musteripar', value: e),
-            DataGridCell<String>(columnName:'id',value:e.id.toString()),
-            DataGridCell<String>(columnName: 'musteridanisanadi', value: e.name),
-            DataGridCell<String>(columnName: 'ceptelefon', value: e.cep_telefon),
-            DataGridCell<String>(columnName: 'randevusayisi', value: e.randevu_sayisi),
-
-
-          ])
-      );
-
-    });
-
-
-    totalPages = jsonResponse['last_page'];
-    currentPage = jsonResponse['current_page'];
     isLoadingNotifier.value = false;
-    if(showprogress)
-      Navigator.of(context, rootNavigator: true).pop();// Notify listeners that loading has finished
-    notifyListeners();
+    if(showProgress) Navigator.of(context, rootNavigator: true).pop();
 
-
-
+    notifyListeners(); // DataGrid’e yenilemesini söyle
   }
-  void search(String musteridanisanadi)
-  {
-    currentPage = 1;
+
+  void search(String musteridanisanadi){
     arama = musteridanisanadi;
-    fetchData("1",musteridanisanadi,false);
+    fetchData(page: '1', musteripaket: musteridanisanadi, showProgress: false);
   }
-  void setPage(int page) {
-    if (page > 0 && page <= totalPages) {
-      currentPage = page;
 
-      fetchData(currentPage.toString(),"",true);
+  void setPage(int page) {
+    if(page > 0 && page <= totalPages) {
+      fetchData(page: page.toString(), musteripaket: arama, showProgress: true);
     }
   }
 
@@ -6408,7 +6464,7 @@ class MusteriDanisanDataSource extends DataGridSource {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => MusteriDetaylari(isletmebilgi:isletmebilgi,md: row.getCells()[0].value )),
+                      builder: (context) => MusteriDetaylari(kullanicirolu: kullanicirolu, isletmebilgi:isletmebilgi,md: row.getCells()[0].value )),
                 );
               }
               if(value=='duzenle')
@@ -6416,7 +6472,7 @@ class MusteriDanisanDataSource extends DataGridSource {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => MusteriDuzenle(isletmebilgi:isletmebilgi,md: row.getCells()[0].value )),
+                      builder: (context) => MusteriDuzenle(kullanicirolu: kullanicirolu, isletmebilgi:isletmebilgi,md: row.getCells()[0].value )),
                 );
               }
               if(value=='sil')
@@ -6487,7 +6543,7 @@ class MusteriDanisanDataSource extends DataGridSource {
 
     if (response.statusCode == 200) {
       Navigator.of(context).pop();
-      fetchData(currentPage.toString(), arama, true);
+      fetchData(page:currentPage.toString(),musteripaket: arama, showProgress: true);
     }
     else {
 
@@ -6640,7 +6696,7 @@ class MusteriDanisanDataSource extends DataGridSource {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => MusteriDuzenle(isletmebilgi:isletmebilgi,md: md,)),
+                                  builder: (context) => MusteriDuzenle(kullanicirolu: kullanicirolu, isletmebilgi:isletmebilgi,md: md,)),
                             );
                           }, child:
                           Text('Düzenle'),
@@ -6659,7 +6715,7 @@ class MusteriDanisanDataSource extends DataGridSource {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => MusteriDetaylari(isletmebilgi:isletmebilgi,md: md )),
+                                  builder: (context) => MusteriDetaylari(kullanicirolu: kullanicirolu, isletmebilgi:isletmebilgi,md: md )),
                             );}, child:
                           Text('Detaylı Bilgi'),
                             style: ElevatedButton.styleFrom(
@@ -8055,6 +8111,8 @@ class OdaDataSource extends DataGridSource {
 }
 class SatisDataSource extends DataGridSource {
   bool musteriMi;
+  bool personelMi;
+  int kullanicirolu;
   int rowsPerPage;
   int currentPage;
   int totalPages = 1;
@@ -8086,6 +8144,8 @@ class SatisDataSource extends DataGridSource {
     required this.tur,
     required this.personelid,
     required this.userid,
+    required this.personelMi,
+    required this.kullanicirolu,
 
 
   }): currentPage = 1, totalRows = 0 {
@@ -8098,7 +8158,7 @@ class SatisDataSource extends DataGridSource {
     if(showprogress)
       showProgressLoading(context);
     notifyListeners();
-    final jsonResponse = await satislar(salonid, page.toString(),tarih1, tarih2, musteriid,tur,personelid,musteriMi,userid);
+    final jsonResponse = await satislar(salonid, page.toString(),tarih1, tarih2, musteriid,tur,personelid,musteriMi,userid,0);
 
     List<dynamic> data = jsonResponse['data'];
     adisyon = data.map<Adisyon>((json) => Adisyon.fromJson(json)).toList();
@@ -8214,13 +8274,15 @@ class SatisDataSource extends DataGridSource {
 
 
   @override
+  @override
   DataGridRowAdapter buildRow(DataGridRow row) {
+    final Adisyon adisyon = row.getCells()[0].value; // Adisyon nesnesini al
+
     return DataGridRowAdapter(cells: [
       Container(
-
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.all(2.0),
-        child:  Text(row.getCells()[0].value.toString(),),
+        child: Text(adisyon.toString()), // Adisyon'ın toString metodunu kullan
       ),
       Container(
         alignment: Alignment.centerLeft,
@@ -8230,7 +8292,7 @@ class SatisDataSource extends DataGridSource {
       Container(
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.all(2.0),
-        child: Text(row.getCells()[2].value.toString(),style: TextStyle( fontSize: 12),),
+        child: Text(row.getCells()[2].value.toString(), style: TextStyle(fontSize: 12)),
       ),
       Container(
         alignment: Alignment.centerRight,
@@ -8238,21 +8300,26 @@ class SatisDataSource extends DataGridSource {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            if(!musteriMi)
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => TahsilatEkrani(isletmebilgi: isletmebilgi,musteridanisanid: row.getCells()[0].value["user_id"].toString())
-              ),
-            );
+            if (!musteriMi && !personelMi )
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => TahsilatEkrani(
+                    adisyonId: adisyon.id,
+                    kullanicirolu: kullanicirolu,
+                    isletmebilgi: isletmebilgi,
+                    musteridanisanid: adisyon.user_id, // Doğrudan property'yi kullan
+                  ),
+                ),
+              );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.purple[800],
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-            minimumSize: Size(double.infinity, 20), // Use double.infinity for full width
+            minimumSize: Size(double.infinity, 20),
           ),
           child: Text(
             row.getCells()[3].value.toString(),
-            style: TextStyle(color: Colors.white,fontSize: 11),
+            style: TextStyle(color: Colors.white, fontSize: 11),
             maxLines: 1,
           ),
         ),
@@ -8263,21 +8330,26 @@ class SatisDataSource extends DataGridSource {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            if(!musteriMi)
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => TahsilatEkrani(isletmebilgi: isletmebilgi,musteridanisanid: row.getCells()[0].value["user_id"].toString())
-              ),
-            );
+            if (!musteriMi && !personelMi)
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => TahsilatEkrani(
+                    adisyonId: adisyon.id,
+                    kullanicirolu: kullanicirolu,
+                    isletmebilgi: isletmebilgi,
+                    musteridanisanid: adisyon.user_id, // Doğrudan property'yi kullan
+                  ),
+                ),
+              );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-            minimumSize: Size(double.infinity, 20), // Use double.infinity for full width
+            minimumSize: Size(double.infinity, 20),
           ),
           child: Text(
             row.getCells()[4].value.toString(),
-            style: TextStyle(color: Colors.white,fontSize: 11),
+            style: TextStyle(color: Colors.white, fontSize: 11),
             maxLines: 1,
           ),
         ),
@@ -8288,21 +8360,26 @@ class SatisDataSource extends DataGridSource {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            if(!musteriMi)
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => TahsilatEkrani(isletmebilgi: isletmebilgi,musteridanisanid: row.getCells()[0].value["user_id"].toString()),
-              ),
-            );
+            if (!musteriMi && !personelMi)
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>  TahsilatEkrani(
+                    adisyonId: adisyon.id,
+                    kullanicirolu: kullanicirolu,
+                    isletmebilgi: isletmebilgi,
+                    musteridanisanid: adisyon.user_id, // Doğrudan property'yi kullan
+                  ),
+                ),
+              );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.red[600],
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-            minimumSize: Size(double.infinity, 20), // Use double.infinity for full width
+            minimumSize: Size(double.infinity, 20),
           ),
           child: Text(
             row.getCells()[5].value.toString(),
-            style: TextStyle(color: Colors.white,fontSize: 11),
+            style: TextStyle(color: Colors.white, fontSize: 11),
             maxLines: 1,
           ),
         ),
@@ -8324,6 +8401,7 @@ class PersonelDataSource extends DataGridSource{
   String baslik;
   dynamic isletmebilgi;
   bool showYukleniyor;
+  int kullanicirolu;
   BuildContext context;
   List<Personel> personel = [];
 
@@ -8335,6 +8413,7 @@ class PersonelDataSource extends DataGridSource{
     required this.isletmebilgi,
     required this.baslik,
     required this.showYukleniyor,
+    required this.kullanicirolu,
 
 
 
@@ -8387,13 +8466,15 @@ class PersonelDataSource extends DataGridSource{
     notifyListeners();
   }
 
-  void setPage(int page) {
+  void setPage(int page, [String? searchText]) {
     if (page > 0 && page <= totalPages) {
       currentPage = page;
-
-      fetchData(currentPage.toString(),"",true);
+      // Eğer searchText verilmişse onu kullan, yoksa mevcut arama terimini kullan
+      String search = searchText ?? '';
+      fetchData(currentPage.toString(), search, true);
     }
   }
+
   ColorAndText getStatusColorAndText(String durum) {
     print('Durum: $durum');
 
@@ -8486,7 +8567,7 @@ class PersonelDataSource extends DataGridSource{
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => PersonelSatislari(kullanici: row.getCells()[0].value,isletmebilgi:isletmebilgi)),
+                        builder: (context) => PersonelSatislari(kullanicirolu: kullanicirolu, kullanici: row.getCells()[0].value,isletmebilgi:isletmebilgi)),
                   );
                 }
 
@@ -8872,7 +8953,7 @@ class PersonelDataSource extends DataGridSource{
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => PersonelSatislari(kullanici: personel,isletmebilgi:isletmebilgi)),
+                                  builder: (context) => PersonelSatislari(kullanicirolu: kullanicirolu, kullanici: personel,isletmebilgi:isletmebilgi)),
                             );
                           }, child:
                           Text('Satışlar'),
@@ -9087,7 +9168,7 @@ class HizmetlerDataSource extends DataGridSource{
     notifyListeners();
 
     final jsonResponse = await hizmetgetir(salonid, page.toString(), baslik);
-
+    log('hizmet json '+jsonEncode(jsonResponse));
     List<dynamic> data = jsonResponse['data'];
     hizmet = data.map<Hizmet>((json) => Hizmet.fromJson(json)).toList();
     _paginatedRows.clear();
@@ -9119,7 +9200,7 @@ class HizmetlerDataSource extends DataGridSource{
     isLoadingNotifier.value = false;
     notifyListeners();
   }
-  Future<void> hizmetekleduzenle (List<Hizmet> secilihizmetler,List<String> sureler, List<String> fiyatlar,List<List<PersonelCihaz>>secilipersonelcihazlar,String seciliisletme) async {
+  Future<void> hizmetekleduzenle(bool yeniekleme,List<String>hizmetAdlari,  List<Hizmet> secilihizmetler,List<String> sureler, List<String> fiyatlar,List<List<PersonelCihaz>>secilipersonelcihazlar,String seciliisletme) async {
 
     showProgressLoading(context);
     List<List<String>> personeller = [];
@@ -9135,24 +9216,28 @@ class HizmetlerDataSource extends DataGridSource{
       });
     });
     Map<String, dynamic> formData = {
+      'yeniekleme': yeniekleme ? '1':'0',
       'hizmetler' : secilihizmetler,
       'sureler': sureler,
       'fiyatlar': fiyatlar,
+      'hizmetAdlari': hizmetAdlari,
       'secilipersoneller': personeller,
       'secilicihazlar': cihazlar,
 
       'sube':seciliisletme,
+
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetekleduzenle'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetekleduzenle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
     Navigator.of(context,rootNavigator:true).pop();
     if (response.statusCode == 200) {
       Navigator.of(context).pop();
-      Navigator.of(context).pop();
+      if(yeniekleme)
+        Navigator.of(context).pop();
       fetchData("1","",false);
 
     } else {
@@ -9160,6 +9245,31 @@ class HizmetlerDataSource extends DataGridSource{
       debugPrint(response.body);
     }
   }
+  Future<void> hizmetSil(String seciliHizmetId) async {
+
+    showProgressLoading(context);
+
+    Map<String, dynamic> formData = {
+      'hizmetId': seciliHizmetId,
+    };
+
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetsil'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(formData),
+    );
+    Navigator.of(context,rootNavigator:true).pop();
+    if (response.statusCode == 200) {
+      Navigator.of(context).pop();
+
+      fetchData("1","",false);
+
+    } else {
+
+      debugPrint(response.body);
+    }
+  }
+
   void setPage(int page) {
     if (page > 0 && page <= totalPages) {
       currentPage = page;
@@ -9195,40 +9305,7 @@ class HizmetlerDataSource extends DataGridSource{
         child: Text(row.getCells()[3].value.toString()),
       ),
 
-      Container(
-          alignment: Alignment.center,
-          child:PopupMenuButton<String>(
-            onSelected: (String value) async {
 
-              if(value=='duzenle')
-              {
-
-
-              }
-              if(value=='sil')
-              {
-
-
-              }
-
-
-
-
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-
-              PopupMenuItem<String>(
-                value: 'duzenle',
-                child: Text('Düzenle'),
-              ),
-              PopupMenuItem<String>(
-                value: 'sil',
-                child: Text('Sil'),
-              ),
-
-            ],
-          )
-      )
 
 
     ]);
@@ -9240,131 +9317,136 @@ class HizmetlerDataSource extends DataGridSource{
       context: context,
       builder: (context) {
         return AlertDialog(
-          insetPadding: EdgeInsets.zero,
-          content: Container(
-            width: 280, // Keep the width if you want, or adjust as needed
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          contentPadding: EdgeInsets.zero,
+          content: SingleChildScrollView(
             child: Stack(
               clipBehavior: Clip.none,
               children: <Widget>[
                 Positioned(
-                  right: -40,
-                  top: -40,
+                  right: -20,
+                  top: -20,
                   child: InkResponse(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
+                    onTap: () => Navigator.of(context).pop(),
                     child: const CircleAvatar(
                       backgroundColor: Colors.red,
-                      child: Icon(Icons.close),
+                      child: Icon(Icons.close, color: Colors.white),
                     ),
                   ),
                 ),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Important for auto height
-                    children: <Widget>[
-                      SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
+
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        const SizedBox(height: 20),
+
+                        Center(
+                          child: Text(
                             hizmet.hizmet_adi,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
                           ),
-                        ],
-                      ),
-                      Divider(color: Colors.black, height: 10),
-                      Row(
-                        children: [
-                          Text('Süre (dk)'),
-                          SizedBox(width: 33),
-                          Text(': '),
-                          Text(hizmet.sure_dk != "null" ? hizmet.sure_dk : "Belirtilmemiş")
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text('Fiyat (₺)'),
-                          SizedBox(width: 32),
-                          Text(': '),
-                          Text(hizmet.fiyat != "null" ? hizmet.fiyat : "Belirtilmemiş")
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text('Personel(-ler)'),
-                          SizedBox(width: 5),
-                          Text(': '),
-                          Expanded(
-                            child: Text(hizmet.personel != "null" ? hizmet.personel : ""),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text('Cihaz(-lar)'),
-                          SizedBox(width: 5),
-                          Text(': '),
-                          Expanded(
-                            child: Text(hizmet.personel != "null" ? hizmet.cihaz : ""),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 30),
-                      Divider(color: Colors.black, height: 20),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              List<Hizmet>secilihizmet = [];
-                              secilihizmet.add(hizmet);
-                              Navigator.of(context).pop(); // Close dialog first
+                        ),
 
-                              Navigator.of(context, rootNavigator: true).push(
-                                MaterialPageRoute(
-                                  builder: (context) => CalisanSecimi(
-                                    isletmebilgi: isletmebilgi,
-                                    secilihizmetler: secilihizmet,
-                                    hizmetDataGridSource: this,
-                                  ),
+                        const Divider(),
+
+                        _row('Süre (dk)', hizmet.sure_dk),
+                        _row('Fiyat (₺)', hizmet.fiyat),
+                        _row('Personel(-ler)', hizmet.personel),
+                        _row('Cihaz(-lar)', hizmet.cihaz),
+
+                        const SizedBox(height: 20),
+                        const Divider(),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  List<Hizmet> secilihizmet = [hizmet];
+                                  Navigator.of(context).pop();
+
+                                  Navigator.of(context, rootNavigator: true).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => CalisanSecimi(
+                                        isletmebilgi: isletmebilgi,
+                                        secilihizmetler: secilihizmet,
+                                        hizmetDataGridSource: this,
+                                        yeniEkleme: false,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.green,
                                 ),
-                              );
+                                child: const Text('Düzenle'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  bool? sonuc = await showDialog<bool>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: const Text('Uyarı'),
+                                        content: const Text('Bu kaydı silmek istediğinize emin misiniz?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context, false);
+                                            },
+                                            child: const Text('İptal'),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red,
+                                              foregroundColor: Colors.white
+                                            ),
+                                            onPressed: () {
+                                              Navigator.pop(context, true);
+                                            },
+                                            child: const Text('Sil'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
 
-                            },
-                            child: Text('Düzenle'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              elevation: 5,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5.0),
+                                  if (sonuc == true) {
+                                    hizmetSil(hizmet.id);
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.red
+                                ),
+                                child: const Text('Sil'),
                               ),
-                              minimumSize: Size(130, 30),
                             ),
-                          ),
-                          SizedBox(width: 15),
-                          ElevatedButton(
-                            onPressed: () {},
-                            child: Text('Sil'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red[600],
-                              elevation: 5,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5.0),
-                              ),
-                              minimumSize: Size(130, 30),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         );
+
       },
     );
 
@@ -9373,6 +9455,25 @@ class HizmetlerDataSource extends DataGridSource{
 
 
   }
+  Widget _row(String label, String? value) {
+    log(label+"-"+value!);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 110, child: Text(label)),
+          const Text(': '),
+          Expanded(
+            child: Text(
+              value != null && value != "null" ? value : "Belirtilmemiş",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
 }
 class EAsistanDataSource extends DataGridSource {
@@ -9534,7 +9635,7 @@ class EAsistanDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://demoapp.randevumcepte.com.tr/api/v1/gorev-iptal-et'),
+      Uri.parse('https://demoapptest.randevumcepte.com.tr/api/v1/gorev-iptal-et'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );

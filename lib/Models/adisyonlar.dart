@@ -31,6 +31,8 @@
     required this.kalan_tutar,
     required this.kalan_tutar_numeric,
     required this.indirim_tutari_toplam_numeric,
+    required this.icerikKisaltilmis
+
 
   });
   final String id;
@@ -62,6 +64,7 @@
   final String kalan_tutar_numeric;
   final String indirim_tutari_toplam_numeric;
   final String user_id;
+  final String icerikKisaltilmis;
 
 
 
@@ -83,6 +86,7 @@
         musteri:json["musteri"].toString(),
         satis_turu:json["satis_turu"].toString(),
         icerik:json["icerik"].toString(),
+      icerikKisaltilmis:json["icerikKisaltilmis"].toString(),
         indirim:json["indirim"].toString(),
         toplam:json["toplam"].toString(),
         hizmet_toplam_numeric:json["hizmet_toplam_numeric"].toString(),
@@ -96,6 +100,7 @@
         indirim_tutari_toplam_numeric:json["indirim_tutari_toplam_numeric"].toString(),
       hizmet_veren:json["hizmet_veren"].toString(),
       user_id : json["user_id"].toString(),
+
 
     );
   }

@@ -93,7 +93,7 @@ class _UrunSatisiAdisyonState extends State<UrunSatisiAdisyon> {
 
                     isExpanded: true,
                     hint: Text(
-                      'Hizmet Seç',
+                      'Ürün Seç',
                       style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context).hintColor,

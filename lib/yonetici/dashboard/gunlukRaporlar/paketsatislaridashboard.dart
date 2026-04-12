@@ -15,7 +15,8 @@ import '../../adisyonlar/musteri_detay.dart';
 
 class PaketSatislariDashboard  extends StatefulWidget {
   final dynamic isletmebilgi;
-  PaketSatislariDashboard ({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  PaketSatislariDashboard ({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
   @override
   _PaketSatislariDashboardState createState() => _PaketSatislariDashboardState();
 }
@@ -43,7 +44,7 @@ Future<void> initialize() async {
     setState(() {
 
 
-      _paketSatisDataSource = PaketSatisDataSource(rowsPerPage:10,salonid: seciliisletme!,context: context);
+      _paketSatisDataSource = PaketSatisDataSource(kullanicirolu: widget.kullanicirolu, rowsPerPage:10,salonid: seciliisletme!,context: context);
       _paketSatisDataSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
       _isLoading = false;
 

@@ -39,7 +39,8 @@ import '../../diger/menu/musteriler/yeni_musteri.dart';
 class YeniSenet extends StatefulWidget {
   final dynamic isletmebilgi;
   final String musteridanisanid;
-  YeniSenet({Key? key,required this.isletmebilgi,required this.musteridanisanid}) : super(key: key);
+  final int kullanicirolu;
+  YeniSenet({Key? key,required this.isletmebilgi,required this.musteridanisanid,required this.kullanicirolu}) : super(key: key);
   @override
   _YeniSenetState createState() => _YeniSenetState();
 }
@@ -242,7 +243,7 @@ class _YeniSenetState extends State<YeniSenet> {
     if(secilimusteridanisan != null){
       String danisan = secilimusteridanisan?.id ?? "";
 
-      dynamic senettaksitdata = await senetvetaksitler(seciliisletme!, secilimusteridanisan?.id ?? "");
+      dynamic senettaksitdata = await senetvetaksitler(seciliisletme!, secilimusteridanisan?.id ?? "","");
 
       List<Senet> senetler = senettaksitdata['senet'].map<Senet>((json) => Senet.fromJson(json)).toList();
 
@@ -361,10 +362,10 @@ class _YeniSenetState extends State<YeniSenet> {
     else{
       final AdisyonHizmet result = mevcutadisyonhizmet != null ? await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => HizmetSatisiDuzenleme(musteriid: secilimusteridanisan?.id ??"", mevcuthizmet:mevcutadisyonhizmet ,senetlisatis: true,isletmebilgi: widget.isletmebilgi,)),
+        MaterialPageRoute(builder: (context) => HizmetSatisiDuzenleme(adisyonId: "", musteriid: secilimusteridanisan?.id ??"", mevcuthizmet:mevcutadisyonhizmet ,senetlisatis: true,isletmebilgi: widget.isletmebilgi,)),
       ) : await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => HizmetSatisi(musteriid: secilimusteridanisan?.id ??"",senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
+        MaterialPageRoute(builder: (context) => HizmetSatisi(kullanicirolu: widget.kullanicirolu, musteriid: secilimusteridanisan?.id ??"",senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
       );
 
       if (result != null ) {
@@ -471,7 +472,7 @@ class _YeniSenetState extends State<YeniSenet> {
         MaterialPageRoute(builder: (context) => UrunSatisiDuzenleme(musteriid: secilimusteridanisan?.id ??"", mevcuturun:mevcutadisyonurun ,senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
       ) : await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => UrunSatisi(musteriid: secilimusteridanisan?.id ??"",senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
+        MaterialPageRoute(builder: (context) => UrunSatisi(kullanicirolu: 0, musteriid: secilimusteridanisan?.id ??"",senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
       );
 
       if (result != null ) {
@@ -519,7 +520,7 @@ class _YeniSenetState extends State<YeniSenet> {
         MaterialPageRoute(builder: (context) => PaketSatisiDuzenleme(musteriid: secilimusteridanisan?.id ??"", mevcutpaket:mevcutadisyonpaket ,senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
       ) : await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => PaketSatisi(musteriid: secilimusteridanisan?.id ?? "",senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
+        MaterialPageRoute(builder: (context) => PaketSatisi(kullanicirolu: 0, musteriid: secilimusteridanisan?.id ?? "",senetlisatis: true,isletmebilgi: widget.isletmebilgi)),
       );
 
       if (result != null ) {
@@ -699,7 +700,7 @@ class _YeniSenetState extends State<YeniSenet> {
                           final MusteriDanisan yenimusteridanisan =  await Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => Yenimusteri(isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
+                                builder: (context) => Yenimusteri(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
                           );
                           if(yenimusteridanisan != null)
                             setState(() {

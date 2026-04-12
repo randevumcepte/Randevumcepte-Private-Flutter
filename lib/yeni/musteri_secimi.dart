@@ -7,7 +7,8 @@ import '../yonetici/diger/menu/musteriler/yeni_musteri.dart';
 
 class MusteriSecim extends StatefulWidget {
   final dynamic isletmebilgi;
-  const MusteriSecim({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  const MusteriSecim({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _MusteriSecimState createState() =>
@@ -35,7 +36,7 @@ class _MusteriSecimState extends State<MusteriSecim> {
               onPressed: (){Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => Yenimusteri(isletmebilgi:widget.isletmebilgi,isim:"",telefon: "",sadeceekranikapat: false,)),
+                    builder: (context) => Yenimusteri(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,isim:"",telefon: "",sadeceekranikapat: false,)),
               );}
 
           ),

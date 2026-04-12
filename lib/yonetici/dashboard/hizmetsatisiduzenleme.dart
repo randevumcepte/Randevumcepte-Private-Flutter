@@ -17,7 +17,8 @@ class HizmetSatisiDuzenleme extends StatefulWidget {
   final AdisyonHizmet mevcuthizmet;
   final bool senetlisatis;
   final dynamic isletmebilgi;
-  HizmetSatisiDuzenleme({Key? key, required this.musteriid,required this.mevcuthizmet,required this.senetlisatis,required this.isletmebilgi}) : super(key: key);
+  final String adisyonId;
+  HizmetSatisiDuzenleme({Key? key, required this.adisyonId, required this.musteriid,required this.mevcuthizmet,required this.senetlisatis,required this.isletmebilgi}) : super(key: key);
   @override
   _HizmetSatisiState createState() => _HizmetSatisiState();
 }

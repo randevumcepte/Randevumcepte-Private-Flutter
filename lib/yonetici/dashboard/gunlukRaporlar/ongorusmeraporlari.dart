@@ -1,5 +1,5 @@
 ﻿import 'dart:async';
-
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -13,7 +13,6 @@ import '../../../Frontend/altyuvarlakmenu.dart';
 import '../../../Frontend/sfdatatable.dart';
 import '../../diger/menu/ongorusmeler/ongorusmeduzenle.dart';
 
-
 class OnGorusmelerDashboard extends StatefulWidget {
   final dynamic isletmebilgi;
   OnGorusmelerDashboard({Key? key,required this.isletmebilgi}) : super(key: key);
@@ -21,10 +20,9 @@ class OnGorusmelerDashboard extends StatefulWidget {
   _OnGorusmelerDashboardState createState() => _OnGorusmelerDashboardState();
 }
 
-
 class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
   TextEditingController _controller = TextEditingController();
-  late OnGorusmeDataSource2 _ongorusmeDataGridSource;
+  OnGorusmeDataSource2? _ongorusmeDataGridSource;
   late String? seciliisletme;
 
   bool _isLoading = true;
@@ -35,6 +33,7 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
   Timer? _debounce;
   bool firsttimetyping=true;
   String? lastQuery;
+
   @override
   void initState() {
     super.initState();
@@ -43,30 +42,22 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
       _onSearchChanged();
     });
   }
+
   void _onSearchChanged() {
-    // Check if the search query has changed or is reset to empty
     if (_controller.text.length == 0 || _controller.text.length >= 3) {
-      // Cancel any active debounce timer
       if (_debounce?.isActive ?? false) _debounce!.cancel();
 
-      // Debounce the search to delay the API call until the user stops typing
       _debounce = Timer(const Duration(milliseconds: 500), () {
-        if (_controller.text != lastQuery && !firsttimetyping) {  // Check if the query is different
+        if (_controller.text != lastQuery && !firsttimetyping) {
           setState(() {
-
             firsttimetyping=false;
-            lastQuery = _controller.text; // Update the last search query
-            _ongorusmeDataGridSource.search(_controller.text);
-            //FocusScope.of(context).unfocus();
+            lastQuery = _controller.text;
+            _ongorusmeDataGridSource?.search(_controller.text.isEmpty ? '' : _controller.text); // Boşsa null gönder
           });
         }
       });
-    }
-    else
-    {
-      if((_controller.text == '' || _controller.text.length<3) && firsttimetyping)
-      {
-
+    } else {
+      if((_controller.text == '' || _controller.text.length<3) && firsttimetyping) {
         setState(() {
           firsttimetyping = false;
         });
@@ -82,32 +73,83 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
   }
 
   Future<void> initialize() async {
-    seciliisletme = await secilisalonid();
-    setState(() {
-      _ongorusmeDataGridSource = OnGorusmeDataSource2(
+    try {
+      seciliisletme = await secilisalonid();
+
+      // DataSource'i oluştur - başlangıçta arama parametresi null olacak
+      final dataSource = OnGorusmeDataSource2(
         isletmebilgi: widget.isletmebilgi,
         rowsPerPage: 10,
         salonid: seciliisletme!,
         context: context,
-        arama: _controller.text,
+        arama: '', // Başlangıçta null gönder
       );
-      _ongorusmeDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
-      _isLoading = false;
-    });
+
+      setState(() {
+        _ongorusmeDataGridSource = dataSource;
+        _ongorusmeDataGridSource?.isLoadingNotifier.addListener(_onLoadingStateChanged);
+        _isLoading = false;
+      });
+    } catch (e) {
+      log("Initialize error: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _onLoadingStateChanged() {
     setState(() {});
   }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
-    return Scaffold(
-      // floatingActionButton: AltYuvarlakYeniEkleMenu(isletme_bilgi: widget.isletmebilgi),
 
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Ön Görüşmeler', style: TextStyle(color: Colors.black)),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          backgroundColor: Colors.white,
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_ongorusmeDataGridSource == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Ön Görüşmeler', style: TextStyle(color: Colors.black)),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          backgroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Veriler yüklenirken bir hata oluştu'),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: initialize,
+                child: Text('Tekrar Dene'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
       appBar: AppBar(
-        title:Text('Ön Görüşmeler',style: TextStyle(color: Colors.black),),
+        title: Text('Ön Görüşmeler', style: TextStyle(color: Colors.black)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
@@ -115,21 +157,15 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
         toolbarHeight: 60,
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 100, // <-- Your width
-              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                width: 100,
+                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
+              ),
             ),
-          ),
-
-
         ],
         backgroundColor: Colors.white,
-
-
-
-
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -163,7 +199,7 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
             Container(
               height: height - 275,
               child: SfDataGrid(
-                source: _ongorusmeDataGridSource,
+                source: _ongorusmeDataGridSource!,
                 shrinkWrapRows: true,
                 columnWidthMode: ColumnWidthMode.fill,
                 defaultColumnWidth: 120,
@@ -185,7 +221,7 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
                           builder: (context) => OnGorusmeDuzenleOzet(
                             isletmebilgi: widget.isletmebilgi,
                             ongorusme: row.getCells()[0].value,
-                            ongorusmedatasource: _ongorusmeDataGridSource,
+                            ongorusmedatasource: _ongorusmeDataGridSource!,
                           ),
                         ),
                       );
@@ -212,13 +248,13 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
                   );
                 },
                 onCellTap: (DataGridCellTapDetails details) {
-                  final tappedRow = _ongorusmeDataGridSource.rows[details.rowColumnIndex.rowIndex - 1];
+                  final tappedRow = _ongorusmeDataGridSource!.rows[details.rowColumnIndex.rowIndex - 1];
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => OnGorusmeDuzenleOzet(
                         isletmebilgi: widget.isletmebilgi,
-                        ongorusmedatasource: _ongorusmeDataGridSource,
+                        ongorusmedatasource: _ongorusmeDataGridSource!,
                         ongorusme: tappedRow.getCells()[0].value,
                       ),
                     ),
@@ -283,9 +319,9 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
                     width: width * 0.1,
                     columnName: 'islem',
                     label: Container(
-                      padding: EdgeInsets.all(5.0),
-                      alignment: Alignment.center,
-                      child: Text("")
+                        padding: EdgeInsets.all(5.0),
+                        alignment: Alignment.center,
+                        child: Text("")
                     ),
                   ),
                 ],
@@ -299,27 +335,31 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
   }
 
   Widget _buildPaginationControls() {
-    final totalPages = (_ongorusmeDataGridSource.totalPages).ceil();
+    if (_ongorusmeDataGridSource == null) {
+      return SizedBox();
+    }
+
+    final totalPages = (_ongorusmeDataGridSource!.totalPages).ceil();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
           icon: Icon(Icons.arrow_back),
-          onPressed: _ongorusmeDataGridSource.currentPage > 1
+          onPressed: _ongorusmeDataGridSource!.currentPage > 1
               ? () {
             setState(() {
-              _ongorusmeDataGridSource.setPage(_ongorusmeDataGridSource.currentPage - 1);
+              _ongorusmeDataGridSource!.setPage(_ongorusmeDataGridSource!.currentPage - 1);
             });
           }
               : null,
         ),
-        Text('Sayfa ${_ongorusmeDataGridSource.currentPage} / $totalPages'),
+        Text('Sayfa ${_ongorusmeDataGridSource!.currentPage} / $totalPages'),
         IconButton(
           icon: Icon(Icons.arrow_forward),
-          onPressed: _ongorusmeDataGridSource.currentPage < totalPages
+          onPressed: _ongorusmeDataGridSource!.currentPage < totalPages
               ? () {
             setState(() {
-              _ongorusmeDataGridSource.setPage(_ongorusmeDataGridSource.currentPage + 1);
+              _ongorusmeDataGridSource!.setPage(_ongorusmeDataGridSource!.currentPage + 1);
             });
           }
               : null,
@@ -327,7 +367,4 @@ class _OnGorusmelerDashboardState extends State<OnGorusmelerDashboard> {
       ],
     );
   }
-  }
-
-
-
+}

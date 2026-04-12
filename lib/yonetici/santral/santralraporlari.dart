@@ -39,33 +39,39 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:percent_indicator/percent_indicator.dart';
-
-
-
+import 'package:share_plus/share_plus.dart';
 
 class CDRRaporlari extends StatefulWidget {
-
   final dynamic isletmebilgi;
   final DialPadManager dialPadManager;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
   final Kullanici kullanici;
-  const CDRRaporlari({Key? key,required this.isletmebilgi,required this.dialPadManager,required this.scaffoldMessengerKey,required this.kullanici}) : super(key: key);
+  final int kullanicirolu;
+
+  const CDRRaporlari({
+    Key? key,
+    required this.isletmebilgi,
+    required this.dialPadManager,
+    required this.scaffoldMessengerKey,
+    required this.kullanici,
+    required this.kullanicirolu
+  }) : super(key: key);
+
   @override
   _CDRState createState() => _CDRState();
 }
 
 class _CDRState extends State<CDRRaporlari> {
-
   ScrollController _scrollController = ScrollController();
-  DateTime _sonYuklenenTarih = DateTime.now(); // initState içinde bunu tanımla
+  DateTime _sonYuklenenTarih = DateTime.now();
   ValueNotifier<int> downloadProgressNotifier = ValueNotifier(0);
   SnackBar? currentSnackbar;
   bool isSnackbarVisible = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   late OverlayEntry _dialPadOverlayEntry;
   List<bool> _menuVisibility = [];
-  late List<Cdr> items;
-  late List<Cdr> filteredItems;
+  List<Cdr> items = [];
+  List<Cdr> filteredItems = [];
   late RandevuDataSource _randevuDataGridSource;
   List<Randevu> _randevu = [];
   late List<Randevu> _filteredRandevu = [];
@@ -75,12 +81,17 @@ class _CDRState extends State<CDRRaporlari> {
   int totalPages = 1;
   DateTime? startDate;
   DateTime? endDate;
-  List<String> dahililer =[];
+  List<String> dahililer = [];
+  String _searchQuery = '';
 
   TextEditingController baslangictarihi = TextEditingController();
   TextEditingController bitistarihi = TextEditingController();
-  TextEditingController _controller = TextEditingController();
-  //final SIPUAHelper _helper = SIPUAHelper();
+  TextEditingController _searchController = TextEditingController();
+
+  int _currentOffset = 0;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
@@ -90,39 +101,42 @@ class _CDRState extends State<CDRRaporlari> {
     DateTime lastWeekStart = now.subtract(Duration(days: 7));
     DateTime lastWeekEnd = now;
 
-    baslangictarihi.text = '';
-    bitistarihi.text = '';
-    log('Santral rapor');
-    // İlk veriyi yükle
+    // YENİ EKLENECEK değişkenler
+    int _currentOffset = 0;
+    bool _hasMore = true;
+    bool _isLoadingMore = false;
+
     initialize();
 
-    // Scroll listener ekle
     _scrollController.addListener(() {
       _kontrolListeBoyutu();
     });
 
-    // İlk kontrolü widget ağacı oluşturulduktan sonra başlat
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      log("WidgetsBinding çalıştı. ScrollController bağlandı mı kontrol ediliyor...");
       _kontrolListeBoyutu();
     });
   }
+
   @override
   void dispose() {
-    _audioPlayer.dispose(); // Release resources when not needed
+    _audioPlayer.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
+
   Future<void> initialize() async {
     setState(() {
       _isLoading = true;
+      _currentOffset = 0;      // YENİ
+      _hasMore = true;          // YENİ
+      items.clear();            // YENİ
+      filteredItems.clear();    // YENİ
     });
 
     List<Personel> personelListesi = [];
     seciliisletme = widget.isletmebilgi['id']?.toString();
-    print('initialize: seciliisletme = $seciliisletme');
 
     if (seciliisletme == null) {
-      print('initialize: seciliisletme null, veri yükleme iptal ediliyor');
       setState(() {
         _isLoading = false;
       });
@@ -141,755 +155,1206 @@ class _CDRState extends State<CDRRaporlari> {
     for (var element in personelListesi) {
       if (element.dahili_no != 'null') dahililer.add(element.dahili_no);
     }
-    print('initialize: dahililer = ${jsonEncode(dahililer)}');
 
-    try {
-      print('initialize: santralraporlari çağrısı başlıyor...');
-      items = await santralraporlari(seciliisletme!, baslangictarihi.text, bitistarihi.text);
-      print('initialize: santralraporlari çağrısı bitti, items.length = ${items.length}');
-    } catch (e, st) {
-      print('initialize: santralraporlari hata: $e');
-      print(st);
-      items = [];
-    }
-
-    filteredItems = items;
-    _menuVisibility = List.generate(filteredItems.length, (index) => false);
-
-    try {
-      _sonYuklenenTarih = DateTime.parse(baslangictarihi.text);
-    } catch (e) {
-      print('initialize: tarih parse hatası: $e');
-      _sonYuklenenTarih = DateTime.now();
-    }
+    // YENİ: İlk verileri sayfalı olarak yükle
+    await _loadMoreData();
 
     setState(() {
       _isLoading = false;
     });
 
-    if (items.isEmpty) {
-      print("initialize: İlk sorguda hiç veri gelmedi, geçmiş haftalardan yükleniyor...");
-
-    }
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(Duration(milliseconds: 100), () {
         if (mounted) {
-          print("initialize: scroll kontrol ediliyor...");
           _kontrolListeBoyutu();
         }
       });
     });
   }
 
-
   void _kontrolListeBoyutu() {
-    if (!_scrollController.hasClients) {
-      log("ScrollController henüz bağlı değil.");
-      return;
-    }
+    if (!_scrollController.hasClients) return;
 
     final double maxScrollExtent = _scrollController.position.maxScrollExtent;
     final double viewportHeight = _scrollController.position.viewportDimension;
 
-    log("maxScrollExtent: $maxScrollExtent, viewportHeight: $viewportHeight");
-
-    // Eğer liste ekranı doldurmuyorsa yeni veri yükle
     if ((maxScrollExtent < viewportHeight || _scrollController.position.pixels >= maxScrollExtent) && !verigetiriliyor) {
-      log("Liste ekranı doldurmuyor veya sonuna gelindi, yeni veri yükleniyor...");
 
     }
   }
-  /* Future<void> dahaFazlaKayitGetir() async {
-    if (verigetiriliyor) return;
+  Future<void> _loadMoreData() async {
+    // Yükleniyorsa veya daha fazla veri yoksa çık
+    if (_isLoadingMore || !_hasMore) return;
+
+    // Tarihler boşsa varsayılan değer ata
+    String baslangic = baslangictarihi.text.isEmpty
+        ? DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: 7)))
+        : baslangictarihi.text;
+    String bitis = bitistarihi.text.isEmpty
+        ? DateFormat('yyyy-MM-dd').format(DateTime.now())
+        : bitistarihi.text;
+
+    log('Yükleniyor - offset: $_currentOffset, başlangıç: $baslangic, bitiş: $bitis');
 
     setState(() {
+      _isLoadingMore = true;
       verigetiriliyor = true;
     });
 
-    bool veriEklendi = false;
+    try {
+      List<Cdr> yeniVeriler = await santralraporlari(
+          seciliisletme!,
+          baslangic,
+          bitis,
+          _currentOffset
+      );
 
-    for (int i = 0; i < 2; i++) {
-      DateTime oncekiHaftaBitis = _sonYuklenenTarih.subtract(Duration(days: 7 * i + 1));
-      DateTime oncekiHaftaBaslangic = _sonYuklenenTarih.subtract(Duration(days: 7 * (i + 1)));
+      log('Gelen veri sayısı: ${yeniVeriler.length}');
 
-      String yeniBaslangic = oncekiHaftaBaslangic.toIso8601String();
-      String yeniBitis = oncekiHaftaBitis.toIso8601String();
-
-      log("Denenen tarih aralığı: $yeniBaslangic - $yeniBitis");
-
-      List<Cdr> newItems = await santralraporlari(seciliisletme!, yeniBaslangic, yeniBitis);
-
-      log("Veri sayısı: ${newItems.length}");
-
-      if (newItems.isNotEmpty) {
+      if (yeniVeriler.isEmpty) {
+        _hasMore = false;
+      } else {
         setState(() {
-          items.addAll(newItems);
-          filteredItems = items;
-          _menuVisibility.addAll(List.generate(newItems.length, (_) => false));
-          _sonYuklenenTarih = oncekiHaftaBaslangic; // sonraki yükleme için güncelle
+          items.addAll(yeniVeriler);
+          filteredItems = List.from(items);
+          _currentOffset += yeniVeriler.length;
+          // Menü görünürlük listesini yeniden boyutlandır
+          _menuVisibility = List.generate(filteredItems.length, (index) => false);
         });
-
-        veriEklendi = true;
-        break;
       }
+    } catch (e) {
+      log('Veri yükleme hatası: $e');
+    } finally {
+      setState(() {
+        _isLoadingMore = false;
+        verigetiriliyor = false;
+      });
     }
-
-    if (!veriEklendi) {
-      log("Son 6 haftada yeni kayıt bulunamadı.");
-    }
-
-    setState(() {
-      verigetiriliyor = false;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _kontrolListeBoyutu();
-    });
-  }*/
-
+  }
   void filterSearchResults(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+
     DateTime? start = startDate;
     DateTime? end = endDate;
 
     if (query.isNotEmpty || (start != null && end != null)) {
       setState(() {
         filteredItems = items.where((item) {
-          // Debugging: Print the item being filtered
-          print("Filtering item: ${item.musteri}");
-
           bool matchesQuery = item.musteri.toLowerCase().contains(query.toLowerCase()) ||
               item.telefon.toLowerCase().contains(query.toLowerCase());
 
-          // Ensure that date parsing is correct
           DateTime itemDate;
           try {
-            itemDate = DateTime.parse(item.tarih); // Adjust 'dateField' to your actual field
+            itemDate = DateTime.parse(item.tarih);
           } catch (e) {
-            print("Error parsing date: ${item.tarih}");
-            return false; // Skip this item if the date can't be parsed
+            return false;
           }
-          log("is after start "+itemDate.isAfter(start!).toString());
-          log("is before end "+itemDate.isBefore(end!).toString());
+
           bool matchesDate = (start == null || itemDate.isAfter(start)) &&
               (end == null || itemDate.isBefore(end));
 
-          // Debugging: Print the result of the matches
-          print("Matches Query: $matchesQuery, Matches Date: $matchesDate");
           return matchesQuery && matchesDate;
         }).toList();
       });
-    }
-    else {
+    } else {
       setState(() {
         filteredItems = items;
       });
     }
   }
 
+  void _resetFilters() {
+    setState(() {
+      baslangictarihi.text = '';
+      bitistarihi.text = '';
+      startDate = null;
+      endDate = null;
+      _searchController.clear();
+      _searchQuery = '';
+      // YENİ: Sayfalama değişkenlerini sıfırla
+      _currentOffset = 0;
+      _hasMore = true;
+      items.clear();
+      filteredItems.clear();
+    });
+    initialize(); // Yeniden yükle
+  }
   @override
   Widget build(BuildContext context) {
     final double height = MediaQuery.of(context).size.height;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-
       appBar: AppBar(
         title: Text(
-          'Santral',
-          style: TextStyle(color: Colors.black, fontSize: 18),
+          'Santral Raporları',
+          style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.w600
+          ),
         ),
-        /*leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(0);
-          },
-        ),*/
-        toolbarHeight: 60,
+        toolbarHeight: 70,
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+        elevation: 1,
+        shadowColor: Colors.black12,
         actions: <Widget>[
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 100,
-              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                  width: 100,
+                  child: YukseltButonu(isletme_bilgi: widget.isletmebilgi)
+              ),
             ),
+          _buildActionButton(
+              icon: Icons.filter_list_alt,
+              onPressed: _showFilterBottomSheet,
+              tooltip: 'Filtrele'
           ),
-          IconButton(
-            onPressed: () {
-              showModalBottomSheet(
-                  context: context,
-                  builder: (context) {
-                    return StatefulBuilder(builder: (context, setStateSB) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          SizedBox(
-                            height: 20,
-                          ),
-                          Container(
-                            padding: const EdgeInsets.only(left: 20.0),
-                            child: Text(
-                              'Başlangıç Tarihi',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 10,
-                          ),
-                          Container(
-                            alignment: Alignment.center,
-                            margin: EdgeInsets.only(left: 20, right: 20),
-                            height: 40,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: Color(0xFF6A1B9A)),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: TextField(
-                              controller: baslangictarihi,
-                              enabled: true,
-                              decoration: InputDecoration(
-                                focusColor: Color(0xFF6A1B9A),
-                                hoverColor: Color(0xFF6A1B9A),
-                                hintStyle:
-                                TextStyle(color: Color(0xFF6A1B9A)),
-                                contentPadding: EdgeInsets.all(15.0),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide:
-                                  BorderSide(color: Color(0xFF6A1B9A)),
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderSide:
-                                  BorderSide(color: Color(0xFF6A1B9A)),
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                              ),
-                              readOnly: true,
-                              onTap: () async {
-                                DateTime? pickedDate = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.now(),
-                                    firstDate: DateTime(1950),
-                                    lastDate: DateTime(2100));
-
-                                if (pickedDate != null) {
-                                  String formattedDate =
-                                  DateFormat('yyyy-MM-dd')
-                                      .format(pickedDate);
-                                  setStateSB(() {
-                                    baslangictarihi.text = formattedDate;
-                                    startDate =  DateTime.parse(baslangictarihi.text);
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          SizedBox(
-                            height: 20,
-                          ),
-                          Container(
-                            padding: const EdgeInsets.only(left: 20.0),
-                            child: Text(
-                              'Bitiş Tarihi',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 10,
-                          ),
-                          Container(
-                            alignment: Alignment.center,
-                            margin: EdgeInsets.only(left: 20, right: 20),
-                            height: 40,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: Color(0xFF6A1B9A)),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: TextField(
-                              controller: bitistarihi,
-                              enabled: true,
-                              decoration: InputDecoration(
-                                focusColor: Color(0xFF6A1B9A),
-                                hoverColor: Color(0xFF6A1B9A),
-                                hintStyle:
-                                TextStyle(color: Color(0xFF6A1B9A)),
-                                contentPadding: EdgeInsets.all(15.0),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide:
-                                  BorderSide(color: Color(0xFF6A1B9A)),
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderSide:
-                                  BorderSide(color: Color(0xFF6A1B9A)),
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                              ),
-                              readOnly: true,
-                              onTap: () async {
-                                DateTime? pickedDate = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.now(),
-                                    firstDate: DateTime(1950),
-                                    lastDate: DateTime(2100));
-
-                                if (pickedDate != null) {
-                                  String formattedDate =
-                                  DateFormat('yyyy-MM-dd')
-                                      .format(pickedDate);
-                                  setStateSB(() {
-                                    bitistarihi.text = formattedDate;
-                                    endDate =  DateTime.parse(bitistarihi.text);
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          SizedBox(
-                            height: 20,
-                          ),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    Navigator.of(context).pop();
-                                    filterSearchResults(_controller.text);
-                                  });
-                                },
-                                child: Text('Arama Kayıtlarını Göster'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.purple[800],
-                                ),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    Navigator.of(context).pop();
-                                    filterSearchResults(_controller.text);
-                                  });
-                                },
-                                child: Text('Filtreyi Sıfırla'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(
-                            height: 50,
-                          ),
-                        ],
-                      );
-                    });
-                  });
-            },
-            icon: Icon(
-              Icons.filter_list_outlined,
-              color: Colors.black,
-            ),
-            iconSize: 26,
+          _buildActionButton(
+              icon: Icons.phone,
+              onPressed: () => widget.dialPadManager.updateDialPad(
+                  context, true, "", widget.kullanici
+              ),
+              tooltip: 'Tuş Takımı'
           ),
-          IconButton(
-            onPressed: () {
-              widget.dialPadManager.updateDialPad(context, true, "",widget.kullanici);
-
-            },
-            icon: Icon(
-              Icons.phone,
-              color: Colors.black,
-            ),
-            iconSize: 26,
-          ),
-          /*IconButton(
-            onPressed: () {
-              Navigator.push(context, new MaterialPageRoute(builder: (context) =>  CallKit()));
-
-            },
-            icon: Icon(
-              Icons.add,
-              color: Colors.black,
-            ),
-            iconSize: 26,
-          ),*/
         ],
-        backgroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
+      body: Container(
+        color: isDark ? Colors.grey[850] : Colors.grey[50],
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextFormField(
-                controller: _controller,
-                onChanged:filterSearchResults,
-                keyboardType: TextInputType.text,
-                decoration: InputDecoration(
-                  hintText: 'Müşteri/Danışan Adı...',
-                  enabled: true,
-                  focusColor: Color(0xFF6A1B9A),
-                  hoverColor: Color(0xFF6A1B9A),
-                  hintStyle: TextStyle(color: Color(0xFF6A1B9A)),
-                  contentPadding: EdgeInsets.all(5.0),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                ),
-              ),
+            // Arama ve Filtre Bilgisi
+            _buildSearchAndFilterSection(isDark),
+
+            // İçerik
+            Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : filteredItems.isEmpty
+                    ? _buildEmptyState()
+                    : _buildCallList(isDark)
             ),
-            Container(
-              height: height - 225,
-              child: _isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : filteredItems.isEmpty
-                  ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'images/pbx.png', // Replace with your image path
-                    width: 150,
-                    height: 150,
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    "Yaptığınız aramalar burada gösterilecektir.",
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                ],
-              )
-                  : ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: filteredItems.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final bildirimData = filteredItems[index];
-                  return Column(
-                      children: [
-                    Card(
-                    color: Colors.white /*bildirimData.durum == "0"
-                        ? Colors.red[600] : bildirimData.durum == "2" ? Colors.deepPurple : bildirimData.durum=="3" ? Colors.green : bildirimData.durum == "1" ? Colors.blueAccent :  Colors.white*/ ,
-                    elevation: 3.0,
-                    margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    child: ListTile(
-                      onTap: () {
-                        setState(() {
-
-                          for (int i = 0; i < _menuVisibility.length; i++) {
-                            if (i == index) {
-                              _menuVisibility[i] = !_menuVisibility[i]; // Toggle the tapped one
-                            } else {
-                              _menuVisibility[i] = false; // Hide others
-                            }
-                          }
-                        });
-                      },
-                      leading: getCdrStatIcon(bildirimData.durum),
-                      title: Text(bildirimData.musteri != ''
-                          ? bildirimData.musteri
-                          : bildirimData.telefon, style: TextStyle(color:Colors.black),),
-                      subtitle: Row(
-                        children: [
-                          Text(
-                            bildirimData.tarih + ' ' + bildirimData.saat,
-                            style: TextStyle(color: Colors.black),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.person, color: Colors.black),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              (bildirimData.gorusmeyiyapan == "null"
-                                  ? "Santral"
-                                  : bildirimData.gorusmeyiyapan),
-                              style: TextStyle(color: Colors.black),
-                              overflow: TextOverflow.ellipsis, // taşarsa "..." koy
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing:  TextButton(
-                          onPressed: () {
-                            widget.dialPadManager.updateDialPad(context,true,"0"+bildirimData.telefon,widget.kullanici);
-
-                          },
-                          child: Icon(Icons.phone,color: Colors.deepPurple)
-                      ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 1.0, vertical: 0),
-                    ),
-                  ),
-                        if (_menuVisibility[index]&& (bildirimData.durum=="2" || bildirimData.durum == "3" || bildirimData.musteri =="")  )
-
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              bildirimData.durum=="2" || bildirimData.durum == "3" ?
-                              TextButton(
-                                onPressed: () {
-                                  seskaydinical(bildirimData.seskaydi);
-                                },
-                                  child:
-                                  Icon(Icons.play_circle_fill,color: Colors.green,)
-                              ) : Text(""),
-                              bildirimData.durum=="2" || bildirimData.durum == "3" ? TextButton(
-                                  onPressed: () {
-
-                                    seskaydiniindir(bildirimData.seskaydi,'denemeseskaydi.wav',context,bildirimData);
-
-                                  },
-                                  child: Icon(Icons.file_download,color: Colors.deepPurple,)
-                              ): Text(""),
-                              /*TextButton(
-                                onPressed: () {
-                                  widget.dialPadManager.updateDialPad(context,true,"0"+bildirimData.telefon,);
-
-                                },
-                                  child: Icon(Icons.phone,color: Colors.deepPurple)
-                              ),*/
-                              bildirimData.musteri == '' ?
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => Yenimusteri(isletmebilgi: widget.isletmebilgi,isim:"",telefon:  bildirimData.telefon,sadeceekranikapat: true)),
-                                    );
-
-                                    },
-                                    child: Icon(Icons.person_add,color: Colors.green)
-                                  )
-                              : Text('')
-                            ],
-                          ),
-                      ]
-                  );
-
-
-                },
-              ),
-            )
           ],
         ),
       ),
     );
   }
 
-  String getCdrStat(String durum) {
-    switch (durum) {
-      case "1":
-        return 'Ulaşılamadı';
-      case "2":
-        return 'Giden arama';
-      case "3":
-        return "Gelen arama";
-      case "0":
-        return "Cevapsız arama";
-      default:
-        return "Bilinmeyen";
-    }
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Tooltip(
+        message: tooltip,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
+          ),
+          child: IconButton(
+            onPressed: onPressed,
+            icon: Icon(
+              icon,
+              color: Theme.of(context).primaryColor,
+              size: 22,
+            ),
+            padding: EdgeInsets.zero,
+          ),
+        ),
+      ),
+    );
   }
-  Widget getCdrStatIcon(String durum) {
-    switch (durum) {
-      case "1":
-        return  Container(
-          width: 50, // Set the width of the circle
-          height: 50, // Set the height of the circle
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.blueAccent, // Background color of the circle
+
+  Widget _buildSearchAndFilterSection(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          // Arama Bar
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[800] : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: filterSearchResults,
+              decoration: InputDecoration(
+                hintText: 'Müşteri adı veya telefon numarası ara...',
+                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                suffixIcon: _searchQuery.isNotEmpty ? IconButton(
+                  icon: Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                    filterSearchResults('');
+                  },
+                ) : null,
+              ),
+            ),
           ),
-          child: Icon(
-            Icons.call_missed_outgoing,
-            size: 25,
-            color: Colors.white,
-          ),
-        ); 'Ulaşılamadı';
-      case "2":
-        return Container(
-          width: 50, // Set the width of the circle
-          height: 50, // Set the height of the circle
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.purple, // Background color of the circle
-          ),
-          child: Icon(
-            Icons.call_made,
-            size: 25,
-            color: Colors.white,
-          ),
-        );'Giden arama';
-      case "3":
-        return Container(
-          width: 50, // Set the width of the circle
-          height: 50, // Set the height of the circle
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.green, // Background color of the circle
-          ),
-          child: Icon(
-            Icons.call_received,
-            size: 25,
-            color: Colors.white,
-          ),
-        );"Gelen arama";
-      case "0":
-        return Container(
-          width: 50, // Set the width of the circle
-          height: 50, // Set the height of the circle
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.red[600], // Background color of the circle
-          ),
-          child: Icon(
-            Icons.call_missed,
-            size: 25,
-            color: Colors.white,
-          ),
-        );" Cevapsız arama";
-      default:
-        return Icon(Icons.phone, size: 25,color: Colors.black);"Bilinmeyen";
-    }
+
+          SizedBox(height: 12),
+
+          // Filtre Bilgisi
+          if (startDate != null || endDate != null || _searchQuery.isNotEmpty)
+            _buildActiveFilters(isDark),
+        ],
+      ),
+    );
   }
-  Widget getCagriDurumu(String durum) {
+
+  Widget _buildActiveFilters(bool isDark) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[800] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.filter_alt, size: 16, color: Theme.of(context).primaryColor),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _getFilterSummary(),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          GestureDetector(
+            onTap: _resetFilters,
+            child: Text(
+              'Temizle',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFilterSummary() {
+    List<String> filters = [];
+
+    if (_searchQuery.isNotEmpty) {
+      filters.add('Arama: "$_searchQuery"');
+    }
+
+    if (startDate != null) {
+      filters.add('Başlangıç: ${DateFormat('dd.MM.yyyy').format(startDate!)}');
+    }
+
+    if (endDate != null) {
+      filters.add('Bitiş: ${DateFormat('dd.MM.yyyy').format(endDate!)}');
+    }
+
+    return filters.join(' • ');
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Santral raporları yükleniyor...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.phone_in_talk_outlined,
+            size: 80,
+            color: isDark ? Colors.grey[600] : Colors.grey[400],
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Arama kaydı bulunamadı',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.grey[300] : Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Yaptığınız aramalar burada görünecektir',
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.grey[500] : Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: initialize,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: Text(
+              'Yenile',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCallList(bool isDark) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: EdgeInsets.only(top: 8, bottom: 16),
+        itemCount: filteredItems.length + (_hasMore && !_isLoading ? 1 : 0), // +1 loader için
+        itemBuilder: (BuildContext context, int index) {
+          // Loader gösterilecekse
+          if (index == filteredItems.length && _hasMore) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(Theme.of(context).primaryColor),
+                ),
+              ),
+            );
+          }
+          final cdr = filteredItems[index];
+          return _buildCallItem(cdr, index, isDark);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCallItem(Cdr cdr, int index, bool isDark) {
+    final bool isExpanded = _menuVisibility[index];
+
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 300),
+      margin: EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[800] : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Ana içerik
+          ListTile(
+            onTap: () {
+              setState(() {
+                for (int i = 0; i < _menuVisibility.length; i++) {
+                  _menuVisibility[i] = i == index ? !_menuVisibility[i] : false;
+                }
+              });
+            },
+            leading: _buildCallTypeIcon(cdr.durum),
+            title: Text(
+              cdr.musteri.isNotEmpty ? cdr.musteri : cdr.telefon,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.access_time, size: 14, color: Colors.grey),
+                    SizedBox(width: 2),
+                    Text(
+                      '${cdr.tarih} ${cdr.saat}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.person, size: 14, color: Colors.grey),
+                    SizedBox(width: 2),
+                    Expanded(
+                      child: Text(
+                        cdr.gorusmeyiyapan == "null" ? "Santral" : cdr.gorusmeyiyapan,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildCallStatus(cdr.durum),
+                SizedBox(width: 8),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.grey,
+                ),
+              ],
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+
+          // Genişletilmiş içerik
+          if (isExpanded)
+            _buildExpandedContent(cdr, isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCallTypeIcon(String durum) {
+    final Color backgroundColor;
+    final IconData icon;
+    final Color iconColor = Colors.white;
+
+    switch (durum) {
+      case "1": // Ulaşılamadı
+        backgroundColor = Colors.blueAccent;
+        icon = Icons.call_missed_outgoing;
+        break;
+      case "2": // Giden arama
+        backgroundColor = Colors.purple;
+        icon = Icons.call_made;
+        break;
+      case "3": // Gelen arama
+        backgroundColor = Colors.green;
+        icon = Icons.call_received;
+        break;
+      case "0": // Cevapsız arama
+        backgroundColor = Colors.red;
+        icon = Icons.call_missed;
+        break;
+      case "4": // Cevapsız arama
+        backgroundColor = Colors.black;
+        icon = Icons.call_received;
+        break;
+      case "5": // Cevapsız arama
+        backgroundColor = Colors.blue;
+        icon = Icons.call_received;
+        break;
+      case "6": // Cevapsız arama
+        backgroundColor = Colors.teal;
+        icon = Icons.call_received;
+        break;
+      default:
+        backgroundColor = Colors.grey;
+        icon = Icons.phone;
+    }
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: backgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: backgroundColor.withOpacity(0.3),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Icon(icon, size: 24, color: iconColor),
+    );
+  }
+
+  Widget _buildCallStatus(String durum) {
+    final String statusText;
+    final Color color;
+
     switch (durum) {
       case "1":
-        return Text('Ulaşılamadı',style: TextStyle(color:Colors.black)); 'Ulaşılamadı';
+        statusText = 'Ulaşılamadı';
+        color = Colors.blueAccent;
+        break;
       case "2":
-        return Text('Giden',style: TextStyle(color:Colors.black));
+        statusText = 'Giden';
+        color = Colors.purple;
+        break;
       case "3":
-        return Text("Gelen",style: TextStyle(color:Colors.black));
+        statusText = 'Gelen';
+        color = Colors.green;
+        break;
       case "0":
-        return Text("Cevapsız",style: TextStyle(color:Colors.black));
+        statusText = 'Cevapsız';
+        color = Colors.red;
+        break;
+      case "4":
+        statusText = 'Sonuçsuz';
+        color = Colors.black;
+        break;
+      case "5":
+        statusText = 'Yol Tarifi';
+        color = Colors.blue;
+        break;
+      case "6":
+        statusText = 'Kampanya';
+        color = Colors.teal;
+        break;
       default:
-        return Text("Bilinmeyen",style: TextStyle(color:Colors.black));
+        statusText = 'Bilinmeyen';
+        color = Colors.grey;
     }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        statusText,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandedContent(Cdr cdr, bool isDark) {
+    return Padding(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Divider(color: Colors.grey[300]),
+          SizedBox(height: 12),
+
+          // Telefon numarası
+          _buildDetailRow(
+            icon: Icons.phone,
+            title: 'Telefon',
+            value: cdr.telefon,
+          ),
+
+          SizedBox(height: 8),
+
+          // Çağrı işlemleri
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Ses kaydı oynatma (sadece giden/gelen aramalar için)
+              if (cdr.durum == "2" || cdr.durum == "3")
+                _buildActionButtonSmall(
+                  icon: Icons.play_circle_fill,
+                  label: 'Dinle',
+                  color: Colors.green,
+                  onPressed: () => seskaydinical(cdr.seskaydi),
+                ),
+
+              // Ses kaydı indirme (sadece giden/gelen aramalar için)
+              if (cdr.durum == "2" || cdr.durum == "3")
+                _buildActionButtonSmall(
+                  icon: Icons.file_download,
+                  label: 'İndir',
+                  color: Colors.deepPurple,
+                  onPressed: () => seskaydiniindir(
+                    cdr.seskaydi,
+                    '${cdr.musteri.isNotEmpty ? cdr.musteri : cdr.telefon}_${cdr.tarih}.wav',
+                    context,
+
+                  ),
+                ),
+
+              // Tekrar ara
+              _buildActionButtonSmall(
+                icon: Icons.phone,
+                label: 'Ara',
+                color: Colors.blue,
+                onPressed: () => widget.dialPadManager.updateDialPad(
+                    context, true, "0${cdr.telefon}", widget.kullanici
+                ),
+              ),
+
+              // Müşteri ekle (sadece müşteri adı yoksa)
+              if (cdr.musteri.isEmpty)
+                _buildActionButtonSmall(
+                  icon: Icons.person_add,
+                  label: 'Müşteri Ekle',
+                  color: Colors.orange,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Yenimusteri(
+                          kullanicirolu: widget.kullanicirolu,
+                            isletmebilgi: widget.isletmebilgi,
+                            isim: "",
+                            telefon: cdr.telefon,
+                            sadeceekranikapat: true
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey),
+        SizedBox(width: 8),
+        Text(
+          '$title: ',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtonSmall({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withOpacity(0.1),
+          ),
+          child: IconButton(
+            onPressed: onPressed,
+            icon: Icon(icon, size: 20, color: color),
+            padding: EdgeInsets.zero,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateSB) {
+            final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[900] : Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Başlık ve kapatma
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filtrele',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Divider(height: 1),
+
+                  // Filtre içeriği
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        _buildDateField(
+                          controller: baslangictarihi,
+                          label: 'Başlangıç Tarihi',
+                          isDark: isDark,
+                          onTap: () async {
+                            DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime(2100),
+                            );
+                            if (pickedDate != null) {
+                              setStateSB(() {
+                                baslangictarihi.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                                startDate = DateTime.parse(baslangictarihi.text);
+                              });
+                            }
+                          },
+                        ),
+
+                        SizedBox(height: 16),
+
+                        _buildDateField(
+                          controller: bitistarihi,
+                          label: 'Bitiş Tarihi',
+                          isDark: isDark,
+                          onTap: () async {
+                            DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime(2100),
+                            );
+                            if (pickedDate != null) {
+                              setStateSB(() {
+                                bitistarihi.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                                endDate = DateTime.parse(bitistarihi.text);
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Butonlar
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[800] : Colors.grey[50],
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _resetFilters,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: isDark ? Colors.white : Colors.black,
+                              side: BorderSide(color: Colors.grey),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text('Sıfırla'),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              filterSearchResults(_searchController.text);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              'Uygula',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDateField({
+    required TextEditingController controller,
+    required String label,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey[800] : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withOpacity(0.3)),
+          ),
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: 'GG-AA-YYYY',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              suffixIcon: Icon(Icons.calendar_today, color: Colors.grey),
+            ),
+            readOnly: true,
+            onTap: onTap,
+          ),
+        ),
+      ],
+    );
   }
   Future<void> seskaydinical(String url) async {
-    log("ses kaydı url "+url);
+    log("ses kaydı url " + url);
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Ses Kaydı"),
-          content: Padding(
-            padding: const EdgeInsets.all(0.0), // Set the desired padding here
-            child: Row(
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextButton.icon(
-                  icon: Icon(Icons.play_arrow),
-                  label: Text("Çal"),
-                  onPressed: () async {
-                    await _audioPlayer.setSourceUrl(url);
-                    await _audioPlayer.resume();
-                  },
+                // Başlık
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Ses Kaydı",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.grey[600]),
+                      onPressed: () {
+                        _audioPlayer.stop();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
                 ),
 
-                TextButton.icon(
-                  icon: Icon(Icons.pause),
-                  label: Text("Duraklat"),
-                  onPressed: () async {
-                    await _audioPlayer.pause();
-                  },
+                SizedBox(height: 20),
+
+                // Hareketli ses dalgası simülasyonu
+                _AnimatedWaveform(),
+
+                SizedBox(height: 30),
+
+                // Kontrol butonları
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Geri sarma butonu
+                    _buildControlButton(
+                      icon: Icons.replay_10,
+                      onPressed: () async {
+                        final position = await _audioPlayer.getCurrentPosition();
+                        if (position != null) {
+                          await _audioPlayer.seek(Duration(
+                            milliseconds: position.inMilliseconds - 10000,
+                          ));
+                        }
+                      },
+                    ),
+
+                    // Oynat/Duraklat butonu
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.green[400],
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.play_arrow, color: Colors.white),
+                        iconSize: 32,
+                        onPressed: () async {
+                          await _audioPlayer.setSourceUrl(url);
+                          await _audioPlayer.resume();
+                        },
+                      ),
+                    ),
+
+                    // İleri sarma butonu
+                    _buildControlButton(
+                      icon: Icons.forward_10,
+                      onPressed: () async {
+                        final position = await _audioPlayer.getCurrentPosition();
+                        if (position != null) {
+                          await _audioPlayer.seek(Duration(
+                            milliseconds: position.inMilliseconds + 10000,
+                          ));
+                        }
+                      },
+                    ),
+                  ],
                 ),
 
-                TextButton.icon(
-                  icon: Icon(Icons.stop),
-                  label: Text("Durdur"),
-                  onPressed: () async {
-                    await _audioPlayer.stop();
+                SizedBox(height: 20),
+
+                // İkincil kontrol butonları
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildSecondaryButton(
+                      icon: Icons.pause,
+                      text: "Duraklat",
+                      onPressed: () async {
+                        await _audioPlayer.pause();
+                      },
+                    ),
+
+
+
+                  ],
+                ),
+
+                SizedBox(height: 10),
+
+                // İlerleme çubuğu
+                StreamBuilder<Duration>(
+                  stream: _audioPlayer.onPositionChanged,
+                  builder: (context, snapshot) {
+                    final position = snapshot.data ?? Duration.zero;
+                    return StreamBuilder<Duration>(
+                      stream: _audioPlayer.onDurationChanged,
+                      builder: (context, snapshot) {
+                        final duration = snapshot.data ?? Duration.zero;
+                        return Column(
+                          children: [
+                            SliderTheme(
+                              data: SliderThemeData(
+                                trackHeight: 4,
+                                thumbShape: RoundSliderThumbShape(
+                                  enabledThumbRadius: 8,
+                                ),
+                                overlayShape: RoundSliderOverlayShape(
+                                  overlayRadius: 14,
+                                ),
+                                activeTrackColor: Colors.green[400],
+                                inactiveTrackColor: Colors.grey[300],
+                                thumbColor: Colors.green[400],
+                              ),
+                              child: Slider(
+                                value: position.inMilliseconds.toDouble(),
+                                max: duration.inMilliseconds.toDouble() == 0
+                                    ? 1.0
+                                    : duration.inMilliseconds.toDouble(),
+                                onChanged: (value) async {
+                                  await _audioPlayer.seek(
+                                    Duration(milliseconds: value.toInt()),
+                                  );
+                                },
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _formatDuration(position),
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  _formatDuration(duration),
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              child: Text("Kapat"),
-              onPressed: () {
-                _audioPlayer.stop();
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
         );
       },
     );
   }
-  Future<void> seskaydiniindir(String url, String fileName, BuildContext context, Cdr cdr) async {
 
-    var status = await Permission.storage.request();
-    if (!status.isGranted) {
-      print('Permission denied');
-      return;
-    }
 
-    downloadProgressNotifier.value = 0;
-    Directory directory = Directory("");
-    if (Platform.isAndroid) {
-      directory = (await getExternalStorageDirectory())!;
+
+// Süre formatlama fonksiyonu
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+
+    if (duration.inHours > 0) {
+      return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
     } else {
-      directory = (await getApplicationDocumentsDirectory());
-    }
-
-
-    try {
-      Directory downloadsDirectory;
-      try {
-        if (Platform.isAndroid) {
-          downloadsDirectory = Directory('/storage/emulated/0/Download');
-        } else if (Platform.isIOS) {
-          downloadsDirectory = await getApplicationDocumentsDirectory();
-        } else {
-          throw UnsupportedError("İndirme desteklenmemektedir");
-        }
-      } catch (e) {
-        widget.scaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(content: Text(e.toString()), duration: Duration(seconds: 2)),
-        );
-        return;
-      }
-      String filePath = '${downloadsDirectory.path}/$fileName';
-      Dio dio = Dio();
-      indirmedialoggoster(context,"Ses kaydı indirme",downloadProgressNotifier);
-      await dio.download(url, filePath, onReceiveProgress: (actualBytes, int totalBytes) {
-        downloadProgressNotifier.value = (actualBytes / totalBytes * 100).floor();
-      });
-
-
-    } catch (e) {
-
+      return "$twoDigitMinutes:$twoDigitSeconds";
     }
   }
-  /*Widget _buildPaginationControls() {
+
+  Future<void> seskaydiniindir(String url, String fileName, BuildContext context) async {
+    Directory directory;
+    if (Platform.isIOS) {
+      directory = await getApplicationDocumentsDirectory();
+    } else if (Platform.isAndroid) {
+      directory = (await getExternalStorageDirectory())!;
+    } else {
+      throw UnsupportedError("İndirme desteklenmemektedir");
+    }
+
+    String filePath = '${directory.path}/$fileName';
+
+    Dio dio = Dio();
+    try {
+      await dio.download(url, filePath,
+          onReceiveProgress: (received, total) {
+            if (total != -1) {
+              // istersen progress gösterebilirsin
+              print((received / total * 100).toStringAsFixed(0) + "%");
+            }
+          });
+
+      // iOS ve Android için dosyayı paylaş
+      await Share.shareXFiles([XFile(filePath)], text: "Ses kaydınız indirildi");
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Dosya indirilemedi: $e")),
+      );
+    }
+  }
+/*Widget _buildPaginationControls() {
     final totalPages = (_randevuDataGridSource.totalPages).ceil();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -921,4 +1386,105 @@ class _CDRState extends State<CDRRaporlari> {
     );
   }*/
 
+}
+// Hareketli ses dalgası widget'ı
+class _AnimatedWaveform extends StatefulWidget {
+  @override
+  __AnimatedWaveformState createState() => __AnimatedWaveformState();
+}
+
+class __AnimatedWaveformState extends State<_AnimatedWaveform> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(20, (index) {
+              // Dalga boylarını rastgele ama animasyonlu hale getir
+              double baseHeight = 8 + (index % 7) * 6.0;
+              double animatedHeight = baseHeight * _animation.value;
+
+              return Container(
+                width: 3,
+                height: animatedHeight,
+                decoration: BoxDecoration(
+                  color: Colors.green[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Kontrol butonu widget'ı
+Widget _buildControlButton({
+  required IconData icon,
+  required VoidCallback onPressed,
+}) {
+  return IconButton(
+    icon: Icon(icon, color: Colors.green[400], size: 28),
+    onPressed: onPressed,
+  );
+}
+
+// İkincil buton widget'ı
+Widget _buildSecondaryButton({
+  required IconData icon,
+  required String text,
+  required VoidCallback onPressed,
+}) {
+  return TextButton.icon(
+    icon: Icon(icon, color: Colors.grey[700], size: 20),
+    label: Text(
+      text,
+      style: TextStyle(
+        color: Colors.grey[700],
+        fontSize: 14,
+      ),
+    ),
+    onPressed: onPressed,
+    style: TextButton.styleFrom(
+      backgroundColor: Colors.grey[100],
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.grey[300]!),
+      ),
+    ),
+  );
 }

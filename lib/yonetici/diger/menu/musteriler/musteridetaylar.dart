@@ -13,7 +13,8 @@ import 'musteribilgileri/musterisaglikbilgileri.dart';
 class MusteriDetaylari extends StatefulWidget {
 	final MusteriDanisan md;
 	final dynamic isletmebilgi;
-	const MusteriDetaylari({Key? key,required this.md,required this.isletmebilgi}) : super(key: key);
+	final int kullanicirolu;
+	const MusteriDetaylari({Key? key,required this.md,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
 	@override
 	_MusteriDetaylariState createState() =>
@@ -51,7 +52,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari> {
 						Navigator.push(
 							context,
 							MaterialPageRoute(
-									builder: (context) => MusteriRandevulariMenu(isletmebilgi: widget.isletmebilgi, md: widget.md,)),
+									builder: (context) => MusteriRandevulariMenu(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi, md: widget.md,)),
 						);
 					},
 				),
@@ -87,7 +88,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari> {
 						Navigator.push(
 							context,
 							MaterialPageRoute(
-									builder: (context) => MusteriAdiayonlari(isletmebilgi: widget.isletmebilgi, kullanici: widget.md,)),
+									builder: (context) => MusteriAdiayonlari(kullanicirolu:widget.kullanicirolu, isletmebilgi: widget.isletmebilgi, kullanici: widget.md,)),
 						);
 					},
 				),

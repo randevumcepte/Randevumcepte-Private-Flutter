@@ -72,7 +72,16 @@ class _YarinkiGorevlerState extends State<YarinkiGorevler> {
     _controller.dispose();
     super.dispose();
   }
-
+// Text yüksekliğini hesaplayan fonksiyon
+  double calculateTextHeight(String text, double maxWidth, TextStyle style, {int maxLines = 3}) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: maxLines,
+    );
+    textPainter.layout(maxWidth: maxWidth);
+    return textPainter.height + 10; // padding
+  }
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
@@ -110,6 +119,41 @@ class _YarinkiGorevlerState extends State<YarinkiGorevler> {
                     columnWidthMode: ColumnWidthMode.fill,
                     defaultColumnWidth: 120,
                     allowSwiping: true,
+                    onQueryRowHeight: (details) {
+                      if (details.rowIndex == 0) {
+                        return details.rowHeight; // header
+                      }
+
+                      final row = _easistanDataGridSource
+                          .effectiveRows[details.rowIndex - 1];
+
+                      // Tüm kolonlar için genişlikler
+                      final columnWidths = {
+                        'asistan': width * 0.0,
+                        'id': width * 0.0,
+                        'baslik': width * 0.35 - 10,
+                        'aramasaati': width * 0.25 - 10,
+                        'sonuc': width * 0.40 - 10,
+                        'islem': width * 0.1 - 10,
+                      };
+
+                      double maxHeight = 0;
+                      row.getCells().forEach((cell) {
+                        if (columnWidths.containsKey(cell.columnName)) {
+                          final cellText = cell.value.toString();
+                          final cellHeight = calculateTextHeight(
+                            cellText,
+                            columnWidths[cell.columnName]!,
+                            const TextStyle(fontSize: 14),
+                          );
+                          if (cellHeight > maxHeight) {
+                            maxHeight = cellHeight;
+                          }
+                        }
+                      });
+
+                      return maxHeight;
+                    },
                     onSwipeStart: (details) {
                       if (details.swipeDirection == DataGridRowSwipeDirection.startToEnd) {
                         details.setSwipeMaxOffset(50);
@@ -146,7 +190,7 @@ class _YarinkiGorevlerState extends State<YarinkiGorevler> {
                         ),
                       ),
                       GridColumn(
-                        width: width * 0.25,
+                        width: width * 0.70,
                         columnName: 'baslik',
                         label: Container(
                           padding: EdgeInsets.all(5.0),
@@ -155,7 +199,7 @@ class _YarinkiGorevlerState extends State<YarinkiGorevler> {
                         ),
                       ),
                       GridColumn(
-                        width: width * 0.25,
+                        width: width * 0.30,
                         columnName: 'aramasaati',
                         label: Container(
                           padding: EdgeInsets.all(5.0),
@@ -164,7 +208,7 @@ class _YarinkiGorevlerState extends State<YarinkiGorevler> {
                         ),
                       ),
                       GridColumn(
-                        width: width * 0.40,
+                        width: width * 0.0,
                         columnName: 'sonuc',
                         label: Container(
                           padding: EdgeInsets.all(5.0),

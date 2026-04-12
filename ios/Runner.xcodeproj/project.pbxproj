@@ -16,6 +16,8 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		C02AA2832E3A60F500055CC8 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C02AA2822E3A60F500055CC8 /* GoogleService-Info.plist */; };
+		C088A5122ECB786000D3BF2E /* ring.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C088A5112ECB786000D3BF2E /* ring.mp3 */; };
+		C08926EE2F7B456600269109 /* File.txt in Resources */ = {isa = PBXBuildFile; fileRef = C08926ED2F7B456600269109 /* File.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +51,8 @@
 		C0039F862E6EE3100004AB80 /* siprix.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = siprix.xcframework; path = ".symlinks/plugins/siprix_voip_sdk_ios/ios/../../../../../../../.pub-cache/hosted/pub.dev/siprix_voip_sdk_ios-1.0.23/ios/siprix.xcframework"; sourceTree = "<group>"; };
 		C0039F892E6EE3190004AB80 /* siprixMedia.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = siprixMedia.xcframework; path = ".symlinks/plugins/siprix_voip_sdk_ios/ios/../../../../../../../.pub-cache/hosted/pub.dev/siprix_voip_sdk_ios-1.0.23/ios/siprixMedia.xcframework"; sourceTree = "<group>"; };
 		C02AA2822E3A60F500055CC8 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		C088A5112ECB786000D3BF2E /* ring.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = ring.mp3; sourceTree = "<group>"; };
+		C08926ED2F7B456600269109 /* File.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = File.txt; sourceTree = "<group>"; };
 		C0FA20B42E336FC800C08324 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		CC7DA338AF1214479256644A /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA404EFEFC13500ED62FC85F /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
@@ -119,7 +123,9 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				C088A5112ECB786000D3BF2E /* ring.mp3 */,
 				C02AA2822E3A60F500055CC8 /* GoogleService-Info.plist */,
+				C08926ED2F7B456600269109 /* File.txt */,
 				C0FA20B42E336FC800C08324 /* Runner.entitlements */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
@@ -239,9 +245,11 @@
 			files = (
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				C02AA2832E3A60F500055CC8 /* GoogleService-Info.plist in Resources */,
+				C088A5122ECB786000D3BF2E /* ring.mp3 in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+				C08926EE2F7B456600269109 /* File.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -469,18 +477,19 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 24DZ882DDK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Aron Güzellik";
+				INFOPLIST_KEY_CFBundleDisplayName = "Bercislina Güzellik Salonu";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.aronguzellik;
+				NEW_SETTING = "";
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.bercislinaguzellik;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = AronGuzellik;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Bercislina Güzellik Salonu";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -538,7 +547,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -595,7 +604,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -660,18 +669,19 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 24DZ882DDK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Aron Güzellik";
+				INFOPLIST_KEY_CFBundleDisplayName = "Bercislina Güzellik Salonu";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.aronguzellik;
+				NEW_SETTING = "";
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.bercislinaguzellik;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = AronGuzellik;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Bercislina Güzellik Salonu";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -694,18 +704,19 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 24DZ882DDK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Aron Güzellik";
+				INFOPLIST_KEY_CFBundleDisplayName = "Bercislina Güzellik Salonu";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.aronguzellik;
+				NEW_SETTING = "";
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.bercislinaguzellik;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = AronGuzellik;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Bercislina Güzellik Salonu";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

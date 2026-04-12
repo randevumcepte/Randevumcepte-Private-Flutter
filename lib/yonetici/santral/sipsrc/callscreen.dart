@@ -3,8 +3,8 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_callkit_incoming/entities/call_event.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+/*mport 'package:flutter_callkit_incoming/entities/call_event.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';*/
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:randevu_sistem/Frontend/telefoncaldir.dart';
 import 'package:sip_ua/sip_ua.dart';
@@ -68,7 +68,7 @@ class _MyCallScreenWidget extends State<CallScreenWidget>
     _initRenderers();
     helper!.addSipUaHelperListener(this);
     _startTimer();
-    aramaEylemleriniDinle(aramaEylemi);
+    //aramaEylemleriniDinle(aramaEylemi);
   }
 
   @override
@@ -650,7 +650,7 @@ class _MyCallScreenWidget extends State<CallScreenWidget>
   void onNewNotify(Notify ntf) {
     // NO OP
   }
-  Future<void> aramaEylemleriniDinle(void Function(CallEvent) callback) async {
+  /*Future<void> aramaEylemleriniDinle(void Function(CallEvent) callback) async {
     try {
       FlutterCallkitIncoming.onEvent.listen((event) async {
         print('HOME: $event');
@@ -713,13 +713,13 @@ class _MyCallScreenWidget extends State<CallScreenWidget>
     } on Exception catch (e) {
       print(e);
     }
-  }
-  void aramaEylemi(CallEvent event) {
+  }*/
+  /*void aramaEylemi(CallEvent event) {
     if (!mounted) return;
     setState(() {
       aramaEylemleri += '---\n${event.toString()}\n';
     });
-  }
+  }*/
 
   @override
   void onNewReinvite(ReInvite event) {

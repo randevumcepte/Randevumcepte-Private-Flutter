@@ -7,9 +7,256 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:d9a47138a403b0e58ccf00",
+        "android_client_info": {
+          "package_name": "com.eczane24.akhisareczanesi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:51858922753:android:cf5f2801c6af46a98ccf00",
         "android_client_info": {
           "package_name": "com.randevumcepte.aronguzellik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:4d9b32cd95d8404b8ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.bercislinaguzellik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:2f6490814d5cd3ec8ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.busrayilmaz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:cbb61e193a68cf228ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.dermatouch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:7964c166340103bb8ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.edasavut"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:eef591d49776af6e8ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.gamzeakkaya"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:7d746ccc37f82ee88ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.gizaatolyesi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:06407ef4192ce60b8ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.kessplus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:9121d2d89d0e7e728ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.maxlora"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:06036baf86ff94508ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.naturelkuafor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:89bdb0f82ed68bd78ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.olanail"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:20fe9bc814e66c798ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.randevumcepte"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51858922753:android:55774ae73e8616148ccf00",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.salooncadde"
         }
       },
       "oauth_client": [],

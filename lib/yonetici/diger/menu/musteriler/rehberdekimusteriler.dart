@@ -11,7 +11,8 @@ import 'yeni_musteri.dart';
 
 class ContactSelectionPage extends StatefulWidget {
   final dynamic isletmebilgi;
-  const ContactSelectionPage({Key? key, required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  const ContactSelectionPage({Key? key, required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _ContactSelectionPageState createState() => _ContactSelectionPageState();
@@ -339,7 +340,7 @@ Future<void> submitForm(dynamic isletmebilgi, String musteri_id, String salonid,
           );
         } else {
           log('müşteri ekleme : ' + response.body);
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => MusteriListesi(isletmebilgi: isletmebilgi)));
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) => MusteriListesi(kullanicirolu: widget.kullanicirolu, isletmebilgi: isletmebilgi)));
         }
       }
     } else {

@@ -6,7 +6,8 @@ import 'musteri_bilgi.dart';
 
 class MusteriList extends StatefulWidget {
   final dynamic isletmebilgi;
-  const MusteriList({Key? key,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  const MusteriList({Key? key,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
 
   @override
   _MusteriListState createState() =>
@@ -51,7 +52,7 @@ class _MusteriListState extends State<MusteriList> {
           backgroundColor: Colors.deepPurple,
           child: Icon(Icons.add_circle),
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) =>  Yenimusteri(isletmebilgi:widget.isletmebilgi,isim:"",telefon: "",sadeceekranikapat: false,)),);
+            Navigator.push(context, MaterialPageRoute(builder: (context) =>  Yenimusteri(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,isim:"",telefon: "",sadeceekranikapat: false,)),);
           },
         ),
       ),

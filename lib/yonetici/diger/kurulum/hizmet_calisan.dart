@@ -6,7 +6,8 @@ import '../../../yeni/app_colors.dart';
 import 'hizmetler.dart';
 
 class HizmetCalisan extends StatefulWidget {
-  const HizmetCalisan({Key? key}) : super(key: key);
+  final dynamic isletmebilgi;
+  const HizmetCalisan({Key? key,required this.isletmebilgi}) : super(key: key);
 
   @override
 
@@ -142,7 +143,7 @@ class _HizmetCalisanState extends State<HizmetCalisan> {
                         context,
                         MaterialPageRoute(
                             builder: (context) =>
-                                Hizmetler()));
+                                Hizmetler(isletmebilgi: widget.isletmebilgi,)));
                   },
                   child: Text('Sonraki'),
                 ),

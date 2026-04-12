@@ -10,12 +10,12 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sip_ua/sip_ua.dart';
 
-import 'package:flutter_callkit_incoming/entities/android_params.dart';
+/*import 'package:flutter_callkit_incoming/entities/android_params.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
 import 'package:flutter_callkit_incoming/entities/ios_params.dart';
 import 'package:flutter_callkit_incoming/entities/notification_params.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';*/
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -387,7 +387,7 @@ class _MyDialPadWidget extends State<DialPadWidget> implements SipUaHelperListen
 
       log("arayan "+(call!.remote_identity ?? ""));
       if(call!.direction=="INCOMING"){
-        gelenaramayigoster(const Uuid().v4(),call!.remote_identity ?? "");
+        //gelenaramayigoster(const Uuid().v4(),call!.remote_identity ?? "");
         //gelenaramagoster(bildirimkimligi);
 
         widget.dialPadManager.updateDialPad(context, true, "",widget.kullanicibilgi);
@@ -414,7 +414,7 @@ class _MyDialPadWidget extends State<DialPadWidget> implements SipUaHelperListen
       receivedMsg = msgBody;
     });
   }
-  Future<dynamic> mevcutArama() async {
+  /*Future<dynamic> mevcutArama() async {
     //check current call from pushkit if possible
     var calls = await FlutterCallkitIncoming.activeCalls();
     if (calls is List) {
@@ -436,7 +436,6 @@ class _MyDialPadWidget extends State<DialPadWidget> implements SipUaHelperListen
 
     }
   }
-
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     log("app lifecycle state");
@@ -504,7 +503,7 @@ class _MyDialPadWidget extends State<DialPadWidget> implements SipUaHelperListen
       );
       await FlutterCallkitIncoming.showCallkitIncoming(params);
     });
-  }
+  }*/
 
   @override
   void onNewNotify(Notify ntf) {}
@@ -559,14 +558,14 @@ class _MyDialPadWidget extends State<DialPadWidget> implements SipUaHelperListen
       widget.kullanicibilgi.yetkili_olunan_isletmeler.forEach((item) {
         if(item['salon_id'].toString()==seciliisletme.toString()){
           log("personel item "+item.toString());
-          dahili=item['dahili_no'].toString();
-          dahilisifre = item["dahili_sifre"];
+          dahili=item['dahili_no_webrtc'].toString();
+          dahilisifre = item["dahili_sifre_webrtc"];
           //log(dahili.toString() + " "+dahilisifre.toString());
         }
 
       });
-      _wsUriController.text =  'wss://santral2.randevumcepte.com.tr:8089/ws';
-      _sipUriController.text =  'sip:'+dahili.toString()+'@santral2.randevumcepte.com.tr';
+      _wsUriController.text =  'wss://santral.randevumcepte.com.tr:8089/ws';
+      _sipUriController.text =  'sip:'+dahili.toString()+'@santral.randevumcepte.com.tr';
       _displayNameController.text =  dahili.toString();
       _passwordController.text =   dahilisifre.toString();
       _authorizationUserController.text =   dahili.toString();

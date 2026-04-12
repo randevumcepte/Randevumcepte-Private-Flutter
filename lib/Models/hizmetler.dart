@@ -10,6 +10,9 @@ class Hizmet implements OnGorusmeNedeni{
     required this.cihaz,
     required this.fiyat,
     required this.sure_dk,
+    required this.ozel_hizmet,
+
+
   });
   String id;
   String hizmet_adi;
@@ -19,6 +22,7 @@ class Hizmet implements OnGorusmeNedeni{
   String cihaz;
   String sure_dk;
   String hizmet_id;
+  String ozel_hizmet;
 
   Map<String, dynamic> toJson() {
     return {
@@ -30,6 +34,7 @@ class Hizmet implements OnGorusmeNedeni{
       'fiyat':fiyat,
       'cihaz':cihaz,
       'hizmet_id':hizmet_id,
+      'ozel_hizmet':ozel_hizmet,
 
     };
   }
@@ -45,6 +50,7 @@ class Hizmet implements OnGorusmeNedeni{
       fiyat:  jsonvar["fiyat"].toString(),
       cihaz:jsonvar["cihaz"].toString(),
       hizmet_id: jsonvar["hizmet_id"].toString(),
+      ozel_hizmet: jsonvar["ozel_hizmet"].toString(),
     );
   }
   String getPaketUrunAdi() => hizmet_adi + ' (Hizmet)';

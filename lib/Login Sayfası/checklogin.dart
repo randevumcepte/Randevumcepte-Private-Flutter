@@ -87,14 +87,14 @@ class _CheckAuthState extends State<CheckAuth> {
         }
       } else {
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString()=='182')['salonlar'];
+        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString()=='278')['salonlar'];
         child =!_isloading ? MusteriAltBar(scaffoldMessengerKey: scaffoldMessengerKey,musteriId: musteri,isletmebilgi: isletmebilgi,): Center(child: CircularProgressIndicator());
       }
     } else {
       log('login sayfasına yönlendiriyor');
 
 
-      child = !_isloading ? LoginPage(randevuSayfasinaYonlendir: false,tarih: '',saat: '',seciliHizmetler: [],) : Center(child: CircularProgressIndicator());
+      child = !_isloading ? OnBoardingPage() /*LoginPage(randevuSayfasinaYonlendir: false,tarih: '',saat: '',seciliHizmetler: [],)*/ : Center(child: CircularProgressIndicator());
     }
 
     return Scaffold(

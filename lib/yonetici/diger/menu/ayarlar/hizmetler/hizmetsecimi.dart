@@ -342,7 +342,7 @@ class HizmetSecimiState extends State<HizmetSecimi> {
                 children: [
                   Icon(Icons.add),
                   SizedBox(width: 5,),
-                  Text('Listede olmayan hizmet'),
+                  Text('Kendi hizmetinizi ekleyin'),
                 ],
               ),
             ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/anasayfa.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 
@@ -101,7 +102,7 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0,left: 16),
                   child: Text(
-                    'Aron Güzellik',
+                    'Bercislina Güzellik Salonu',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 33.0,
@@ -127,12 +128,15 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           // Navigate to LoginPage when the button is pressed
+
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+
                           _pauseVideo();
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => CheckAuth()),
+                            MaterialPageRoute(builder: (context) => LoginPage(randevuSayfasinaYonlendir: false, seciliHizmetler: [], tarih: '', saat: '') /*CheckAuth()*/),
                           ).then((_) {
                             // Geri dönüldüğünde video tekrar başlasın
                             _resumeVideo();

@@ -361,6 +361,7 @@ class _UrunDuzenleState extends State<UrunDuzenle> {
               child: Text('Kaydet'),
               style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                   minimumSize: Size(90, 40)
               ),
             ),

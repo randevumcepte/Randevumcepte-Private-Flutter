@@ -18,7 +18,8 @@ import 'musteri_secimi.dart';
 class HizmetSecimi extends StatefulWidget {
   final dynamic isletmebilgi;
   final HizmetlerDataSource hizmetDataGridSource;
-  const HizmetSecimi({Key? key,required this.isletmebilgi,required this.hizmetDataGridSource}) : super(key: key);
+
+  const HizmetSecimi({Key? key,required this.isletmebilgi,required this.hizmetDataGridSource }) : super(key: key);
 
   @override
 
@@ -136,7 +137,7 @@ class _HizmetSecimiState extends State<HizmetSecimi> {
 
             // Unselected Services List Box
             Container(
-              height: 50,
+              height: 60,
               padding: const EdgeInsets.symmetric(horizontal: 15.0),
               child: GestureDetector(
                 onTap: () {
@@ -173,21 +174,17 @@ class _HizmetSecimiState extends State<HizmetSecimi> {
               child: ListView(
                 children: filteredhizmet.map((Hizmet croplist) {
                   return Card(
-                    elevation: 10,
-                    margin: const EdgeInsets.only(left: 10, right: 10, top: 5),
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                          left: 10, right: 10, top: 2, bottom: 5),
-                      height: 40.0,
-                      child: getCropListItem(croplist),
-                    ),
+                    child: getCropListItem(croplist),
                   );
                 }).toList(),
               ),
             ),
+
           ],
         ),
       ),
@@ -233,6 +230,8 @@ class _HizmetSecimiState extends State<HizmetSecimi> {
                           isletmebilgi: widget.isletmebilgi,
                           secilihizmetler: secilihizmetler,
                           hizmetDataGridSource: widget.hizmetDataGridSource,
+                          yeniEkleme: true,
+
                         ),
                       ),
                     );
@@ -269,7 +268,9 @@ class _HizmetSecimiState extends State<HizmetSecimi> {
     }
   }
 
-  InkWell getCropListItem(Hizmet croplist) {
+  Widget getCropListItem(Hizmet croplist) {
+    final bool secili = secilihizmetler.contains(croplist);
+
     return InkWell(
       onTap: () {
         isMultiSelectionEnabled = true;
@@ -278,54 +279,49 @@ class _HizmetSecimiState extends State<HizmetSecimi> {
       onLongPress: () {
         doMultiSelection(croplist);
       },
-      child: Stack(
-        alignment: Alignment.centerLeft,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 18.0,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 40.0),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 1.0),
-                          child: Text(
-                            croplist.hizmet_adi +
-                                " (" +
-                                croplist.hizmet_kategori["hizmet_kategorisi_adi"] +
-                                ")",
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontFamily: 'Poppins',
-                              fontStyle: FontStyle.normal,
-                              color: AppColors.textRegColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ],
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        leading: Icon(
+          secili ? Icons.check_box : Icons.check_box_outline_blank,
+          color: Colors.deepPurple,
+          size: 26,
+        ),
+        title: Text(
+          temizleVeBirlestir(
+            croplist.hizmet_adi,
+            croplist.hizmet_kategori['hizmet_kategorisi_adi'],
           ),
-          Visibility(
-            visible: isMultiSelectionEnabled,
-            child: Icon(
-              secilihizmetler.contains(croplist) ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 30,
-              color: Colors.deepPurple,
-            ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 15,
+            fontFamily: 'Poppins', // İstersen başka font da deneyebilirsin
+            height: 1.3,
+            color: AppColors.textRegColor,
           ),
-        ],
+        )
+
       ),
     );
   }
+  String temizleVeBirlestir(String? hizmetAdi, String? kategoriAdi) {
+    // Null check ve trim
+    String hAdi = hizmetAdi?.trim() ?? '';
+    String kAdi = kategoriAdi?.trim() ?? '';
+
+    // Gizli karakterleri temizle (zero width, BOM, vb.)
+    final RegExp temizleyici = RegExp(r'[\u200B\uFEFF]');
+    hAdi = hAdi.replaceAll(temizleyici, '');
+    kAdi = kAdi.replaceAll(temizleyici, '');
+
+    // Parantez ekleme: kategori boşsa sadece hizmetAdi göster
+    if (kAdi.isEmpty) {
+      return hAdi;
+    } else {
+      return "$hAdi ($kAdi)";
+    }
+  }
+
+
 }

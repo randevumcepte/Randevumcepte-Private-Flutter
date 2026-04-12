@@ -55,7 +55,7 @@ class _KampanyalarState extends State<Kampanyalar> {
 
 
 
-  String? selectedrandevuolusturma = 'Salon';
+  String? selectedrandevuolusturma = 'Tümü';
   TextEditingController randevuolusturmacontroller = TextEditingController();
 
   String? selectedrandevudurum = 'Tümü';

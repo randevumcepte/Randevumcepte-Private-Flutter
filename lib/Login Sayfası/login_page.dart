@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
@@ -49,6 +50,7 @@ class _HomeState extends State<LoginPage> {
   var cep_telefon;
   var password;
   final _formKey = GlobalKey<FormState>();
+  TextEditingController ceptelefon = TextEditingController();
   AutovalidateMode _autoValidate = AutovalidateMode.disabled;
   void _validateInputs() {
     if (_formKey.currentState!.validate()) {
@@ -58,7 +60,17 @@ class _HomeState extends State<LoginPage> {
         _autoValidate = AutovalidateMode.always;
       });
     }
+  } final phoneMask = MaskTextInputFormatter(
+    mask: '0### ### ## ##',
+    filter: { "#": RegExp(r'[0-9]') },
+  );
+  @override
+  void initState() {
+    super.initState();
+    cep_telefon = "0";  // Format en başta görünsün
+    ceptelefon.text = '0';
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -80,11 +92,11 @@ class _HomeState extends State<LoginPage> {
           child: Column(
             children: [
               Container(
-                  margin: const EdgeInsets.only(top: 80),
+                  margin: const EdgeInsets.only(top: 40),
                   child:  FadeAnimation(
                     1,
                     Image.asset(
-                      'images/aronshine-yatay.png',  // Replace with your image path
+                      'images/bercislina.png',  // Replace with your image path
                       width: 500,  // Adjust width if needed
                       height: 100,  // Adjust height if needed
                     ),
@@ -144,19 +156,42 @@ class _HomeState extends State<LoginPage> {
                                         child: TextFormField(
                                           keyboardType: TextInputType.number,
                                           maxLines: 1,
+                                          controller: ceptelefon,
                                           decoration: const InputDecoration(
                                             hintText: "Telefon Numarası ...",
                                             border: InputBorder.none,
                                           ),
+                                          inputFormatters: [phoneMask],
                                           validator: (telefonNo) {
                                             if (telefonNo!.isEmpty) {
                                               return 'Telefon alanı gereklidir';
                                             }
                                             cep_telefon = telefonNo;
+                                            ceptelefon.text=telefonNo;
                                             return null;
                                           },
                                           onSaved: (String? val) {
                                             cep_telefon = val;
+                                            ceptelefon.text=val!;
+                                          },
+                                          onTap: () {
+                                            // Cursor daima +90'ın sonuna gelsin
+                                            if (ceptelefon.text.length < 2) {
+                                              ceptelefon.text = "0";
+                                            }
+                                            ceptelefon.selection = TextSelection.fromPosition(
+                                              TextPosition(offset: ceptelefon.text.length),
+                                            );
+                                          },
+
+                                          onChanged: (value) {
+                                            // Kullanıcı +90 kısmını silmeye çalışırsa düzelt
+                                            if (!value.startsWith("0")) {
+                                              ceptelefon.text = "0";
+                                              ceptelefon.selection = TextSelection.fromPosition(
+                                                TextPosition(offset: ceptelefon.text.length),
+                                              );
+                                            }
                                           },
                                         ),
                                       ),
@@ -331,12 +366,11 @@ class _HomeState extends State<LoginPage> {
     var data = {
       'cep_telefon' : cep_telefon,
       'password' : password,
-
-      'appBunle': await appBundleAl(),
+      'appBundle': await appBundleAl(),
       'cihazBilgi': await cihazBilgisi(),
       'bildirimId':oneSignalId.toString(),
     };
-    log('login data '+json.encode(data));
+
 
     var res = await Network().authData(data, '/login');
     var body = json.decode(res.body);
@@ -397,7 +431,7 @@ class _HomeState extends State<LoginPage> {
       } else {
         MusteriDanisan musteri = MusteriDanisan.fromJson(userMap);
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '182')['salonlar'];
+        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '278')['salonlar'];
 
         bildirimkimligiekleguncelle(musteri.id.toString(),"",body['message']['user_type'].toString(),localStorage.getString('onesignal_player_id')??"");
         if(widget.randevuSayfasinaYonlendir)

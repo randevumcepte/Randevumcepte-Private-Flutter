@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:dropdown_search/dropdown_search.dart';
@@ -39,7 +40,9 @@ import '../../diger/menu/musteriler/yeni_musteri.dart';
 class TahsilatEkrani extends StatefulWidget {
   final dynamic isletmebilgi;
   final String musteridanisanid;
-  TahsilatEkrani({Key? key,required this.isletmebilgi,required this.musteridanisanid}) : super(key: key);
+  final int kullanicirolu;
+  final String adisyonId;
+  TahsilatEkrani({Key? key,required this.adisyonId, required this.isletmebilgi,required this.musteridanisanid,required this.kullanicirolu}) : super(key: key);
   @override
   _TahsilatState createState() => _TahsilatState();
 }
@@ -52,6 +55,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
   final List<OdemeTuru> odemeyontem = [
     OdemeTuru(id: '1', odeme_turu: 'Nakit'),
     OdemeTuru(id: '2', odeme_turu: 'Kredi Kartı'),
+
     OdemeTuru(id: '3', odeme_turu: 'Havale/EFT'),
 
 
@@ -144,6 +148,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
   late List<Urun> urunliste;
   late List<Paket> paketliste;
   late List<IsletmeHizmet> hizmetliste;
+  final GlobalKey<LazyDropdownState> dropdownKey = GlobalKey<LazyDropdownState>();
 
   List<AdisyonKalemleri> adisyonkalemleri = [];
   List<AdisyonKalemleri> senetvadeleri = [];
@@ -169,6 +174,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
   void loadbar(MusteriDanisan value) async
   {
     String musterituru = await musteriDanisanTuru(seciliisletme,value?.id.toString() ?? "");
+    log('müşteri türü '+musterituru.toString());
     final settings = await fetchSalonSettings(seciliisletme);
     String indirimtext = "0";
     String aktifpasif = "";
@@ -209,25 +215,31 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
     });
   }
-  Future<void> initialize() async{
+  Future<void> initialize() async {
     seciliisletme = (await secilisalonid())!;
-    List <MusteriDanisan> musteridanisanliste = await musterilistegetir(seciliisletme);
+
+    // Async işlemleri önce yap
+    String hariciIndirimText = tryformat.format(0).toString();
+    String kalanAlacakText = tryformat.format(0).toString();
+
+    MusteriDanisan? musteridanisanliste;
+    if (widget.musteridanisanid != "") {
+
+        musteridanisanliste = await musterilistegetirTahsilat(widget.musteridanisanid);
+
+    }
+
+    // Sadece senkron olarak state güncelle
     setState(() {
+      harici_indirim.text = hariciIndirimText;
+      kalan_alacak_tutar.text = kalanAlacakText;
 
-      musteridanisanlar = musteridanisanliste;
-      harici_indirim.text = tryformat.format(0).toString();
-      kalan_alacak_tutar.text = tryformat.format(0).toString();
-      if(widget.musteridanisanid != ""){
-
-
-
-
-        loadbar(musteridanisanlar.firstWhere((element) => element.id == widget.musteridanisanid));
-
+      if (musteridanisanliste != null) {
+        secilimusteridanisan = musteridanisanliste;
+        loadbar(musteridanisanliste); // Burada da setState var, onun için dikkat
       }
 
       isloading = false;
-
     });
   }
 
@@ -237,7 +249,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
     if(secilimusteridanisan != null){
       String danisan = secilimusteridanisan?.id ?? "";
 
-      dynamic senettaksitdata = await senetvetaksitler(seciliisletme!, secilimusteridanisan?.id ?? "");
+      dynamic senettaksitdata = await senetvetaksitler(seciliisletme!, secilimusteridanisan?.id ?? "",widget.adisyonId);
       String fullData = senettaksitdata["adisyon_paket"].toString();
       int chunkSize = 800;
 
@@ -267,9 +279,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
                   vade_tarih: element2["vade_tarih"],
                   tutar: element2["tutar"].toString(),
                   odendi: element2["odendi"].toString(),
-                  notlar: element2["notlar"],
-                  odeme_yontemi_id: element2["odeme_yonetemi_id"].toString(),
-                  dogrulama_kodu: element2["dogrulama_kodu"]));
+                  notlar: element2["notlar"].toString(),
+                  odeme_yontemi_id: element2["odeme_yontemi_id"]??"",
+                  dogrulama_kodu: element2["dogrulama_kodu"]??""));
 
 
             });
@@ -277,7 +289,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
           if(element2["odendi"]==0 && DateTime.parse(element2["vade_tarih"]+'T00:00:00').isBefore(DateTime.now())){
             setState(() {
 
-              adisyonkalemleri.add(SenetVade(id: element2["id"].toString(), senet_id: element2["senet_id"].toSctring(), vade_tarih: element2["vade_tarih"], tutar: element2["tutar"].toString(), odendi: element2["odendi"].toString(), notlar: element2["notlar"], odeme_yontemi_id: element2["odeme_yonetemi_id"].toString(), dogrulama_kodu: element2["dogrulama_kodu"]));
+              adisyonkalemleri.add(SenetVade(id: element2["id"].toString(), senet_id: element2["senet_id"].toSctring(), vade_tarih: element2["vade_tarih"], tutar: element2["tutar"].toString(), odendi: element2["odendi"].toString(), notlar: element2["notlar"], odeme_yontemi_id: element2["odeme_yontemi_id"].toString(), dogrulama_kodu: element2["dogrulama_kodu"]));
 
             });
           }
@@ -296,12 +308,15 @@ class _TahsilatState extends State<TahsilatEkrani> {
                   id: element2["id"].toString(),
                   taksitli_tahsilat_id: element2["taksitli_tahsilat_id"]
                       .toString(),
-                  vade_tarih: element2["vade_tarih"],
+                  vade_tarih: element2["vade_tarih"].toString(),
                   tutar: element2["tutar"].toString(),
                   odendi: element2["odendi"].toString(),
                   notlar: element2["notlar"].toString(),
-                  odeme_yontemi_id: element2["odeme_yonetemi_id"].toString(),
-                  dogrulama_kodu: element2["dogrulama_kodu"].toString()));
+                  odeme_yontemi_id: element2["odeme_yontemi_id"].toString(),
+                  dogrulama_kodu: element2["dogrulama_kodu"].toString())
+
+
+              );
 
             });
 
@@ -309,7 +324,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
           }
           if(element2["odendi"].toString()=='0' && DateTime.parse(element2["vade_tarih"]+'T00:00:00').isBefore(DateTime.now())){
             setState(() {
-              adisyonkalemleri.add(TaksitVade(id: element2["id"].toString(), taksitli_tahsilat_id: element2["taksitli_tahsilat_id"].toString(), vade_tarih: element2["vade_tarih"], tutar: element2["tutar"].toString(), odendi: element2["odendi"].toString(), notlar: element2["notlar"], odeme_yontemi_id: element2["odeme_yonetemi_id"].toString(), dogrulama_kodu: element2["dogrulama_kodu"]));
+
+              adisyonkalemleri.add(TaksitVade(id: element2["id"].toString(), taksitli_tahsilat_id: element2["taksitli_tahsilat_id"].toString(), vade_tarih: element2["vade_tarih"], tutar: element2["tutar"].toString(), odendi: element2["odendi"].toString(), notlar: element2["notlar"].toString(), odeme_yontemi_id: element2["odeme_yontemi_id"]??"", dogrulama_kodu: element2["dogrulama_kodu"]??""));
 
             });
           }
@@ -367,10 +383,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
     else{
       final AdisyonHizmet result = mevcutadisyonhizmet != null ? await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => HizmetSatisiDuzenleme(musteriid: secilimusteridanisan?.id ??"", mevcuthizmet:mevcutadisyonhizmet ,senetlisatis: false,isletmebilgi: widget.isletmebilgi,)),
+        MaterialPageRoute(builder: (context) => HizmetSatisiDuzenleme( adisyonId: widget.adisyonId, musteriid: secilimusteridanisan?.id ??"", mevcuthizmet:mevcutadisyonhizmet ,senetlisatis: false,isletmebilgi: widget.isletmebilgi,)),
       ) : await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => HizmetSatisi(musteriid: secilimusteridanisan?.id ??"",senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
+        MaterialPageRoute(builder: (context) => HizmetSatisi(kullanicirolu: widget.kullanicirolu, mevcutadisyonId: widget.adisyonId,  musteriid: secilimusteridanisan?.id ??"",senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
       );
 
       if (result != null ) {
@@ -496,7 +512,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         MaterialPageRoute(builder: (context) => UrunSatisiDuzenleme(musteriid: secilimusteridanisan?.id ??"", mevcuturun:mevcutadisyonurun ,senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
       ) : await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => UrunSatisi(musteriid: secilimusteridanisan?.id ??"",senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
+        MaterialPageRoute(builder: (context) => UrunSatisi(kullanicirolu: widget.kullanicirolu, mevcutadisyonId: widget.adisyonId, musteriid: secilimusteridanisan?.id ??"",senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
       );
 
       if (result != null ) {
@@ -544,7 +560,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         MaterialPageRoute(builder: (context) => PaketSatisiDuzenleme(musteriid: secilimusteridanisan?.id ??"", mevcutpaket:mevcutadisyonpaket ,senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
       ) : await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => PaketSatisi(musteriid: secilimusteridanisan?.id ?? "",senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
+        MaterialPageRoute(builder: (context) => PaketSatisi(kullanicirolu: widget.kullanicirolu, mevcutadisyonId: widget.adisyonId, musteriid: secilimusteridanisan?.id ?? "",senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
       );
 
       if (result != null ) {
@@ -580,114 +596,122 @@ class _TahsilatState extends State<TahsilatEkrani> {
         toolbarHeight: 60,
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 100, // <-- Your width
-              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                  width: 100, // <-- Your width
+                  child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+              ),
             ),
-          ),
           IconButton(
             icon: Icon(Icons.add, color: Colors.black),
             iconSize: 26,
             onPressed: ()  async{
               final MusteriDanisan yenimusteridanisan =  await Navigator.push(
-              context,
-              MaterialPageRoute(
-              builder: (context) => Yenimusteri(isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
+                context,
+                MaterialPageRoute(
+                    builder: (context) => Yenimusteri(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
               );
               if(yenimusteridanisan != null)
-              setState(() {
-              musteridanisanlar.add(yenimusteridanisan);
-              });
+                setState(() {
+                  musteridanisanlar.add(yenimusteridanisan);
+                  secilimusteridanisan = yenimusteridanisan;
+                  dropdownKey.currentState?.addItemAndSelect(yenimusteridanisan);
+
+                });
 
             },
           ),
-
+          /*Platform.isIOS ? SizedBox():
           IconButton(
             icon: Icon(Icons.group_add, color: Colors.black),
             iconSize: 26,
             onPressed: (){
-              rehberdenTopluSec(context, widget.isletmebilgi);
+              rehberdenSecAlternatif(context,widget.isletmebilgi,widget.kullanicirolu);
             }, // New button to select multiple contacts
-          ),
+          ),*/
 
 
         ],
         backgroundColor: Colors.white,
       ),
-      body: isloading ? Center(child: CircularProgressIndicator(),): SingleChildScrollView(
+      body: isloading ? Center(child: CircularProgressIndicator(),):
+      GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+    child:  SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 20,),
+            widget.adisyonId == '' ?
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Container(
-                  width: width*0.6,
-                  child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20.0),
-                      child: Text('Müşteri/Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                    ),
-                    SizedBox(height: 10,),
-                    Container(
-                      alignment: Alignment.center,
-                      margin: EdgeInsets.only(left: 20, right: 20),
-                      height: 50,
-                      width: width*0.6,
-                      child: LazyDropdown(
-                        salonId: seciliisletme??'',
-                        selectedItem: secilimusteridanisan,
-                        onChanged: (value) {
-                          secilimusteridanisan = value;
+                    width: width*0.6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 20.0),
+                          child: Text('Müşteri/Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        ),
+                        SizedBox(height: 10,),
+                        Container(
+                          alignment: Alignment.center,
+                          margin: EdgeInsets.only(left: 20, right: 20),
+                          height: 50,
+                          width: width*0.6,
+                          child: LazyDropdown(
+                            key: dropdownKey,
+                            salonId: seciliisletme??'',
+                            selectedItem: secilimusteridanisan,
+                            onChanged: (value) {
+                              secilimusteridanisan = value;
+                              loadbar(value!);
+                            },
+                          ),
+                        )
 
-                        },
-                      ),
-                    )
 
-
-                  ],
-                )),
+                      ],
+                    )),
                 Container(
                   width: width*0.2,
                   child:   Column(
 
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
 
-                    SizedBox(height: 30,),
+                      SizedBox(height: 30,),
 
-                    ElevatedButton(onPressed: () async{
+                      ElevatedButton(onPressed: () async{
 
-                      final MusteriDanisan yenimusteridanisan =  await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => Yenimusteri(isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
-                      );
-                      if(yenimusteridanisan != null)
-                        setState(() {
-                          musteridanisanlar.add(yenimusteridanisan);
-                        });
-                    },
-                      child: Text('Yeni Ekle',style:TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple[800],
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(100, 30),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                        final MusteriDanisan yenimusteridanisan =  await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => Yenimusteri(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
+                        );
+                        if(yenimusteridanisan != null)
+                          setState(() {
+                            musteridanisanlar.add(yenimusteridanisan);
+                          });
+                      },
+                        child: Text('Yeni Ekle',style:TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple[800],
+                          foregroundColor: Colors.white,
+                          minimumSize: Size(100, 30),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
 
 
 
+                        ),
                       ),
-                    ),
-                  ],
-                ),)
+                    ],
+                  ),)
               ],
-            ),
+            ) : SizedBox(),
             SizedBox(height: 10),
             secilimusteridanisan != null ? Container(
 
@@ -803,19 +827,24 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             String satan = "";
                             String tutar = "";
                             if(item is AdisyonHizmet){
-
                               key=item.hizmet_id.toString();
                               kalem = item.hizmet["hizmet_adi"];
                               adet = "1";
-                              if(item.personel is Personel){
-                                Personel pers = item.personel;
-                                satan = pers.personel_adi;
+
+                              // Null check ekleyin
+                              if(item.personel != null) {
+                                if(item.personel is Personel){
+                                  Personel pers = item.personel;
+                                  satan = pers.personel_adi;
+                                }
+                                else {
+                                  satan = item.personel["personel_adi"] ?? "Personel Yok";
+                                }
+                              } else {
+                                satan = "Personel Yok";
                               }
 
-                              else
-                                satan = item.personel["personel_adi"];
                               tutar = tryformat.format(double.parse(item.fiyat));
-
                             }
 
                             if(item is AdisyonUrun)
@@ -823,11 +852,15 @@ class _TahsilatState extends State<TahsilatEkrani> {
                               key=item.urun_id.toString();
                               kalem = item.urun["urun_adi"];
                               adet = item.adet;
-                              satan = item.personel["personel_adi"];
+
+                              // Null check ekleyin
+                              if(item.personel != null) {
+                                satan = item.personel["personel_adi"] ?? "Personel Yok";
+                              } else {
+                                satan = "Personel Yok";
+                              }
 
                               tutar=tryformat.format(double.parse(item.fiyat));
-
-
                             }
 
                             if(item is AdisyonPaket)
@@ -835,10 +868,15 @@ class _TahsilatState extends State<TahsilatEkrani> {
                               key=item.paket_id.toString();
                               kalem = item.paket["paket_adi"];
                               adet="1";
-                              satan = item.personel["personel_adi"];
+
+                              // Null check ekleyin
+                              if(item.personel != null) {
+                                satan = item.personel["personel_adi"] ?? "Personel Yok";
+                              } else {
+                                satan = "Personel Yok";
+                              }
+
                               tutar =tryformat.format(double.parse(item.fiyat));
-
-
                             }
                             if(item is SenetVade){
                               key=item.id.toString();
@@ -926,16 +964,16 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                                                     setState(() {
                                                       if(adisyonkalemleri[index] is SenetVade)
-                                                        {
-                                                          senetvadeleri.add(adisyonkalemleri[index]);
-                                                          senetvadeleri.sort((a, b) => a.getSortValue().compareTo(b.getSortValue()));
-                                                        }
+                                                      {
+                                                        senetvadeleri.add(adisyonkalemleri[index]);
+                                                        senetvadeleri.sort((a, b) => a.getSortValue().compareTo(b.getSortValue()));
+                                                      }
 
                                                       if(adisyonkalemleri[index] is TaksitVade)
-                                                        {
-                                                          taksitvadeleri.add(adisyonkalemleri[index]);
-                                                          taksitvadeleri.sort((a, b) => a.getSortValue().compareTo(b.getSortValue()));
-                                                        }
+                                                      {
+                                                        taksitvadeleri.add(adisyonkalemleri[index]);
+                                                        taksitvadeleri.sort((a, b) => a.getSortValue().compareTo(b.getSortValue()));
+                                                      }
 
                                                       adisyonkalemleri.removeAt(index);
 
@@ -1375,197 +1413,220 @@ class _TahsilatState extends State<TahsilatEkrani> {
                 ElevatedButton(
 
                   onPressed: (){
-                  if(kalan_alacak_tutar.text=="" || kalan_alacak_tutar.text=="0,00")
-                  {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text('UYARI'),
-                          content: Text('Taksit yapmadan önce lütfen kalan alacak tutarının belirli olması ve ödenecek tutarın indirimler dahil toplam tahsilat tutarından daha az olması gereklidir. Eğer kısmi ödeme yapılmadan tüm tutar üzerinden taksit yapılacaksa ödenecek tutarı 0 giriniz.'),
-                          actions: <Widget>[
-                            TextButton(
-                              child: Text('Kapat'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  }
-                  else
-                  {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text('Yeni Taksitli Tahsilat'),
-                          content:
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Container(
-
-                                child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                              ),
-                              SizedBox(height: 10,),
-                              Container(
-                                height: 40,
-                                padding: EdgeInsets.only(left:20,right: 20),
-                                child: TextFormField(
-                                  controller: ilk_taksit_vade_tarihi,
-                                  //editing controller of this TextField
-                                  decoration: InputDecoration(
-
-                                    focusColor:Color(0xFF6A1B9A) ,
-                                    hoverColor: Color(0xFF6A1B9A) ,
-                                    hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                                    contentPadding:  EdgeInsets.all(0.0),
-                                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                        color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                                    border:
-                                    OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                                    ),
-                                  ),
-                                  readOnly: true,
-                                  //set it true, so that user will not able to edit text
-
-                                  onTap: () async {
-                                    DateTime? pickedDate = await showDatePicker(
-                                        context: context,
-                                        initialDate: DateTime.now(),
-                                        firstDate: DateTime(1950),
-                                        //DateTime.now() - not to allow to choose before today.
-                                        lastDate: DateTime(2100));
-
-                                    if (pickedDate != null) {
-                                      print(
-                                          pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
-                                      String formattedDate =
-                                      DateFormat('yyyy-MM-dd').format(pickedDate);
-                                      print(
-                                          formattedDate); //formatted date output using intl package =>  2021-03-16
-                                      setState(() {
-                                        ilk_taksit_vade_tarihi.text =
-                                            formattedDate; //set output date to TextField value.
-                                      });
-                                    } else {}
-                                  },
-                                ),
-                              ),
-                              SizedBox(height: 10,),
-                              Container(
-
-                                child: Text('Taksit Sayısı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                              ),
-                              SizedBox(height: 10,),
-                              Container(
-                                height: 40,
-                                padding: EdgeInsets.only(left:20,right: 20),
-                                child: TextFormField(
-
-                                  keyboardType: TextInputType.phone,
-                                  controller: taksit_sayisi,
-                                  onSaved: (value) {
-                                    taksit_sayisi.text = value!;
-                                  },
-
-
-
-                                  decoration: InputDecoration(
-                                    filled: true,
-
-                                    focusColor:Color(0xFF6A1B9A) ,
-                                    fillColor: Colors.white,
-                                    hoverColor: Color(0xFF6A1B9A) ,
-                                    hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                                    contentPadding:  EdgeInsets.all(15.0),
-                                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                        color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                                    border:
-                                    OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 10,),
-                              Container(
-
-                                child: Text('Toplam Tutar (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                              ),
-                              SizedBox(height: 10,),
-                              Container(
-                                height: 40,
-                                padding: EdgeInsets.only(left:20,right: 20),
-                                child: TextFormField(
-                                  enabled: false,
-                                  keyboardType: TextInputType.phone,
-                                  controller: taksit_toplam_tutar,
-                                  onSaved: (value) {
-                                    taksit_toplam_tutar.text = value!;
-                                  },
-
-
-
-                                  decoration: InputDecoration(
-                                    filled: true,
-
-                                    focusColor:Color(0xFF6A1B9A) ,
-                                    fillColor: Colors.white,
-                                    hoverColor: Color(0xFF6A1B9A) ,
-                                    hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                                    contentPadding:  EdgeInsets.all(15.0),
-                                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                        color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                                    border:
-                                    OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                                    ),
-                                  ),
-                                ),
+                    if(kalan_alacak_tutar.text=="" || kalan_alacak_tutar.text=="0,00")
+                    {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('UYARI'),
+                            content: Text('Taksit yapmadan önce lütfen kalan alacak tutarının belirli olması ve ödenecek tutarın indirimler dahil toplam tahsilat tutarından daha az olması gereklidir. Eğer kısmi ödeme yapılmadan tüm tutar üzerinden taksit yapılacaksa ödenecek tutarı 0 giriniz.'),
+                            actions: <Widget>[
+                              TextButton(
+                                child: Text('Kapat'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
                               ),
                             ],
-                          ),
+                          );
+                        },
+                      );
+                    }
+                    else
+                    {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Yeni Taksitli Tahsilat'),
+                            content:
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Container(
 
-                          actions: <Widget>[
-                            TextButton(
-                              child: Text('KAYDET'),
-                              onPressed: () {
+                                  child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                ),
+                                SizedBox(height: 10,),
+                                Container(
+                                  height: 40,
+                                  padding: EdgeInsets.only(left:20,right: 20),
+                                  child: TextFormField(
+                                    controller: ilk_taksit_vade_tarihi,
+                                    //editing controller of this TextField
+                                    decoration: InputDecoration(
+
+                                      focusColor:Color(0xFF6A1B9A) ,
+                                      hoverColor: Color(0xFF6A1B9A) ,
+                                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                      contentPadding:  EdgeInsets.all(0.0),
+                                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                      border:
+                                      OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                      ),
+                                    ),
+                                    readOnly: true,
+                                    //set it true, so that user will not able to edit text
+
+                                    onTap: () async {
+                                      DateTime? pickedDate = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(1950),
+                                          //DateTime.now() - not to allow to choose before today.
+                                          lastDate: DateTime(2100));
+
+                                      if (pickedDate != null) {
+                                        print(
+                                            pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
+                                        String formattedDate =
+                                        DateFormat('yyyy-MM-dd').format(pickedDate);
+                                        print(
+                                            formattedDate); //formatted date output using intl package =>  2021-03-16
+                                        setState(() {
+                                          ilk_taksit_vade_tarihi.text =
+                                              formattedDate; //set output date to TextField value.
+                                        });
+                                      } else {}
+                                    },
+                                  ),
+                                ),
+                                SizedBox(height: 10,),
+                                Container(
+
+                                  child: Text('Taksit Sayısı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                ),
+                                SizedBox(height: 10,),
+                                Container(
+                                  height: 40,
+                                  padding: EdgeInsets.only(left:20,right: 20),
+                                  child: TextFormField(
+
+                                    keyboardType: TextInputType.phone,
+                                    controller: taksit_sayisi,
+                                    onSaved: (value) {
+                                      taksit_sayisi.text = value!;
+                                    },
 
 
-                                taksitekleguncelle(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
 
-                                setState(() {
-                                  adisyonkalemleri.clear();
-                                  taksitvadeleri.clear();
-                                  senetvadeleri.clear();
-                                  alacaklarigetir();
-                                });
+                                    decoration: InputDecoration(
+                                      filled: true,
+
+                                      focusColor:Color(0xFF6A1B9A) ,
+                                      fillColor: Colors.white,
+                                      hoverColor: Color(0xFF6A1B9A) ,
+                                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                      contentPadding:  EdgeInsets.all(15.0),
+                                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                      border:
+                                      OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 10,),
+                                Container(
+
+                                  child: Text('Toplam Tutar (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                ),
+                                SizedBox(height: 10,),
+                                Container(
+                                  height: 40,
+                                  padding: EdgeInsets.only(left:20,right: 20),
+                                  child: TextFormField(
+                                    enabled: false,
+                                    keyboardType: TextInputType.phone,
+                                    controller: taksit_toplam_tutar,
+                                    onSaved: (value) {
+                                      taksit_toplam_tutar.text = value!;
+                                    },
 
 
 
-                              },
+                                    decoration: InputDecoration(
+                                      filled: true,
+
+                                      focusColor:Color(0xFF6A1B9A) ,
+                                      fillColor: Colors.white,
+                                      hoverColor: Color(0xFF6A1B9A) ,
+                                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                      contentPadding:  EdgeInsets.all(15.0),
+                                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                      border:
+                                      OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            TextButton(
-                              child: Text('KAPAT'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  }
 
-                },
+                            actions: <Widget>[
+                              TextButton(
+                                child: Text('KAYDET'),
+                                onPressed: () async {
+
+
+                                  int taksitResult = await taksitekleguncelle(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
+                                  if (taksitResult == 200) {
+
+
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Taksitlendirme başarıyla kaydedildi'),
+                                      ),
+                                    );
+                                    initialize();
+
+
+                                  } else {
+
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Taksitlendirme işlenirken bir hata oluştu. Hata kodu : '+taksitResult.toString()),
+                                      ),
+                                    );
+
+                                  }
+                                  setState(() {
+                                    adisyonkalemleri.clear();
+                                    taksitvadeleri.clear();
+                                    senetvadeleri.clear();
+                                    alacaklarigetir();
+                                  });
+
+
+
+                                },
+                              ),
+                              TextButton(
+                                child: Text('KAPAT'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    }
+
+                  },
                   child: Text('Taksit Yap'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple[800],
@@ -1617,19 +1678,25 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       );
 
                     else{
-                        tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
-                        setState(() {
+                      tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
+
+                      setState(() {
                         adisyonkalemleri.clear();
                         taksitvadeleri.clear();
                         senetvadeleri.clear();
-                        alacaklarigetir();
+                        selectedodemeyontemi = null;
+                        odenecek_tutar.text='0,00';
+                        kalan_alacak_tutar.text = '0,00';
+
                       });
+                      initialize();
+                      Navigator.of(context).pop(); //tahsilat yaptıktan sonra kapanması için eklendi bu satır.
                     }
 
 
 
 
-                },
+                  },
                   child: Row(
                     children: [
                       Icon(Icons.money_sharp),
@@ -1648,7 +1715,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   void alacaklarigoster(BuildContext context) {
@@ -1673,6 +1740,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             Navigator.of(context).pop();
                           },
                           child: const CircleAvatar(
+                            foregroundColor: Colors.white,
                             backgroundColor: Colors.red,
                             child: Icon(Icons.close),
                           ),
@@ -1777,34 +1845,34 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                                                 },
 
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      border: Border(
-                                                        bottom: BorderSide(
-                                                            color: Colors.grey, width: 1.0),
-                                                      ),
-                                                    ),
-                                                    child: ListTile(
-                                                      leading: Checkbox(
-                                                        value: isCheckedList[index],
-                                                        onChanged: (bool? value) {
-                                                          setState(() {
-                                                            isCheckedList[index] = value!;
-                                                            if(value)
-                                                              ++secilialacaktaksit;
-                                                            else
-                                                              --secilialacaktaksit;
-                                                          });
-                                                        },
-                                                      ),
-                                                      title: Text(kalem2),
-                                                      subtitle: Text(satan2),
-                                                      trailing: Text(
-                                                        adet2 + ' Adet\n' + tutar2 + " ₺",
-                                                        textAlign: TextAlign.right,
-                                                      ),
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    border: Border(
+                                                      bottom: BorderSide(
+                                                          color: Colors.grey, width: 1.0),
                                                     ),
                                                   ),
+                                                  child: ListTile(
+                                                    leading: Checkbox(
+                                                      value: isCheckedList[index],
+                                                      onChanged: (bool? value) {
+                                                        setState(() {
+                                                          isCheckedList[index] = value!;
+                                                          if(value)
+                                                            ++secilialacaktaksit;
+                                                          else
+                                                            --secilialacaktaksit;
+                                                        });
+                                                      },
+                                                    ),
+                                                    title: Text(kalem2),
+                                                    subtitle: Text(satan2),
+                                                    trailing: Text(
+                                                      adet2 + ' Adet\n' + tutar2 + " ₺",
+                                                      textAlign: TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ),
 
                                               );
                                             },
@@ -1844,34 +1912,34 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                               return GestureDetector(
                                                 onTap: () {},
 
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      border: Border(
-                                                        bottom: BorderSide(
-                                                            color: Colors.grey, width: 1.0),
-                                                      ),
-                                                    ),
-                                                    child: ListTile(
-                                                      leading: Checkbox(
-                                                        value: isCheckedList2[index],
-                                                        onChanged: (bool? value) {
-                                                          setState(() {
-                                                            isCheckedList2[index] = value!;
-                                                            if(value)
-                                                              ++secilialacaksenet;
-                                                            else
-                                                              --secilialacaksenet;
-                                                          });
-                                                        },
-                                                      ),
-                                                      title: Text(kalem2),
-                                                      subtitle: Text(satan2),
-                                                      trailing: Text(
-                                                        adet2 + ' Adet\n' + tutar2 + " ₺",
-                                                        textAlign: TextAlign.right,
-                                                      ),
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    border: Border(
+                                                      bottom: BorderSide(
+                                                          color: Colors.grey, width: 1.0),
                                                     ),
                                                   ),
+                                                  child: ListTile(
+                                                    leading: Checkbox(
+                                                      value: isCheckedList2[index],
+                                                      onChanged: (bool? value) {
+                                                        setState(() {
+                                                          isCheckedList2[index] = value!;
+                                                          if(value)
+                                                            ++secilialacaksenet;
+                                                          else
+                                                            --secilialacaksenet;
+                                                        });
+                                                      },
+                                                    ),
+                                                    title: Text(kalem2),
+                                                    subtitle: Text(satan2),
+                                                    trailing: Text(
+                                                      adet2 + ' Adet\n' + tutar2 + " ₺",
+                                                      textAlign: TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ),
 
                                               );
                                             },

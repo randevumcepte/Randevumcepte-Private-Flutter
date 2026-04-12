@@ -163,14 +163,14 @@ class _MasrafState extends State<MasrafEkle> {
                 SizedBox(height: 10,),
                 Padding(
                     padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Tutar (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                    child: Text('Tutar (₺)',style: TextStyle( fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
                 ),
                 SizedBox(height: 10,),
                 Container(
                     height: 40,
                     child: TextFormField(
 
-                        keyboardType: TextInputType.text,
+                        keyboardType: TextInputType.number,
                         controller: tutar,
                         onSaved: (value){
                             if(value!=null)
@@ -552,6 +552,7 @@ class _MasrafState extends State<MasrafEkle> {
                         },
                             child: Text('Kaydet'),
                             style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
                                 backgroundColor: Colors.green,
                                 minimumSize: Size(90, 40)
                             ),

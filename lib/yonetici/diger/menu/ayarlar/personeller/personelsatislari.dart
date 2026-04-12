@@ -26,7 +26,8 @@ import '../../../../../Models/satisturleri.dart';
 class PersonelSatislari extends StatefulWidget {
   final Personel kullanici;
   final dynamic isletmebilgi;
-  PersonelSatislari({Key? key, required this.kullanici,required this.isletmebilgi}) : super(key: key);
+  final int kullanicirolu;
+  PersonelSatislari({Key? key, required this.kullanici,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
   @override
   _PersonelSatislariState createState() => _PersonelSatislariState();
 }
@@ -77,7 +78,9 @@ class _PersonelSatislariState extends State<PersonelSatislari> {
       musteridanisanliste = musteridanisanlar;
       selectedadisyonicerigi = adisyonicerigi[0];
       _satisDataGridSource = SatisDataSource(
+        kullanicirolu: widget.kullanicirolu,
         musteriMi: false,
+        personelMi: true,
         isletmebilgi: widget.isletmebilgi,
         rowsPerPage: 10,
         salonid: seciliisletme!,

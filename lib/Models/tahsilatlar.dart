@@ -24,8 +24,9 @@
       tarih: json["odeme_tarihi"].toString(),
       notlar: json["notlar"].toString(),
       odeme_yontemi_id:json["odeme_yontemi_id"].toString(),
-      musteri:json["musteri"],
-      olusturan:json["olusturan"],
+      musteri:json["musteri"] is Map ? Map<String, dynamic>.from(json["musteri"]) : {},
+      olusturan:json["olusturan"] is Map ? Map<String, dynamic>.from(json["olusturan"]) : {},
+
 
 
     );
