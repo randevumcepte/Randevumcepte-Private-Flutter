@@ -179,14 +179,12 @@ class _CDRState extends State<CDRRaporlari> {
     final double viewportHeight = _scrollController.position.viewportDimension;
 
     if ((maxScrollExtent < viewportHeight || _scrollController.position.pixels >= maxScrollExtent) && !verigetiriliyor) {
-
+      _loadMoreData();
     }
   }
   Future<void> _loadMoreData() async {
-    // Yükleniyorsa veya daha fazla veri yoksa çık
     if (_isLoadingMore || !_hasMore) return;
 
-    // Tarihler boşsa varsayılan değer ata
     String baslangic = baslangictarihi.text.isEmpty
         ? DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: 7)))
         : baslangictarihi.text;
@@ -194,7 +192,7 @@ class _CDRState extends State<CDRRaporlari> {
         ? DateFormat('yyyy-MM-dd').format(DateTime.now())
         : bitistarihi.text;
 
-    log('Yükleniyor - offset: $_currentOffset, başlangıç: $baslangic, bitiş: $bitis');
+    log('Yükleniyor - offset: $_currentOffset, baslangic: $baslangic, bitis: $bitis');
 
     setState(() {
       _isLoadingMore = true;
@@ -203,25 +201,37 @@ class _CDRState extends State<CDRRaporlari> {
 
     try {
       List<Cdr> yeniVeriler = await santralraporlari(
-          seciliisletme!,
-          baslangic,
-          bitis,
-          _currentOffset
+        seciliisletme!,
+        baslangic,
+        bitis,
+        _currentOffset,
+        _searchController.text ?? ""
       );
 
       log('Gelen veri sayısı: ${yeniVeriler.length}');
 
-      if (yeniVeriler.isEmpty) {
-        _hasMore = false;
-      } else {
-        setState(() {
-          items.addAll(yeniVeriler);
+      setState(() {
+        if (yeniVeriler.length < 50) {
+          // Sayfa boyutundan az geldiyse daha fazla veri yoktur
+          _hasMore = false;
+          log('_hasMore = false (gelen: ${yeniVeriler.length}, pageSize: 50)');
+        }
+
+        items.addAll(yeniVeriler);
+        _currentOffset += yeniVeriler.length;
+
+        // Arama filtresi aktifse filtreyi koru
+        if (_searchQuery.isNotEmpty) {
+          filteredItems = items.where((item) {
+            return item.musteri.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                item.telefon.toLowerCase().contains(_searchQuery.toLowerCase());
+          }).toList();
+        } else {
           filteredItems = List.from(items);
-          _currentOffset += yeniVeriler.length;
-          // Menü görünürlük listesini yeniden boyutlandır
-          _menuVisibility = List.generate(filteredItems.length, (index) => false);
-        });
-      }
+        }
+
+        _menuVisibility = List.generate(filteredItems.length, (_) => false);
+      });
     } catch (e) {
       log('Veri yükleme hatası: $e');
     } finally {
@@ -316,9 +326,11 @@ class _CDRState extends State<CDRRaporlari> {
           ),
           _buildActionButton(
               icon: Icons.phone,
-              onPressed: () => widget.dialPadManager.updateDialPad(
-                  context, true, "", widget.kullanici
-              ),
+              onPressed: () {
+                /*widget.dialPadManager.updateDialPad(
+                    context, true, "", widget.kullanici
+                );*/
+              },
               tooltip: 'Tuş Takımı'
           ),
         ],
@@ -560,20 +572,32 @@ class _CDRState extends State<CDRRaporlari> {
       child: ListView.builder(
         controller: _scrollController,
         padding: EdgeInsets.only(top: 8, bottom: 16),
-        itemCount: filteredItems.length + (_hasMore && !_isLoading ? 1 : 0), // +1 loader için
+        itemCount: filteredItems.length + (_hasMore ? 1 : 0),
         itemBuilder: (BuildContext context, int index) {
-          // Loader gösterilecekse
-          if (index == filteredItems.length && _hasMore) {
+          // Son index → loading spinner
+          if (index == filteredItems.length) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(Theme.of(context).primaryColor),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(
+                        Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Daha fazla yükleniyor...',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ),
               ),
             );
           }
+
           final cdr = filteredItems[index];
           return _buildCallItem(cdr, index, isDark);
         },
@@ -839,9 +863,11 @@ class _CDRState extends State<CDRRaporlari> {
                 icon: Icons.phone,
                 label: 'Ara',
                 color: Colors.blue,
-                onPressed: () => widget.dialPadManager.updateDialPad(
-                    context, true, "0${cdr.telefon}", widget.kullanici
-                ),
+                onPressed: () {
+                  /*widget.dialPadManager.updateDialPad(
+                    context, true, "", widget.kullanici
+                );*/
+                },
               ),
 
               // Müşteri ekle (sadece müşteri adı yoksa)

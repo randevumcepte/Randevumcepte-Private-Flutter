@@ -743,28 +743,44 @@ Future <Map<String, dynamic>> ongorusmelergunluk(String Salonid,  String currpag
     throw Exception(response.reasonPhrase);
   }
 }
-Future<List<Cdr>> santralraporlari(String salonId, String tarih1, String tarih2,int currentoffset) async {
+Future<List<Cdr>> santralraporlari(
+    String salonId,
+    String tarih1,
+    String tarih2,
+    int currentoffset,
+    String arama,
+    ) async {
   try {
-    print('santralraporlari: backend fonksiyona girildi');
-
-    final now = DateTime.now();
-
-
     final buffer = StringBuffer();
     buffer.write("salonId=$salonId");
     buffer.write("&tarih1=$tarih1");
     buffer.write("&tarih2=$tarih2");
     buffer.write("&offset=$currentoffset");
+    buffer.write("&arama=$arama");
+    buffer.write("&limit=50"); // <-- YENİ: limit parametresi eklendi
 
-    final uri = Uri.parse("https://app.randevumcepte.com.tr/api/v1/cdrraporson?${buffer.toString()}");
+    final uri = Uri.parse(
+      "https://app.randevumcepte.com.tr/api/v1/cdrraporson?${buffer.toString()}",
+    );
 
     print('santralraporlari: URI = $uri');
 
-    final response = await http.get(uri, headers: {'Content-Type': 'application/json'});
+    final response = await http.get(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+    );
+
     print('santralraporlari: HTTP status = ${response.statusCode}');
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      final dynamic decoded = json.decode(response.body);
+
+      // Güvenlik: boş veya null gelirse boş liste dön
+      if (decoded == null) return [];
+
+      // Backend düz liste döndürüyor (mevcut Cdr.fromJson uyumlu)
+      final List<dynamic> data = decoded is List ? decoded : [];
+
       print('santralraporlari: veri alındı, count = ${data.length}');
       return data.map((item) => Cdr.fromJson(item)).toList();
     } else {
@@ -4112,5 +4128,24 @@ Future<Map<String, dynamic>> adisyonSil(String adisyonId) async {
     }
   } catch (e) {
     throw Exception('Silme hatası: $e');
+  }
+}
+Future<void> aramaYap(String phoneNumber, BuildContext context) async {
+  // Telefon numarasını temizle (gerekiyorsa)
+  final String cleanNumber = phoneNumber.replaceAll(RegExp(r'\s+'), '');
+  // Uri nesnesi oluştur. 'tel:' şeması kullanılır.
+  final Uri phoneUri = Uri(scheme: 'tel', path: cleanNumber);
+
+  // `canLaunchUrl` ile cihazın bu eylemi destekleyip desteklemediğini kontrol et
+  if (await canLaunchUrl(phoneUri)) {
+    // Destekliyorsa, telefon uygulamasını aç ve numarayı çevirmeye hazırla
+    await launchUrl(phoneUri);
+  } else {
+    // Desteklemiyorsa (örneğin bir tablet veya VoIP uygulaması kurulu değilse) hata göster
+    if (context.mounted) { // Sayfa hala açık mı kontrol et
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bu cihazda arama yapılamıyor. Lütfen cihazınıza softphone yükleyiniz.')),
+      );
+    }
   }
 }
