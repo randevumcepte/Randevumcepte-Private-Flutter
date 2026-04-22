@@ -147,7 +147,7 @@ class _BugunlukGorevlerState extends State<BugunlukGorevler> {
                     label: Container(
                       padding: EdgeInsets.all(5),
                       alignment: Alignment.centerLeft,
-                      child: Text('Müşteri/Danışan'),
+                      child: Text('Müşteri'),
                     ),
                   ),
                   GridColumn(

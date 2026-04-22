@@ -1,6 +1,6 @@
 # ios/Podfile
 
-platform :ios, '15.0'  # Minimum iOS sürümü
+platform :ios, '15.5'  # Minimum iOS sürümü (google_mlkit_commons gerektiriyor)
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -44,7 +44,7 @@ post_install do |installer|
 
     target.build_configurations.each do |config|
       # Deployment target
-      config.build_settings['IPHONES_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
 
       # M1 / Simulator uyumu
       if ENV['SIMULATOR_ARCHS'] == 'arm64'

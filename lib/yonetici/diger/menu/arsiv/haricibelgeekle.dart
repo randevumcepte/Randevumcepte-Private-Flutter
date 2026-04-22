@@ -275,7 +275,7 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
               SizedBox(height: 10,),
               Padding(
                 padding: const EdgeInsets.only(left: 20.0),
-                child: Text('Müşteri/Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
               ),
               SizedBox(height: 10,),
               Container(

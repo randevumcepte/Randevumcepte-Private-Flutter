@@ -1584,254 +1584,238 @@ class TakvimState extends State<Takvim> {
                           height: 30,): SizedBox.shrink(),
                         randevudurum![0] == "0" || randevudurum![0] == "1" ? Row(
                           children: [
-                            ElevatedButton(onPressed: () {
-                              Navigator.of(context,rootNavigator: true).pop();
+                            Expanded(
+                              child: ElevatedButton(onPressed: () {
+                                Navigator.of(context,rootNavigator: true).pop();
 
 
-                              Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
-                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
+                                Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
+                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
 
-                              });
+                                });
 
-                            }, child:
-                            Text('Düzenle'),
-                              style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor:  Color(0xFF5E35B1),
+                              }, child:
+                              Text('Düzenle'),
+                                style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor:  Color(0xFF5E35B1),
 
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(275, 30)
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(0, 30)
+                                ),
                               ),
                             )
                           ],
                         ) : SizedBox.shrink(),
-                        (randevudurum![0] == "0" || randevudurum![0] == "1") && widget.kullanicirolu != 5 ? Row(
-
+                        (randevudurum![0] == "0" || randevudurum![0] == "1") && widget.kullanicirolu != 5 ? Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          alignment: WrapAlignment.start,
                           children: [
-                            randevudurum![0] == "0" ?
-                            ElevatedButton(onPressed: () {
-                              randevuonayla(randevudetay.id.toString(), context);
-                              Navigator.of(context).pop();
-                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-
-
-                            }, child:
-                            Text('Onayla'),
-                              style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: Colors.green,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                            if (randevudurum![0] == "0")
+                              ElevatedButton(onPressed: () {
+                                randevuonayla(randevudetay.id.toString(), context);
+                                Navigator.of(context).pop();
+                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                              }, child:
+                              Text('Onayla'),
+                                style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.green,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            ):SizedBox.shrink(),
-
-                            randevudurum![0] == '0' ? SizedBox(width: 15,)  : SizedBox(),
-                            randevudurum![0] == '0' ?
-                            ElevatedButton(onPressed: () {
-                              showDialog<bool>(
-                                context: context,
-                                builder: (dialogContex) {
-                                  return AlertDialog(
-                                    title: Text('EMİN MİSİNİZ?'),
-                                    content: Text("Randevu iptal etme işlemi geri alınamaz?"),
-                                    actions: <Widget>[
-                                      TextButton(
-                                        child: Text('VAZGEÇ'),
-                                        onPressed: () {
-                                          Navigator.of(dialogContex).pop();
-                                        },
-                                      ),
-                                      TextButton(
-                                        child: Text('İPTAL ET'),
-                                        onPressed: () async {
-                                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                                          var usertype = prefs.getString('user_type');
-                                          await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
-                                          Navigator.of(dialogContex).pop(); // close the confirmation dialog
-
-                                          getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                                          Navigator.of(context).pop(); // close the details popup
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-
-                              child:
-                              Text('İptal Et'),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                            if (randevudurum![0] == '0')
+                              ElevatedButton(onPressed: () {
+                                showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContex) {
+                                    return AlertDialog(
+                                      title: Text('EMİN MİSİNİZ?'),
+                                      content: Text("Randevu iptal etme işlemi geri alınamaz?"),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          child: Text('VAZGEÇ'),
+                                          onPressed: () {
+                                            Navigator.of(dialogContex).pop();
+                                          },
+                                        ),
+                                        TextButton(
+                                          child: Text('İPTAL ET'),
+                                          onPressed: () async {
+                                            SharedPreferences prefs = await SharedPreferences.getInstance();
+                                            var usertype = prefs.getString('user_type');
+                                            await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
+                                            Navigator.of(dialogContex).pop();
+                                            getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                            Navigator.of(context).pop();
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                                child:
+                                Text('İptal Et'),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            ) : SizedBox(),
-
-                            randevudurum![0] != "0" && randevudurum[1] != "0" ?
-                            ElevatedButton(onPressed: () async{
-                              await randevugelmediisaretle(randevudetay.id.toString(), context);
-                              Navigator.of(context).pop();
-                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-
-                            }, child:
-                            Text('Gelmedi'),
-                              style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: Colors.red[600],
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                            if (randevudurum![0] != "0" && randevudurum[1] != "0")
+                              ElevatedButton(onPressed: () async{
+                                await randevugelmediisaretle(randevudetay.id.toString(), context);
+                                Navigator.of(context).pop();
+                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                              }, child:
+                              Text('Gelmedi'),
+                                style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.red[600],
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            ):SizedBox.shrink(),
-                            randevudurum![0] != "0" && randevudurum[1] == "0" ?
-                            ElevatedButton(onPressed: () async{
-                              await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString(), context);
-                              Navigator.of(context).pop();
-                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-
-                            }, child:
-                            Text('Gelmedi İşaretini\nKaldır',style:TextStyle(fontSize: 10)),
-                              style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: Colors.red[600],
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                            if (randevudurum![0] != "0" && randevudurum[1] == "0")
+                              ElevatedButton(onPressed: () async{
+                                await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString(), context);
+                                Navigator.of(context).pop();
+                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                              }, child:
+                              Text('Gelmedi İşaretini\nKaldır',style:TextStyle(fontSize: 10)),
+                                style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.red[600],
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            ):SizedBox.shrink(),
-                            SizedBox(width: 15,),
-                            randevudurum![0] != "0" && randevudurum[1] != "1" ?
-                            ElevatedButton(onPressed: () async {
-                              await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context);
-                              Navigator.of(context).pop();
-                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                            }, child:
-                            Text('Geldi'),
-                              style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: Colors.green,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                            if (randevudurum![0] != "0" && randevudurum[1] != "1")
+                              ElevatedButton(onPressed: () async {
+                                await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context);
+                                Navigator.of(context).pop();
+                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                              }, child:
+                              Text('Geldi'),
+                                style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.green,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            ):SizedBox.shrink(),
-                            randevudurum![0] != "0" && randevudurum[1] == "1" ?
-                            ElevatedButton(onPressed: () async {
-                              await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context );
-                              Navigator.of(context).pop();
-                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                            },
-                              child: Text('Geldi İşaretini\nKaldır',style: TextStyle(fontSize: 10),),
-                              style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: Colors.green,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                            if (randevudurum![0] != "0" && randevudurum[1] == "1")
+                              ElevatedButton(onPressed: () async {
+                                await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context );
+                                Navigator.of(context).pop();
+                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                              },
+                                child: Text('Geldi İşaretini\nKaldır',style: TextStyle(fontSize: 10),),
+                                style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.green,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            ):SizedBox.shrink(),
-
                           ],
                         ):SizedBox.shrink(),
 
-                        (randevudurum![0] == "0" || randevudurum![0] == "1" ) && widget.kullanicirolu != 5 && randevudurum![3] != '1' && !randevutitle[0].contains("ÖN GÖRÜŞME")   ? Row(
+                        (randevudurum![0] == "0" || randevudurum![0] == "1" ) && widget.kullanicirolu != 5 && randevudurum![3] != '1' && !randevutitle[0].contains("ÖN GÖRÜŞME")   ? Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          alignment: WrapAlignment.start,
                           children: [
-                            randevudurum![0] != "0" && !randevutitle[0].contains("PAKET")  && widget.kullanicirolu!=5 ?
-                            ElevatedButton(onPressed: () async{
+                            if (randevudurum![0] != "0" && !randevutitle[0].contains("PAKET") && widget.kullanicirolu!=5)
+                              ElevatedButton(onPressed: () async{
+                                if(randevudurum![2]!='1')
+                                  await randevudantahsilatagit(context,randevudetay.id.toString());
 
-                              if(randevudurum![2]!='1')
-                                await randevudantahsilatagit(context,randevudetay.id.toString());
-
-                              Navigator.of(context).pop();
-                              Navigator.push(context, new MaterialPageRoute(builder: (context) => TahsilatEkrani(adisyonId: "", kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi, musteridanisanid: randevuliste.firstWhere((element) => element.id==randevudetay.id.toString()).user_id.toString()))).then((value) {
-                                // Yeni sayfadan dönüldüğünde refresh yap
-                                log('refresh yapıcak ');
-                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                              });
-
-
-
-                            }, child:
-                            Text('Tahsilat'),
-                              style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: Color(0xFF5E35B1),
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                                Navigator.of(context).pop();
+                                Navigator.push(context, new MaterialPageRoute(builder: (context) => TahsilatEkrani(adisyonId: "", kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi, musteridanisanid: randevuliste.firstWhere((element) => element.id==randevudetay.id.toString()).user_id.toString()))).then((value) {
+                                  log('refresh yapıcak ');
+                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                });
+                              }, child:
+                              Text('Tahsilat'),
+                                style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: Color(0xFF5E35B1),
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            )
-                                : SizedBox.shrink(),
-
-                            randevudurum![0] != "0" && !randevutitle[0].contains("PAKET") &&  widget.kullanicirolu!=5?
-                            SizedBox(width: 15,) : SizedBox.shrink(),
-                            randevudurum![0] == '0' ? SizedBox() :
-                            ElevatedButton(onPressed: () {
-                              showDialog<bool>(
-                                context: context,
-                                builder: (dialogContex) {
-                                  return AlertDialog(
-                                    title: Text('EMİN MİSİNİZ?'),
-                                    content: Text("Randevu iptal etme işlemi geri alınamaz?"),
-                                    actions: <Widget>[
-                                      TextButton(
-                                        child: Text('VAZGEÇ'),
-                                        onPressed: () {
-                                          Navigator.of(dialogContex).pop();
-                                        },
-                                      ),
-                                      TextButton(
-                                        child: Text('İPTAL ET'),
-                                        onPressed: () async {
-                                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                                          var usertype = prefs.getString('user_type');
-                                          await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
-                                          Navigator.of(dialogContex).pop(); // close the confirmation dialog
-
-                                          getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                                          Navigator.of(context).pop(); // close the details popup
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-
-                              child:
-                              Text('İptal Et'),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                            if (randevudurum![0] != '0')
+                              ElevatedButton(onPressed: () {
+                                showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContex) {
+                                    return AlertDialog(
+                                      title: Text('EMİN MİSİNİZ?'),
+                                      content: Text("Randevu iptal etme işlemi geri alınamaz?"),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          child: Text('VAZGEÇ'),
+                                          onPressed: () {
+                                            Navigator.of(dialogContex).pop();
+                                          },
+                                        ),
+                                        TextButton(
+                                          child: Text('İPTAL ET'),
+                                          onPressed: () async {
+                                            SharedPreferences prefs = await SharedPreferences.getInstance();
+                                            var usertype = prefs.getString('user_type');
+                                            await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
+                                            Navigator.of(dialogContex).pop();
+                                            getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                            Navigator.of(context).pop();
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                                child:
+                                Text('İptal Et'),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(130, 30)
+                                ),
                               ),
-                            )
-
                           ],
                         ) : SizedBox.shrink(),
                         (randevudurum![0] == "0" || randevudurum![0] == "1") && randevutitle[0].contains("ÖN GÖRÜŞME") && (randevudetay.notes ?? "").contains("Beklemede")  ? Row(

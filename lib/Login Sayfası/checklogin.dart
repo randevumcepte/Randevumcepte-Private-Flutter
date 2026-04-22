@@ -87,7 +87,7 @@ class _CheckAuthState extends State<CheckAuth> {
         }
       } else {
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString()=='278')['salonlar'];
+        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString()=='352')['salonlar'];
         child =!_isloading ? MusteriAltBar(scaffoldMessengerKey: scaffoldMessengerKey,musteriId: musteri,isletmebilgi: isletmebilgi,): Center(child: CircularProgressIndicator());
       }
     } else {

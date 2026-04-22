@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
+import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/network_utils/api.dart';
@@ -17,6 +18,7 @@ import '../../Login Sayfası/tanitim.dart';
 import '../../Models/user.dart';
 import '../../basic_bottom_nav_bar.dart';
 import '../dashboard/profilbilgileri.dart';
+import '../santral/santralraporlari.dart';
 import '../subesecimi.dart';
 import 'menu/ajanda/ajanda.dart';
 import 'menu/arsiv/arsivyonetimipage.dart';
@@ -49,6 +51,9 @@ class DigerPage extends StatefulWidget {
   final int uyelikturu;
   final VoidCallback onLogout;
   final dynamic isletmebilgi;
+  final DialPadManager dialpadManager;
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
+
 
   DigerPage({
     Key? key,
@@ -56,6 +61,8 @@ class DigerPage extends StatefulWidget {
     required this.uyelikturu,
     required this.onLogout,
     required this.isletmebilgi,
+    required this.dialpadManager,
+    required this.scaffoldMessengerKey,
   }) : super(key: key);
 
   @override
@@ -85,6 +92,8 @@ class _DigerPageState extends State<DigerPage> {
         kullanici: widget.kullanici,
         uyelikturu: widget.uyelikturu,
         onLogout: widget.onLogout,
+        dialpadManager: widget.dialpadManager,
+        scaffoldMessengerKey: widget.scaffoldMessengerKey,
       ),
     );
   }
@@ -95,6 +104,8 @@ class Menu extends StatefulWidget {
   final int uyelikturu;
   final dynamic isletmebilgi;
   final VoidCallback onLogout;
+  final DialPadManager dialpadManager;
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
 
   Menu({
     Key? key,
@@ -102,6 +113,8 @@ class Menu extends StatefulWidget {
     required this.uyelikturu,
     required this.onLogout,
     required this.isletmebilgi,
+    required this.dialpadManager,
+    required this.scaffoldMessengerKey
   }) : super(key: key);
 
   @override
@@ -474,6 +487,21 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: AsistanimPage(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
+                if (widget.uyelikturu > 2 && kullanicirolu < 5)
+                  _buildMenuButton(
+                    icon: Icons.phone,
+                    label: 'Santral',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: CDRRaporlari(scaffoldMessengerKey: widget.scaffoldMessengerKey , kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi ,kullanicirolu:kullanicirolu ,dialPadManager:widget.dialpadManager,),
                         ),
                       );
                     },

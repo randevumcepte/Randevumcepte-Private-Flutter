@@ -464,7 +464,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                       selectedItem: secilimusteridanisan,
                       compareFn: (a, b) => a.id == b.id,
                       dropdownBuilder: (context, selected) =>
-                          Text(selected?.name ?? 'Müşteri/Danışan Seç'),
+                          Text(selected?.name ?? 'Müşteri Seç'),
                       onChanged: (value) {
                         _closeKeyboard(); // YENİ: Değişiklikte klavyeyi kapat
                         secilimusteridanisan = value;
@@ -1308,7 +1308,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                 String uyari = 'Randevuyu güncellemeden önce gerekli alanları eksiksiz doldurunuz.\n';
 
                 if (!isNumeric(secilimusteridanisanid.toString())) {
-                  uyari += '\nLütfen müşteri/ danışan seçiniz.';
+                  uyari += '\nLütfen müşteri seçiniz.';
                   formisvalid = false;
                 }
                 if (randevutarihi.text == '') {

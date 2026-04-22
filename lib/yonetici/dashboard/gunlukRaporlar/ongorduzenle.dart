@@ -181,7 +181,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Müşteri/Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(

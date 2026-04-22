@@ -184,7 +184,7 @@ class _KasaState extends State<Gelirler> {
 
                                             padding: EdgeInsets.all(5.0),
                                             alignment: Alignment.centerLeft,
-                                            child: Text('Müşteri/Danışan/Para Koyan'),
+                                            child: Text('Müşteri/Para Koyan'),
                                         ),
                                     ),
 

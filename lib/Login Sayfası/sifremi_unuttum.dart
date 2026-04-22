@@ -59,9 +59,10 @@ TextEditingController ceptelefon = TextEditingController();
                 margin: const EdgeInsets.only(top: 80),
                 child:
                   Image.asset(
-                    'images/bercislina.png',  // Replace with your image path
-                    width: 500,  // Adjust width if needed
-                    height: 100,  // Adjust height if needed
+                    'images/vionnaguzellik.png',
+                    width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
+                    height: 100,
+                    fit: BoxFit.contain,
                   ),
                 ),
             Expanded(
@@ -111,7 +112,36 @@ TextEditingController ceptelefon = TextEditingController();
                         ],
                       ),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 20),
+
+                      // Bilgilendirme banner'ı
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.shade300),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.amber.shade800, size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "Şifre sıfırlama, sisteme kayıtlı telefon numaranıza SMS olarak gönderilir. SMS ulaşmazsa lütfen işletmenize ulaşınız.",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
 
 
                         Container(
@@ -242,10 +272,10 @@ TextEditingController ceptelefon = TextEditingController();
       'cep_telefon':tel,
       'sms_baslik' : '',
       'sms_apikey' : '',
-      'salonidler' : '278',
+      'salonidler' : '352',
       'sms_username':'',
       'sms_secret':'',
-      'isletmeadi': 'Bercislina Güzellik Salonu',
+      'isletmeadi': 'Vionna Güzellik Salonu',
       'appBundle': appBundle
       // Add other form fields
     };
@@ -262,12 +292,41 @@ TextEditingController ceptelefon = TextEditingController();
       Navigator.of(context,rootNavigator: true).pop();
       if(response.body=="error")
         formWarningDialogs(context, "HATA", "Sistemde kayıtlı telefon numarası bulunamadı!");
-      else
+      else {
+        final String maskeli = _maskelePhone(tel);
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.sms_outlined, color: Colors.purple),
+                const SizedBox(width: 8),
+                const Text("Şifreniz Gönderildi"),
+              ],
+            ),
+            content: Text(
+              "Yeni şifreniz $maskeli numaralı telefonunuza SMS olarak gönderildi. "
+              "SMS birkaç dakika içinde ulaşmazsa lütfen işletmenize ulaşınız.",
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text("Tamam", style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (builder) => LoginPage(randevuSayfasinaYonlendir: randevuSayfasinaYonlendir,seciliHizmetler:widget.seciliHizmetler,tarih: widget.tarih,saat: widget.saat,),
           ),
         );
+      }
 
 
 
@@ -280,6 +339,14 @@ TextEditingController ceptelefon = TextEditingController();
       );
       debugPrint('Error: ${response.body}');
     }
+  }
+
+  String _maskelePhone(String tel) {
+    final digits = tel.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 4) return tel;
+    final son = digits.substring(digits.length - 2);
+    final bas = digits.substring(0, digits.length >= 4 ? 4 : 1);
+    return '$bas *** ** $son';
   }
 
 }

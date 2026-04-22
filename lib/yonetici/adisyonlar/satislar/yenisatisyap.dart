@@ -300,7 +300,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
   void hizmetsatisi(AdisyonHizmet? mevcutadisyonhizmet) async {
     if (secilimusteridanisan == null) {
-      _showUyariDialog('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.');
+      _showUyariDialog('Devam etmek için önce müşteri seçiniz veya ekleyiniz.');
       return;
     }
 
@@ -346,7 +346,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
   void urunsatisi(AdisyonUrun? mevcutadisyonurun) async {
     if (secilimusteridanisan == null) {
-      _showUyariDialog('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.');
+      _showUyariDialog('Devam etmek için önce müşteri seçiniz veya ekleyiniz.');
       return;
     }
 
@@ -390,7 +390,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
   void paketsatisi(AdisyonPaket? mevcutadisyonpaket) async {
     if (secilimusteridanisan == null) {
-      _showUyariDialog('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.');
+      _showUyariDialog('Devam etmek için önce müşteri seçiniz veya ekleyiniz.');
       return;
     }
 
@@ -1231,7 +1231,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Müşteri/Danışan',
+                            'Müşteri',
                             style: TextStyle(
                               fontSize: 13,
                               color: _textLightColor,

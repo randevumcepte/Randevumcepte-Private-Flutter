@@ -368,7 +368,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('UYARI'),
-            content: Text('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.'),
+            content: Text('Devam etmek için önce müşteri seçiniz veya ekleyiniz.'),
             actions: <Widget>[
               TextButton(
                 child: Text('Kapat'),
@@ -494,7 +494,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('UYARI'),
-            content: Text('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.'),
+            content: Text('Devam etmek için önce müşteri seçiniz veya ekleyiniz.'),
             actions: <Widget>[
               TextButton(
                 child: Text('Kapat'),
@@ -542,7 +542,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('UYARI'),
-            content: Text('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.'),
+            content: Text('Devam etmek için önce müşteri seçiniz veya ekleyiniz.'),
             actions: <Widget>[
               TextButton(
                 child: Text('Kapat'),
@@ -654,7 +654,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(left: 20.0),
-                          child: Text('Müşteri/Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
                         ),
                         SizedBox(height: 10,),
                         Container(
@@ -1958,20 +1958,19 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                 onPressed: () {
 
                                   if(secilialacaksenet + secilialacaktaksit != 0){
-                                    isCheckedList.asMap().forEach((girdi,element) {
-                                      if(element){
-                                        adisyonkalemleri.add(taksitvadeleri[girdi]);
-                                        taksitvadeleri.removeAt(girdi);
+                                    // Sondan başa doğru iterasyon — index kayması olmaz
+                                    for (int i = isCheckedList.length - 1; i >= 0; i--) {
+                                      if (isCheckedList[i]) {
+                                        adisyonkalemleri.add(taksitvadeleri[i]);
+                                        taksitvadeleri.removeAt(i);
                                       }
-
-                                    });
-                                    isCheckedList2.asMap().forEach((girdi,element) {
-                                      if(element){
-                                        adisyonkalemleri.add(senetvadeleri[girdi]);
-                                        senetvadeleri.removeAt(girdi);
+                                    }
+                                    for (int i = isCheckedList2.length - 1; i >= 0; i--) {
+                                      if (isCheckedList2[i]) {
+                                        adisyonkalemleri.add(senetvadeleri[i]);
+                                        senetvadeleri.removeAt(i);
                                       }
-
-                                    });
+                                    }
                                     tutar_hesapla(false);
                                     Navigator.of(context).pop();
 

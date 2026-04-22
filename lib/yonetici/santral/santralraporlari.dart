@@ -324,7 +324,7 @@ class _CDRState extends State<CDRRaporlari> {
               onPressed: _showFilterBottomSheet,
               tooltip: 'Filtrele'
           ),
-          _buildActionButton(
+          /*_buildActionButton(
               icon: Icons.phone,
               onPressed: () {
                 /*widget.dialPadManager.updateDialPad(
@@ -332,7 +332,7 @@ class _CDRState extends State<CDRRaporlari> {
                 );*/
               },
               tooltip: 'Tuş Takımı'
-          ),
+          ),*/
         ],
       ),
       body: Container(
@@ -340,7 +340,7 @@ class _CDRState extends State<CDRRaporlari> {
         child: Column(
           children: [
             // Arama ve Filtre Bilgisi
-            _buildSearchAndFilterSection(isDark),
+            //_buildSearchAndFilterSection(isDark),
 
             // İçerik
             Expanded(
@@ -392,7 +392,7 @@ class _CDRState extends State<CDRRaporlari> {
       child: Column(
         children: [
           // Arama Bar
-          Container(
+          /*Container(
             decoration: BoxDecoration(
               color: isDark ? Colors.grey[800] : Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -421,7 +421,7 @@ class _CDRState extends State<CDRRaporlari> {
                 ) : null,
               ),
             ),
-          ),
+          ),*/
 
           SizedBox(height: 12),
 

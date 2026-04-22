@@ -84,7 +84,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
       Takvim(selectedTab: _selectedTab, isletmebilgi: widget.isletmebilgi,kullanici:widget.kullanici,kullanicirolu: kullanicirolu,),
       (widget.uyelikturu > 2 && kullanicirolu < 5) ? CDRRaporlari(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi,dialPadManager: dialPadManager,scaffoldMessengerKey: widget.scaffoldMessengerKey,kullanici: widget.kullanici) : AjandaNotlar(isletmebilgi: widget.isletmebilgi),
       (widget.uyelikturu > 1 ) ? AdisyonlarPage(kullanicirolu:kullanicirolu,kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi,geriGitBtn: false,) : OnGorusmeler(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi),
-      DigerPage(kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi),
+      DigerPage(kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi,dialpadManager: dialPadManager,scaffoldMessengerKey: widget.scaffoldMessengerKey,),
 
     ];
     log("dahili numara: "+dahili);

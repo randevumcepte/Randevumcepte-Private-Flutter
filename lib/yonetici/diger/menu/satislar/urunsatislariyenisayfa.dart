@@ -462,7 +462,7 @@ class _UrunlerState extends State<Urunler> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(right: 0.0),
-                          child: Text('Müşteri & Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
                         ),
                         SizedBox(height: 10,),
                         Container(

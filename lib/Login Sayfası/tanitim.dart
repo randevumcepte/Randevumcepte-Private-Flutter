@@ -102,7 +102,7 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0,left: 16),
                   child: Text(
-                    'Bercislina Güzellik Salonu',
+                    'Vionna Güzellik Salonu',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 33.0,

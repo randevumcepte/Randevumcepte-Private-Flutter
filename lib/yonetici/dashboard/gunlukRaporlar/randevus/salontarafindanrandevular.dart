@@ -107,7 +107,7 @@ class _SalonTarafindanState extends State<SalonTarafindan> {
                 controller: _controller,
                 keyboardType: TextInputType.text,
                 decoration: InputDecoration(
-                  hintText: 'Müşteri/Danışan Adı...',
+                  hintText: 'Müşteri Adı...',
                   enabled: true,
                   focusColor: Color(0xFF6A1B9A),
                   hoverColor: Color(0xFF6A1B9A),
@@ -228,7 +228,7 @@ class _SalonTarafindanState extends State<SalonTarafindan> {
                     label: Container(
                       padding: EdgeInsets.all(5.0),
                       alignment: Alignment.centerLeft,
-                      child: Text('Müşteri & Danışan'),
+                      child: Text('Müşteri'),
                     ),
                   ),
                   GridColumn(

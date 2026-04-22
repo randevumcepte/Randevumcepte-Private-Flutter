@@ -51,13 +51,14 @@ class RandevuOnayState extends State<RandevuOnay> {
     var userType = localStorage.getString('user_type');
     String? userString = localStorage.getString('musteri');
 
-    log('user type ' +userType.toString());
-    log('user str ' +userString!);
-    if (userType == null && userString == null && userType!='0') {
+    log('user type ' + userType.toString());
+    log('user str ' + (userString ?? 'null'));
+
+    if (userType == null || userString == null || userType == '0') {
       return false; // giriş yapılmamış
     }
 
-    user = jsonDecode(userString!);
+    user = jsonDecode(userString);
     return true;
   }
 
@@ -255,10 +256,19 @@ class RandevuOnayState extends State<RandevuOnay> {
                     MaterialPageRoute(
                       builder: (builder) => LoginPage(randevuSayfasinaYonlendir: true,seciliHizmetler: widget.seciliHizmetler,tarih: widget.tarih,saat: widget.saat,),
                     ),
-                  );
+                  ).then((_) => _checkGiris());
                 else{
 
-                  MusteriDanisan md = MusteriDanisan.fromJson(user);
+                  String? userString = localStorage.getString('musteri');
+                  if (userString == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Oturum bilgisi bulunamadı, lütfen tekrar giriş yapın.")),
+                    );
+                    return;
+                  }
+                  Map<String, dynamic> freshUser = jsonDecode(userString);
+                  user = freshUser;
+                  MusteriDanisan md = MusteriDanisan.fromJson(freshUser);
                   randevuEkleGuncelle(
                       '',
                       '',

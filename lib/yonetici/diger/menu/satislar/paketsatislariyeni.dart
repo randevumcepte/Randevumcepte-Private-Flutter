@@ -627,7 +627,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                       Padding(
                         padding: const EdgeInsets.only(right: 0.0),
                         child: Text(
-                          'Müşteri & Danışan',
+                          'Müşteri',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.black,

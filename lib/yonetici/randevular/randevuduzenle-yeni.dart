@@ -314,7 +314,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                   /*ListTile(
                   contentPadding: const EdgeInsets.fromLTRB(5, 0, 5, 5),
                   leading: const Icon(Icons.supervised_user_circle_sharp),
-                  title: Text('Müşteri/Danışan'),
+                  title: Text('Müşteri'),
                   trailing: secilimusteridanisanadia != null
                       ? Text(secilimusteridanisanadi!)
                       : Icon(Icons.keyboard_arrow_right),
@@ -1226,7 +1226,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                       'Randevuyu oluşturmadan önce gerekli alanları eksiksiz doldurunuz.\n';
 
                   if (!isNumeric(secilimusteridanisanid.toString())) {
-                    uyari += '\nLütfen müşteri/ danışan seçiniz.';
+                    uyari += '\nLütfen müşteri seçiniz.';
                     formisvalid = false;
                   }
                   if (randevutarihi.text == '') {
@@ -1284,7 +1284,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                   if (formisvalid == false)
                     formWarningDialogs(context, 'UYARI', uyari);
                   else {
-                    debugPrint('seçili danışan '+secilimusteridanisanid!);
+                    debugPrint('seçili müşteri '+secilimusteridanisanid!);
                     debugPrint('tarih '+randevutarihi.text!);
                     debugPrint('saat '+randevusaati.text!);
                     randevuhizmetleri.forEach((element){

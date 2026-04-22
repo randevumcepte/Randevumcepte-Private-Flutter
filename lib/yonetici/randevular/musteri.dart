@@ -63,7 +63,7 @@ class _MusteriState extends State<Musteri> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text("Müşteri/Danışan Seçimi",style: TextStyle(color: Colors.black,fontSize: 20),),
+        title: Text("Müşteri Seçimi",style: TextStyle(color: Colors.black,fontSize: 20),),
         toolbarHeight: 70,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),

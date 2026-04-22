@@ -450,7 +450,7 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // Müşteri/Danışan Dropdown
+        // Müşteri Dropdown
         LazyDropdown(
           salonId: seciliisletme??'',
           selectedItem: selectedMusteri,

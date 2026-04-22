@@ -2341,11 +2341,9 @@ class RandevuDataSource extends DataGridSource {
                           onPressed: () async {
                             SharedPreferences prefs = await SharedPreferences.getInstance();
                             var usertype = prefs.getString('user_type');
-                            randevuiptalet(row.getCells()[1].value.toString(), dialogcontext,usertype!);
                             Navigator.of(dialogcontext).pop();
-
+                            await randevuiptalet(row.getCells()[1].value.toString(), context,usertype!);
                             await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
-                            //getUpdatedAppointments();
                           },
                         ),
                       ],
@@ -2357,12 +2355,11 @@ class RandevuDataSource extends DataGridSource {
                 await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
               }
               if(value=="randevuyagelmedi"){
-                randevugelmediisaretle(row.getCells()[1].value, context);
+                await randevugelmediisaretle(row.getCells()[1].value, context);
                 await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
               }
               if(value=="randevuonayla"){
-
-                randevuonayla(row.getCells()[1].value, context);
+                await randevuonayla(row.getCells()[1].value, context);
                 await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
               }
 
@@ -2471,7 +2468,7 @@ class RandevuDataSource extends DataGridSource {
     if(randevudetay.durum == "2")
       durumstr = "İptal edildi/reddedildi ";
     if(randevudetay.durum == "3")
-      durumstr = "Müşteri/danışan iptal etti ";
+      durumstr = "Müşteri iptal etti ";
     String hizmetlerStr = "";
     randevudetay.hizmetler.forEach((element){
 
@@ -2547,132 +2544,126 @@ class RandevuDataSource extends DataGridSource {
                             height: 30,): SizedBox.shrink(),
                           (randevudurum![0] == "0" || randevudurum![0] == "1") && !musteri ? Row(
                             children: [
-                              ElevatedButton(onPressed: () {
+                              Expanded(
+                                child: ElevatedButton(onPressed: () {
 
-                                Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: isletmebilgi, randevu: randevudetay,)));
+                                  Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: isletmebilgi, randevu: randevudetay,)));
 
-                              }, child:
-                              Text('Düzenle'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor:  Color(0xFF5E35B1),
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(275, 30)
+                                }, child:
+                                Text('Düzenle'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor:  Color(0xFF5E35B1),
+                                      foregroundColor: Colors.white,
+                                      elevation: 5,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5.0)
+                                      ),
+                                      minimumSize: Size(0, 30)
+                                  ),
                                 ),
                               )
                             ],
                           ) : SizedBox.shrink(),
-                          (randevudurum![0] == "0" || randevudurum![0] == "1")&& !musteri && kullanicirolu!=5 ? Row(
-
+                          (randevudurum![0] == "0" || randevudurum![0] == "1")&& !musteri && kullanicirolu!=5 ? Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            alignment: WrapAlignment.start,
                             children: [
-                              randevudurum![0] == "0" ?
-                              ElevatedButton(onPressed: () {}, child:
-                              Text('Onayla'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
+                              if (randevudurum![0] == "0")
+                                ElevatedButton(onPressed: () {}, child:
+                                Text('Onayla'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      elevation: 5,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5.0)
+                                      ),
+                                      minimumSize: Size(130, 30)
+                                  ),
                                 ),
-                              ):SizedBox.shrink(),
-                              randevudurum![0] == "0" ?
-                              SizedBox(width: 15,):SizedBox.shrink(),
-                              randevudurum![0] == "0"  ?
-                              ElevatedButton(onPressed: () {
-                                showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContex) {
-                                    return AlertDialog(
-                                      title: Text('EMİN MİSİNİZ?'),
-                                      content: Text("Randevu iptal etme işlemi geri alınamaz?"),
-                                      actions: <Widget>[
-                                        TextButton(
-                                          child: Text('VAZGEÇ'),
-                                          onPressed: () {
-                                            Navigator.of(dialogContex).pop();
-                                          },
-                                        ),
-                                        TextButton(
-                                          child: Text('GÖNDER'),
-                                          onPressed: () async {
-                                            Navigator.of(context, rootNavigator: true).pop();
-                                            SharedPreferences prefs = await SharedPreferences.getInstance();
-                                            var usertype = prefs.getString('user_type');
-                                            randevuiptalet(randevudetay.id.toString(), context,usertype!);
-                                            Navigator.of(context, rootNavigator: true).pop();
-                                            await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-
-
-
-
-                              }, child:
-                              Text('İptal Et'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
+                              if (randevudurum![0] == "0")
+                                ElevatedButton(onPressed: () {
+                                  showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContex) {
+                                      return AlertDialog(
+                                        title: Text('EMİN MİSİNİZ?'),
+                                        content: Text("Randevu iptal etme işlemi geri alınamaz?"),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            child: Text('VAZGEÇ'),
+                                            onPressed: () {
+                                              Navigator.of(dialogContex).pop();
+                                            },
+                                          ),
+                                          TextButton(
+                                            child: Text('GÖNDER'),
+                                            onPressed: () async {
+                                              Navigator.of(context, rootNavigator: true).pop();
+                                              Navigator.of(context, rootNavigator: true).pop();
+                                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                                              var usertype = prefs.getString('user_type');
+                                              await randevuiptalet(randevudetay.id.toString(), context,usertype!);
+                                              await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                }, child:
+                                Text('İptal Et'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      foregroundColor: Colors.white,
+                                      elevation: 5,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5.0)
+                                      ),
+                                      minimumSize: Size(130, 30)
+                                  ),
                                 ),
-                              ) : SizedBox.shrink(),
-                              randevudurum![0] != "0" ?
-                              ElevatedButton(onPressed: () async {
-                                randevugelmediisaretle(randevudetay.id.toString(), context);
-                                Navigator.of(context, rootNavigator: true).pop();
-                                await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
-
-
-                              }, child:
-                              Text('Gelmedi'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red[600],
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
+                              if (randevudurum![0] != "0")
+                                ElevatedButton(onPressed: () async {
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                  await randevugelmediisaretle(randevudetay.id.toString(), context);
+                                  await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
+                                }, child:
+                                Text('Gelmedi'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red[600],
+                                      foregroundColor: Colors.white,
+                                      elevation: 5,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5.0)
+                                      ),
+                                      minimumSize: Size(130, 30)
+                                  ),
                                 ),
-                              ):SizedBox.shrink(),
-                              SizedBox(width: 15,),
-                              randevudurum![0] != "0" ?
-                              ElevatedButton(onPressed: ()  async {
-                                randevugeldiisaretle(randevudetay.id.toString(),'', context,'');
-                                //getUpdatedAppointments();
-                                Navigator.of(context, rootNavigator: true).pop();
-                                await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
-
-
-                              }, child:
-                              Text('Geldi'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
+                              if (randevudurum![0] != "0")
+                                ElevatedButton(onPressed: ()  async {
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                  await randevugeldiisaretle(randevudetay.id.toString(),'', context,'');
+                                  await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
+                                }, child:
+                                Text('Geldi'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      elevation: 5,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5.0)
+                                      ),
+                                      minimumSize: Size(130, 30)
+                                  ),
                                 ),
-                              ):SizedBox.shrink(),
-
                             ],
                           ):SizedBox.shrink(),
-                          randevudurum![0] != "0" && !musteri && kullanicirolu != 5   ? Row(
+                          randevudurum![0] == "1" && !musteri && kullanicirolu != 5   ? Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            alignment: WrapAlignment.start,
                             children: [
                               if(randevudetay.tahsilat_eklendi != "1")
                                 ElevatedButton(onPressed: () async {
@@ -2700,7 +2691,6 @@ class RandevuDataSource extends DataGridSource {
                                   ),
                                 )
                               ,
-                              SizedBox(width: 15,),
                               if(randevudetay.tahsilat_eklendi != "1")
                                 ElevatedButton(onPressed: () {
                                   showDialog<bool>(
@@ -2720,12 +2710,11 @@ class RandevuDataSource extends DataGridSource {
                                             child: Text('GÖNDER'),
                                             onPressed: () async {
                                               Navigator.of(context, rootNavigator: true).pop();
+                                              Navigator.of(context, rootNavigator: true).pop();
                                               SharedPreferences prefs = await SharedPreferences.getInstance();
                                               var usertype = prefs.getString('user_type');
-                                              randevuiptalet(randevudetay.id.toString(), context,usertype!);
-                                              Navigator.of(context, rootNavigator: true).pop();
+                                              await randevuiptalet(randevudetay.id.toString(), context,usertype!);
                                               await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
-                                              //getUpdatedAppointments();
                                             },
                                           ),
                                         ],
@@ -4629,11 +4618,11 @@ class PaketDataSource extends DataGridSource {
   }
   Future<void> sil(BuildContext context, int id) async {
     Map<String, dynamic> formData = {
-      'urunid':id,
+      'paket_id':id,
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunpasifet'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paket_sil'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -4646,7 +4635,7 @@ class PaketDataSource extends DataGridSource {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Ürün silinirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
+          content: Text('Paket silinirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
         ),
       );
       debugPrint('Error: ${response.body}');
@@ -4709,18 +4698,10 @@ class PaketDataSource extends DataGridSource {
               }
               if(value=='sil')
               {
-                final confirmed = await showDeleteConfirmationDialog(context,int.parse(row.getCells()[1].value), () {
-                  // Perform deletion
-
+                final confirmed = await showDeleteConfirmationDialog(context,int.parse(row.getCells()[1].value), () async {
                   Navigator.of(context, rootNavigator: true).pop();
 
-                  sil(context, int.parse(row.getCells()[1].value));
-
-                  fetchData('1', '');
-
-
-
-
+                  await sil(context, int.parse(row.getCells()[1].value));
                 });
 
 
@@ -7393,118 +7374,97 @@ class CihazDataSource extends DataGridSource {
     else if(cihaz.durum=="1")
       durum="Müsait";
 
+    final dialogWidth = (MediaQuery.of(context).size.width - 40).clamp(0.0, 360.0);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          insetPadding: EdgeInsets.zero,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Container(
-
-            height: 220,
-            width: 280,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: <Widget>[
-
-                Positioned(
-                  right: -40,
-                  top: -40,
-                  child: InkResponse(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const CircleAvatar(
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.close),
+            width: dialogWidth,
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            cihaz.cihaz_adi,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                          color: Colors.red,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: <Widget>[
-                      SizedBox(height: 20,),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(cihaz.cihaz_adi,
-                            style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20),),
-                        ],
-                      ),
-                      Divider(color: Colors.black,
-                        height: 10,),
-                      Row(
-                        children: [
-                          Text('Durum'), SizedBox(width: 27,),
-                          Text(':'),
-                          Text(durum)
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text('Açıklama'),
-                          SizedBox(width: 5,),
-                          Text(': '),
-                          Expanded(child: Text(cihaz.aciklama!="null"?cihaz.aciklama:""
-                          ))
-                        ],
-
-                      ),
-                      SizedBox(height: 60,),
-
-                      Divider(color: Colors.black,
-                        height: 20,),
-
-                      Row(
-                        children: [
-
-                          ElevatedButton(onPressed: () {}, child:
-                          Text('Müsait'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                elevation: 5,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5.0)
-                                ),
-                                minimumSize: Size(130, 30)
-                            ),
+                    const Divider(color: Colors.black, height: 16),
+                    Row(
+                      children: [
+                        const SizedBox(width: 80, child: Text('Durum')),
+                        const Text(': '),
+                        Text(durum),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 80, child: Text('Açıklama')),
+                        const Text(': '),
+                        Expanded(child: Text(cihaz.aciklama != "null" ? cihaz.aciklama : "")),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Divider(color: Colors.black, height: 16),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.start,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {},
+                          child: const Text('Müsait'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            elevation: 5,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                            minimumSize: const Size(120, 30),
                           ),
-                          SizedBox(width: 15,),
-                          ElevatedButton(onPressed: () {
-
-                          }, child:
-                          Text('Müsait Değil'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple[800],
-                                elevation: 5,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5.0)
-                                ),
-                                minimumSize: Size(130, 30)
-                            ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {},
+                          child: const Text('Müsait Değil'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple[800],
+                            foregroundColor: Colors.white,
+                            elevation: 5,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                            minimumSize: const Size(120, 30),
                           ),
-
-
-
-                        ],
-                      ),
-
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
       },
     );
-
-
-
-
   }
   void showCheckboxPopup(BuildContext context, String cihazId) {
     TextEditingController aciklamaController = TextEditingController();
@@ -7925,118 +7885,97 @@ class OdaDataSource extends DataGridSource {
     else if(oda.durum=="1")
       durum="Müsait";
 
+    final dialogWidth = (MediaQuery.of(context).size.width - 40).clamp(0.0, 360.0);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          insetPadding: EdgeInsets.zero,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Container(
-
-            height: 220,
-            width: 280,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: <Widget>[
-
-                Positioned(
-                  right: -40,
-                  top: -40,
-                  child: InkResponse(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const CircleAvatar(
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.close),
+            width: dialogWidth,
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            oda.oda_adi,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                          color: Colors.red,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: <Widget>[
-                      SizedBox(height: 20,),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(oda.oda_adi,
-                            style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20),),
-                        ],
-                      ),
-                      Divider(color: Colors.black,
-                        height: 10,),
-                      Row(
-                        children: [
-                          Text('Durum'), SizedBox(width: 27,),
-                          Text(':'),
-                          Text(durum)
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text('Açıklama'),
-                          SizedBox(width: 5,),
-                          Text(': '),
-                          Expanded(child: Text(oda.aciklama!="null"?oda.aciklama:""
-                          ))
-                        ],
-
-                      ),
-                      SizedBox(height: 60,),
-
-                      Divider(color: Colors.black,
-                        height: 20,),
-
-                      Row(
-                        children: [
-
-                          ElevatedButton(onPressed: () {}, child:
-                          Text('Müsait'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                elevation: 5,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5.0)
-                                ),
-                                minimumSize: Size(130, 30)
-                            ),
+                    const Divider(color: Colors.black, height: 16),
+                    Row(
+                      children: [
+                        const SizedBox(width: 80, child: Text('Durum')),
+                        const Text(': '),
+                        Text(durum),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 80, child: Text('Açıklama')),
+                        const Text(': '),
+                        Expanded(child: Text(oda.aciklama != "null" ? oda.aciklama : "")),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Divider(color: Colors.black, height: 16),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.start,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {},
+                          child: const Text('Müsait'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            elevation: 5,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                            minimumSize: const Size(120, 30),
                           ),
-                          SizedBox(width: 15,),
-                          ElevatedButton(onPressed: () {
-
-                          }, child:
-                          Text('Müsait Değil'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple[800],
-                                elevation: 5,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5.0)
-                                ),
-                                minimumSize: Size(130, 30)
-                            ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {},
+                          child: const Text('Müsait Değil'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple[800],
+                            foregroundColor: Colors.white,
+                            elevation: 5,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                            minimumSize: const Size(120, 30),
                           ),
-
-
-
-                        ],
-                      ),
-
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
       },
     );
-
-
-
-
   }
   void showCheckboxPopup(BuildContext context, String cihazId) {
     TextEditingController aciklamaController = TextEditingController();
@@ -9031,13 +8970,13 @@ class PersonelDataSource extends DataGridSource{
       String bitis8, String bitis9, String bitis10, String bitis11, String bitis12, String bitis13, String bitis14,
       BuildContext context) async {
     final Map<String, dynamic> formData = {
-      'personel_id': salonId,
+      'salon_id': salonId,
+      'personel_id': personelid,
       'personel_adi':personeladi,
       'unvan':unvan,
       'personel_maas':sabitmaas,
       'cinsiyet':cinsiyet,
       'cep_telefon':telefon,
-      'personel_id': personelid,
       'sistem_yetki':hesapturu,
       'hizmet_prim_yuzde':hizmetprim,
       'urun_prim_yuzde':urunprim,

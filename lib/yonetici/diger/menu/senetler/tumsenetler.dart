@@ -139,7 +139,7 @@ class _SenetlerState extends State<TumSenetler> {
                   keyboardType: TextInputType.text,
 
                   decoration: InputDecoration(
-                    hintText: 'Müşteri/Danışan...',
+                    hintText: 'Müşteri...',
                     enabled:true,
                     focusColor:Color(0xFF6A1B9A) ,
                     hoverColor: Color(0xFF6A1B9A) ,
@@ -217,7 +217,7 @@ class _SenetlerState extends State<TumSenetler> {
 
                         padding: EdgeInsets.all(5.0),
                         alignment: Alignment.centerLeft,
-                        child: Text('Müşteri/Danışan'),
+                        child: Text('Müşteri'),
                       ),
                     ),
 

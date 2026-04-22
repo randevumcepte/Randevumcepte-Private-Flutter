@@ -347,7 +347,7 @@ class _YeniSenetState extends State<YeniSenet> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('UYARI'),
-            content: Text('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.'),
+            content: Text('Devam etmek için önce müşteri seçiniz veya ekleyiniz.'),
             actions: <Widget>[
               TextButton(
                 child: Text('Kapat'),
@@ -454,7 +454,7 @@ class _YeniSenetState extends State<YeniSenet> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('UYARI'),
-            content: Text('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.'),
+            content: Text('Devam etmek için önce müşteri seçiniz veya ekleyiniz.'),
             actions: <Widget>[
               TextButton(
                 child: Text('Kapat'),
@@ -502,7 +502,7 @@ class _YeniSenetState extends State<YeniSenet> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('UYARI'),
-            content: Text('Devam etmek için önce müşteri/danışan seçiniz veya ekleyiniz.'),
+            content: Text('Devam etmek için önce müşteri seçiniz veya ekleyiniz.'),
             actions: <Widget>[
               TextButton(
                 child: Text('Kapat'),
@@ -587,7 +587,7 @@ class _YeniSenetState extends State<YeniSenet> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(left: 20.0),
-                          child: Text('Müşteri/Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
                         ),
                         SizedBox(height: 10,),
                         Container(
@@ -708,7 +708,7 @@ class _YeniSenetState extends State<YeniSenet> {
                               secilimusteridanisan = yenimusteridanisan;
                             });
                         },
-                          child: Text('Yeni Müşteri/Danışan Ekle',style:TextStyle(fontSize: 12)),
+                          child: Text('Yeni Müşteri Ekle',style:TextStyle(fontSize: 12)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.purple[800],
                             foregroundColor: Colors.white,

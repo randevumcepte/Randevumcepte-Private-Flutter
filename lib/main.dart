@@ -73,7 +73,7 @@ void main() async {
 
   // 3) OneSignal init
   OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-  OneSignal.initialize("6242e410-2d78-4ec9-9ea5-14e63be12bb7");
+  OneSignal.initialize("d8851f0d-b3d5-45c8-a464-267f2f2eb976");
 
   // 4) iOS push permission
   await OneSignal.Notifications.requestPermission(true);
@@ -341,7 +341,7 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 3),
           opacity: _opacity,
           child: Image.asset(
-            "images/bercislina.png",
+            "images/vionnaguzellik.png",
             height: 200,
           ),
         ),

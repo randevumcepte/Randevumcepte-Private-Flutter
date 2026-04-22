@@ -130,7 +130,7 @@ class LazyDropdownState extends State<LazyDropdown> {
     child: TextField(
     controller: searchController,
     decoration: InputDecoration(
-    hintText: 'Müşteri/Danışan Ara...',
+    hintText: 'Müşteri Ara...',
     isDense: true,
     contentPadding:
     EdgeInsets.symmetric(vertical: 8, horizontal: 10),

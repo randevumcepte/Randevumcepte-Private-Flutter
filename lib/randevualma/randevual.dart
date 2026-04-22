@@ -351,7 +351,7 @@ class AppointmentEditorState extends State<RandevuAl> {
 
                             });
                           },
-                          buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 10), height: 50, width: 400),
+                          buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 10), height: 50, width: MediaQuery.of(context).size.width - 40),
                           dropdownStyleData: DropdownStyleData(maxHeight: 400),
                           menuItemStyleData: MenuItemStyleData(height: 40),
                           dropdownSearchData: DropdownSearchData(
@@ -508,7 +508,7 @@ class AppointmentEditorState extends State<RandevuAl> {
 
                                               });
                                             },
-                                            buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 10), height: 50, width: 400),
+                                            buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 10), height: 50, width: MediaQuery.of(context).size.width - 40),
                                             dropdownStyleData: DropdownStyleData(maxHeight: 400),
                                             menuItemStyleData: MenuItemStyleData(height: 60),
                                             dropdownSearchData: DropdownSearchData(
@@ -595,10 +595,10 @@ class AppointmentEditorState extends State<RandevuAl> {
                                                       tarihSaatAdiminaGec();
                                                     });
                                                   },
-                                                  buttonStyleData: const ButtonStyleData(
+                                                  buttonStyleData: ButtonStyleData(
                                                     padding: EdgeInsets.symmetric(horizontal: 16),
                                                     height: 50,
-                                                    width: 400,
+                                                    width: MediaQuery.of(context).size.width - 40,
                                                   ),
 
                                                   dropdownStyleData: const DropdownStyleData(

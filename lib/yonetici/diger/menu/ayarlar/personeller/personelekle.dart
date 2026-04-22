@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeller.dart';
 import '../../../../../Backend/backend.dart';
 import '../../../../../Frontend/sfdatatable.dart';
@@ -25,6 +26,10 @@ class _PersonelEkleState extends State<PersonelEkle> {
   TextEditingController paketprim = TextEditingController();
   TextEditingController telefon = TextEditingController();
   TextEditingController unvan = TextEditingController();
+  final phoneMask = MaskTextInputFormatter(
+    mask: '0### ### ## ##',
+    filter: { "#": RegExp(r'[0-9]') },
+  );
   String selectedcinsiyet = '';
   final List<HesapTuru> hesapturu = [
     HesapTuru(id: "1", hesapturu: "Hesap Sahibi"),
@@ -104,6 +109,7 @@ class _PersonelEkleState extends State<PersonelEkle> {
 
   void initState() {
     super.initState();
+    telefon.text = "0";
     _fetchData();
   }
 
@@ -558,10 +564,27 @@ class _PersonelEkleState extends State<PersonelEkle> {
                   Container(
                     height: 40,
                     child: TextFormField(
+                      inputFormatters: [phoneMask],
                       keyboardType: TextInputType.phone,
                       controller: telefon,
                       onSaved: (value) {
                         telefon.text = value!;
+                      },
+                      onTap: () {
+                        if (telefon.text.length < 2) {
+                          telefon.text = "0";
+                        }
+                        telefon.selection = TextSelection.fromPosition(
+                          TextPosition(offset: telefon.text.length),
+                        );
+                      },
+                      onChanged: (value) {
+                        if (!value.startsWith("0")) {
+                          telefon.text = "0";
+                          telefon.selection = TextSelection.fromPosition(
+                            TextPosition(offset: telefon.text.length),
+                          );
+                        }
                       },
                       enabled: true,
                       decoration: InputDecoration(

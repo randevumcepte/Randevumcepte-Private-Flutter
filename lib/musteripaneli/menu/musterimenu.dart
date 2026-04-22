@@ -235,7 +235,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                   ),
                 ),
                 Text(
-                  widget.md.name ?? 'Danışan',
+                  widget.md.name ?? 'Müşteri',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,

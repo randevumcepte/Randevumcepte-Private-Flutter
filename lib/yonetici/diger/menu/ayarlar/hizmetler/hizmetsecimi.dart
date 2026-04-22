@@ -394,7 +394,7 @@ class HizmetSecimiState extends State<HizmetSecimi> {
             child: Text(buttonLabel),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
-              minimumSize: Size(300, 40),
+              minimumSize: Size(0, 40),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.0)
               ),

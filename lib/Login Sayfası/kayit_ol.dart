@@ -1,4 +1,5 @@
 ﻿
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
@@ -57,9 +58,10 @@ class _KayitOlState extends State<KayitOl> {
                 margin: const EdgeInsets.only(top: 80),
                 child:
                   Image.asset(
-                    'images/bercislina.png',  // Replace with your image path
-                    width: 500,  // Adjust width if needed
-                    height: 100,  // Adjust height if needed
+                    'images/vionnaguzellik.png',
+                    width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
+                    height: 100,
+                    fit: BoxFit.contain,
                   ),
                 ),
             Expanded(
@@ -92,7 +94,7 @@ class _KayitOlState extends State<KayitOl> {
                             child: Center(
                               child:
                                 const Text(
-                                  "Müşteri/Danışan Ol",
+                                  "Müşteri Ol",
                                   style: TextStyle(
                                     fontSize: 25,
                                     color: Colors.purple,
@@ -263,51 +265,86 @@ class _KayitOlState extends State<KayitOl> {
   }
   Future<void> musteridanisankaydi(String tel,String adsoyad,context,bool randevuSayfasinaYonlendir) async {
     showProgressLoading(context);
-    String appBundle = await appBundleAl();
 
+    bool loadingPopped = false;
+    void popLoadingOnce() {
+      if (loadingPopped) return;
+      loadingPopped = true;
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (_) {}
+    }
 
-    Map<String, dynamic> formData = {
-      'cep_telefon':tel,
-      'name':adsoyad,
-      'sms_baslik' : '',
-      'sms_apikey' : '',
-      'salonidler' : '278',
-      'sms_username':'',
-      'sms_secret':'',
-      'isletmeadi': 'Bercislina Güzellik Salonu',
-      'appBundle': appBundle
-      // Add other form fields
-    };
+    try {
+      String appBundle = await appBundleAl();
 
-    final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/yenimusteridanisankaydi'),
+      Map<String, dynamic> formData = {
+        'cep_telefon':tel,
+        'name':adsoyad,
+        'sms_baslik' : '',
+        'sms_apikey' : '',
+        'salonidler' : '352',
+        'sms_username':'',
+        'sms_secret':'',
+        'isletmeadi': 'Vionna Güzellik Salonu',
+        'appBundle': appBundle
+      };
 
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(formData),
-    );
+      final response = await http.post(
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/yenimusteridanisankaydi'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(formData),
+      ).timeout(const Duration(seconds: 25));
 
-    if (response.statusCode == 200) {
+      debugPrint('kayit response status: ${response.statusCode}');
+      debugPrint('kayit response body: ${response.body}');
 
-      Navigator.of(context,rootNavigator: true).pop();
-      if(response.body =="exists")
-        formWarningDialogs(context, "HATA", "Sistemde "+tel+" telefon numarasına ait kayıt bulunmaktadır. Eğer şifrenizi unuttuysanız lütfen şifremi unuttum bölümünden yeni şifrenizi alınız");
-      else
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (builder) => LoginPage(randevuSayfasinaYonlendir: randevuSayfasinaYonlendir,seciliHizmetler: widget.seciliHizmetler,tarih: widget.tarih,saat: widget.saat,),
+      popLoadingOnce();
+
+      if (response.statusCode == 200) {
+        if (response.body.trim() == "exists") {
+          formWarningDialogs(
+            context,
+            "HATA",
+            "Sistemde " + tel + " telefon numarasına ait kayıt bulunmaktadır. Eğer şifrenizi unuttuysanız lütfen şifremi unuttum bölümünden yeni şifrenizi alınız",
+          );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (builder) => LoginPage(
+                randevuSayfasinaYonlendir: randevuSayfasinaYonlendir,
+                seciliHizmetler: widget.seciliHizmetler,
+                tarih: widget.tarih,
+                saat: widget.saat,
+              ),
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kayıt oluşturulurken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin. (${response.statusCode})'),
+            duration: const Duration(seconds: 4),
           ),
         );
-
-
-
-
-    } else {
+      }
+    } on TimeoutException catch (_) {
+      popLoadingOnce();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Müşteri/danışan kaydınız oluşturuluken bir hata oluştu : '+response.statusCode.toString()),
+        const SnackBar(
+          content: Text('Sunucu yanıt vermiyor. Lütfen daha sonra tekrar deneyin.'),
+          duration: Duration(seconds: 4),
         ),
       );
-      debugPrint('Error: ${response.body}');
+    } catch (e) {
+      popLoadingOnce();
+      debugPrint('kayit exception: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bağlantı hatası: ${e.toString()}'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
     }
   }
 

@@ -108,7 +108,7 @@ class _TumEtkinlikKatilimciState extends State<TumEtkinlikKatilimci> {
 
                       padding: EdgeInsets.only(left:10.0),
                       alignment: Alignment.centerLeft,
-                      child: Text('Müşteri & Danışan'),
+                      child: Text('Müşteri'),
                     ),
                   ),
                   GridColumn(

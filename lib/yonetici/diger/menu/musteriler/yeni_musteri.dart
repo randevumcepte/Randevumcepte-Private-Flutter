@@ -19,6 +19,7 @@ import '../../../../Models/musteridanisanreferans.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../Models/user.dart';
+import 'musteri_ocr_tara.dart';
 import 'musteriliste.dart';
 
 
@@ -92,7 +93,7 @@ class _YenimusteriState extends State<Yenimusteri> {
            Scaffold(
             resizeToAvoidBottomInset: false,
                 appBar: new AppBar(
-                    title: const Text('Yeni Müşteri/Danışan',style: TextStyle(color: Colors.black),),
+                    title: const Text('Yeni Müşteri',style: TextStyle(color: Colors.black),),
                     backgroundColor: Colors.white,
                     leading: IconButton(
                         icon: Icon(Icons.clear_rounded, color: Colors.black),
@@ -115,6 +116,47 @@ class _YenimusteriState extends State<Yenimusteri> {
                                 child:    Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: <Widget>[
+                                        SizedBox(
+                                            width: double.infinity,
+                                            child: OutlinedButton.icon(
+                                                onPressed: () async {
+                                                    final result = await Navigator.of(context).push(
+                                                        MaterialPageRoute(
+                                                            builder: (_) => const MusteriOcrTara(),
+                                                        ),
+                                                    );
+                                                    if (result is Map) {
+                                                        final String okunanIsim = (result['isim'] ?? '').toString().trim();
+                                                        final String okunanTelefon = (result['telefon'] ?? '').toString().trim();
+                                                        final String okunanEmail = (result['email'] ?? '').toString().trim();
+                                                        final String okunanDogum = (result['dogum_tarihi'] ?? '').toString().trim();
+                                                        final String okunanCinsiyet = (result['cinsiyet'] ?? '').toString().trim();
+                                                        setState(() {
+                                                            if (okunanIsim.isNotEmpty) adsoyad.text = okunanIsim;
+                                                            if (okunanTelefon.isNotEmpty) {
+                                                                telefon.text = okunanTelefon.startsWith('0') ? okunanTelefon : '0$okunanTelefon';
+                                                            }
+                                                            if (okunanEmail.isNotEmpty) eposta.text = okunanEmail;
+                                                            if (okunanDogum.isNotEmpty) dogumtarihi.text = okunanDogum;
+                                                            if (okunanCinsiyet.isNotEmpty) selectedcinsiyet = okunanCinsiyet;
+                                                        });
+                                                    }
+                                                },
+                                                icon: const Icon(Icons.document_scanner_outlined, color: Color(0xFF6A1B9A)),
+                                                label: const Text(
+                                                    'Fotoğraftan Tara (Ad / Telefon)',
+                                                    style: TextStyle(color: Color(0xFF6A1B9A), fontWeight: FontWeight.bold),
+                                                ),
+                                                style: OutlinedButton.styleFrom(
+                                                    minimumSize: const Size.fromHeight(45),
+                                                    side: const BorderSide(color: Color(0xFF6A1B9A)),
+                                                    shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(10),
+                                                    ),
+                                                ),
+                                            ),
+                                        ),
+                                        const SizedBox(height: 15),
                                         Padding(
                                             padding: const EdgeInsets.only(left: 5.0),
                                             child: Text('Ad Soyad',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
@@ -443,19 +485,58 @@ class _YenimusteriState extends State<Yenimusteri> {
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                                 ElevatedButton(onPressed: () async{
+                                                    log('🟢 [1] Kaydet butonuna basıldı');
+                                                    log('🟢 [2] seciliisletme: $seciliisletme');
+                                                    log('🟢 [3] adsoyad: "${adsoyad.text}"');
+                                                    log('🟢 [4] telefon: "${telefon.text}"');
+                                                    log('🟢 [5] eposta: "${eposta.text}"');
+                                                    log('🟢 [6] dogumtarihi: "${dogumtarihi.text}"');
+                                                    log('🟢 [7] cinsiyet: "$selectedcinsiyet"');
+                                                    log('🟢 [8] referans: "${selectedmusterireferans?.id}"');
 
-                                                    log(_formKey.currentState!.toString());
-                                                    if (_formKey.currentState!.validate()) {
-                                                        _formKey.currentState!.save();
+                                                    if (_formKey.currentState == null) {
+                                                        log('🔴 _formKey.currentState NULL');
+                                                        return;
+                                                    }
+                                                    if (!_formKey.currentState!.validate()) {
+                                                        log('🔴 validate() false döndü');
+                                                        return;
+                                                    }
+                                                    _formKey.currentState!.save();
+                                                    log('🟢 [9] Form validate + save OK');
+
+                                                    if (adsoyad.text.trim().isEmpty) {
+                                                        log('🔴 Ad soyad boş');
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                            const SnackBar(content: Text('Ad Soyad alanı zorunludur')),
+                                                        );
+                                                        return;
+                                                    }
+                                                    if (telefon.text.trim().isEmpty || telefon.text.trim() == '0') {
+                                                        log('🔴 Telefon boş');
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                            const SnackBar(content: Text('Telefon numarası zorunludur')),
+                                                        );
+                                                        return;
+                                                    }
+                                                    log('🟢 [10] Validasyon geçti, submitForm çağrılıyor');
+
+                                                    try {
                                                         MusteriDanisan yenimusteridanisan = await submitForm(widget.isletmebilgi,seciliisletme,adsoyad.text,telefon.text,eposta.text,dogumtarihi.text,selectedcinsiyet,selectedmusterireferans?.id ?? "",notlar.text,context);
-                                                        Navigator.of(context).pop(yenimusteridanisan);
-
-                                                        if(!widget.sadeceekranikapat)
-                                                            Navigator.push(
+                                                        log('🟢 [11] submitForm başarılı, id=${yenimusteridanisan.id}');
+                                                        if (!widget.sadeceekranikapat) {
+                                                            log('🟢 [12a] MusteriListesi\'ne yönleniyor');
+                                                            Navigator.pushReplacement(
                                                                 context,
                                                                 MaterialPageRoute(builder: (context) => MusteriListesi(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi)),
                                                             );
-
+                                                        } else {
+                                                            log('🟢 [12b] pop ile geri dönülüyor');
+                                                            Navigator.of(context).pop(yenimusteridanisan);
+                                                        }
+                                                    } catch (e, st) {
+                                                        log('🔴 Müşteri eklenemedi: $e');
+                                                        log('🔴 stack: $st');
                                                     }
                                                 },
                                                     child: Text('Kaydet'),
@@ -493,25 +574,71 @@ class _YenimusteriState extends State<Yenimusteri> {
 
         };
 
-        final response = await http.post(
-            Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/'+salonid.toString()),
+        try {
+            final response = await http.post(
+                Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/'+salonid.toString()),
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode(formData),
+            );
 
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(formData),
-        );
+            log('musteri ekle response status: ${response.statusCode}');
+            log('musteri ekle response body: ${response.body}');
 
-        if (response.statusCode == 200 || response.statusCode == 201) {
+            // Loading dialog'u her durumda kapat
             Navigator.of(context,rootNavigator: true).pop();
 
-            return  MusteriDanisan.fromJson( json.decode(response.body));
+            if (response.statusCode != 200 && response.statusCode != 201) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Müşteri eklenirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
+                    ),
+                );
+                throw Exception('Bir hata oluştu: ${response.statusCode}');
+            }
 
-        } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text('Müşteri eklenirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
-                ),
-            );
-            throw Exception('Bir hata oluştu');
+            // Boş body kontrolü
+            if (response.body.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Sunucudan boş yanıt geldi. Müşteri eklenemedi.'),
+                    ),
+                );
+                throw Exception('Boş response body');
+            }
+
+            final decoded = json.decode(response.body);
+
+            // Warning response'u kontrol et
+            if (decoded is Map && decoded.containsKey('status') && decoded['status'] == 'warning') {
+                final mesaj = decoded['mesaj']?.toString() ?? 'Bu müşteri zaten kayıtlı';
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(mesaj),
+                        backgroundColor: Colors.orange,
+                        duration: Duration(seconds: 4),
+                    ),
+                );
+                throw Exception(mesaj);
+            }
+
+            // Normal müşteri objesi
+            return MusteriDanisan.fromJson(decoded as Map<String, dynamic>);
+        } catch (e, stackTrace) {
+            // Herhangi bir exception durumunda loading'i kapat ve kullanıcıya bildir
+            try {
+                Navigator.of(context,rootNavigator: true).pop();
+            } catch (_) {}
+            log('musteri ekle hata: $e');
+            log('stack: $stackTrace');
+            // Eğer daha önce bir SnackBar gösterilmediyse göster
+            if (!e.toString().contains('zaten kayıtlı') && !e.toString().contains('Boş response') && !e.toString().contains('Bir hata oluştu')) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Müşteri eklenemedi: ${e.toString()}'),
+                    ),
+                );
+            }
+            rethrow;
         }
     }
 

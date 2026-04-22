@@ -108,7 +108,7 @@ class _TumKampanyaKatilimciState extends State<KatilanKampanyaKatilimci> {
 
 											padding: EdgeInsets.only(left:10.0),
 											alignment: Alignment.centerLeft,
-											child: Text('Müşteri & Danışan'),
+											child: Text('Müşteri'),
 										),
 									),
 									GridColumn(

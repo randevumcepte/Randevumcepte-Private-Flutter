@@ -221,7 +221,7 @@ class _PersonelSatislariState extends State<PersonelSatislari> {
                     label: Container(
                       padding: EdgeInsets.all(2.0),
                       alignment: Alignment.centerLeft,
-                      child: Text('Müşteri/Danışan/Tarih'),
+                      child: Text('Müşteri/Tarih'),
                     ),
                   ),
                   GridColumn(

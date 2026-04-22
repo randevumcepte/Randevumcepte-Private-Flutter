@@ -247,10 +247,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedhemofili = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -322,10 +322,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedseker = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -397,10 +397,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedhamile = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -474,10 +474,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedameliyat = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -550,10 +550,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedalerji = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -625,10 +625,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedalkol = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -700,10 +700,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedregl = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -777,10 +777,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selecteddoku = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -852,10 +852,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedilac = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -927,10 +927,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedkemoterapi = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -1002,10 +1002,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selecteduygulama = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(
@@ -1077,10 +1077,10 @@ class _MusteriPaneliSaglikBilgileriState extends State<MusteriPaneliSaglikBilgil
                     selectedcilttip = value;
                   });
                 },
-                buttonStyleData: const ButtonStyleData(
+                buttonStyleData: ButtonStyleData(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
-                  width: 400,
+                  width: MediaQuery.of(context).size.width - 40,
                 ),
 
                 dropdownStyleData: const DropdownStyleData(

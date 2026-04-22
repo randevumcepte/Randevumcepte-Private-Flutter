@@ -106,7 +106,7 @@ class _KatilanEtkinlikKatilimciState extends State<KatilanEtkinlikKatilimci> {
 
                       padding: EdgeInsets.only(left:10.0),
                       alignment: Alignment.centerLeft,
-                      child: Text('Müşteri & Danışan'),
+                      child: Text('Müşteri'),
                     ),
                   ),
                   GridColumn(

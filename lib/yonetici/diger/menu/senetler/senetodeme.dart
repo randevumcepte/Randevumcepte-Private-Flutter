@@ -347,7 +347,7 @@ class _SenetOdemeState extends State<SenetOdeme> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(yanlis+'Lütfen müşteri/danışanın telefonuna gönderilen doğrulama kodunu giriniz'),
+          title: Text(yanlis+'Lütfen müşterinin telefonuna gönderilen doğrulama kodunu giriniz'),
           content: Form(
             key: _formKey,
             child: Column(

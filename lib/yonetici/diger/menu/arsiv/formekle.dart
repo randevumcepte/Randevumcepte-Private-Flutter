@@ -220,7 +220,7 @@ class _FormEkleState extends State<FormEkle> {
               SizedBox(height: 10,),
               Padding(
                 padding: const EdgeInsets.only(left: 20.0),
-                child: Text('Müşteri/Danışan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
               ),
               SizedBox(height: 10,),
               Container(
@@ -764,9 +764,9 @@ class _FormEkleState extends State<FormEkle> {
       errors.add('Form/Sözleşme türü seçilmedi.');
     }
 
-    // 2. Müşteri/Danışan kontrolü
+    // 2. Müşteri kontrolü
     if (selectedmusteri == null) {
-      errors.add('Müşteri/Danışan seçilmedi.');
+      errors.add('Müşteri seçilmedi.');
     }
 
     // 3. Personel kontrolü

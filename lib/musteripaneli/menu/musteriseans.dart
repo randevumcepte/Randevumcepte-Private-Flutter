@@ -230,7 +230,7 @@ class _IslemlerveSeanslarMusteriPaneliState extends State<IslemlerveSeanslarMust
 
                           padding: EdgeInsets.all(5.0),
                           alignment: Alignment.centerLeft,
-                          child: Text('Müşteri/Danışan ve Paket'),
+                          child: Text('Müşteri ve Paket'),
                         ),
                       ),
 

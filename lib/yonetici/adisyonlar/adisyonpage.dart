@@ -1338,7 +1338,7 @@
                       children: [
                         _buildFilterSection(
                           icon: Icons.person_outline,
-                          title: 'Müşteri/Danışan',
+                          title: 'Müşteri',
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(

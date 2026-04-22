@@ -1789,7 +1789,7 @@ Future<List<Randevu>> tumrandevular(seciliisletme) async {
     throw Exception('Failed to load appointments');
   }
 }
-void randevuonayla(String randevuid, BuildContext context) async {
+Future<void> randevuonayla(String randevuid, BuildContext context) async {
   showProgressLoading(context);
   TextEditingController dogrulama_kodu = TextEditingController();
 

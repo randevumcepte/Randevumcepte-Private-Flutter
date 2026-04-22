@@ -195,15 +195,25 @@ class _RandevularMenuState extends State<RandevularMenu> {
                     IconButton(onPressed: (){
                       showModalBottomSheet(
                           context: context,
+                          isScrollControlled: true,
                           builder: (context) {
                             return StatefulBuilder(
                                 builder: (context, setStateSB){
-                                  return Column(
+                                  return SafeArea(
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxHeight: MediaQuery.of(context).size.height * 0.85,
+                                      ),
+                                      child: SingleChildScrollView(
+                                        padding: EdgeInsets.only(
+                                          bottom: MediaQuery.of(context).viewInsets.bottom,
+                                        ),
+                                        child: Column(
 
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      SizedBox(height: 20,),
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            SizedBox(height: 20,),
                                       Container(
                                         padding: const EdgeInsets.only(left: 20.0),
                                         child: Text('Randevu Oluşturma Yeri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
@@ -442,7 +452,10 @@ class _RandevularMenuState extends State<RandevularMenu> {
                                       ),
                                       SizedBox(height: 50,),
                                     ],
-                                  );
+                                          ),
+                                        ),
+                                      ),
+                                    );
                                 }
                             );
                           }
@@ -470,7 +483,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
                           keyboardType: TextInputType.text,
 
                           decoration: InputDecoration(
-                            hintText: 'Müşteri/Danışan Adı...',
+                            hintText: 'Müşteri Adı...',
                             enabled:true,
                             focusColor:Color(0xFF6A1B9A) ,
                             hoverColor: Color(0xFF6A1B9A) ,
@@ -597,7 +610,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
 
                                 padding: EdgeInsets.all(5.0),
                                 alignment: Alignment.centerLeft,
-                                child: Text('Müşteri & Danışan'),
+                                child: Text('Müşteri'),
                               ),
                             ),
 

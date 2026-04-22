@@ -195,10 +195,10 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulari> {
                                           randevuolusturmacontroller.text = value!;
                                         });
                                       },
-                                      buttonStyleData: const ButtonStyleData(
+                                      buttonStyleData: ButtonStyleData(
                                         padding: EdgeInsets.symmetric(horizontal: 16),
                                         height: 50,
-                                        width: 400,
+                                        width: MediaQuery.of(context).size.width - 40,
                                       ),
 
                                       dropdownStyleData: const DropdownStyleData(
@@ -268,10 +268,10 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulari> {
                                           randevudurumcontroller.text = value!;
                                         });
                                       },
-                                      buttonStyleData: const ButtonStyleData(
+                                      buttonStyleData: ButtonStyleData(
                                         padding: EdgeInsets.symmetric(horizontal: 16),
                                         height: 50,
-                                        width: 400,
+                                        width: MediaQuery.of(context).size.width - 40,
                                       ),
 
                                       dropdownStyleData: const DropdownStyleData(
@@ -341,10 +341,10 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulari> {
                                           randevutarihcontroller.text = value!;
                                         });
                                       },
-                                      buttonStyleData: const ButtonStyleData(
+                                      buttonStyleData: ButtonStyleData(
                                         padding: EdgeInsets.symmetric(horizontal: 16),
                                         height: 50,
-                                        width: 400,
+                                        width: MediaQuery.of(context).size.width - 40,
                                       ),
 
                                       dropdownStyleData: const DropdownStyleData(
