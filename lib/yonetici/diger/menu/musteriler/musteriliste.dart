@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/sadikmusteriler.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
-import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteri_toplu_ocr.dart';
+// import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteri_toplu_ocr.dart'; // TODO: Toplu OCR tamamlanınca aç
 import '../../../../Backend/backend.dart';
 import '../../../../Models/musterisayilari.dart';
 import 'rehberdekimusteriler.dart';
@@ -252,39 +252,40 @@ class _MusteriListesiState extends State<MusteriListesi> {
                   },
                 ),
               ),
-              Container(
-                margin: EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.document_scanner_outlined, color: primaryColor),
-                  iconSize: 22,
-                  tooltip: 'Toplu Tara',
-                  onPressed: () async {
-                    final sonuc = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MusteriTopluOcr(
-                          isletmebilgi: widget.isletmebilgi,
-                          kullanicirolu: widget.kullanicirolu,
-                        ),
-                      ),
-                    );
-                    if (sonuc == true) {
-                      _loadMusteriSayilari();
-                    }
-                  },
-                ),
-              ),
+              // TODO: Belgeden bilgi ekleme (Toplu Tara) — iş bitince aç
+              // Container(
+              //   margin: EdgeInsets.only(right: 8),
+              //   decoration: BoxDecoration(
+              //     color: Colors.white,
+              //     borderRadius: BorderRadius.circular(12),
+              //     boxShadow: [
+              //       BoxShadow(
+              //         color: Colors.black12,
+              //         blurRadius: 4,
+              //         offset: Offset(0, 2),
+              //       ),
+              //     ],
+              //   ),
+              //   child: IconButton(
+              //     icon: Icon(Icons.document_scanner_outlined, color: primaryColor),
+              //     iconSize: 22,
+              //     tooltip: 'Toplu Tara',
+              //     onPressed: () async {
+              //       final sonuc = await Navigator.push(
+              //         context,
+              //         MaterialPageRoute(
+              //           builder: (context) => MusteriTopluOcr(
+              //             isletmebilgi: widget.isletmebilgi,
+              //             kullanicirolu: widget.kullanicirolu,
+              //           ),
+              //         ),
+              //       );
+              //       if (sonuc == true) {
+              //         _loadMusteriSayilari();
+              //       }
+              //     },
+              //   ),
+              // ),
               Platform.isIOS ? SizedBox():
               Container(
                 margin: EdgeInsets.only(right: 16),

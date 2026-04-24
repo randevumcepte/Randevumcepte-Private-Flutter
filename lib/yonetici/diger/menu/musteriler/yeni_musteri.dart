@@ -19,7 +19,7 @@ import '../../../../Models/musteridanisanreferans.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../Models/user.dart';
-import 'musteri_ocr_tara.dart';
+// import 'musteri_ocr_tara.dart'; // TODO: Tek müşteri OCR tamamlanınca aç
 import 'musteriliste.dart';
 
 
@@ -116,47 +116,48 @@ class _YenimusteriState extends State<Yenimusteri> {
                                 child:    Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: <Widget>[
-                                        SizedBox(
-                                            width: double.infinity,
-                                            child: OutlinedButton.icon(
-                                                onPressed: () async {
-                                                    final result = await Navigator.of(context).push(
-                                                        MaterialPageRoute(
-                                                            builder: (_) => const MusteriOcrTara(),
-                                                        ),
-                                                    );
-                                                    if (result is Map) {
-                                                        final String okunanIsim = (result['isim'] ?? '').toString().trim();
-                                                        final String okunanTelefon = (result['telefon'] ?? '').toString().trim();
-                                                        final String okunanEmail = (result['email'] ?? '').toString().trim();
-                                                        final String okunanDogum = (result['dogum_tarihi'] ?? '').toString().trim();
-                                                        final String okunanCinsiyet = (result['cinsiyet'] ?? '').toString().trim();
-                                                        setState(() {
-                                                            if (okunanIsim.isNotEmpty) adsoyad.text = okunanIsim;
-                                                            if (okunanTelefon.isNotEmpty) {
-                                                                telefon.text = okunanTelefon.startsWith('0') ? okunanTelefon : '0$okunanTelefon';
-                                                            }
-                                                            if (okunanEmail.isNotEmpty) eposta.text = okunanEmail;
-                                                            if (okunanDogum.isNotEmpty) dogumtarihi.text = okunanDogum;
-                                                            if (okunanCinsiyet.isNotEmpty) selectedcinsiyet = okunanCinsiyet;
-                                                        });
-                                                    }
-                                                },
-                                                icon: const Icon(Icons.document_scanner_outlined, color: Color(0xFF6A1B9A)),
-                                                label: const Text(
-                                                    'Fotoğraftan Tara (Ad / Telefon)',
-                                                    style: TextStyle(color: Color(0xFF6A1B9A), fontWeight: FontWeight.bold),
-                                                ),
-                                                style: OutlinedButton.styleFrom(
-                                                    minimumSize: const Size.fromHeight(45),
-                                                    side: const BorderSide(color: Color(0xFF6A1B9A)),
-                                                    shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(10),
-                                                    ),
-                                                ),
-                                            ),
-                                        ),
-                                        const SizedBox(height: 15),
+                                        // TODO: Belgeden bilgi ekleme (Fotoğraftan Tara) — iş bitince aç
+                                        // SizedBox(
+                                        //     width: double.infinity,
+                                        //     child: OutlinedButton.icon(
+                                        //         onPressed: () async {
+                                        //             final result = await Navigator.of(context).push(
+                                        //                 MaterialPageRoute(
+                                        //                     builder: (_) => const MusteriOcrTara(),
+                                        //                 ),
+                                        //             );
+                                        //             if (result is Map) {
+                                        //                 final String okunanIsim = (result['isim'] ?? '').toString().trim();
+                                        //                 final String okunanTelefon = (result['telefon'] ?? '').toString().trim();
+                                        //                 final String okunanEmail = (result['email'] ?? '').toString().trim();
+                                        //                 final String okunanDogum = (result['dogum_tarihi'] ?? '').toString().trim();
+                                        //                 final String okunanCinsiyet = (result['cinsiyet'] ?? '').toString().trim();
+                                        //                 setState(() {
+                                        //                     if (okunanIsim.isNotEmpty) adsoyad.text = okunanIsim;
+                                        //                     if (okunanTelefon.isNotEmpty) {
+                                        //                         telefon.text = okunanTelefon.startsWith('0') ? okunanTelefon : '0$okunanTelefon';
+                                        //                     }
+                                        //                     if (okunanEmail.isNotEmpty) eposta.text = okunanEmail;
+                                        //                     if (okunanDogum.isNotEmpty) dogumtarihi.text = okunanDogum;
+                                        //                     if (okunanCinsiyet.isNotEmpty) selectedcinsiyet = okunanCinsiyet;
+                                        //                 });
+                                        //             }
+                                        //         },
+                                        //         icon: const Icon(Icons.document_scanner_outlined, color: Color(0xFF6A1B9A)),
+                                        //         label: const Text(
+                                        //             'Fotoğraftan Tara (Ad / Telefon)',
+                                        //             style: TextStyle(color: Color(0xFF6A1B9A), fontWeight: FontWeight.bold),
+                                        //         ),
+                                        //         style: OutlinedButton.styleFrom(
+                                        //             minimumSize: const Size.fromHeight(45),
+                                        //             side: const BorderSide(color: Color(0xFF6A1B9A)),
+                                        //             shape: RoundedRectangleBorder(
+                                        //                 borderRadius: BorderRadius.circular(10),
+                                        //             ),
+                                        //         ),
+                                        //     ),
+                                        // ),
+                                        // const SizedBox(height: 15),
                                         Padding(
                                             padding: const EdgeInsets.only(left: 5.0),
                                             child: Text('Ad Soyad',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
