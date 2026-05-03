@@ -1,4 +1,4 @@
-﻿
+
 import 'dart:convert';
 
 import 'package:randevu_sistem/Models/tahsilatkalemleri.dart';
@@ -17,6 +17,9 @@ class SeansTakip  {
     required this.bekleyenSeansSayisi,
     required this.gelinenSeansSayisi,
     required this.gelinmeyenSeansSayisi,
+    this.tip,
+    this.paketHizmetId,
+    this.hizmetler = const [],
 
   });
   final String id;
@@ -28,8 +31,9 @@ class SeansTakip  {
   final int bekleyenSeansSayisi;
   final int gelinenSeansSayisi;
   final int gelinmeyenSeansSayisi;
-
-
+  final String? tip;
+  final String? paketHizmetId;
+  final List<dynamic> hizmetler;
 
 
 
@@ -47,8 +51,11 @@ class SeansTakip  {
       bekleyenSeansSayisi:jsonvar["bekleyenSeansSayisi"],
       gelinenSeansSayisi:jsonvar["gelinenSeansSayisi"],
       gelinmeyenSeansSayisi:jsonvar["gelinmeyenSeansSayisi"],
-
-
+      tip: jsonvar["tip"]?.toString(),
+      paketHizmetId: jsonvar["paketHizmetId"]?.toString(),
+      hizmetler: (jsonvar["hizmetler"] is List)
+          ? jsonvar["hizmetler"] as List<dynamic>
+          : const [],
 
     );
   }

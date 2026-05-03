@@ -13,6 +13,9 @@ class Paket implements OnGorusmeNedeni,TahsilatKalemleri{
     required this.aktif,
 
     required this.hizmetler,
+    this.miktar = '',
+    this.fiyat = '',
+    this.sure = '',
 
 
   });
@@ -27,6 +30,10 @@ class Paket implements OnGorusmeNedeni,TahsilatKalemleri{
 
   final List<dynamic> hizmetler;
 
+  final String miktar;
+  final String fiyat;
+  final String sure;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -36,6 +43,12 @@ class Paket implements OnGorusmeNedeni,TahsilatKalemleri{
       'hizmetler':hizmetler,
 
       'aktif':aktif,
+
+      'miktar':miktar,
+
+      'fiyat':fiyat,
+
+      'sure':sure,
 
     };
   }
@@ -50,6 +63,10 @@ class Paket implements OnGorusmeNedeni,TahsilatKalemleri{
 
       aktif: jsonvar["aktif"].toString(),
       hizmetler: jsonvar["hizmetler"],
+
+      miktar: (jsonvar["miktar"] ?? '').toString(),
+      fiyat: (jsonvar["fiyat"] ?? '').toString(),
+      sure: (jsonvar["sure"] ?? '').toString(),
 
 
     );

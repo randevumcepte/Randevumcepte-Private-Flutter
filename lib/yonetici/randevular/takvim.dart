@@ -1588,7 +1588,7 @@ class TakvimState extends State<Takvim> {
                               child: ElevatedButton(onPressed: () {
                                 Navigator.of(context,rootNavigator: true).pop();
 
-
+  
                                 Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
                                   getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
 
@@ -1607,7 +1607,7 @@ class TakvimState extends State<Takvim> {
                                     minimumSize: Size(0, 30)
                                 ),
                               ),
-                            )
+                            ) 
                           ],
                         ) : SizedBox.shrink(),
                         (randevudurum![0] == "0" || randevudurum![0] == "1") && widget.kullanicirolu != 5 ? Wrap(
@@ -1678,6 +1678,7 @@ class TakvimState extends State<Takvim> {
                             if (randevudurum![0] != "0" && randevudurum[1] != "0")
                               ElevatedButton(onPressed: () async{
                                 await randevugelmediisaretle(randevudetay.id.toString(), context);
+                                if (!context.mounted) return;
                                 Navigator.of(context).pop();
                                 getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
                               }, child:
@@ -1711,7 +1712,8 @@ class TakvimState extends State<Takvim> {
                               ),
                             if (randevudurum![0] != "0" && randevudurum[1] != "1")
                               ElevatedButton(onPressed: () async {
-                                await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context);
+                                await randevugeldiisaretle(randevudetay.id.toString(), '', context, '');
+                                if (!context.mounted) return;
                                 Navigator.of(context).pop();
                                 getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
                               }, child:

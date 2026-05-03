@@ -59,7 +59,7 @@ TextEditingController ceptelefon = TextEditingController();
                 margin: const EdgeInsets.only(top: 80),
                 child:
                   Image.asset(
-                    'images/vionnaguzellik.png',
+                    'images/ezgitakmaz.png',
                     width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
                     height: 100,
                     fit: BoxFit.contain,
@@ -272,10 +272,10 @@ TextEditingController ceptelefon = TextEditingController();
       'cep_telefon':tel,
       'sms_baslik' : '',
       'sms_apikey' : '',
-      'salonidler' : '352',
+      'salonidler' : '362',
       'sms_username':'',
       'sms_secret':'',
-      'isletmeadi': 'Vionna Güzellik Salonu',
+      'isletmeadi': 'Ezgi Takmaz Güzellik Merkezi',
       'appBundle': appBundle
       // Add other form fields
     };

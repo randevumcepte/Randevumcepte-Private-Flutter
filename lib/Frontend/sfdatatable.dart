@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Frontend/telefonnumralarinigizle.dart';
+import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/paketler/paketduzenle.dart';
 import 'package:randevu_sistem/Models/kampanyalar.dart';
 
 
@@ -2626,8 +2628,9 @@ class RandevuDataSource extends DataGridSource {
                                 ),
                               if (randevudurum![0] != "0")
                                 ElevatedButton(onPressed: () async {
-                                  Navigator.of(context, rootNavigator: true).pop();
                                   await randevugelmediisaretle(randevudetay.id.toString(), context);
+                                  if (!context.mounted) return;
+                                  Navigator.of(context, rootNavigator: true).pop();
                                   await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
                                 }, child:
                                 Text('Gelmedi'),
@@ -2643,8 +2646,9 @@ class RandevuDataSource extends DataGridSource {
                                 ),
                               if (randevudurum![0] != "0")
                                 ElevatedButton(onPressed: ()  async {
-                                  Navigator.of(context, rootNavigator: true).pop();
                                   await randevugeldiisaretle(randevudetay.id.toString(),'', context,'');
+                                  if (!context.mounted) return;
+                                  Navigator.of(context, rootNavigator: true).pop();
                                   await fetchData(currentPage.toString(),'',olusturma,durum,tarih,personelid,cihazid);
                                 }, child:
                                 Text('Geldi'),
@@ -3912,6 +3916,7 @@ class UrunDataSource extends DataGridSource {
               child: Text('SİL'),
               onPressed: () {
 
+                Navigator.of(context).pop();
                 onDeleteConfirmed();
 
               },
@@ -4505,6 +4510,7 @@ class PaketDataSource extends DataGridSource {
   String salonid;
 
   BuildContext context;
+  dynamic isletmebilgi;
   List<Paket> paket = [];
   List<DataGridRow> paketRows = [];
   ValueNotifier<bool> isLoadingNotifier = ValueNotifier(false);
@@ -4519,6 +4525,7 @@ class PaketDataSource extends DataGridSource {
     required this.context,
     required this.salonid,
     required this.checkBoxChecked,
+    this.isletmebilgi,
 
 
   }) : currentPage = 1, totalRows = 0 {
@@ -4540,8 +4547,13 @@ class PaketDataSource extends DataGridSource {
       double totalfiyat = 0;
       e.hizmetler.forEach((element) {
         hizmetler += element['hizmet']['hizmet_adi'] + ' ('+element['seans'].toString()+') ';
-        totalfiyat += double.parse(element['fiyat'].toString());
+        totalfiyat += double.tryParse(element['fiyat']?.toString() ?? '0') ?? 0;
       });
+
+      if (totalfiyat == 0) {
+        totalfiyat = double.tryParse(e.fiyat) ?? 0;
+      }
+      final fiyatGosterim = totalfiyat == 0 ? '0' : backendToTl(totalfiyat.toString());
 
       return DataGridRow(cells: [
 
@@ -4549,7 +4561,7 @@ class PaketDataSource extends DataGridSource {
         DataGridCell<String>(columnName: 'id', value: e.id.toString()),
         DataGridCell<String>(columnName: 'paketadi', value: e.paket_adi.toString()),
         DataGridCell<String>(columnName: 'hizmetler', value: hizmetler),
-        DataGridCell<String>(columnName: 'fiyat', value: totalfiyat.toString()),
+        DataGridCell<String>(columnName: 'fiyat', value: fiyatGosterim),
       ]);
     }).toList();
 
@@ -4558,7 +4570,9 @@ class PaketDataSource extends DataGridSource {
     currentPage = jsonResponse['current_page'];
     totalRows = paket.length;
     isLoadingNotifier.value = false;
-    pakethimzet == '' ? Navigator.of(context, rootNavigator: true).pop() : null;// Notify listeners that loading has finished
+    if (pakethimzet == '' && context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
     notifyListeners();
 
 
@@ -4607,6 +4621,7 @@ class PaketDataSource extends DataGridSource {
               child: Text('SİL'),
               onPressed: () {
 
+                Navigator.of(context).pop();
                 onDeleteConfirmed();
 
               },
@@ -4627,17 +4642,21 @@ class PaketDataSource extends DataGridSource {
       body: jsonEncode(formData),
     );
 
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+
     if (response.statusCode == 200) {
       fetchData('1', '');
-
     }
     else {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Paket silinirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Paket silinirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
+          ),
+        );
+      }
       debugPrint('Error: ${response.body}');
     }
   }
@@ -4689,22 +4708,22 @@ class PaketDataSource extends DataGridSource {
             onSelected: (String value) async {
               if(value=='duzenle')
               {
-
-                /*Navigator.push(
+                final paketDetay = row.getCells()[0].value as Paket;
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => UrunDuzenle(urundetayi: row.getCells()[0].value,salonid: this.salonid,urunDataSource: this,)),
-                );*/
+                      builder: (_) => PaketDuzenle(paket: paketDetay, isletmebilgi: isletmebilgi)),
+                );
+                if (result == true) {
+                  fetchData(currentPage.toString(), '');
+                }
               }
               if(value=='sil')
               {
-                final confirmed = await showDeleteConfirmationDialog(context,int.parse(row.getCells()[1].value), () async {
-                  Navigator.of(context, rootNavigator: true).pop();
-
-                  await sil(context, int.parse(row.getCells()[1].value));
+                await showDeleteConfirmationDialog(context, int.parse(row.getCells()[1].value), () {
+                  showProgressLoading(context);
+                  sil(context, int.parse(row.getCells()[1].value));
                 });
-
-
               }
 
 
@@ -9574,7 +9593,7 @@ class EAsistanDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://demoapptest.randevumcepte.com.tr/api/v1/gorev-iptal-et'),
+      Uri.parse('https://demoapp.randevumcepte.com.tr/api/v1/gorev-iptal-et'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );

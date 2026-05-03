@@ -1,8 +1,7 @@
 name: randevu_sistem
-description: Vionna Güzellik Salonu Randevu Sistemi Uygulaması
+description: Ezgi Takmaz Güzellik Merkezi Randevu Sistemi Uygulaması
 publish_to: 'none'
-version: 1.0.0+4
-
+version: 1.0.0+2
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
@@ -74,7 +73,7 @@ dependencies:
   # Image / Media
   image_picker: ^1.0.4
   photo_view: ^0.15.0
-  image_cropper: ^9.1.0
+  image_cropper: ^12.2.1
   # google_mlkit_text_recognition: ^0.15.0  # Apple deprecated-API reddi yüzünden geçici kapatıldı (OCR dosyaları .bak)
   video_player: ^2.7.2
   chewie: ^1.7.1
@@ -109,13 +108,13 @@ dependencies:
   flutter_countdown_timer: ^4.1.0
   syncfusion_flutter_datagrid: ^29.1.39
   flutter_rating_bar: ^4.0.1
-  file_picker: ^10.1.2
+  # file_picker: ^11.0.2  # Apple deprecated-API rejection: DKImagePickerController bundled. Disabled until alternative.
   csc_picker: ^0.2.7
   flutter_contacts: ^1.1.9+2
   barcode_scan2: ^4.5.1
   flutter_launcher_icons: ^0.14.4
   crop_your_image: ^2.0.0
-  sip_ua: ^1.0.1
+  # sip_ua: 1.0.1  # Apple deprecated-API rejection avoidance — SIP feature disabled, files renamed to .bak
   html: ^0.15.6
   flutter_native_splash: ^2.4.7
   mask_text_input_formatter: ^2.9.0
@@ -140,8 +139,8 @@ flutter:
 
   assets:
     - images/
-    - images/vionnaguzellik.png
-    - images/vionnaguzellik.png
+    - images/ezgitakmaz.png
+    - images/ezgitakmazicon.png
     - images/ring.mp3
     - images/announcement.png
     - images/hesapsil.png
@@ -149,12 +148,12 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "images/vionnaguzellik.png"
+  image_path: "images/ezgitakmazicon.png"
   remove_alpha_ios: true
 
 flutter_native_splash:
   color: "#ffffff"
-  image: images/vionnaguzellik.png
+  image: images/ezgitakmaz.png
   android: true
   ios: true
   web: false

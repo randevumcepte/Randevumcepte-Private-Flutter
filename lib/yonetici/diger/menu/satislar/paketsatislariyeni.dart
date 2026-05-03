@@ -6,6 +6,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonlar.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -136,7 +137,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
       setState(() {
 
         paketsatici = personelliste;
-        _paketDataGridSource = PaketDataSource(rowsPerPage:10,salonid: seciliisletme!,context: context,checkBoxChecked: onCheckboxChanged);
+        _paketDataGridSource = PaketDataSource(rowsPerPage:10,salonid: seciliisletme!,context: context,checkBoxChecked: onCheckboxChanged, isletmebilgi: widget.isletmebilgi);
         _paketDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
         _isLoading = false;
 
@@ -145,9 +146,22 @@ class _PaketSatislariState extends State<PaketSatislari> {
   }
 
   void _onLoadingStateChanged() {
+    if (!mounted) return;
     setState(() {
       // This empty setState function just triggers a rebuild of the widget when the loading state changes
     });
+  }
+
+  @override
+  void dispose() {
+    if (!_isLoading) {
+      try {
+        _paketDataGridSource.isLoadingNotifier.removeListener(_onLoadingStateChanged);
+      } catch (_) {}
+    }
+    _controller.dispose();
+    _debounce?.cancel();
+    super.dispose();
   }
 
   Future<void> _refreshPage() async {
@@ -214,12 +228,17 @@ class _PaketSatislariState extends State<PaketSatislari> {
                   child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
                 ),
               ),
-              IconButton(onPressed: (){
-                Navigator.push(
+              IconButton(onPressed: () async {
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) => PaketEkle(kullanicirolu: widget.kullanicirolu, kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi, )),
                 );
+                if (result == true && mounted) {
+                  setState(() {
+                    _paketDataGridSource.search(_controller.text);
+                  });
+                }
               }, icon:  Icon(Icons.add,color:Colors.black,),iconSize: 26,),
 
 
@@ -272,65 +291,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                         shrinkWrapRows: true,
                         columnWidthMode: ColumnWidthMode.fill,
                         defaultColumnWidth: 120,
-                        allowSwiping: true,
-
-
-                        onSwipeStart: (details) {
-                          if (details.swipeDirection ==
-                              DataGridRowSwipeDirection.startToEnd) {
-                            details.setSwipeMaxOffset(50);
-                          } else if (details.swipeDirection ==
-                              DataGridRowSwipeDirection.endToStart) {
-                            details.setSwipeMaxOffset(50);
-                          }
-                          return true;
-                        },
-
-                        startSwipeActionsBuilder:
-                            (BuildContext context, DataGridRow row,
-                            int rowIndex) {
-                          return GestureDetector(
-                              onTap: () {
-                                //Navigator.of(context).pop();
-                                //Navigator.push(context, new MaterialPageRoute(builder: (context) => new KampanyaDuzenle(kampanyadetayi: row.getCells()[0].value as Kampanya,)));
-                                /*Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => UrunDuzenle(urundetayi: row.getCells()[0].value as Urun,salonid: seciliisletme!,urunDataSource: _urunDataGridSource,)),
-                            );*/
-
-                              },
-                              child: Container(
-                                  color: Colors.purple,
-                                  child: Center(
-                                    child: Icon(
-                                        Icons.edit, color: Colors.white),
-                                  )));
-                        },
-                        endSwipeActionsBuilder:
-                            (BuildContext context, DataGridRow row,
-                            int rowIndex) {
-                          return GestureDetector(
-                              onTap: () async {
-                                final confirmed = await _paketDataGridSource
-                                    .showDeleteConfirmationDialog(context,
-                                    int.parse(row.getCells()[1].value), () {
-                                      // Perform deletion
-
-                                      setState(() {
-                                        showProgressLoading(context);
-                                        _paketDataGridSource.sil(context,
-                                            int.parse(row.getCells()[1].value));
-                                      });
-                                    });
-                              },
-                              child: Container(
-                                  color: Colors.red,
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.delete, color: Colors.white,),
-                                  )));
-                        },
+                        allowSwiping: false,
                         onCellTap: (DataGridCellTapDetails details) {
                           final tappedRow = _paketDataGridSource.rows[details
                               .rowColumnIndex.rowIndex - 1];
@@ -471,7 +432,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
       ],
     );
   }
-  void _showDetailsDialog(BuildContext context, Paket paket) {
+  void _showDetailsDialog(BuildContext outerContext, Paket paket) async {
     final _formKey = GlobalKey<FormState>();
 
     String hizmetadi='';
@@ -480,19 +441,22 @@ class _PaketSatislariState extends State<PaketSatislari> {
     paket.hizmetler.forEach((element) {
       hizmetadi+=element['hizmet']['hizmet_adi']+' ';
       seans+=element['seans']+' ';
-      fiyat+=double.parse(element['fiyat']);
+      fiyat+=double.tryParse(element['fiyat']?.toString() ?? '0') ?? 0;
     });
+    if (fiyat == 0) {
+      fiyat = double.tryParse(paket.fiyat) ?? 0;
+    }
 
 
-    showDialog(
-      context: context,
+    final action = await showDialog<String>(
+      context: outerContext,
       builder: (BuildContext context) {
         return AlertDialog(
           insetPadding: EdgeInsets.zero,
           content: Container(
 
-            height: 180,
-            width: 280,
+            height: 240,
+            width: 300,
             child: Stack(
               clipBehavior: Clip.none,
               children: <Widget>[
@@ -537,7 +501,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                         children: [
                           Text('Fiyat'), SizedBox(width: 35,),
                           Text(': '),
-                          Text(fiyat.toString())
+                          Text(fiyat == 0 ? '0' : '${backendToTl(fiyat.toString())} ₺')
                         ],
                       ),
                       Row(
@@ -552,15 +516,9 @@ class _PaketSatislariState extends State<PaketSatislari> {
                       Divider(color: Colors.black,),
 
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          ElevatedButton(onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => PaketDuzenle( paket: paket,isletmebilgi: widget.isletmebilgi,)),
-                            );
-                          }, child:
+                          ElevatedButton(onPressed: () => Navigator.of(context).pop('duzenle'), child:
                           Text('Düzenle'),
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.purple[800],
@@ -569,7 +527,19 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(5.0)
                                 ),
-                                minimumSize: Size(130, 30)
+                                minimumSize: Size(110, 30)
+                            ),
+                          ),
+                          ElevatedButton(onPressed: () => Navigator.of(context).pop('sil'), child:
+                          Text('Sil'),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red[600],
+                                foregroundColor: Colors.white,
+                                elevation: 5,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5.0)
+                                ),
+                                minimumSize: Size(110, 30)
                             ),
                           ),
 
@@ -591,20 +561,61 @@ class _PaketSatislariState extends State<PaketSatislari> {
 
     );
 
+    log('paket detay dialog action: $action');
+    if (!mounted) return;
+
+    if (action == 'duzenle') {
+      log('düzenle tıklandı, paket id: ${paket.id}');
+      final result = await Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+            builder: (_) => PaketDuzenle(paket: paket, isletmebilgi: widget.isletmebilgi)),
+      );
+      log('paketduzenle dönüş: $result');
+      if (result == true && mounted) {
+        setState(() {
+          _paketDataGridSource.search(_controller.text);
+        });
+      }
+    } else if (action == 'sil') {
+      log('sil tıklandı, paket id: ${paket.id}');
+      await _paketDataGridSource.showDeleteConfirmationDialog(
+        context,
+        int.parse(paket.id),
+        () {
+          showProgressLoading(context);
+          _paketDataGridSource.sil(context, int.parse(paket.id));
+        },
+      );
+    }
+
   }
   void _showPopup(BuildContext context ) {
     // Variables to store the selected values from the dropdowns
     List<Paket> selectedData = [];
+    List<TextEditingController> paketSeansController = [];
+    List<TextEditingController> paketFiyatController = [];
+
     for (int i = 0; i < _paketDataGridSource.selectedRows.value.length; i++) {
       log("Seçili : "+_paketDataGridSource.selectedRows.value[i].toString());
       if (_paketDataGridSource.selectedRows.value[i]) {
-        selectedData.add(_paketDataGridSource.paket[i]);
-        paketbaslangictarihi = List.generate(_paketDataGridSource.selectedRows.value.length, (index) => TextEditingController());
-        paketbaslangicsaati = List.generate(_paketDataGridSource.selectedRows.value.length, (index) => TextEditingController());
-        paketseansaraligi = List.generate(_paketDataGridSource.selectedRows.value.length, (index) => TextEditingController());
-        psatici = List.generate(_paketDataGridSource.selectedRows.value.length, (index) => TextEditingController());
-        //selectedpaketsatici = List.generate(_paketDataGridSource.selectedRows.value.length, (index) => paketsatici[0]);
-        _selectedTime = List.generate(_paketDataGridSource.selectedRows.value.length, (index) => TimeOfDay.now());
+        final secilenPaket = _paketDataGridSource.paket[i];
+        selectedData.add(secilenPaket);
+
+        int defaultSeans = 0;
+        double defaultFiyat = 0;
+        secilenPaket.hizmetler.forEach((h) {
+          defaultSeans += int.tryParse(h['seans']?.toString() ?? '0') ?? 0;
+          final fiyatStr = h['fiyat']?.toString() ?? '0';
+          defaultFiyat += double.tryParse(fiyatStr) ?? 0;
+        });
+        if (defaultSeans == 0) {
+          defaultSeans = int.tryParse(secilenPaket.miktar) ?? 0;
+        }
+        if (defaultFiyat == 0) {
+          defaultFiyat = double.tryParse(secilenPaket.fiyat) ?? 0;
+        }
+        paketSeansController.add(TextEditingController(text: defaultSeans.toString()));
+        paketFiyatController.add(TextEditingController(text: defaultFiyat == 0 ? '' : backendToTl(defaultFiyat.toString())));
       }
     }
 
@@ -748,12 +759,26 @@ class _PaketSatislariState extends State<PaketSatislari> {
                           ),
                         ),
                       ),
-                      /*SizedBox(height: 10),
+                      SizedBox(height: 16),
+                      Divider(color: Colors.black26, height: 1),
+                      SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 0.0),
+                        child: Text(
+                          'Seans ve Fiyat',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
                       Column(
                         children: List.generate(selectedData.length, (index) {
                           var item = selectedData[index];
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 10.0),
+                            padding: const EdgeInsets.only(bottom: 12.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -762,13 +787,89 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                   child: Text(
                                     '${item.paket_adi}',
                                     style: TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 16,
                                       color: Colors.black,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: 10),
+                                SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Seans Sayısı', style: TextStyle(fontSize: 13, color: Colors.black87)),
+                                          SizedBox(height: 4),
+                                          SizedBox(
+                                            height: 40,
+                                            child: TextFormField(
+                                              controller: paketSeansController[index],
+                                              keyboardType: TextInputType.number,
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+                                                  borderRadius: BorderRadius.circular(10.0),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+                                                  borderRadius: BorderRadius.circular(10.0),
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(10.0),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Fiyat (₺)', style: TextStyle(fontSize: 13, color: Colors.black87)),
+                                          SizedBox(height: 4),
+                                          SizedBox(
+                                            height: 40,
+                                            child: TextFormField(
+                                              controller: paketFiyatController[index],
+                                              keyboardType: TextInputType.number,
+                                              inputFormatters: [TurkishLiraInputFormatter()],
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+                                                  borderRadius: BorderRadius.circular(10.0),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+                                                  borderRadius: BorderRadius.circular(10.0),
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(10.0),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                      /*Eski randevu/seans aralığı/satıcı blokları:
+                      SizedBox(height: 10),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
@@ -1072,31 +1173,11 @@ class _PaketSatislariState extends State<PaketSatislari> {
                   child: Text("Vazgeç"),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
+                  onPressed: () async {
                     bool isvalid = true;
-                    if(selectedmusteri == null)
-                      isvalid =false;
-                    if(selectedpaketsatici == null)
-                      isvalid =false;
-                    /*paketbaslangictarihi.forEach((element) {
-                      int ind1 = 0;
-                      if(element == "")
-                        isvalid =false;
-                      if(selectedpaketsatici[ind1]==null)
-                        isvalid =false;
-                      ind1 = ind1 +1;
-                    });
-                    paketbaslangicsaati.forEach((element) {
-                      if(element == "")
-                        isvalid =false;
-                    });
-                    paketseansaraligi.forEach((element) {
-
-                      if(element == "")
-                        isvalid =false;
-                    });*/
-                    if(!isvalid)
+                    if (selectedmusteri == null) isvalid = false;
+                    if (selectedpaketsatici == null) isvalid = false;
+                    if (!isvalid) {
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
@@ -1106,39 +1187,74 @@ class _PaketSatislariState extends State<PaketSatislari> {
                             actions: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.of(context).pop(); // Dismiss the dialog
+                                  Navigator.of(context).pop();
                                 },
                                 child: Text('TAMAM'),
                               ),
-
                             ],
                           );
                         },
                       );
-                    else
-                    {
-                      int i = 0;
-                      bool valid = true;
-                      selectedData.forEach((element) async {
-                        double toplamfiyat = 0;
-                        element.hizmetler.forEach((element2) {
-                          toplamfiyat += element2["fiyat"] ;
-                        });
+                      return;
+                    }
 
-                        final AdisyonPaket paket = AdisyonPaket(id: "", adisyon_id: "", paket_id: element?.id ?? "", baslangic_tarihi: paketbaslangictarihi[i].text, seans_araligi: paketseansaraligi[i].text, fiyat: toplamfiyat.toString(), personel_id: selectedpaketsatici!.id, taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "",seans_baslangic_saati: paketbaslangicsaati[i].text);
-                        AdisyonPaket eklenenpaket = await adisyonpaketekle(paket,selectedmusteri?.id ?? "" ,context,  seciliisletme!, paketbaslangicsaati[i].text,false,"");
-                        if(eklenenpaket != AdisyonPaket)
-                          valid = false;
-                        i = i+1;
+                    Navigator.of(context).pop();
+                    if (!mounted) return;
+                    showProgressLoading(this.context);
 
-                      });
-                      if(valid)
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (builder) => TahsilatEkrani(adisyonId: widget.adisyonId, kullanicirolu: widget.kullanicirolu, isletmebilgi: isletme_bilgi, musteridanisanid: selectedmusteri?.id ?? "",),
-                          ),
+                    String? olusanAdisyonId;
+                    bool basarili = true;
+                    for (int i = 0; i < selectedData.length; i++) {
+                      final element = selectedData[i];
+                      final seansSayisi = paketSeansController[i].text.trim();
+                      final fiyatStr = tlToBackend(paketFiyatController[i].text);
+
+                      final AdisyonPaket paket = AdisyonPaket(
+                        id: "",
+                        adisyon_id: olusanAdisyonId ?? "",
+                        paket_id: element.id,
+                        baslangic_tarihi: '',
+                        seans_araligi: '',
+                        fiyat: fiyatStr,
+                        personel_id: selectedpaketsatici!.id,
+                        taksitli_tahsilat_id: "",
+                        senet_id: "",
+                        indirim_tutari: "",
+                        hediye: "",
+                        seans_baslangic_saati: '',
+                      );
+                      try {
+                        final eklenen = await adisyonpaketekle(
+                          paket,
+                          selectedmusteri?.id ?? "",
+                          this.context,
+                          seciliisletme!,
+                          '',
+                          false,
+                          "",
+                          seansSayisi: seansSayisi,
                         );
+                        olusanAdisyonId = eklenen.adisyon_id;
+                      } catch (_) {
+                        basarili = false;
+                        break;
+                      }
+                    }
 
+                    if (!mounted) return;
+                    Navigator.of(this.context, rootNavigator: true).pop();
+
+                    if (basarili) {
+                      Navigator.of(this.context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (builder) => TahsilatEkrani(
+                            adisyonId: olusanAdisyonId ?? widget.adisyonId,
+                            kullanicirolu: widget.kullanicirolu,
+                            isletmebilgi: isletme_bilgi,
+                            musteridanisanid: selectedmusteri?.id ?? "",
+                          ),
+                        ),
+                      );
                     }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green[400],  foregroundColor: Colors.white,),

@@ -7,6 +7,44 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:32537cae8b1eaf129f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.cerenceviz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:3e42422e1b5af98f9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.ezgitakmaz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:279726530132:android:ea21ab8ca7dc83ed9f57c1",
         "android_client_info": {
           "package_name": "com.randevumcepte.vionnaguzellik"

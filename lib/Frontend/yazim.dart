@@ -40,7 +40,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteridetaylar.da
 
 
 
-class KampanyaDataSource extends DataGridSource {
+class KampanyaDataSource extends DataGridSource  {
   List<DataGridRow> _paginatedRows = [];
   int rowsPerPage;
   int currentPage;

@@ -12,6 +12,8 @@ import '../../Login Sayfası/tanitim.dart';
 import '../../Models/musteri_danisanlar.dart';
 import '../anasayfa/anasayfa.dart';
 import '../anasayfa/carkifelek.dart';
+import '../anasayfa/odullerim.dart';
+import '../anasayfa/puan_odullerim.dart';
 import '../anasayfa/raporlar/seanslar.dart';
 import 'indirimler.dart';
 import 'musteriresimleri.dart';
@@ -398,6 +400,8 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                     },
                   ),
 
+                  // "Özel" bölümü (Çarkıfelek / Kuponlarım / Puan Ödüllerim) henüz tamamlanmadı, geçici olarak kapatıldı.
+                  /*
                   const SizedBox(height: 8),
 
                   // Özel Menü Başlığı
@@ -413,55 +417,6 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                     ),
                   ),
 
-                  // YENİ: İndirimlerim
-    /*_buildMenuItem(
-                    icon: Icons.discount,
-                    title: "İndirimlerim",
-                    iconColor: Colors.orange,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>  KazanilanIndirimlerPage(md: widget.md,),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // YENİ: Puanlarım
-                  _buildMenuItem(
-                    icon: Icons.stars,
-                    title: "Puanlarım",
-                    iconColor: Colors.amber,
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        '150',
-                        style: TextStyle(
-                          color: Colors.amber,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    onTap: () {
-                      // Puanlar sayfasına yönlendir
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Puanlarım sayfası açılıyor...'),
-                          backgroundColor: Colors.amber,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
 
                   _buildMenuItem(
                     icon: Icons.auto_awesome,
@@ -471,7 +426,43 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const WheelPage(),
+                          builder: (context) => WheelPage(
+                            md: widget.md,
+                            isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildMenuItem(
+                    icon: Icons.card_giftcard,
+                    title: "Kuponlarım",
+                    iconColor: Colors.deepPurple,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OdullerimPage(md: widget.md),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildMenuItem(
+                    icon: Icons.stars,
+                    title: "Puan Ödüllerim",
+                    iconColor: Colors.amber,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PuanOdullerimPage(
+                            md: widget.md,
+                            salonId: widget.isletmebilgi != null
+                                ? widget.isletmebilgi['id'].toString()
+                                : null,
+                          ),
                         ),
                       );
                     },

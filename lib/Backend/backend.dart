@@ -1687,6 +1687,46 @@ Future <Map<String, dynamic>> seanslarigetir(String Salonid , String currpage,St
   }
 
 }
+
+Future<Map<String, dynamic>> seansGuncelleApi(
+    String seansId, dynamic geldi, BuildContext context) async {
+  final formData = {
+    'seansId': seansId,
+    'geldi': geldi,
+  };
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansGuncelle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  logyaz(response.statusCode, response.reasonPhrase);
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> seansEkleApi(
+    String paketHizmetId, String hizmetId, int paketMi, int geldi,
+    BuildContext context) async {
+  final formData = {
+    'paketId': paketHizmetId,
+    'hizmetId': hizmetId,
+    'paket': paketMi,
+    'geldi': geldi,
+  };
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansEkle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  logyaz(response.statusCode, response.reasonPhrase);
+  throw Exception(response.reasonPhrase);
+}
+
 Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tarih1, String tarih2,bool yukleniyor,BuildContext context ,String takvimTuru) async {
   if(yukleniyor)
     showProgressLoading(context);
@@ -1823,22 +1863,19 @@ Future<void> randevuonayla(String randevuid, BuildContext context) async {
   }
 
 }
-Future<void> randevugelmediisaretle(String randevuid, BuildContext context) async {
+Future<void> randevugelmediisaretle(String randevuid, BuildContext context, [String seansDusumuYap = '']) async {
   showProgressLoading(context);
-  TextEditingController dogrulama_kodu = TextEditingController();
   SharedPreferences localStorage = await SharedPreferences.getInstance();
   var user = jsonDecode(localStorage.getString('user')!);
 
   Map<String, dynamic> formData = {
     'randevuid': randevuid,
-    'user':user["id"]
-    // Add other form fields
+    'user': user["id"],
+    'seansDusumuYap': seansDusumuYap,
   };
-
 
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuyagelmediisaretle'),
-
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1849,15 +1886,60 @@ Future<void> randevugelmediisaretle(String randevuid, BuildContext context) asyn
     var reset = response.headers['x-ratelimit-reset'];
 
     logyaz2("Gelmedi işaretle. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
-    Navigator.of(context,rootNavigator: true).pop();
 
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
 
+    dynamic result;
+    try {
+      result = json.decode(response.body);
+    } catch (_) {
+      result = null;
+    }
+
+    if (result is Map && result['seansDusmeOnayi'] == true) {
+      final secim = await seansDusmeOnayPopup(result['mesaj']?.toString() ?? 'Seansından düşülsün mü?', context);
+      if (secim == null) return;
+      await randevugelmediisaretle(randevuid, context, secim);
+    }
   } else {
-    logyaz(response.statusCode,response.reasonPhrase);
-    Navigator.of(context,rootNavigator: true).pop();
+    logyaz(response.statusCode, response.reasonPhrase);
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
     throw Exception(response.reasonPhrase);
   }
+}
 
+Future<String?> seansDusmeOnayPopup(String mesaj, BuildContext context) {
+  return showDialog<String>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext ctx) {
+      return AlertDialog(
+        title: const Text('Seans Düşümü'),
+        content: Text(mesaj),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(null),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('0'),
+            child: const Text('Hayır'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop('1'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Evet, Düşür'),
+          ),
+        ],
+      );
+    },
+  );
 }
 Future<void> randevuiptalet(String randevuid, BuildContext context,String usertype) async {
   showProgressLoading(context);
@@ -2149,7 +2231,7 @@ Future<String?> kvkkPopup(
     },
   );
 }
-Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildContext context,String salonid,String seanssaati, bool showprogress,String senetid) async{
+Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildContext context,String salonid,String seanssaati, bool showprogress,String senetid, {String seansSayisi = ''}) async{
   if(showprogress)
     showProgressLoading(context);
 
@@ -2169,7 +2251,8 @@ Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildC
     'musteri_id':musteriid,
     'sube':salonid,
     'olusturan':user["id"],
-    'senet_id':senetid
+    'senet_id':senetid,
+    'seans_sayisi':seansSayisi,
 
   };
   log(json.encode(formData));
@@ -3574,7 +3657,7 @@ Future<MusteriOzet> dashboardGunlukRaporMusteri() async{
 
 Future<Map<String, dynamic>> easistan(String salonid, String currpage, int bugunYarin) async {
   try {
-    final uri = Uri.parse('https://demoapptest.randevumcepte.com.tr/api/v1/easistandata/$bugunYarin/$salonid?page=$currpage');
+    final uri = Uri.parse('https://demoapp.randevumcepte.com.tr/api/v1/easistandata/$bugunYarin/$salonid?page=$currpage');
 
     final response = await http.get(
       uri,
@@ -3732,7 +3815,7 @@ async {
 }
 String arayanBilgiVer(String phone){
 
-  dynamic musteriAdi = arayanbilgi(phone,'20');
+  dynamic musteriAdi = arayanbilgi(phone,'362');
   log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
   return musteriAdi["musteri_adi"];
 }
@@ -4148,4 +4231,268 @@ Future<void> aramaYap(String phoneNumber, BuildContext context) async {
       );
     }
   }
+}
+
+// =============================================================
+// SMS YÖNETİMİ ENDPOINTS
+// =============================================================
+
+const String _smsApiBase = 'https://app.randevumcepte.com.tr/api/v1';
+
+Future<Map<String, dynamic>> smsYonetimInit(String salonid) async {
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  String userId = '';
+  try {
+    var u = jsonDecode(localStorage.getString('user') ?? '{}');
+    userId = u['id']?.toString() ?? '';
+  } catch (_) {}
+  final response = await http.get(
+    Uri.parse('$_smsApiBase/sms-yonetim/init/$salonid?userId=$userId'),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimMusteriListele(
+    String salonid, {
+      int page = 1,
+      int perPage = 200,
+      String search = '',
+      String cinsiyet = '',
+      int karaliste = 0,
+    }) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/musteri-listele/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'page': page,
+      'perPage': perPage,
+      'search': search,
+      'cinsiyet': cinsiyet,
+      'karaliste': karaliste,
+    }),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimTopluGonder(String salonid,
+    {required List<int> musteriIdler, required String mesaj}) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/toplu-gonder/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'musteri_idler': musteriIdler,
+      'smsmesaj': mesaj,
+    }),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimFiltreliGonder(String salonid,
+    {required List<int> musteriIdler, required String mesaj}) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/filtreli-gonder/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'musteri_idler': musteriIdler,
+      'filtre_sms': mesaj,
+    }),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimTaslakKaydet(String salonid,
+    {required String baslik, required String icerik, String? id}) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/taslak-kaydet/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'baslik': baslik,
+      'icerik': icerik,
+      if (id != null && id.isNotEmpty) 'id': id,
+    }),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimTaslakSil(
+    {required String salonId, required String id}) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/taslak-sil'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'id': id, 'salonId': salonId}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimRaporlar(String salonid) async {
+  final response = await http.get(
+    Uri.parse('$_smsApiBase/sms-yonetim/raporlar/$salonid'),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimRaporDetay(
+    String salonid, String pkgId) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/rapor-detay/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'pkg_id': pkgId}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimAyarKaydet(String salonid,
+    {required List<Map<String, dynamic>> ayarlar,
+      int? randevuSmsHatirlatma}) async {
+  final body = <String, dynamic>{'ayarlar': ayarlar};
+  if (randevuSmsHatirlatma != null) {
+    body['randevu_sms_hatirlatma'] = randevuSmsHatirlatma;
+  }
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/ayar-kaydet/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(body),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimKaraListe(String salonid) async {
+  final response = await http.get(
+    Uri.parse('$_smsApiBase/sms-yonetim/karaliste/$salonid'),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimKaraListeEkle(
+    String salonid, String userId) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/karaliste-ekle/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'user_id': userId}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimKaraListeSil(
+    String salonid, String userId) async {
+  final response = await http.post(
+    Uri.parse('$_smsApiBase/sms-yonetim/karaliste-sil/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'user_id': userId}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> smsYonetimBakiye(String salonid) async {
+  final response = await http.get(
+    Uri.parse('$_smsApiBase/sms-yonetim/bakiye/$salonid'),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+// =============================================================
+// ÇARKIFELEK ENDPOINTS
+// =============================================================
+
+const String _carkApiBase = 'https://app.randevumcepte.com.tr/api/v1';
+
+Future<Map<String, dynamic>> carkDurum(String salonId, String userId) async {
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/cark/durum'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'salon_id': salonId, 'user_id': userId}),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> carkCevir(String salonId, String userId) async {
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/cark/cevir'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'salon_id': salonId, 'user_id': userId}),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> carkOdullerim(String userId) async {
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/cark/odullerim'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'user_id': userId}),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> carkPuanOdullerim(String userId, {String? salonId}) async {
+  final body = <String, dynamic>{'user_id': userId};
+  if (salonId != null && salonId.isNotEmpty) body['salon_id'] = salonId;
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/cark/puanodullerim'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(body),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> carkPuanOdulTalep(String userId, String salonId, int odulId) async {
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/cark/puanodultalep'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'user_id': userId, 'salon_id': salonId, 'odul_id': odulId}),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
 }

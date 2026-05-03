@@ -1,261 +1,267 @@
 import 'dart:math';
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:audioplayers/audioplayers.dart'; // pubspec.yaml'a eklemeyi unutmayın
+import 'package:audioplayers/audioplayers.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
 
+/// Çarkıfelek (Wheel of Fortune) sayfası — backend'e bağlı.
+/// Onaylanmış randevu üzerinden hak kazanılır, günde bir çevirme.
 class WheelPage extends StatefulWidget {
-  const WheelPage({super.key});
+  final MusteriDanisan md;
+  final dynamic isletmebilgi;
+
+  const WheelPage({
+    Key? key,
+    required this.md,
+    required this.isletmebilgi,
+  }) : super(key: key);
 
   @override
   State<WheelPage> createState() => _WheelPageState();
 }
 
 class _WheelPageState extends State<WheelPage>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+
   double _angle = 0.0;
   bool _isSpinning = false;
-  String _result = 'Şansını Dene!';
-  String _resultDescription = 'Çarkı çevir ve harika ödüller kazan';
-  Color _resultColor = const Color(0xFFFF416C);
+  bool _isLoading = true;
+  String? _loadError;
 
-  // Ses değişkenleri - Sadece çark dönüş sesi için
+  // Backend state
+  bool _aktif = false;
+  String _salonAdi = '';
+  String _salonId = '';
+  int _kalanHak = 0;
+  bool _bugunCevirdi = false;
+  String _yarinSaat = '';
+  List<_Dilim> _dilimler = [];
+
+  // Sound
   final AudioPlayer _spinPlayer = AudioPlayer();
   bool _isSoundLoaded = false;
   bool _isSoundPlaying = false;
 
-  final List<WheelItem> _wheelItems = [
-    WheelItem(
-        'PREMIUM %30',
-        const Color(0xFFFF1744),
-        'Premium ürünlerde geçerli\nKupon kodu: PREM30',
-        Icons.diamond_outlined,
-        1.0),
-    WheelItem(
-        'HEDIYE ÜRÜN',
-        const Color(0xFF00FFA3),
-        '50 TL değerinde hediye\nSon kullanım: 30 gün',
-        Icons.card_giftcard_outlined,
-        1.0),
-    WheelItem(
-        'BEDAVA KARGO',
-        const Color(0xFFFF9800),
-        'Sınırsız kullanım\nTüm siparişlerde geçerli',
-        Icons.local_shipping_outlined,
-        0.95),
-    WheelItem(
-        'VIP %50 İNDİRİM',
-        const Color(0xFF00B0FF),
-        'VIP müşteri özel indirimi\nSadece bugün!',
-        Icons.star_outline,
-        1.0),
-    WheelItem(
-        'İLK ALIŞVERİŞ %25',
-        const Color(0xFF18FFFF),
-        'Yeni müşterilere özel\nMin. 100 TL alışveriş',
-        Icons.shopping_bag_outlined,
-        0.95),
-    WheelItem(
-        'TEK KULLANIM 100 TL',
-        const Color(0xFFFF00FF),
-        '200 TL üzeri alışverişte\nHemen kullan',
-        Icons.monetization_on_outlined,
-        0.9),
-    WheelItem(
-        '2 AL 1 ÖDE',
-        const Color(0xFFD500FF),
-        'Seçili ürünlerde\nKampanya ürünleri',
-        Icons.tag_faces_outlined,
-        1.0),
-    WheelItem(
-        'ŞANSLI %20',
-        const Color(0xFF651FFF),
-        'Tüm ürünlerde geçerli\nHerkese açık',
-        Icons.celebration_outlined,
-        1.0),
-  ];
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _loadSounds();
+    _salonId = widget.isletmebilgi['id'].toString();
+    _salonAdi = (widget.isletmebilgi['salon_adi'] ?? '').toString();
 
     _controller = AnimationController(
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 9),
       vsync: this,
     );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn);
 
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.fastOutSlowIn,
-    );
+    _loadSounds();
+    _yukle();
   }
 
   Future<void> _loadSounds() async {
     try {
-      // Çark dönüş sesini yükle
       await _spinPlayer.setSource(AssetSource('sounds/carkifelek.mp3'));
       await _spinPlayer.setReleaseMode(ReleaseMode.loop);
       await _spinPlayer.setVolume(0.7);
-
       _isSoundLoaded = true;
-      debugPrint('Ses başarıyla yüklendi');
-    } catch (e) {
-      debugPrint('Ses yüklenirken hata: $e');
+    } catch (_) {
       _isSoundLoaded = false;
+    }
+  }
+
+  Future<void> _yukle() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final res = await carkDurum(_salonId, widget.md.id.toString());
+      if (res['success'] != true) {
+        setState(() {
+          _isLoading = false;
+          _loadError = res['message']?.toString() ?? 'Veri alınamadı.';
+        });
+        return;
+      }
+      final aktif = res['aktif'] == true;
+      final salon = res['salon'] ?? {};
+      final list = (res['dilimler'] as List? ?? [])
+          .map((e) => _Dilim.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      setState(() {
+        _aktif = aktif;
+        _salonAdi = (salon['salon_adi'] ?? _salonAdi).toString();
+        _kalanHak = (res['kalanHak'] ?? 0) is int
+            ? res['kalanHak']
+            : int.tryParse(res['kalanHak'].toString()) ?? 0;
+        _bugunCevirdi = res['bugunCevirdi'] == true;
+        _yarinSaat = (res['yarinSaat'] ?? '').toString();
+        _dilimler = list;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _loadError = 'Bağlantı hatası: $e';
+      });
     }
   }
 
   void _playSpinSound() async {
     if (!_isSoundLoaded || _isSoundPlaying) return;
-
     try {
       _isSoundPlaying = true;
       await _spinPlayer.resume();
-    } catch (e) {
-      debugPrint('Spin ses çalınırken hata: $e');
+    } catch (_) {
       _isSoundPlaying = false;
     }
   }
 
   void _stopSpinSound() async {
     if (!_isSoundLoaded || !_isSoundPlaying) return;
-
     try {
       _isSoundPlaying = false;
-      // Timeout hatasını önlemek için pause ve seek işlemlerini ayrı ayrı dene
       await _spinPlayer.pause().timeout(
         const Duration(seconds: 2),
-        onTimeout: () {
-          debugPrint('Ses durdurma timeout - devam ediliyor');
-          // Timeout durumunda sessizce devam et
-        },
+        onTimeout: () {},
       );
-
-      // Seek işlemini ayrıca dene
       try {
         await _spinPlayer.seek(Duration.zero).timeout(
           const Duration(seconds: 2),
-          onTimeout: () {
-            debugPrint('Seek timeout - devam ediliyor');
-          },
+          onTimeout: () {},
         );
-      } catch (seekError) {
-        debugPrint('Seek hatası: $seekError');
-      }
-
-    } catch (e) {
-      debugPrint('Spin ses durdurulurken hata: $e');
+      } catch (_) {}
+    } catch (_) {
       _isSoundPlaying = false;
     }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
-
-    // dispose sırasında sesi durdur
     try {
       _spinPlayer.stop();
       _spinPlayer.dispose();
-    } catch (e) {
-      debugPrint('Dispose sırasında hata: $e');
-    }
-
+    } catch (_) {}
     super.dispose();
   }
 
-  @override
-  void didChangeMetrics() {
-    setState(() {});
-  }
-
-  void _spinWheel() {
+  Future<void> _spinWheel() async {
     if (_isSpinning) return;
+    if (!_aktif || _dilimler.length < 2) return;
+    if (_kalanHak < 1 || _bugunCevirdi) return;
 
     setState(() {
       _isSpinning = true;
-      _result = 'Şans Çarkı Dönüyor...';
-      _resultDescription = 'Ödülünüz belirleniyor';
-      _resultColor = const Color(0xFFFF9800);
     });
 
-    // Çark dönüş sesini başlat
+    Map<String, dynamic> data;
+    try {
+      data = await carkCevir(_salonId, widget.md.id.toString());
+    } catch (e) {
+      setState(() => _isSpinning = false);
+      _showSnack('Bağlantı hatası');
+      return;
+    }
+
+    if (data['success'] != true) {
+      setState(() => _isSpinning = false);
+      _showSnack(data['message']?.toString() ?? 'Çevirme başarısız');
+      return;
+    }
+
+    final dilimIndex = (data['dilimIndex'] is int)
+        ? data['dilimIndex'] as int
+        : int.tryParse(data['dilimIndex'].toString()) ?? 0;
+    final dilim = data['dilim'] as Map<String, dynamic>? ?? {};
+    final odulKodu = data['odulKodu']?.toString();
+    final kalanHak = (data['kalanHak'] is int)
+        ? data['kalanHak'] as int
+        : int.tryParse(data['kalanHak'].toString()) ?? 0;
+
     _playSpinSound();
 
+    // Hedef açı — pointer üstte (top), 0 derece sağda; "yukarıyı" -pi/2 hedefine çek
+    final n = _dilimler.length;
+    final sectorAngle = 2 * pi / n;
     final random = Random();
-    final extraAngle = random.nextDouble() * 2 * pi;
-    final totalAngle = (12 * 2 * pi) + extraAngle + _angle;
+    final jitter = (random.nextDouble() - 0.5) * sectorAngle * 0.6;
+    // Dilim merkezinin başlangıç açısı (saat 12 referansıyla, saat yönünde):
+    final targetSectorMid = (dilimIndex + 0.5) * sectorAngle;
+    // Çark saat yönünün tersine dönüyor — final açı, dilim'i pointer'a (üstte) getirmeli.
+    // _angle pozitif → counter-clockwise. Yukarıyı -pi/2'ye getiriyoruz.
+    final extraSpins = (12 + random.nextInt(5)) * 2 * pi;
+    final endAngle = extraSpins + (2 * pi - targetSectorMid) + jitter;
 
     _controller.reset();
-    _animation = Tween<double>(
-      begin: _angle,
-      end: totalAngle,
-    ).animate(_controller)
-      ..addListener(() => setState(() => _angle = _animation.value))
+    _animation = Tween<double>(begin: _angle, end: _angle + endAngle).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Cubic(0.17, 0.67, 0.12, 0.99),
+      ),
+    )
+      ..addListener(() {
+        setState(() => _angle = _animation.value);
+      })
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          _stopSpinSound(); // Çark sesini durdur
-          Future.delayed(const Duration(milliseconds: 500), () {
-            _determineResult(totalAngle);
+          _stopSpinSound();
+          Future.delayed(const Duration(milliseconds: 400), () {
+            if (!mounted) return;
+            setState(() {
+              _kalanHak = kalanHak;
+              _bugunCevirdi = true;
+              _isSpinning = false;
+            });
+            _showWinDialog(dilim, odulKodu);
           });
         }
       });
-
     _controller.forward();
   }
 
-  void _determineResult(double totalAngle) {
-    final sectorAngle = 2 * pi / _wheelItems.length;
-    double normalizedAngle = totalAngle % (2 * pi);
-    int index = _wheelItems.length -
-        ((normalizedAngle ~/ sectorAngle) % _wheelItems.length) -
-        1;
-
-    index = index.clamp(0, _wheelItems.length - 1);
-    final wonItem = _wheelItems[index];
-
-    setState(() {
-      _isSpinning = false;
-      _result = '🎉 TEBRİKLER!';
-      _resultColor = wonItem.color;
-      _resultDescription = '${wonItem.title} kazandınız!';
-    });
-
-    _showWinDialog(wonItem);
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: const Color(0xFFE17055),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
-  void _showWinDialog(WheelItem item) {
+  void _showWinDialog(Map<String, dynamic> dilim, String? odulKodu) {
+    final tip = (dilim['tip'] ?? '').toString();
+    final baslik = (dilim['baslik'] ?? dilim['ismi'] ?? 'Ödül').toString();
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.7),
-      builder: (context) {
-        return FadeTransition(
-          opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
-            CurvedAnimation(
-              parent: ModalRoute.of(context)!.animation!,
-              curve: Curves.easeOutCubic,
-            ),
-          ),
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-              CurvedAnimation(
-                parent: ModalRoute.of(context)!.animation!,
-                curve: Curves.elasticOut,
-              ),
-            ),
-            child: Dialog(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              insetPadding: const EdgeInsets.all(20),
-              child: WinDialogContent(item: item),
-            ),
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: _ResultCard(
+            tip: tip,
+            baslik: baslik,
+            odulKodu: odulKodu,
+            onClose: () => Navigator.pop(ctx),
+            onMyRewards: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OdullerimPage(md: widget.md),
+                ),
+              );
+            },
           ),
         );
       },
@@ -265,505 +271,446 @@ class _WheelPageState extends State<WheelPage>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 600;
-    final isLargeScreen = size.width > 900;
+    final isSmall = size.width < 520;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              const Color(0xFFF5F5F5),
-              const Color(0xFFEEEEEE),
-            ],
-            stops: const [0.0, 0.5, 1.0],
+      backgroundColor: const Color(0xFFF7F4FF),
+      appBar: AppBar(
+        title: const Text('🎡 Çarkıfelek', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF6C5CE7),
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Kuponlarım',
+            icon: const Icon(Icons.card_giftcard, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OdullerimPage(md: widget.md),
+                ),
+              );
+            },
           ),
-        ),
-        child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: isSmallScreen ? 100 : 120,
-                floating: true,
-                pinned: true,
-                backgroundColor: Colors.transparent,
-                surfaceTintColor: Colors.transparent,
-                elevation: 0,
-                leading: Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: IconButton(
-                    icon: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFFF416C),
-                            Color(0xFF651FFF),
+          IconButton(
+            tooltip: 'Puan Ödüllerim',
+            icon: const Icon(Icons.stars, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PuanOdullerimPage(md: widget.md, salonId: _salonId),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+              ? _buildError()
+              : !_aktif
+                  ? _buildPasif()
+                  : RefreshIndicator(
+                      onRefresh: _yukle,
+                      color: const Color(0xFF6C5CE7),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmall ? 12 : 20,
+                          vertical: 16,
+                        ),
+                        child: Column(
+                          children: [
+                            _buildHero(isSmall),
+                            const SizedBox(height: 16),
+                            _buildWheel(isSmall),
+                            const SizedBox(height: 20),
+                            _buildSpinButton(),
+                            const SizedBox(height: 16),
+                            _buildHakInfo(),
+                            const SizedBox(height: 16),
+                            _buildLinks(),
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 20,
-                      ),
                     ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  titlePadding: EdgeInsets.only(
-                    bottom: isSmallScreen ? 12 : 16,
-                  ),
-                  title: Text(
-                    'ŞANS ÇARKI',
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 20 : 24,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.grey[600],
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-                actions: [
-                  Container(
-                    margin: EdgeInsets.only(right: isSmallScreen ? 16 : 24),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(0xFFFF416C),
-                          Color(0xFF00B0FF),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.info_outline, color: Colors.white),
-                      onPressed: () {
-                        _showInfoDialog();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 16 : 24,
-                    vertical: 24,
-                  ),
-                  child: Column(
-                    children: [
-                      _buildWheelSection(isSmallScreen, isLargeScreen),
-                      const SizedBox(height: 32),
-                      _buildResultIndicator(isLargeScreen),
-                      const SizedBox(height: 32),
-                      _buildSpinButton(isSmallScreen),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 40),
-              ),
-            ],
-          ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
+            const SizedBox(height: 12),
+            Text(_loadError ?? '', textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            ElevatedButton(onPressed: _yukle, child: const Text('Tekrar Dene')),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildWheelSection(bool isSmallScreen, bool isLargeScreen) {
-    final wheelSize = isSmallScreen
-        ? MediaQuery.of(context).size.width * 0.85
-        : isLargeScreen
-        ? 400
-        : 320;
+  Widget _buildPasif() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('🎡', style: TextStyle(fontSize: 64)),
+            const SizedBox(height: 12),
+            const Text(
+              'Bu salonda çarkıfelek şu an aktif değil.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _salonAdi,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildHero(bool isSmall) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF416C).withOpacity(0.1),
-            blurRadius: 40,
-            spreadRadius: 10,
-          ),
-          BoxShadow(
-            color: const Color(0xFF18FFFF).withOpacity(0.1),
-            blurRadius: 60,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: wheelSize * 1.1,
-            height: wheelSize * 1.1,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-          ),
-          Transform.rotate(
-            angle: _angle,
-            child: Container(
-              width: wheelSize * 1,
-              height: wheelSize * 1,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
-              ),
-              child: CustomPaint(
-                painter: HorizontalTextWheelPainter(_wheelItems, wheelSize * 1),
-              ),
-            ),
-          ),
-          Positioned(
-            top: -10,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              transform: _isSpinning
-                  ? Matrix4.rotationZ(sin(_angle * 0.1) * 0.02)
-                  : Matrix4.rotationZ(0),
-              child: Container(
-                width: 50,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFFFF1744),
-                      Color(0xFFFF9800),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(25),
-                    bottomRight: Radius.circular(25),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.arrow_drop_down,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
-            ),
-          ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: wheelSize * 0.25,
-            height: wheelSize * 0.25,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(_isSpinning ? 0.3 : 0.2),
-                  blurRadius: _isSpinning ? 30 : 25,
-                  spreadRadius: _isSpinning ? 10 : 5,
-                ),
-              ],
-            ),
-            child: Center(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: wheelSize * 0.18,
-                height: wheelSize * 0.18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFFFF416C),
-                      Color(0xFF651FFF),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF416C).withOpacity(_isSpinning ? 0.6 : 0.4),
-                      blurRadius: _isSpinning ? 30 : 20,
-                      spreadRadius: _isSpinning ? 10 : 5,
-                    ),
-                  ],
-                ),
-                child: AnimatedRotation(
-                  duration: const Duration(milliseconds: 200),
-                  turns: _isSpinning ? _angle / (2 * pi) : 0,
-                  child: const Icon(
-                    Icons.star,
-                    color: Colors.white,
-                    size: 40,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultIndicator(bool isLargeScreen) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-        ],
-        border: Border.all(
-          color: _resultColor.withOpacity(0.3),
-          width: 2,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6C5CE7), Color(0xFFA29BFE), Color(0xFFFD79A8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-      ),
-      child: Column(
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            child: Text(
-              _result,
-              key: ValueKey(_result),
-              style: TextStyle(
-                fontSize: isLargeScreen ? 28 : 24,
-                fontWeight: FontWeight.w800,
-                color: _resultColor,
-                height: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 12),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            child: Text(
-              _resultDescription,
-              key: ValueKey(_resultDescription),
-              style: TextStyle(
-                fontSize: isLargeScreen ? 16 : 14,
-                color: Colors.black87,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSpinButton(bool isSmallScreen) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: isSmallScreen ? MediaQuery.of(context).size.width * 0.8 : 300,
-      height: 60,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: _isSpinning
-            ? [
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF416C).withOpacity(0.3),
-            blurRadius: 30,
-            spreadRadius: 3,
-          ),
-        ]
-            : [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: const Color(0xFF6C5CE7).withOpacity(0.25),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
-        gradient: LinearGradient(
-          colors: _isSpinning
-              ? [const Color(0xFFFF1744), const Color(0xFFFF9800)]
-              : [const Color(0xFFFF416C), const Color(0xFF651FFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(30),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(30),
-          onTap: _isSpinning ? null : _spinWheel,
-          splashColor: Colors.white.withOpacity(0.3),
-          highlightColor: Colors.white.withOpacity(0.1),
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _isSpinning
-                  ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'ÇARK DÖNÜYOR...',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              )
-                  : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.autorenew,
+      child: Column(
+        children: [
+          Text(
+            _salonAdi.isEmpty ? 'Çarkıfelek' : _salonAdi,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Size özel ödüller bekliyor!',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.18),
+              border: Border.all(color: Colors.white.withOpacity(0.25)),
+              borderRadius: BorderRadius.circular(50),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.casino, color: Colors.white, size: 16),
+                const SizedBox(width: 6),
+                const Text(
+                  'Çevirme hakkınız: ',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+                Text(
+                  '$_kalanHak',
+                  style: const TextStyle(
                     color: Colors.white,
-                    size: 24,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'ÇARKI ÇEVİR',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWheel(bool isSmall) {
+    final size = isSmall
+        ? MediaQuery.of(context).size.width * 0.82
+        : 360.0;
+
+    return SizedBox(
+      width: size,
+      height: size + 40,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          // Pointer
+          Positioned(
+            top: 0,
+            child: Container(
+              width: 30,
+              height: 44,
+              alignment: Alignment.center,
+              child: CustomPaint(
+                size: const Size(28, 40),
+                painter: _PointerPainter(),
               ),
             ),
           ),
+          Positioned(
+            top: 28,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const SweepGradient(
+                  colors: [
+                    Color(0xFF6C5CE7),
+                    Color(0xFFA29BFE),
+                    Color(0xFFFD79A8),
+                    Color(0xFFFDCB6E),
+                    Color(0xFF00B894),
+                    Color(0xFF6C5CE7),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6C5CE7).withOpacity(0.35),
+                    blurRadius: 30,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(7),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF160630),
+                  shape: BoxShape.circle,
+                ),
+                child: Transform.rotate(
+                  angle: _angle,
+                  child: CustomPaint(
+                    painter: _WheelPainter(_dilimler),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpinButton() {
+    final disabled = _isSpinning || _kalanHak < 1 || _bugunCevirdi;
+    final label = _bugunCevirdi
+        ? '✓ Bugün Çevirdiniz'
+        : _isSpinning
+            ? 'Çevriliyor...'
+            : '🎲 Çarkı Çevir';
+
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: disabled ? null : _spinWheel,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFE17055),
+          disabledBackgroundColor: Colors.grey.shade400,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+          elevation: 6,
+          shadowColor: const Color(0xFFE17055).withOpacity(0.5),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
+          ),
         ),
       ),
     );
   }
 
-  void _showInfoDialog() {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
-      barrierDismissible: true,
-      builder: (context) {
-        return FadeTransition(
-          opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
-            CurvedAnimation(
-              parent: ModalRoute.of(context)!.animation!,
-              curve: Curves.easeOutCubic,
+  Widget _buildHakInfo() {
+    String mesaj;
+    if (_bugunCevirdi) {
+      mesaj = 'Bugün çarkıfeleği çevirdiniz.\n'
+          'Bir sonraki çevirme: ${_yarinSaat.isEmpty ? 'yarın' : _yarinSaat} '
+          'veya yeni onaylı randevunuzdan sonra.';
+    } else if (_kalanHak > 0) {
+      mesaj =
+          '$_kalanHak çevirme hakkınız var. Günde 1 kez çevirebilirsiniz; yeni onaylı randevularınız yeni hak kazandırır.';
+    } else {
+      mesaj =
+          'Çevirme hakkınız bulunmuyor. Salonumuzda randevu alıp onaylatırsanız hak kazanırsınız.';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Text(
+        mesaj,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: Color(0xFF636E72), height: 1.45),
+      ),
+    );
+  }
+
+  Widget _buildLinks() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.card_giftcard, size: 18),
+            label: const Text('Kuponlarım'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF6C5CE7),
+              side: const BorderSide(color: Color(0xFF6C5CE7)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
             ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => OdullerimPage(md: widget.md)),
+              );
+            },
           ),
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            insetPadding: const EdgeInsets.all(20),
-            child: InfoDialogContent(),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.stars, size: 18),
+            label: const Text('Puan Ödüllerim'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFE17055),
+              side: const BorderSide(color: Color(0xFFE17055)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PuanOdullerimPage(md: widget.md, salonId: _salonId),
+                ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
 
-// WheelItem Model
-class WheelItem {
-  final String title;
-  final Color color;
-  final String description;
-  final IconData icon;
-  final double fontSizeMultiplier;
+/* ───────── Backend dilim modeli ───────── */
+class _Dilim {
+  final int id;
+  final String ismi;
+  final Color renk;
+  final String tip;
+  final double? deger;
+  final int sira;
 
-  WheelItem(this.title, this.color, this.description, this.icon,
-      this.fontSizeMultiplier);
+  _Dilim({
+    required this.id,
+    required this.ismi,
+    required this.renk,
+    required this.tip,
+    required this.deger,
+    required this.sira,
+  });
+
+  factory _Dilim.fromJson(Map<String, dynamic> j) {
+    return _Dilim(
+      id: (j['id'] is int) ? j['id'] as int : int.tryParse(j['id'].toString()) ?? 0,
+      ismi: (j['ismi'] ?? '').toString(),
+      renk: _hexToColor((j['renk'] ?? '#6C5CE7').toString()),
+      tip: (j['tip'] ?? 'bos').toString(),
+      deger: j['deger'] == null ? null : double.tryParse(j['deger'].toString()),
+      sira: (j['sira'] is int) ? j['sira'] as int : int.tryParse(j['sira'].toString()) ?? 0,
+    );
+  }
+
+  String get kisaEtiket {
+    switch (tip) {
+      case 'puan':            return 'Puan';
+      case 'hizmet_indirimi': return 'Hizmet İnd.';
+      case 'urun_indirimi':   return 'Ürün İnd.';
+      case 'tekrar_dene':     return 'Tekrar Dene';
+      case 'bos':             return 'Boş';
+      default:                return ismi;
+    }
+  }
+
+  String? get rakamEtiket {
+    if (deger == null) return null;
+    if (tip == 'hizmet_indirimi' || tip == 'urun_indirimi') {
+      return '%${deger!.toInt()}';
+    }
+    if (tip == 'puan') return '${deger!.toInt()}';
+    return null;
+  }
 }
 
-// HorizontalTextWheelPainter
-class HorizontalTextWheelPainter extends CustomPainter {
-  final List<WheelItem> items;
-  final double wheelSize;
+Color _hexToColor(String hex) {
+  String h = hex.replaceAll('#', '').trim();
+  if (h.length == 6) h = 'FF$h';
+  return Color(int.tryParse(h, radix: 16) ?? 0xFF6C5CE7);
+}
 
-  HorizontalTextWheelPainter(this.items, this.wheelSize);
+/* ───────── Painters ───────── */
+
+class _WheelPainter extends CustomPainter {
+  final List<_Dilim> dilimler;
+  _WheelPainter(this.dilimler);
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (dilimler.isEmpty) return;
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-    final paint = Paint();
+    final n = dilimler.length;
+    final sectorAngle = 2 * pi / n;
 
-    final sectorAngle = 2 * pi / items.length;
-    final textRadius = radius * 0.65;
-    final iconRadius = radius * 0.4;
-    final baseFontSize = wheelSize * 0.03;
+    final stroke = Paint()
+      ..color = Colors.white.withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
 
-    for (int i = 0; i < items.length; i++) {
-      final startAngle = i * sectorAngle - pi / 2;
-      final endAngle = startAngle + sectorAngle;
-
-      final gradient = SweepGradient(
-        startAngle: startAngle,
-        endAngle: endAngle,
-        colors: [
-          items[i].color.withOpacity(1.0),
-          items[i].color.withOpacity(0.9),
-          items[i].color.withOpacity(0.8),
-          items[i].color.withOpacity(0.9),
-          items[i].color.withOpacity(1.0),
-        ],
-        stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-      );
-
-      paint.shader = gradient.createShader(
-        Rect.fromCircle(center: center, radius: radius),
-      );
-      paint.style = PaintingStyle.fill;
+    for (int i = 0; i < n; i++) {
+      // Pointer üstte (saat 12). 0 derece referans -pi/2 (üst).
+      // Dilim i, üstte başlasın → start = -pi/2 + i*sector
+      final startAngle = -pi / 2 + i * sectorAngle;
+      final paint = Paint()
+        ..color = dilimler[i].renk
+        ..style = PaintingStyle.fill;
 
       final path = Path()
         ..moveTo(center.dx, center.dy)
@@ -780,712 +727,298 @@ class HorizontalTextWheelPainter extends CustomPainter {
         ..close();
 
       canvas.drawPath(path, paint);
+      canvas.drawPath(path, stroke);
 
-      paint.shader = null;
-      paint.color = Colors.white.withOpacity(0.8);
-      paint.style = PaintingStyle.stroke;
-      paint.strokeWidth = 3;
-      canvas.drawLine(
-        center,
-        Offset(
-          center.dx + radius * cos(startAngle),
-          center.dy + radius * sin(startAngle),
-        ),
-        paint,
-      );
-
-      final textAngle = startAngle + sectorAngle / 2;
-      final fontSize = baseFontSize * items[i].fontSizeMultiplier;
-      final text = items[i].title;
-
-      final words = text.split(' ');
-      final List<String> lines = [];
-      String currentLine = '';
-
-      for (final word in words) {
-        if ((currentLine.isEmpty ? word : '$currentLine $word').length *
-            fontSize <
-            radius * 0.6) {
-          currentLine = currentLine.isEmpty ? word : '$currentLine $word';
-        } else {
-          if (currentLine.isNotEmpty) {
-            lines.add(currentLine);
-          }
-          currentLine = word;
-        }
-      }
-      if (currentLine.isNotEmpty) {
-        lines.add(currentLine);
-      }
-
-      canvas.save();
-      final textX = center.dx + textRadius * cos(textAngle);
-      final textY = center.dy + textRadius * sin(textAngle);
-
-      canvas.translate(textX, textY);
-      canvas.rotate(textAngle + pi / 2);
-
-      final lineHeight = fontSize * 1.2;
-      final totalHeight = lines.length * lineHeight;
-
-      for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        final lineText = lines[lineIndex];
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: lineText,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w900,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.3),
-                  offset: const Offset(1, 1),
-                  blurRadius: 2,
-                ),
-              ],
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-          maxLines: 1,
-          ellipsis: '...',
-        );
-
-        textPainter.layout();
-        final lineY =
-            -totalHeight / 2 + (lineIndex * lineHeight) + lineHeight / 2;
-
-        textPainter.paint(
-          canvas,
-          Offset(-textPainter.width / 2, lineY - textPainter.height / 2),
-        );
-      }
-
-      canvas.restore();
-
-      final iconX = center.dx + iconRadius * cos(textAngle);
-      final iconY = center.dy + iconRadius * sin(textAngle);
-
-      final iconSize = fontSize * 1.8;
-      final iconPainter = TextPainter(
-        textDirection: TextDirection.ltr,
-        text: TextSpan(
-          text: String.fromCharCode(items[i].icon.codePoint),
-          style: TextStyle(
-            fontFamily: items[i].icon.fontFamily,
-            color: Colors.white,
-            fontSize: iconSize,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.3),
-                offset: const Offset(1, 1),
-                blurRadius: 2,
-              ),
-            ],
-          ),
-        ),
-      );
-
-      iconPainter.layout();
-      iconPainter.paint(
-        canvas,
-        Offset(
-          iconX - iconPainter.width / 2,
-          iconY - iconPainter.height / 2,
-        ),
-      );
+      _drawText(canvas, center, radius, startAngle, sectorAngle, dilimler[i], n);
     }
 
-    paint.shader = RadialGradient(
-      colors: [
-        Colors.white,
-        Colors.grey.shade300,
-      ],
-    ).createShader(Rect.fromCircle(center: center, radius: radius * 0.15));
-    paint.style = PaintingStyle.fill;
-    canvas.drawCircle(center, radius * 0.15, paint);
+    // Inner cap
+    final cap = Paint()..color = const Color(0xFF160630);
+    canvas.drawCircle(center, radius * 0.12, cap);
+    canvas.drawCircle(
+      center,
+      radius * 0.12,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+  }
 
-    paint.shader = null;
-    paint.color = Colors.black.withOpacity(0.3);
-    paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = 4;
-    canvas.drawCircle(center, radius * 0.15, paint);
+  void _drawText(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    double startAngle,
+    double sectorAngle,
+    _Dilim d,
+    int n,
+  ) {
+    final midAngle = startAngle + sectorAngle / 2;
+    final hasDeger = d.rakamEtiket != null;
+
+    if (hasDeger) {
+      // Rakam — dış kenara, teğet hizalı, beyaz
+      final numFs = n <= 8 ? 17.0 : 14.0;
+      final catFs = n <= 8 ? 11.0 : 9.0;
+      final numDist = radius - (n <= 8 ? 18 : 15);
+      final nx = center.dx + numDist * cos(midAngle);
+      final ny = center.dy + numDist * sin(midAngle);
+
+      canvas.save();
+      canvas.translate(nx, ny);
+      canvas.rotate(midAngle + pi / 2);
+      _paintText(
+        canvas,
+        d.rakamEtiket!,
+        Offset.zero,
+        TextStyle(
+          color: Colors.white,
+          fontSize: numFs,
+          fontWeight: FontWeight.w900,
+          shadows: const [
+            Shadow(color: Color(0xCC000000), blurRadius: 3, offset: Offset(1, 1)),
+          ],
+        ),
+      );
+      canvas.restore();
+
+      // Kategori
+      final catDist = n <= 8 ? radius * 0.45 : radius * 0.4;
+      final cx = center.dx + catDist * cos(midAngle);
+      final cy = center.dy + catDist * sin(midAngle);
+      canvas.save();
+      canvas.translate(cx, cy);
+      canvas.rotate(midAngle + pi / 2);
+      _paintText(
+        canvas,
+        d.kisaEtiket,
+        Offset.zero,
+        TextStyle(
+          color: Colors.white.withOpacity(0.92),
+          fontSize: catFs,
+          fontWeight: FontWeight.w700,
+          shadows: const [
+            Shadow(color: Color(0x99000000), blurRadius: 2, offset: Offset(0.5, 0.5)),
+          ],
+        ),
+      );
+      canvas.restore();
+    } else {
+      final dist = n <= 8 ? radius * 0.55 : radius * 0.48;
+      final fs = n <= 8 ? 12.0 : 10.0;
+      final tx = center.dx + dist * cos(midAngle);
+      final ty = center.dy + dist * sin(midAngle);
+      canvas.save();
+      canvas.translate(tx, ty);
+      canvas.rotate(midAngle + pi / 2);
+      _paintText(
+        canvas,
+        d.kisaEtiket,
+        Offset.zero,
+        TextStyle(
+          color: Colors.white,
+          fontSize: fs,
+          fontWeight: FontWeight.w700,
+          shadows: const [
+            Shadow(color: Color(0x99000000), blurRadius: 2, offset: Offset(0.5, 0.5)),
+          ],
+        ),
+      );
+      canvas.restore();
+    }
+  }
+
+  void _paintText(Canvas canvas, String text, Offset offset, TextStyle style) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      ellipsis: '…',
+    )..layout(maxWidth: 100);
+    tp.paint(canvas, Offset(offset.dx - tp.width / 2, offset.dy - tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(covariant _WheelPainter oldDelegate) =>
+      oldDelegate.dilimler != dilimler;
+}
+
+class _PointerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF7F1D1D), Color(0xFFEF4444), Color(0xFFFCA5A5), Color(0xFF7F1D1D)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    final path = Path()
+      ..moveTo(size.width / 2, size.height)
+      ..lineTo(0, size.height * 0.18)
+      ..lineTo(size.width, size.height * 0.18)
+      ..close();
+    canvas.drawPath(path, paint);
+    final cap = Paint()..color = const Color(0xFFFBBF24);
+    canvas.drawCircle(Offset(size.width / 2, size.height), 4, cap);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// InfoDialogContent
-class InfoDialogContent extends StatefulWidget {
-  @override
-  State<InfoDialogContent> createState() => _InfoDialogContentState();
-}
+/* ───────── Result Card ───────── */
 
-class _InfoDialogContentState extends State<InfoDialogContent>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacityAnimation;
-  late Animation<double> _scaleAnimation;
+class _ResultCard extends StatelessWidget {
+  final String tip;
+  final String baslik;
+  final String? odulKodu;
+  final VoidCallback onClose;
+  final VoidCallback onMyRewards;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.2, 1.0, curve: Curves.elasticOut),
-      ),
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  const _ResultCard({
+    required this.tip,
+    required this.baslik,
+    required this.odulKodu,
+    required this.onClose,
+    required this.onMyRewards,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _opacityAnimation.value,
-          child: Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 50,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFFFF416C),
-                    Color(0xFF00B0FF),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.info_outline,
-                      color: Color(0xFFFF416C),
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Nasıl Çalışır?',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Şans çarkını kullanmak çok kolay',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildInfoStep(
-                    '1',
-                    'Çarkı Çevir',
-                    'Çarkı çevir butonuna bas ve şansını dene',
-                    Icons.play_circle_outline,
-                    const Color(0xFFFF416C),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildInfoStep(
-                    '2',
-                    'Ödülünü Kazan',
-                    'İşaretçinin gösterdiği ödül senin olacak',
-                    Icons.celebration_outlined,
-                    const Color(0xFF00B0FF),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildInfoStep(
-                    '3',
-                    'Kuponunu Kullan',
-                    'Kazandığın kuponları alışverişinde kullan',
-                    Icons.shopping_cart_outlined,
-                    const Color(0xFF00FFA3),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => Navigator.pop(context),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFFFF416C),
-                          Color(0xFF651FFF),
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF416C).withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle_outline,
-                            color: Colors.white, size: 22),
-                        SizedBox(width: 10),
-                        Text(
-                          'ANLADIM',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final isPrize = odulKodu != null && odulKodu!.isNotEmpty;
+    final emoji = tip == 'tekrar_dene'
+        ? '🍀'
+        : tip == 'bos'
+            ? '🌟'
+            : '🎉';
 
-  Widget _buildInfoStep(String number, String title, String subtitle,
-      IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
+          Text(emoji, style: const TextStyle(fontSize: 56)),
+          const SizedBox(height: 8),
+          Text(
+            tip == 'bos'
+                ? 'Bu sefer olmadı'
+                : tip == 'tekrar_dene'
+                    ? 'Tekrar Dene'
+                    : 'Tebrikler!',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF2D3436),
             ),
-            child: Center(
-              child: Text(
-                number,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tip == 'puan'
+                ? 'Puan kazandınız:'
+                : tip == 'bos' || tip == 'tekrar_dene'
+                    ? ''
+                    : 'Kazandığınız ödül:',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF636E72)),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEEF2FF), Color(0xFFFEF3C7)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              baslik,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF6C5CE7),
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (isPrize) ...[
+            const SizedBox(height: 12),
+            Column(
               children: [
-                Row(
-                  children: [
-                    Icon(icon, color: color, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                      ),
+                const Text(
+                  'Kupon Kodunuz',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF636E72)),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B),
+                      style: BorderStyle.solid,
+                      width: 1.5,
                     ),
-                  ],
+                  ),
+                  child: Text(
+                    odulKodu!,
+                    style: const TextStyle(
+                      color: Color(0xFF92400E),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 3,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    height: 1.5,
-                  ),
+                const Text(
+                  'Bu kodu 30 gün içinde salonda kullanabilirsiniz.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Color(0xFF636E72)),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// WinDialogContent
-class WinDialogContent extends StatefulWidget {
-  final WheelItem item;
-
-  const WinDialogContent({required this.item});
-
-  @override
-  State<WinDialogContent> createState() => _WinDialogContentState();
-}
-
-class _WinDialogContentState extends State<WinDialogContent>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacityAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _rotateAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-      ),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
-      ),
-    );
-
-    _rotateAnimation = Tween<double>(begin: -0.2, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.3, 0.9, curve: Curves.easeOut),
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _opacityAnimation.value,
-          child: Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Transform.rotate(
-              angle: _rotateAnimation.value,
-              child: child,
-            ),
-          ),
-        );
-      },
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 50,
-                spreadRadius: 10,
-              ),
-            ],
-          ),
-          child: Stack(
+          ],
+          const SizedBox(height: 18),
+          Row(
             children: [
-              // Ana içerik
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          widget.item.color,
-                          widget.item.color.withOpacity(0.8),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(32),
-                        topRight: Radius.circular(32),
-                      ),
+              if (isPrize)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onMyRewards,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF6C5CE7),
+                      side: const BorderSide(color: Color(0xFF6C5CE7)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
                     ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 20,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.celebration,
-                            color: widget.item.color,
-                            size: 50,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          '🎉 TEBRİKLER 🎉',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
-                            height: 1.2,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Harika bir ödül kazandınız!',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: const Text('Kuponlarım'),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      children: [
-                        Text(
-                          widget.item.title,
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: widget.item.color,
-                            height: 1.3,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          widget.item.description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: widget.item.color.withOpacity(0.3),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 20,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                'KUPON KODUNUZ',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade600,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'SH${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
-                                  letterSpacing: 3,
-                                  fontFamily: 'Courier',
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Son kullanım: ${DateTime.now().add(const Duration(days: 30)).day.toString().padLeft(2, '0')}/${DateTime.now().add(const Duration(days: 30)).month.toString().padLeft(2, '0')}/${DateTime.now().add(const Duration(days: 30)).year}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+                ),
+              if (isPrize) const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: onClose,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C5CE7),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
                   ),
-                ],
-              ),
-
-              // Çarpı butonu
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.5),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
+                  child: const Text('Tamam'),
                 ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

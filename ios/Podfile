@@ -35,7 +35,7 @@ target 'Runner' do
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
   # OneSignal framework (eğer kullanıyorsan)
-  pod 'OneSignalXCFramework', '5.2.14'
+  pod 'OneSignalXCFramework', '5.5.1'
 end
 
 post_install do |installer|

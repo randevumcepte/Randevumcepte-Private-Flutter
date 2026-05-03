@@ -24,7 +24,7 @@ import 'package:randevu_sistem/yonetici/randevular/appointment-editor.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/takvim.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
-import 'package:randevu_sistem/yonetici/santral/arama.dart';
+// import 'package:randevu_sistem/yonetici/santral/arama.dart'; // SIP devre dışı
 import 'package:randevu_sistem/yonetici/santral/santralraporlari.dart';
 
 import 'package:randevu_sistem/yonetici/subesecimi.dart';

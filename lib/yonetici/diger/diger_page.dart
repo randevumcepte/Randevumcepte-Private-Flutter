@@ -40,6 +40,7 @@ import 'menu/satisraporlari/satisraporu.dart';
 import 'menu/seanstakibi/seanstakibi.dart';
 import 'menu/seanstakibi/seanstakibiyeni.dart';
 import 'menu/senetler/senetlistesi.dart';
+import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
 import 'package:http/http.dart' as http;
 
 bool menu_sayfasindayiz = false;
@@ -735,6 +736,25 @@ class _MenuState extends State<Menu> {
                           child: Masraflar(
                             odeme_yontemi: '',
                             tarih: '',
+                            isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                if (kullanicirolu < 5)
+                  _buildMenuButton(
+                    icon: Icons.message_rounded,
+                    label: 'SMS Yönetimi',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: SmsYonetimiPage(
+                            kullanicirolu: kullanicirolu,
                             isletmebilgi: widget.isletmebilgi,
                           ),
                         ),

@@ -129,12 +129,8 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
-    return   _isLoading
-        ? Center(child: CircularProgressIndicator())
-        : Scaffold(
-
-
-
+    return Scaffold(
+        backgroundColor: Colors.white,
         appBar:AppBar(
           title:Text('Seans Takibi',style: TextStyle(color: Colors.black),),
           leading: IconButton(
@@ -160,7 +156,9 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
 
 
         ),
-        body:SingleChildScrollView(
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF6A1B9A)))
+            : SingleChildScrollView(
           child: Column(
 
             children: [

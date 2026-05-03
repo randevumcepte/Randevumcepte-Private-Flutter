@@ -536,7 +536,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text("Vionna Güzellik Salonu", style: TextStyle(color: Colors.white, fontSize: 16)),
+          Text("Ezgi Takmaz Güzellik Merkezi", style: TextStyle(color: Colors.white, fontSize: 16)),
           SizedBox(width: 28),
           Expanded(
             child: Row(

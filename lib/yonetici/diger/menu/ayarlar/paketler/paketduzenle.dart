@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
 
 import '../../../../../Backend/backend.dart';
 import '../../../../../Models/isletmehizmetleri.dart';
@@ -35,31 +36,25 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
 
   late String seciliisletme;
   TextEditingController paketadi = TextEditingController();
+  TextEditingController paketSeans = TextEditingController();
+  TextEditingController paketFiyat = TextEditingController();
+  TextEditingController paketSure = TextEditingController();
   List<PaketHizmetleri>pakethizmetleri = [];
   PaketHizmetleri? secilihizmet;
 
-  void hizmetekle(PaketHizmetleri? editlenecek) async {
-    final List<PaketHizmetleri> selectedItems = await Navigator.push(
+  void hizmetekle() async {
+    FocusScope.of(context).unfocus();
+    final List<PaketHizmetleri>? selectedItems = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => BirHizmetDaha(secilihizmetler: pakethizmetleri,duzenlenecek:editlenecek,isletmebilgi: widget.isletmebilgi,)),
+      MaterialPageRoute(builder: (context) => BirHizmetDaha(secilihizmetler: pakethizmetleri, isletmebilgi: widget.isletmebilgi)),
     );
-    if(selectedItems != null)
-    {
+    if (!mounted) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (selectedItems != null) {
       setState(() {
-
-        selectedItems.forEach((element) {
-          pakethizmetleri.add(element);
-          if(editlenecek != null)
-            pakethizmetleri.removeAt(pakethizmetleri.indexOf(editlenecek));
-
-
-
-        });
-
-
+        pakethizmetleri = selectedItems;
       });
     }
-
   }
 
 
@@ -79,10 +74,13 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
 
     seciliisletme = (await secilisalonid())!;
     setState(() {
-      paketadi=TextEditingController(text:widget.paket.paket_adi);
+      paketadi = TextEditingController(text: widget.paket.paket_adi);
+      paketSeans = TextEditingController(text: widget.paket.miktar);
+      paketFiyat = TextEditingController(text: backendToTl(widget.paket.fiyat));
+      paketSure = TextEditingController(text: widget.paket.sure);
       final List<dynamic> hizmetdata = widget.paket.hizmetler;
       pakethizmetleri = hizmetdata.map((e) => PaketHizmetleri.fromJson(e)).toList();
-      _isloading=false;
+      _isloading = false;
     });
   }
   @override
@@ -92,37 +90,34 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
       onTap: () {
         FocusScope.of(context).unfocus(); // Hide the keyboard
       },
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          resizeToAvoidBottomInset: false,
-          appBar: new AppBar(
-            title: const Text('Paket Düzenle',style: TextStyle(color: Colors.black),),
-            backgroundColor: Colors.white,
-            leading: IconButton(
-              icon: Icon(Icons.clear_rounded, color: Colors.black),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: SizedBox(
-                    width: 100, // <-- Your width
-                    child: YukseltButonu(isletme_bilgi: widget.isletmebilgi)
-                ),
-              ),
-            ],
-
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: new AppBar(
+          title: const Text('Paket Düzenle',style: TextStyle(color: Colors.black),),
+          backgroundColor: Colors.white,
+          leading: IconButton(
+            icon: Icon(Icons.clear_rounded, color: Colors.black),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-
-          body:  _isloading
-              ? Center(child: CircularProgressIndicator())
-              :Padding(
-            padding: const EdgeInsets.fromLTRB(15, 5, 15, 15),
-            child: Stack(
-
-              children: <Widget>[formUI(context)],
+          actions: [
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                  width: 100, // <-- Your width
+                  child: YukseltButonu(isletme_bilgi: widget.isletmebilgi)
+              ),
             ),
+          ],
+
+        ),
+
+        body:  _isloading
+            ? Center(child: CircularProgressIndicator())
+            :Padding(
+          padding: const EdgeInsets.fromLTRB(15, 5, 15, 15),
+          child: Stack(
+
+            children: <Widget>[formUI(context)],
           ),
         ),
       ),
@@ -174,6 +169,74 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
                 ),
               ),
             ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5.0),
+                        child: Text('Süre (dk)', style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold)),
+                      ),
+                      SizedBox(height: 8),
+                      SizedBox(
+                        height: 40,
+                        child: TextFormField(
+                          controller: paketSure,
+                          keyboardType: TextInputType.number,
+                          decoration: _paketInputDecoration(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5.0),
+                        child: Text('Seans', style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold)),
+                      ),
+                      SizedBox(height: 8),
+                      SizedBox(
+                        height: 40,
+                        child: TextFormField(
+                          controller: paketSeans,
+                          keyboardType: TextInputType.number,
+                          decoration: _paketInputDecoration(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5.0),
+                        child: Text('Fiyat (₺)', style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold)),
+                      ),
+                      SizedBox(height: 8),
+                      SizedBox(
+                        height: 40,
+                        child: TextFormField(
+                          controller: paketFiyat,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [TurkishLiraInputFormatter()],
+                          decoration: _paketInputDecoration(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: Text(
@@ -202,56 +265,37 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
               shrinkWrap: true,
               itemCount: pakethizmetleri.length,
               itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    hizmetekle(pakethizmetleri[index]);
+                return Dismissible(
+                  dismissThresholds: {
+                    DismissDirection.endToStart: 0.5,
                   },
-                  child: Dismissible(
-                    dismissThresholds: {
-                      DismissDirection.startToEnd: 0.5,
-                      DismissDirection.endToStart: 0.5
-                    },
-                    direction: DismissDirection.endToStart,
-                    key: Key(pakethizmetleri[index].hizmet["hizmet_adi"]),
-                    background: Container(
-                      color: Colors.green,
-                      alignment: Alignment.centerLeft,
-                      padding: EdgeInsets.only(left: 20),
-                      child: Icon(Icons.edit, color: Colors.white),
-                    ),
-                    secondaryBackground: Container(
-                      color: Colors.red,
-                      alignment: Alignment.centerRight,
-                      padding: EdgeInsets.only(right: 20),
-                      child: Icon(Icons.delete, color: Colors.white),
-                    ),
-                    onDismissed: (direction) {
-                      setState(() {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '${pakethizmetleri[index].hizmet["hizmet_adi"]} kaldırıldı'),
-                          ),
-                        );
-                        pakethizmetleri.removeAt(index);
-                      });
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: Colors.grey, width: 1.0),
+                  direction: DismissDirection.endToStart,
+                  key: Key('${pakethizmetleri[index].hizmet_id}_$index'),
+                  secondaryBackground: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.only(right: 20),
+                    child: Icon(Icons.delete, color: Colors.white),
+                  ),
+                  background: Container(),
+                  onDismissed: (direction) {
+                    setState(() {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${pakethizmetleri[index].hizmet["hizmet_adi"]} kaldırıldı'),
                         ),
+                      );
+                      pakethizmetleri.removeAt(index);
+                    });
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey, width: 1.0),
                       ),
-                      child: ListTile(
-                        title: Text(pakethizmetleri[index].hizmet["hizmet_adi"]),
-                        trailing: Text(
-                          'Seans : ' +
-                              pakethizmetleri[index].seans.toString() +
-                              "\nFiyat : " +
-                              pakethizmetleri[index].fiyat.toString() +
-                              " ₺",
-                        ),
-                      ),
+                    ),
+                    child: ListTile(
+                      title: Text(pakethizmetleri[index].hizmet["hizmet_adi"]?.toString() ?? ''),
                     ),
                   ),
                 );
@@ -265,7 +309,7 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
               contentPadding: const EdgeInsets.fromLTRB(10, 0, 5, 5),
               title: Text('Hizmet Ekle'),
               trailing: Icon(Icons.add,color: Colors.purple,),
-              onTap: () => hizmetekle(secilihizmet),
+              onTap: () => hizmetekle(),
             ),
             const Divider(
               height: 1.0,
@@ -277,11 +321,16 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    // Check if isletmebilgi is null
-
-
-                    // Now you can safely call submitForm
-                    submitForm(widget.paket.id.toString(), seciliisletme, paketadi.text, pakethizmetleri, context);
+                    submitForm(
+                      widget.paket.id.toString(),
+                      seciliisletme,
+                      paketadi.text,
+                      pakethizmetleri,
+                      paketSure.text,
+                      paketSeans.text,
+                      tlToBackend(paketFiyat.text),
+                      context,
+                    );
                   },
                   child: Text('Kaydet'),
                   style: ElevatedButton.styleFrom(
@@ -308,23 +357,40 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
     }
   }
 
+  InputDecoration _paketInputDecoration() {
+    return InputDecoration(
+      isDense: true,
+      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+    );
+  }
+
 
 }
-Future<void> submitForm(String paket_id, String salonid, String paket_adi, List<PaketHizmetleri> pakethizmetleri, BuildContext context) async {
-  // Convert services to JSON format
+Future<void> submitForm(String paket_id, String salonid, String paket_adi, List<PaketHizmetleri> pakethizmetleri, String paketsure, String seanslar, String fiyatlar, BuildContext context) async {
   List<Map<String, dynamic>> hizmetler = pakethizmetleri.map((hizmet) => hizmet.toJson()).toList();
 
-  // Create form data
   Map<String, dynamic> formData = {
     'paket_id': paket_id,
     'adpaket': paket_adi,
     'hizmetler': hizmetler,
-    // Add other form fields as necessary
+    'paketsure': paketsure,
+    'seanslar': seanslar,
+    'fiyatlar': fiyatlar,
   };
 
   log('formdata ' + formData.toString());
 
-  // Make HTTP request
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/paket_ekle_guncelle/' + salonid.toString()),
     headers: {'Content-Type': 'application/json'},
@@ -332,14 +398,13 @@ Future<void> submitForm(String paket_id, String salonid, String paket_adi, List<
   );
 
   if (response.statusCode == 200) {
-    log('etkinlik ekleme : ' + response.body);
+    log('paket güncelleme : ' + response.body);
 
     Navigator.of(context).pop(true);
   } else {
-    // Show error message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Etkinlik eklenirken bir hata oluştu! Hata kodu : ' + response.statusCode.toString()),
+        content: Text('Paket güncellenirken bir hata oluştu! Hata kodu : ' + response.statusCode.toString()),
       ),
     );
     debugPrint('Error: ${response.body}');

@@ -610,223 +610,107 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                       padding: const EdgeInsets.all(5),
                       child: Column(
                         children: [
-                          widget.isletmebilgi["randevu_takvim_turu"] >= 0 ?
-                          Row(
-                            children: [
-                              Expanded(
-                                  child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children:[
-                                        Text('Personel', style: TextStyle(fontSize: 11)),
-                                        SizedBox(height:5),
-                                        GestureDetector(
-                                          onTap: _closeKeyboard, // YENİ: Dropdown'a tıklanınca klavyeyi kapat
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            height: 40,
-                                            width:double.infinity,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              border: Border.all(color: Color(0xFF6A1B9A)),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: DropdownButtonHideUnderline(
-                                              child: DropdownButton2<Personel>(
-                                                isExpanded: true,
-                                                hint: Text(
-                                                  'Personel Seç',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Theme.of(context).hintColor,
-                                                  ),
-                                                ),
-                                                value: secilipersonel[index],
-                                                items: personelliste
-                                                    .map((item) => DropdownMenuItem(
-                                                  value: item,
-                                                  child: Text(
-                                                    item.personel_adi,
-                                                    style: const TextStyle(fontSize: 14),
-                                                  ),
-                                                ))
-                                                    .toList(),
-                                                onChanged: (value) {
-                                                  _closeKeyboard(); // YENİ: Değişiklikte klavyeyi kapat
-                                                  setState(() {
-                                                    secilipersonel[index] = value!;
-                                                    randevuhizmetleri[index].personel_id = value.id;
-                                                  });
-                                                },
-                                                buttonStyleData: const ButtonStyleData(
-                                                  padding: EdgeInsets.symmetric(horizontal: 16),
-                                                  height: 50,
-                                                  width: 400,
-                                                ),
-                                                dropdownStyleData: const DropdownStyleData(maxHeight: 400),
-                                                menuItemStyleData: const MenuItemStyleData(height: 40),
-                                                dropdownSearchData: DropdownSearchData(
-                                                  searchController: personel,
-                                                  searchInnerWidgetHeight: 50,
-                                                  searchInnerWidget: Container(
-                                                    height: 50,
-                                                    padding: const EdgeInsets.only(top: 8, bottom: 4, right: 8, left: 8),
-                                                    child: TextFormField(
-                                                      expands: true,
-                                                      maxLines: null,
-                                                      controller: personel,
-                                                      decoration: InputDecoration(
-                                                        isDense: true,
-                                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                        hintText: 'Personel Ara..',
-                                                        hintStyle: const TextStyle(fontSize: 12),
-                                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  searchMatchFn: (item, searchValue) {
-                                                    return item.value!.personel_adi.toString().toLowerCase().contains(searchValue.toLowerCase());
-                                                  },
-                                                ),
-                                                onMenuStateChange: (isOpen) {
-                                                  if (!isOpen) {
-                                                    _closeKeyboard(); // YENİ: Dropdown kapanınca klavyeyi kapat
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ]
-                                  )
-                              ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Yardımcı Personel(-ler)', style: TextStyle(fontSize: 11)),
-                                    SizedBox(height: 5),
-                                    GestureDetector(
-                                      onTap: _closeKeyboard, // YENİ: Dropdown'a tıklanınca klavyeyi kapat
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        height: 40,
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          border: Border.all(color: Color(0xFF6A1B9A)),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: DropdownButtonHideUnderline(
-                                          child: DropdownButton2<Personel>(
-                                            isExpanded: true,
-                                            customButton: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                                              alignment: Alignment.centerLeft,
-                                              child: Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      seciliyardimcipersonel[index]
-                                                          .whereType<Personel>()
-                                                          .map((e) => e.personel_adi)
-                                                          .join(', ')
-                                                          .trim()
-                                                          .isNotEmpty
-                                                          ? seciliyardimcipersonel[index]
-                                                          .whereType<Personel>()
-                                                          .map((e) => e.personel_adi)
-                                                          .join(', ')
-                                                          : 'Yardımcı Personel(-ler)i Seç',
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        color: seciliyardimcipersonel[index].whereType<Personel>().isEmpty
-                                                            ? Theme.of(context).hintColor
-                                                            : Colors.black,
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
-                                                      maxLines: 1,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            value: null,
-                                            onChanged: (_) {},
-                                            items: personelliste.map((item) {
-                                              return DropdownMenuItem<Personel>(
-                                                value: item,
-                                                child: StatefulBuilder(
-                                                  builder: (context, menuSetState) {
-                                                    final isSelected = seciliyardimcipersonel[index].contains(item);
-                                                    return InkWell(
-                                                      onTap: () {
-                                                        _closeKeyboard(); // YENİ: Seçim yapılınca klavyeyi kapat
-                                                        setState(() {
-                                                          if (isSelected) {
-                                                            seciliyardimcipersonel[index].remove(item);
-                                                            randevuhizmetyardimcipersoneller.removeWhere((element){return element.index == index  && element.yardimcipersonel['id'].toString() == item.id.toString();});
-                                                          } else {
-                                                            seciliyardimcipersonel[index].add(item);
-                                                            randevuhizmetyardimcipersoneller.add(new RandevuHizmetYardimciPersonelleri('',item.toJson(),index.toString()));
-                                                          }
-                                                        });
-                                                        menuSetState(() {});
-                                                      },
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                                              color: isSelected ? Colors.blue : null,
-                                                            ),
-                                                            const SizedBox(width: 8),
-                                                            Flexible(
-                                                              child: Text(
-                                                                item.personel_adi,
-                                                                style: const TextStyle(fontSize: 14),
-                                                                overflow: TextOverflow.ellipsis,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              );
-                                            }).toList(),
-                                            buttonStyleData: const ButtonStyleData(
-                                              height: 40,
-                                              padding: EdgeInsets.symmetric(horizontal: 0),
-                                            ),
-                                            dropdownStyleData: const DropdownStyleData(
-                                              maxHeight: 400,
-                                              width: null,
-                                            ),
-                                            menuItemStyleData: const MenuItemStyleData(height: 40),
-                                          ),
+                          (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
+                                  widget.isletmebilgi["randevu_takvim_turu"] == 1) ?
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children:[
+                              Text('Personel', style: TextStyle(fontSize: 11)),
+                              SizedBox(height:5),
+                              GestureDetector(
+                                onTap: _closeKeyboard,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  height: 40,
+                                  width:double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(color: Color(0xFF6A1B9A)),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton2<Personel>(
+                                      isExpanded: true,
+                                      hint: Text(
+                                        'Personel Seç',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Theme.of(context).hintColor,
                                         ),
                                       ),
+                                      value: secilipersonel[index],
+                                      items: personelliste
+                                          .map((item) => DropdownMenuItem(
+                                        value: item,
+                                        child: Text(
+                                          item.personel_adi,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        _closeKeyboard();
+                                        setState(() {
+                                          secilipersonel[index] = value!;
+                                          randevuhizmetleri[index].personel_id = value.id;
+                                        });
+                                      },
+                                      buttonStyleData: const ButtonStyleData(
+                                        padding: EdgeInsets.symmetric(horizontal: 16),
+                                        height: 50,
+                                        width: 400,
+                                      ),
+                                      dropdownStyleData: const DropdownStyleData(maxHeight: 400),
+                                      menuItemStyleData: const MenuItemStyleData(height: 40),
+                                      dropdownSearchData: DropdownSearchData(
+                                        searchController: personel,
+                                        searchInnerWidgetHeight: 50,
+                                        searchInnerWidget: Container(
+                                          height: 50,
+                                          padding: const EdgeInsets.only(top: 8, bottom: 4, right: 8, left: 8),
+                                          child: TextFormField(
+                                            expands: true,
+                                            maxLines: null,
+                                            controller: personel,
+                                            decoration: InputDecoration(
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              hintText: 'Personel Ara..',
+                                              hintStyle: const TextStyle(fontSize: 12),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                          ),
+                                        ),
+                                        searchMatchFn: (item, searchValue) {
+                                          return item.value!.personel_adi.toString().toLowerCase().contains(searchValue.toLowerCase());
+                                        },
+                                      ),
+                                      onMenuStateChange: (isOpen) {
+                                        if (!isOpen) {
+                                          _closeKeyboard();
+                                        }
+                                      },
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ],
+                            ]
                           ) : SizedBox(),
-                          SizedBox(height: 5),
+                          (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
+                                  widget.isletmebilgi["randevu_takvim_turu"] == 1) ?
+                          SizedBox(height: 5) : SizedBox(),
                           Wrap(
                             spacing: 10,
                             runSpacing: 10,
                             children: [
 
+                                if (widget.isletmebilgi["randevu_takvim_turu"] == 2)
                                 SizedBox(
                                   width: columnWidth,
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Cihaz (Opsiyonel)', style: TextStyle(fontSize: 11)),
+                                      Text('Cihaz', style: TextStyle(fontSize: 11)),
                                       SizedBox(height: 5),
                                       GestureDetector(
                                         onTap: _closeKeyboard, // YENİ: Dropdown'a tıklanınca klavyeyi kapat
@@ -888,12 +772,13 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                                 ),
 
 
+                                if (widget.isletmebilgi["randevu_takvim_turu"] == 3)
                                 SizedBox(
                                   width: columnWidth,
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Oda (Opsiyonel)', style: TextStyle(fontSize: 11)),
+                                      Text('Oda', style: TextStyle(fontSize: 11)),
                                       SizedBox(height: 5),
                                       GestureDetector(
                                         onTap: _closeKeyboard, // YENİ: Dropdown'a tıklanınca klavyeyi kapat
@@ -1332,7 +1217,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                 bool himzetSeciliDegil = secilihizmet.any((element) => element == null);
                 bool personelSeciliDegil = secilipersonel.any((element) => element == null);
                 bool cihazSeciliDegil = secilicihaz.any((element) => element == null);
-                bool odaSeciliDegil = secilicihaz.any((element) => element == null);
+                bool odaSeciliDegil = secilioda.any((element) => element == null);
 
                 if (widget.isletmebilgi["randevu_takvim_turu"] == 1) {
                   if(personelSeciliDegil) {

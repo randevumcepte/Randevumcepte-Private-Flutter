@@ -6,7 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
+// import 'package:file_picker/file_picker.dart'; // Apple deprecated-API rejection avoidance — DKImagePickerController
 import 'dart:io';
 
 import 'package:photo_view/photo_view.dart';
@@ -118,19 +118,24 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
     PermissionStatus status = await Permission.storage.request();
 
     if (status.isGranted) {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      // file_picker geçici olarak devre dışı (Apple deprecated-API reddi)
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Belge yükleme özelliği geçici olarak kullanılamıyor.')),
+      );
+      return;
+      // Aşağıdaki blok kullanılmıyor; file_picker geri eklendiğinde uncomment edin.
+      /*
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx'],
       );
 
-      setState(() {
-        _isLoading = false;
-      });
-
       if (result != null) {
         String? extension = result.files.single.extension;
 
-        // Allowed MIME types mapped by their extensions
         final Map<String, String> mimeTypes = {
           'pdf': 'application/pdf',
           'doc': 'application/msword',
@@ -144,9 +149,8 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
             belge = File(result.files.single.path!);
           });
         } else {
-          // Handle invalid file type here
           print('Invalid file type selected.');
-        }
+        }*/
       }
     } else if (status.isDenied) {
       // Handle the case when permission is denied

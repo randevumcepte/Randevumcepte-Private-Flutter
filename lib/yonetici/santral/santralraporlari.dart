@@ -9,8 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yonetici/santral/callkit/main.dart';
-import 'package:randevu_sistem/yonetici/santral/sipsrc/callscreen.dart';
-import 'package:randevu_sistem/yonetici/santral/sipsrc/dialpad.dart';
+// import 'package:randevu_sistem/yonetici/santral/sipsrc/callscreen.dart'; // SIP devre dışı
+// import 'package:randevu_sistem/yonetici/santral/sipsrc/dialpad.dart'; // SIP devre dışı
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import '../../../../Frontend/popupdialogs.dart';
