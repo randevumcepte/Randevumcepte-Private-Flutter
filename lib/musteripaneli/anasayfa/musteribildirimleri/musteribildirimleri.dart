@@ -73,7 +73,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
     final url = 'https://app.randevumcepte.com.tr/api/v1/bildirimgetirmusteri';
 
     Map<String, dynamic> formData = {
-      'sube': '362',
+      'sube': '361',
       'user_id': widget.md.id.toString(),
     };
 

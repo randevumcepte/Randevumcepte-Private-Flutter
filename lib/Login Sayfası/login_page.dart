@@ -96,7 +96,7 @@ class _HomeState extends State<LoginPage> {
                   child:  FadeAnimation(
                     1,
                     Image.asset(
-                      'images/ezgitakmaz.png',
+                      'images/yasemintuzun.png',
                       width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
                       height: 100,
                       fit: BoxFit.contain,
@@ -432,7 +432,7 @@ class _HomeState extends State<LoginPage> {
       } else {
         MusteriDanisan musteri = MusteriDanisan.fromJson(userMap);
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '362')['salonlar'];
+        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '361')['salonlar'];
 
         bildirimkimligiekleguncelle(musteri.id.toString(),"",body['message']['user_type'].toString(),localStorage.getString('onesignal_player_id')??"");
         if(widget.randevuSayfasinaYonlendir)

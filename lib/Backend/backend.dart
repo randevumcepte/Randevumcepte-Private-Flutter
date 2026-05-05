@@ -3815,7 +3815,7 @@ async {
 }
 String arayanBilgiVer(String phone){
 
-  dynamic musteriAdi = arayanbilgi(phone,'362');
+  dynamic musteriAdi = arayanbilgi(phone,'361');
   log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
   return musteriAdi["musteri_adi"];
 }

@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -38,11 +39,23 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
   late TextEditingController _sifre;
 
   final _formKey = GlobalKey<FormState>();
+  final phoneMask = MaskTextInputFormatter(
+    mask: '0### ### ## ##',
+    filter: { "#": RegExp(r'[0-9]') },
+  );
   String _selectedGender = '';
   bool _isObscure = true;
   File? _profileImage;
   Kullanici? _currentUser;
   bool _isLoading = false;
+
+  String _formatPhone(String? raw) {
+    if (raw == null || raw == 'null' || raw.isEmpty) return '0';
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return '0';
+    final onlu = digits.startsWith('0') ? digits : '0' + digits;
+    return phoneMask.maskText(onlu);
+  }
 
   @override
   void initState() {
@@ -60,7 +73,7 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
 
     _adsoyad = TextEditingController(text: _currentUser?.name != 'null' ? _currentUser!.name : '');
     _email = TextEditingController(text: _currentUser?.email != 'null' ? _currentUser!.email : '');
-    _telefon = TextEditingController(text: _currentUser?.gsm1 != 'null' ? _currentUser!.gsm1 : '');
+    _telefon = TextEditingController(text: _formatPhone(_currentUser?.gsm1));
     _unvan = TextEditingController(text: _currentUser?.unvan != 'null' ? _currentUser!.unvan : '');
     _cinsiyet = TextEditingController(text: _currentUser?.cinsiyet ?? '');
     _sifre = TextEditingController(text: '');
@@ -84,7 +97,7 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
   void _updateControllers() {
     _adsoyad.text = _currentUser?.name != 'null' ? _currentUser!.name : '';
     _email.text = _currentUser?.email != 'null' ? _currentUser!.email : '';
-    _telefon.text = _currentUser?.gsm1 != 'null' ? _currentUser!.gsm1 : '';
+    _telefon.text = _formatPhone(_currentUser?.gsm1);
     _unvan.text = _currentUser?.unvan != 'null' ? _currentUser!.unvan : '';
 
     if (_currentUser?.cinsiyet == '0') {
@@ -453,10 +466,27 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
                                                       SizedBox(height: 10),
                                                       TextFormField(
                                                         controller: _telefon,
+                                                        inputFormatters: [phoneMask],
                                                         onSaved: (value) {
                                                           _telefon.text = value!;
                                                         },
                                                         keyboardType: TextInputType.phone,
+                                                        onTap: () {
+                                                          if (_telefon.text.length < 2) {
+                                                            _telefon.text = "0";
+                                                          }
+                                                          _telefon.selection = TextSelection.fromPosition(
+                                                            TextPosition(offset: _telefon.text.length),
+                                                          );
+                                                        },
+                                                        onChanged: (value) {
+                                                          if (!value.startsWith("0")) {
+                                                            _telefon.text = "0";
+                                                            _telefon.selection = TextSelection.fromPosition(
+                                                              TextPosition(offset: _telefon.text.length),
+                                                            );
+                                                          }
+                                                        },
                                                         decoration: _inputDecoration(),
                                                       ),
                                                       SizedBox(height: 10),
@@ -543,7 +573,7 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
                                                                   _adsoyad.text,
                                                                   _email.text,
                                                                   _unvan.text,
-                                                                  _telefon.text,
+                                                                  _telefon.text.replaceAll(RegExp(r'\D'), ''),
                                                                   _sifre.text,
                                                                   _selectedGender == 'kadin' ? '0' : '1',
                                                                 );

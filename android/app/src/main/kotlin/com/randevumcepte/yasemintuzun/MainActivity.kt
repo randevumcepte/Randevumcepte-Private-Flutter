@@ -1,4 +1,4 @@
-package com.randevumcepte.ezgitakmaz
+package com.randevumcepte.yasemintuzun
 
 import io.flutter.embedding.android.FlutterActivity
 

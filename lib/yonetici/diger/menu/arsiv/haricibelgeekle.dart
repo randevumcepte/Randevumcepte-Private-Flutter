@@ -151,7 +151,6 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
         } else {
           print('Invalid file type selected.');
         }*/
-      }
     } else if (status.isDenied) {
       // Handle the case when permission is denied
       print('Storage permission denied');

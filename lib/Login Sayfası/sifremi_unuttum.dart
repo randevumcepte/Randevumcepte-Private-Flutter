@@ -59,7 +59,7 @@ TextEditingController ceptelefon = TextEditingController();
                 margin: const EdgeInsets.only(top: 80),
                 child:
                   Image.asset(
-                    'images/ezgitakmaz.png',
+                    'images/yasemintuzun.png',
                     width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
                     height: 100,
                     fit: BoxFit.contain,
@@ -272,10 +272,10 @@ TextEditingController ceptelefon = TextEditingController();
       'cep_telefon':tel,
       'sms_baslik' : '',
       'sms_apikey' : '',
-      'salonidler' : '362',
+      'salonidler' : '361',
       'sms_username':'',
       'sms_secret':'',
-      'isletmeadi': 'Ezgi Takmaz Güzellik Merkezi',
+      'isletmeadi': 'Yasemin Tüzün Güzellik Merkezi',
       'appBundle': appBundle
       // Add other form fields
     };

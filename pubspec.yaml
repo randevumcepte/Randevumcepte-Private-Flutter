@@ -1,7 +1,7 @@
 name: randevu_sistem
-description: Ezgi Takmaz Güzellik Merkezi Randevu Sistemi Uygulaması
+description: Yasemin Tüzün Güzellik Merkezi Randevu Sistemi Uygulaması
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+1
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
@@ -139,8 +139,8 @@ flutter:
 
   assets:
     - images/
-    - images/ezgitakmaz.png
-    - images/ezgitakmazicon.png
+    - images/yasemintuzun.png
+    - images/yasemintuzunicon.png
     - images/ring.mp3
     - images/announcement.png
     - images/hesapsil.png
@@ -148,12 +148,12 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "images/ezgitakmazicon.png"
+  image_path: "images/yasemintuzunicon.png"
   remove_alpha_ios: true
 
 flutter_native_splash:
   color: "#ffffff"
-  image: images/ezgitakmaz.png
+  image: images/yasemintuzun.png
   android: true
   ios: true
   web: false
