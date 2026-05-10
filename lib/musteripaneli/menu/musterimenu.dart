@@ -1,15 +1,15 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/musteriprofilbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/siparislerim.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../Frontend/backroutes.dart';
-import '../../Frontend/indexedstack.dart';
-import '../../Login Sayfası/checklogin.dart';
-import '../../Login Sayfası/tanitim.dart';
-import '../../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Frontend/backroutes.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
+import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import '../anasayfa/anasayfa.dart';
 import '../anasayfa/carkifelek.dart';
 import '../anasayfa/odullerim.dart';

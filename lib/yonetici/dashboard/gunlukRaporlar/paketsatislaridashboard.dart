@@ -1,4 +1,4 @@
-﻿import 'dart:developer';
+import 'dart:developer';
 
 
 import 'package:flutter/material.dart';
@@ -7,10 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../Backend/backend.dart';
-import '../../../Frontend/altyuvarlakmenu.dart';
-import '../../../Frontend/sfdatatable.dart';
-import '../../../Models/paketsatislari.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/paketsatislari.dart';
 import '../../adisyonlar/musteri_detay.dart';
 
 class PaketSatislariDashboard  extends StatefulWidget {

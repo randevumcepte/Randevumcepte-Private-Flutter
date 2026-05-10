@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:developer';
 
 
@@ -15,9 +15,9 @@ import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 
-import '../../../../../Frontend/datetimeformatting.dart';
-import '../../../../../Models/seanstakibi.dart';
-import '../../../../../Models/urunler.dart';
+import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
+import 'package:randevu_sistem/Models/seanstakibi.dart';
+import 'package:randevu_sistem/Models/urunler.dart';
 
 
 class IslemlerveSeanslar extends StatefulWidget {

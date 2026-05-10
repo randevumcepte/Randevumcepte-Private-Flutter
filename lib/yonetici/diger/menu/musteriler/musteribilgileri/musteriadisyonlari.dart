@@ -1,6 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
-import '../../../../../Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import '../../../../adisyonlar/musteri_detay.dart';
 
 

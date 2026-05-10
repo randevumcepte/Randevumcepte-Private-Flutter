@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'ajanda.dart';
 
 class AjandaEkle extends StatefulWidget {

@@ -1,9 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../../../../Backend/backend.dart';
-import '../../../../../Frontend/altyuvarlakmenu.dart';
-import '../../../../../Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'cihazekle.dart';
 
 class Cihazlar extends StatefulWidget {

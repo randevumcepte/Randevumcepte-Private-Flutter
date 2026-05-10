@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -12,8 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
-import '../../../Backend/backend.dart';
-import '../../../Frontend/filedownload.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/filedownload.dart';
 import '../../diger/menu/randvular/randevularmenu.dart';
 
 class BildirimlerScreen extends StatefulWidget {

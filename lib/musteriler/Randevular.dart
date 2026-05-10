@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../yonetici/adisyonlar/musteri_detay.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/musteri_detay.dart';
 
 class MusteriRandevu extends StatefulWidget {
   const MusteriRandevu({Key? key}) : super(key: key);

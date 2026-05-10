@@ -11,10 +11,10 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/yonetici/diger/menu/senetler/senetlistesi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../Frontend/popupdialogs.dart';
-import '../../../../Frontend/progressloading.dart';
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Models/odemeturu.dart';
+import 'package:randevu_sistem/Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/odemeturu.dart';
 
 
 

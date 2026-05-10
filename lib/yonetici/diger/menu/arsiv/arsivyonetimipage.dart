@@ -6,7 +6,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/arsiv/tumarsiv.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/sadikmusteriler.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
 
-import '../../../../Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import 'beklenenformlar.dart';
 import 'formekle.dart';
 import 'haricibelge.dart';

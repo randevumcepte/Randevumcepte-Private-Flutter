@@ -8,10 +8,10 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../Backend/backend.dart';
-import '../Login Sayfası/login_page.dart';
-import '../Models/personel.dart';
-import '../Models/randevuhizmetleri.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Login Sayfası/login_page.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
 
 class RandevuOnay extends StatefulWidget {
   final List<RandevuHizmet> seciliHizmetler;

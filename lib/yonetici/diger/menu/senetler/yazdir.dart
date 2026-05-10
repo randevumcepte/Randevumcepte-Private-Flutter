@@ -7,8 +7,8 @@ import 'package:printing/printing.dart';
 import 'package:flutter/material.dart';
 import 'package:spelling_number/spelling_number.dart';
 
-import '../../../../Frontend/datetimeformatting.dart';
-import '../../../../Models/senetler.dart';
+import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
+import 'package:randevu_sistem/Models/senetler.dart';
 
 
 class PdfPreviewPage extends StatefulWidget {

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -12,12 +12,12 @@ import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../Backend/backend.dart';
-import '../../../../Frontend/lazyload.dart';
-import '../../../../Frontend/progressloading.dart';
-import '../../../../Frontend/tryInputFormat.dart';
-import '../../../../Models/personel.dart';
-import '../../../../Models/sozlesme.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/lazyload.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/tryInputFormat.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/sozlesme.dart';
 import 'arsivyonetimipage.dart';
 import 'package:http/http.dart' as http;
 

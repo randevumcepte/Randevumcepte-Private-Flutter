@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -11,10 +11,10 @@ import 'package:randevu_sistem/Models/sms_taslaklari.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
-import '../../../../Frontend/backroutes.dart';
-import '../../../../Frontend/progressloading.dart';
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Models/etkinlikler.dart';
+import 'package:randevu_sistem/Frontend/backroutes.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/etkinlikler.dart';
 import 'etkinikler.dart';
 
 class EtkinlikDuzenle extends StatefulWidget {

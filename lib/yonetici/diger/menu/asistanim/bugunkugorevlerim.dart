@@ -1,8 +1,8 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Models/e_asistan.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/e_asistan.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 class BugunlukGorevler extends StatefulWidget {

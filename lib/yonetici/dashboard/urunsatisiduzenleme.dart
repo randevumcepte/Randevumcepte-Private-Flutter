@@ -1,4 +1,4 @@
-﻿import 'dart:developer';
+import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
@@ -9,8 +9,8 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonurunler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 
-import '../../Backend/backend.dart';
-import '../../Models/urunler.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/urunler.dart';
 
 
 class UrunSatisiDuzenleme extends StatefulWidget {

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -10,8 +10,8 @@ import 'package:randevu_sistem/Models/kampanyalar.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
-import '../../../../Backend/backend.dart';
-import '../../../../Models/katilimcilar.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/katilimcilar.dart';
 import 'kampanyadetay.dart';
 import 'kampanyaekle.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';

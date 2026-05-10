@@ -1,8 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
-import '../../../../Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import '../../../adisyonlar/adisyonpage.dart';
 import '../../../adisyonlar/musteri_detay.dart';
 import '../../../dashboard/deneme.dart';

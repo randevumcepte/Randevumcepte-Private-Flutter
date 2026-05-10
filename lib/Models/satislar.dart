@@ -1,4 +1,4 @@
-﻿import '../yonetici/dashboard/paketsatisi.dart';
+import 'package:randevu_sistem/yonetici/dashboard/paketsatisi.dart';
 
 class Satis {
   Satis({

@@ -13,11 +13,11 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/ongorusmenedeni.dart';
 
-import '../../../../../Backend/backend.dart';
-import '../../../../../Models/musteridanisanreferans.dart';
-import '../../../../../Models/personel.dart';
-import '../../../../../Models/sehirler.dart';
-import '../../../../Frontend/lazyload.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/sehirler.dart';
+import 'package:randevu_sistem/Frontend/lazyload.dart';
 
 class YeniOnGorusme extends StatefulWidget {
   final OnGorusmeDataSource ongorusmedatasource;

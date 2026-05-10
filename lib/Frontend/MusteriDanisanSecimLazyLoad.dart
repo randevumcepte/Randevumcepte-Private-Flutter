@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import '../Backend/backend.dart';
-import '../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
 class MusteriDanisanSecimLazyLoad {
   static Future<List<MusteriDanisan>> fetch(

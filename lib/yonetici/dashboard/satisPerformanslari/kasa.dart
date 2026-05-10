@@ -1,8 +1,8 @@
-﻿import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
-import '../../../Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import 'gelirler.dart';
 import 'giderler.dart';
 import 'toplamkasa.dart';

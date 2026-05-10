@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import '../../../adisyonlar/adisyonpage.dart';
 import '../../../adisyonlar/musteri_detay.dart';
 import 'package:randevu_sistem/Backend/backend.dart';

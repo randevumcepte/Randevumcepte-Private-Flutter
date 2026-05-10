@@ -15,12 +15,14 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'Backend/backend.dart';
-import 'Frontend/indexedstack.dart';
-import 'Frontend/randevuguncellemeprovider.dart';
-import 'Login Sayfası/checklogin.dart';
-import 'Login Sayfası/tanitim.dart';
-import 'navigatorkey.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Frontend/randevuguncellemeprovider.dart';
+import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
+import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
+import 'package:randevu_sistem/navigatorkey.dart';
+import 'package:randevu_sistem/theme/app_theme.dart';
+import 'package:randevu_sistem/theme/theme_provider.dart';
 
 late SharedPreferences prefs;
 
@@ -99,27 +101,29 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AppointmentProvider()),
         ChangeNotifierProvider(create: (_) => IndexedStackState()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider(prefs: prefs)),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          fontFamily: 'Roboto',
-          textTheme: TextTheme(
-            bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-            bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
-            bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-            titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-          ),
-        ),
-        navigatorKey: navigatorKey,
-        localizationsDelegates: [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: [const Locale('tr')],
-        locale: const Locale('tr'),
-        home: MyHomePage(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          final platformBrightness =
+              MediaQuery.platformBrightnessOf(context);
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.fromConfig(
+              themeProvider.config,
+              platformBrightness: platformBrightness,
+            ),
+            navigatorKey: navigatorKey,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('tr')],
+            locale: const Locale('tr'),
+            home: MyHomePage(),
+          );
+        },
       ),
     );
   }

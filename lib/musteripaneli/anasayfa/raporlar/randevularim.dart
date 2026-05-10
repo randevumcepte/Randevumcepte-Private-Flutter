@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -6,9 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Models/randevular.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../../../Backend/backend.dart';
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../randevualma/randevual.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/randevualma/randevual.dart';
 import '../../randevularim/randevual.dart';
 
 class MusteriRandevularDashboard extends StatefulWidget {

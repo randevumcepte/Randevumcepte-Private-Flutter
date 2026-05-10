@@ -6,9 +6,9 @@ import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import '../../../../../Frontend/popupdialogs.dart';
-import '../../../../../Frontend/progressloading.dart';
-import '../../../../../Models/urunler.dart';
+import 'package:randevu_sistem/Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Models/urunler.dart';
 
 
 

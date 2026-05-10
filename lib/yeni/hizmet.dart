@@ -8,9 +8,9 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
 
-import '../Frontend/sfdatatable.dart';
-import '../Models/hizmetler.dart';
-import '../yonetici/diger/menu/ayarlar/hizmetler/listedeolmayanhizmet.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/hizmetler.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/hizmetler/listedeolmayanhizmet.dart';
 import 'app_colors.dart';
 import 'calisan_secim.dart';
 import 'musteri_secimi.dart';

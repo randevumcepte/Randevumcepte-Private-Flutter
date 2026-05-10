@@ -1,14 +1,14 @@
-﻿import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
-import '../../Backend/backend.dart';
-import '../../Frontend/tlrakamacevir.dart';
-import '../../Models/adisyonpaketler.dart';
-import '../../Models/paketler.dart';
-import '../../Models/personel.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/tlrakamacevir.dart';
+import 'package:randevu_sistem/Models/adisyonpaketler.dart';
+import 'package:randevu_sistem/Models/paketler.dart';
+import 'package:randevu_sistem/Models/personel.dart';
 
 
 class PaketSatisiDuzenleme extends StatefulWidget {

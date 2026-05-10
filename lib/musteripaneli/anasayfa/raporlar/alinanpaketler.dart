@@ -1,4 +1,4 @@
-﻿
+
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -8,10 +8,10 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 
-import '../../../../../Frontend/sfdatatable.dart';
-import '../../../../../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
-import '../../../../../Models/satisturleri.dart';
+import 'package:randevu_sistem/Models/satisturleri.dart';
 
 
 

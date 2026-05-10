@@ -11,12 +11,12 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/ongorusmenedeni.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../../../Backend/backend.dart';
-import '../../../../../Models/musteridanisanreferans.dart';
-import '../../../../../Models/ongorusmeler.dart';
-import '../../../../../Models/personel.dart';
-import '../../../../../Models/sehirler.dart';
-import '../../../../Frontend/lazyload.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
+import 'package:randevu_sistem/Models/ongorusmeler.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/sehirler.dart';
+import 'package:randevu_sistem/Frontend/lazyload.dart';
 
 class OnGorusmeDuzenle extends StatefulWidget {
   final OnGorusmeDataSource ongorusmedatasource;

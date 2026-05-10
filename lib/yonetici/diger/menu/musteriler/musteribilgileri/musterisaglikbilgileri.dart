@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -10,10 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import '../../../../../Backend/backend.dart';
-import '../../../../../Models/cilttipi.dart';
-import '../../../../../Models/musteri_danisanlar.dart';
-import '../../../../../Models/saglikbilgileri.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/cilttipi.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/saglikbilgileri.dart';
 import '../musteridetaylar.dart';
 
 

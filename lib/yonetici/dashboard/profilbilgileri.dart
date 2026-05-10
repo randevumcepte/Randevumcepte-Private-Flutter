@@ -12,12 +12,12 @@ import 'dart:io';
 import 'package:randevu_sistem/yonetici/dashboard/scaffold_layout_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../Frontend/cropimage.dart';
-import '../../Models/user.dart';
+import 'package:randevu_sistem/Frontend/cropimage.dart';
+import 'package:randevu_sistem/Models/user.dart';
 
 import 'package:http/http.dart' as http;
 
-import '../../musteripaneli/anasayfa/hesapkaldirma.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/hesapkaldirma.dart';
 import 'hesapkaldirmaisletme.dart';
 
 class ProfilBilgileri extends StatefulWidget {

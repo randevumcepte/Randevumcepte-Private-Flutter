@@ -1,6 +1,6 @@
-﻿import 'package:randevu_sistem/Models/tahsilatkalemleri.dart';
+import 'package:randevu_sistem/Models/tahsilatkalemleri.dart';
 
-import '../yonetici/dashboard/paketsatisi.dart';
+import 'package:randevu_sistem/yonetici/dashboard/paketsatisi.dart';
 
 class Senet implements TahsilatKalemleri {
   Senet({

@@ -1,6 +1,6 @@
  import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import '../yonetici/diger/menu/musteriler/yeni_musteri.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
 import 'musteri_bilgi.dart';
 
 

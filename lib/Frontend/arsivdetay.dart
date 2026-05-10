@@ -1,12 +1,12 @@
-﻿// dialog.dart
+// dialog.dart
 import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'filedownloader.dart'; // Import the FileDownloader class
 
-import '../Models/colorandtext.dart';
-import '../Models/form.dart';
+import 'package:randevu_sistem/Models/colorandtext.dart';
+import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
 
 void ArsivDetayGosterDialog(BuildContext context, Arsiv arsiv) {

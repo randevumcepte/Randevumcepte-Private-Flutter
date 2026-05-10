@@ -12,13 +12,13 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../Backend/backend.dart';
-import '../../../../Frontend/progressloading.dart';
-import '../../../../Models/musteri_danisanlar.dart';
-import '../../../../Models/musteridanisanreferans.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../../Models/user.dart';
+import 'package:randevu_sistem/Models/user.dart';
 // import 'musteri_ocr_tara.dart'; // TODO: Tek müşteri OCR tamamlanınca aç
 import 'musteriliste.dart';
 

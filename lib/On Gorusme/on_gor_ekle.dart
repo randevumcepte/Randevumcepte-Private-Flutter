@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
-/*import '../yonetici/randevular/musteri.dart';
+/*import 'package:randevu_sistem/yonetici/randevular/musteri.dart';
 
 class YeniGorusme extends StatefulWidget {
   const YeniGorusme({Key? key}) : super(key: key);

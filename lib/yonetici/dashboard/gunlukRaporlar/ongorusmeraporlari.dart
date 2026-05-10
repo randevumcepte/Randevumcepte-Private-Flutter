@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -8,9 +8,9 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yonetici/dashboard/gunlukRaporlar/ongorduzenle.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../Backend/backend.dart';
-import '../../../Frontend/altyuvarlakmenu.dart';
-import '../../../Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import '../../diger/menu/ongorusmeler/ongorusmeduzenle.dart';
 
 class OnGorusmelerDashboard extends StatefulWidget {

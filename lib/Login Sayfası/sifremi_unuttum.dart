@@ -8,9 +8,9 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 
 // ! import here file animate
-import '../Backend/backend.dart';
-import '../Frontend/progressloading.dart';
-import '../Models/randevuhizmetleri.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
 import 'fade_animation.dart';
 import 'login_page.dart';
 import 'package:http/http.dart' as http;

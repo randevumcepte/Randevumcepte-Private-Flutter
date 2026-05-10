@@ -1,4 +1,4 @@
-﻿
+
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -8,11 +8,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
 
-import '../../Backend/backend.dart';
-import '../../Models/cihazlar.dart';
-import '../../Models/odalar.dart';
-import '../../Models/personel.dart';
-import '../../yeni/app_colors.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/cihazlar.dart';
+import 'package:randevu_sistem/Models/odalar.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/yeni/app_colors.dart';
 
 class HizmetAdd extends StatefulWidget {
   final List<RandevuHizmet> secilihizmetler;

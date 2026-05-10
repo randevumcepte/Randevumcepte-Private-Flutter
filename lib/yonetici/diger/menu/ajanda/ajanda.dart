@@ -1,8 +1,8 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../../../Models/ajanda.dart';
+import 'package:randevu_sistem/Models/ajanda.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';

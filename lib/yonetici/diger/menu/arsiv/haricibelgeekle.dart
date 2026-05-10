@@ -14,10 +14,10 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../Backend/backend.dart';
-import '../../../../Frontend/progressloading.dart';
-import '../../../../Models/musteri_danisanlar.dart';
-import '../../../../Models/personel.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/personel.dart';
 import 'arsivyonetimipage.dart';
 
 class HariciBelgeEkle extends StatefulWidget {

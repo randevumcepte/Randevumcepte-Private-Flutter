@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
@@ -7,12 +7,13 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
 
+import 'package:randevu_sistem/theme/premium_components.dart';
 import 'package:randevu_sistem/yonetici/dashboard/scaffold_layout_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../Backend/backend.dart';
-import '../Frontend/indexedstack.dart';
-import '../Models/user.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Models/user.dart';
 import 'dashboard/home_screen.dart';
 
 class SubeSecimi extends StatefulWidget {
@@ -63,191 +64,215 @@ class _SubeSecimiState extends State<SubeSecimi> {
 
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
+    final scheme = Theme.of(context).colorScheme;
+    final isletmeler = widget.kullanici.yetkili_olunan_isletmeler;
 
-    return  Scaffold(
+    return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Container(
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height,
-          child: Center(
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.36), Colors.white),
+              Color.alphaBlend(
+                  scheme.tertiary.withValues(alpha: 0.08), Colors.white),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Stack(
+                const SizedBox(height: 12),
+                // Top bar — sadece sağda profile circle, sol boş (login akışı)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Container(
-                      height: 230,
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                          image: DecorationImage(
-                              image: AssetImage('images/randevumcepte.jpg'), fit: BoxFit.fill),
-                          borderRadius: BorderRadius.only(
-                              bottomLeft: Radius.circular(20),
-                              bottomRight: Radius.circular(20))),
+                    PremiumCircleAction(
+                      icon: Icons.logout_rounded,
+                      iconColor: scheme.error,
+                      onTap: () => logout(context),
                     ),
-                    Container(
-                      child: Column(
-                        children: [
-
-                          Padding(
-                            padding: const EdgeInsets.only(top: 40.0),
-                            child: Column(
-                              children: [
-
-                                Center(
-                                  child: Text('Hoşgeldiniz',style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold,color:Colors.white),),
-                                ),
-                                Center(
-                                  child: Text(widget.kullanici.name,style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold,color:Colors.white)),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [Container(padding: EdgeInsets.all(20)),],
-                          ),
-
-                          Container(
-                            decoration: const BoxDecoration(
-                                borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(15),
-                                    topRight: Radius.circular(15),
-                                    bottomLeft: Radius.circular(15),
-                                    bottomRight: Radius.circular(15)),
-                                color: Colors.white),
-                            width: width * 0.9,
-                            height: 140,
-                            padding: EdgeInsets.only(top: 0),
-                            child: Column(
-                              children: [
-                                Image.asset('images/yasemintuzun.png', height: 140,),
-
-
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 20,),
-                          Text('İşletme Seçiniz',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.deepPurple,
-                                  fontSize: 25)),
-                          SizedBox(height: 10,),
-                          SingleChildScrollView(
-                            child: Container(
-                              decoration:  BoxDecoration(
-
-                                  borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(20),
-                                      topRight: Radius.circular(20),
-                                      bottomLeft: Radius.circular(20),
-                                      bottomRight: Radius.circular(20)),
-                                   color: Colors.grey[200],
-                                border: Border.all(
-                                  color: Colors.black12, // Color of the border
-                                  width: 1.0, // Width of the border
-                                ),
-
-
-                              ),
-
-                              padding: EdgeInsets.only(left: 40,right: 40,top: 25),
-                              width: MediaQuery.of(context).size.width*0.9,
-                              height: MediaQuery.of(context).size.height * 0.38,
-                              child: GridView.builder(
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 1, // Number of columns
-                                  mainAxisSpacing: 15.0, // Spacing between rows
-                                  crossAxisSpacing: 10.0, // Spacing between columns
-                                  childAspectRatio: 5.5, // Aspect ratio of the items
-                                ),
-
-                                itemCount: widget.kullanici.yetkili_olunan_isletmeler.length,
-                                itemBuilder: (context, index) {
-                                  return ElevatedButton(
-                                    onPressed: () async{
-                                      SharedPreferences localStorage = await SharedPreferences.getInstance();
-                                      seciliIsletmeNoKaydet(
-                                          widget.kullanici.yetkili_olunan_isletmeler[index]['salon_id'].toString(),
-                                          widget.kullanici.yetkili_olunan_isletmeler[index]['salonlar']['salon_adi']);
-
-                                      bildirimkimligiekleguncelle(widget.kullanici.id,widget.kullanici.yetkili_olunan_isletmeler[index]['salon_id'].toString(),"1",localStorage.getString('onesignal_player_id')??"");
-                                      Navigator.of(context).pop();
-
-                                      Navigator.pushAndRemoveUntil(
-                                          context,
-                                          new MaterialPageRoute(
-                                              builder: (context) => new BottomNavigationExample(
-                                                scaffoldMessengerKey: widget.scaffoldMessengerKey,
-                                                kullanici: widget.kullanici,
-                                                isletmebilgi: widget.kullanici.yetkili_olunan_isletmeler[index]['salonlar'],
-                                                uyelikturu: int.parse(widget.kullanici
-                                                    .yetkili_olunan_isletmeler[index]['salonlar']['uyelik_turu'].toString()),)),
-                                            (route) => false,
-                                      ).then((_) {
-                                        // Reset IndexedStackState to 0 after logging in
-                                        Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(0);
-                                      });
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(vertical: 5.0, horizontal: 5.0),
-                                      backgroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10.0),
-                                      ),
-                                      shadowColor: Colors.black54,
-                                      elevation: 6.0,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        // Space between the image and text
-                                        Text(widget.kullanici.yetkili_olunan_isletmeler[index]['salonlar']['salon_adi'],
-                                            style: TextStyle(color: Colors.deepPurple, fontSize: 20)),
-                                      ],
-                                    ),
-                                  );
-                                },
+                  ],
+                ),
+                const SizedBox(height: 28),
+                // Avatar + greeting
+                Center(
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: scheme.primary.withValues(alpha: 0.18),
+                          blurRadius: 22,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: scheme.primary,
+                      size: 40,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Hoşgeldiniz 👋',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.kullanici.name,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                    color: scheme.onSurface,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 32),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 12),
+                  child: Text(
+                    'İşletme Seçiniz',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 20),
+                    itemCount: isletmeler.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final isletme = isletmeler[index];
+                      final salonAdi =
+                          isletme['salonlar']['salon_adi'].toString();
+                      return PremiumGlassCard(
+                        padding: const EdgeInsets.all(14),
+                        onTap: () async {
+                          SharedPreferences localStorage =
+                              await SharedPreferences.getInstance();
+                          seciliIsletmeNoKaydet(
+                            isletme['salon_id'].toString(),
+                            salonAdi,
+                          );
+                          bildirimkimligiekleguncelle(
+                              widget.kullanici.id,
+                              isletme['salon_id'].toString(),
+                              "1",
+                              localStorage.getString('onesignal_player_id') ??
+                                  "");
+                          if (!context.mounted) return;
+                          Navigator.of(context).pop();
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BottomNavigationExample(
+                                scaffoldMessengerKey:
+                                    widget.scaffoldMessengerKey,
+                                kullanici: widget.kullanici,
+                                isletmebilgi: isletme['salonlar'],
+                                uyelikturu: int.parse(isletme['salonlar']
+                                        ['uyelik_turu']
+                                    .toString()),
                               ),
                             ),
-                          ),
-                          Divider(),
-                          SizedBox(height: 10,),
-                          Center(
-                            child: Text('VEYA'),
-                          ),
-                          Container(
-                            padding: EdgeInsets.all(10),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                logout(context);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 5.0, horizontal: 5.0),
-                                backgroundColor: Colors.white,
+                            (route) => false,
+                          ).then((_) {
+                            Provider.of<IndexedStackState>(context,
+                                    listen: false)
+                                .setSelectedIndex(0);
+                          });
+                        },
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color:
+                                    scheme.primary.withValues(alpha: 0.14),
+                                shape: BoxShape.circle,
                               ),
-                              child: Row(
+                              child: Icon(
+                                Icons.storefront_rounded,
+                                color: scheme.primary,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Image.asset(
-                                    'images/logout.png', // Path to your image
-                                    height: 30.0, // Height of the image
+                                  Text(
+                                    salonAdi,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: scheme.onSurface,
+                                      letterSpacing: -0.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  SizedBox(width: 8.0), // Space between the image and text
-                                  Text('ÇIKIŞ YAPIN',
-                                      style: TextStyle(color: Colors.deepPurple, fontSize: 18)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'İşletmeyi aç',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.55),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color:
+                                    scheme.primary.withValues(alpha: 0.10),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 13,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),

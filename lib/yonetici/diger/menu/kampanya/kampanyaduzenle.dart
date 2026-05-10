@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -10,13 +10,13 @@ import 'package:randevu_sistem/Models/paket_hizmetleri.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../Backend/backend.dart';
-import '../../../../Frontend/progressloading.dart';
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Models/kampanyalar.dart';
-import '../../../../Models/musteri_danisanlar.dart';
-import '../../../../Models/paketler.dart';
-import '../../../../Models/sms_taslaklari.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/kampanyalar.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/paketler.dart';
+import 'package:randevu_sistem/Models/sms_taslaklari.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/backroutes.dart';
 import 'kampanyalar.dart';

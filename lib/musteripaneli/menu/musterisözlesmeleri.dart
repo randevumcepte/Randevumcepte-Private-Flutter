@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
@@ -6,10 +6,10 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/form.dart';
-import '../../../../../Frontend/altyuvarlakmenu.dart';
-import '../../../../../Frontend/arsivdetay.dart';
-import '../../../../../Frontend/sfdatatable.dart';
-import '../../../../../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/arsivdetay.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
 class MusteriPaneliArsivDetay extends StatefulWidget {
   final MusteriDanisan md;

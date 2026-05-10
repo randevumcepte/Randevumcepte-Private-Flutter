@@ -1,11 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart' as http;
-import '../../../../../Backend/backend.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
 
 class MusteriIndirimleri extends StatefulWidget {
   final dynamic isletmebilgi;

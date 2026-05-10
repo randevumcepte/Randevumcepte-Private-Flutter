@@ -1,4 +1,4 @@
-﻿import 'dart:developer';
+import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 
@@ -13,12 +13,12 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import 'package:provider/provider.dart';
 
-import '../../../../../Backend/backend.dart';
-import '../../../../../Frontend/indexedstack.dart';
-import '../../../../../Frontend/sfdatatable.dart';
-import '../../../../../Models/musteri_danisanlar.dart';
-import '../../../../../Models/personel.dart';
-import '../../../../../Models/satisturleri.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/satisturleri.dart';
 
 
 

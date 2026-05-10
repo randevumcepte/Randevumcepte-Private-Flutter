@@ -6,8 +6,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:randevu_sistem/Models/katilimcilar.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Models/kampanyalar.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/kampanyalar.dart';
 import 'package:randevu_sistem/Models/colorandtext.dart';
 
 

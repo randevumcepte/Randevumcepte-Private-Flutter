@@ -1,10 +1,10 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
-import '../../Models/islemler.dart';
+import 'package:randevu_sistem/Models/islemler.dart';
 
 class ImageGallery extends StatefulWidget {
   final MusteriDanisan md;

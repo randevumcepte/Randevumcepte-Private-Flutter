@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import '../../../../../Backend/backend.dart';
-import '../../../../../Models/isletmecalismasaatleri.dart';
-import '../../../../../Models/molasaatleri.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/isletmecalismasaatleri.dart';
+import 'package:randevu_sistem/Models/molasaatleri.dart';
 import 'oglen_arasi.dart';
 
 class OglenArasi extends StatefulWidget {

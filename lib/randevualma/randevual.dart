@@ -10,25 +10,25 @@ import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/randevualma/randevuozetonay.dart';
 
-import '../../Backend/backend.dart';
-import '../../Frontend/datetimeformatting.dart';
-import '../../Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
+import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 
-import '../../Models/cihazlar.dart';
-import '../../Models/isletmehizmetleri.dart';
-import '../../Models/musteri_danisanlar.dart';
-import '../../Models/odalar.dart';
-import '../../Models/personel.dart';
-import '../../Models/randevuhizmetleri.dart';
-import '../../Models/randevuhizmetyardimcipersonelleri.dart';
+import 'package:randevu_sistem/Models/cihazlar.dart';
+import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/odalar.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
+import 'package:randevu_sistem/Models/randevuhizmetyardimcipersonelleri.dart';
 
-import '../../Models/randevutekrarsikligi.dart';
-import '../../yeni/app_colors.dart';
+import 'package:randevu_sistem/Models/randevutekrarsikligi.dart';
+import 'package:randevu_sistem/yeni/app_colors.dart';
 
 import 'package:randevu_sistem/yonetici/randevular/musteri.dart';
 
-import '../Models/BosDoluSaatler.dart';
-import '../Models/salonlar.dart';
+import 'package:randevu_sistem/Models/BosDoluSaatler.dart';
+import 'package:randevu_sistem/Models/salonlar.dart';
 
 
 class RandevuAl extends StatefulWidget {

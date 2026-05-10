@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 
 import 'package:flutter/cupertino.dart';
@@ -14,9 +14,9 @@ import 'dart:io';
 import 'package:randevu_sistem/yonetici/dashboard/scaffold_layout_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../Frontend/cropimage.dart';
-import '../../Models/musteri_danisanlar.dart';
-import '../../Models/user.dart';
+import 'package:randevu_sistem/Frontend/cropimage.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/user.dart';
 
 import 'package:http/http.dart' as http;
 

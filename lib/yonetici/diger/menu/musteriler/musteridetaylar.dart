@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'musteribilgileri/arsivdetay.dart';
 import 'islemlerveseanslar.dart';
 import 'musteriadisyonlari.dart';

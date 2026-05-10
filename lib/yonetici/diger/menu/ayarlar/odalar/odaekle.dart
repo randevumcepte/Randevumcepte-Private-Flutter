@@ -1,12 +1,12 @@
-﻿
+
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import '../../../../../Backend/backend.dart';
-import '../../../../../Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import '../personeller/oglen_arasi.dart';
 
 class OdaEkle extends StatefulWidget {

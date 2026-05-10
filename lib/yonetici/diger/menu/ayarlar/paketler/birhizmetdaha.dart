@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
-import '../../../../../Backend/backend.dart';
-import '../../../../../Models/isletmehizmetleri.dart';
-import '../../../../../Models/paket_hizmetleri.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
+import 'package:randevu_sistem/Models/paket_hizmetleri.dart';
 
 class BirHizmetDaha extends StatefulWidget {
   final List<PaketHizmetleri> secilihizmetler;

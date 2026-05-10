@@ -11,12 +11,12 @@ import 'package:randevu_sistem/network_utils/api.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';
 import 'dart:developer';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
-import '../../Backend/backend.dart';
-import '../../Frontend/backroutes.dart';
-import '../../Frontend/indexedstack.dart';
-import '../../Login Sayfası/tanitim.dart';
-import '../../Models/user.dart';
-import '../../basic_bottom_nav_bar.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/backroutes.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
+import 'package:randevu_sistem/Models/user.dart';
+import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
 import '../dashboard/profilbilgileri.dart';
 import '../santral/santralraporlari.dart';
 import '../subesecimi.dart';
@@ -123,11 +123,13 @@ class Menu extends StatefulWidget {
 }
 
 class _MenuState extends State<Menu> {
-  final Color _primaryColor = Color(0xFF7C3AED);
-  final Color _lightPurple = Color(0xFFF3E8FF);
-  final Color _backgroundColor = Color(0xFFFAFAFA);
-  final Color _textColor = Color(0xFF1F2937);
-  final Color _borderColor = Color(0xFFE5E7EB);
+  // Tema-aware getter'lar — picker'da seçilen renge göre güncellenir
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+  Color get _lightPurple =>
+      Theme.of(context).colorScheme.primary.withValues(alpha: 0.10);
+  Color get _textColor => Theme.of(context).colorScheme.onSurface;
+  Color get _borderColor =>
+      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10);
 
   @override
   void initState() {
@@ -371,9 +373,11 @@ class _MenuState extends State<Menu> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: _backgroundColor,
+      backgroundColor: Colors.white,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(
@@ -466,7 +470,20 @@ class _MenuState extends State<Menu> {
             ),
         ],
       ),
-      body: SafeArea(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.36), Colors.white),
+              Color.alphaBlend(
+                  scheme.tertiary.withValues(alpha: 0.08), Colors.white),
+            ],
+          ),
+        ),
+        child: SafeArea(
         child: SingleChildScrollView(
           physics: BouncingScrollPhysics(),
           child: Container(
@@ -810,6 +827,7 @@ class _MenuState extends State<Menu> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

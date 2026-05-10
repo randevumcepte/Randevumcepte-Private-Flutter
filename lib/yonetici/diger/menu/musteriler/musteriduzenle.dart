@@ -12,9 +12,9 @@ import 'package:intl/intl.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../Backend/backend.dart';
-import '../../../../Models/musteri_danisanlar.dart';
-import '../../../../Models/musteridanisanreferans.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
 import 'musteriliste.dart';
 
 

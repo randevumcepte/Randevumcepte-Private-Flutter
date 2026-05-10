@@ -15,10 +15,10 @@ import 'package:randevu_sistem/musteripaneli/randevularim/randevularim.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
-import '../Frontend/indexedstack.dart';
-import '../Login Sayfası/checklogin.dart';
-import '../Login Sayfası/tanitim.dart';
-import '../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
+import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'anasayfa/anasayfa.dart';
 import 'menu/musterimenu.dart';
 
@@ -152,9 +152,9 @@ import 'package:randevu_sistem/yonetici/diger/diger_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../Frontend/indexedstack.dart';
-import '../Login Sayfası/tanitim.dart';
-import '../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'anasayfa/anasayfa.dart';
 import 'anasayfa/raporlar/randevularim.dart';
 import 'avantajlar/avantajlarim.dart';

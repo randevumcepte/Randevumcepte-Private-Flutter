@@ -11,7 +11,7 @@ import 'package:randevu_sistem/Models/sms_taslaklari.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
-import '../../../../Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'etkinikler.dart';
 
 class EtkinlikEkle extends StatefulWidget {

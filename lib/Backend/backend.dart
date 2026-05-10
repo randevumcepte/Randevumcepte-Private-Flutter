@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 
@@ -25,54 +25,54 @@ import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../Models/e_asistan.dart';
-import '../Models/musteridashboard.dart';
-import '../Models/hizmetkategorisi.dart';
-import '../Frontend/progressloading.dart';
-import '../Login Sayfası/checklogin.dart';
-import '../Models/adisyonhizmetler.dart';
-import '../Models/adisyonkalemleri.dart';
-import '../Models/adisyonpaketler.dart';
-import '../Models/adisyonurunler.dart';
-import '../Models/ajanda.dart';
-import '../Models/cdr.dart';
-import '../Models/cihazlar.dart';
-import '../Models/dashboard.dart';
-import '../Models/etkinlikler.dart';
-import '../Models/form.dart';
-import '../Models/hizmetler.dart';
-import '../Models/isletmecalismasaatleri.dart';
-import '../Models/isletmehizmetleri.dart';
-import '../Models/molasaatleri.dart';
-import '../Models/musterisayilari.dart';
-import '../Models/ongorusmeler.dart';
-import '../Models/randevuhizmetleri.dart';
-import '../Models/randevuhizmetyardimcipersonelleri.dart';
-import '../Models/salonlar.dart';
-import '../Models/sehirler.dart';
-import '../Models/senetvadeleri.dart';
-import '../Models/sozlesme.dart';
-import '../Models/kampanyalar.dart';
-import '../Models/odalar.dart';
-import '../Models/paketler.dart';
-import '../Models/personel.dart';
-import '../Models/taksitvadeleri.dart';
-import '../Models/urunler.dart';
-import '../Models/user.dart';
+import 'package:randevu_sistem/Models/e_asistan.dart';
+import 'package:randevu_sistem/Models/musteridashboard.dart';
+import 'package:randevu_sistem/Models/hizmetkategorisi.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
+import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
+import 'package:randevu_sistem/Models/adisyonkalemleri.dart';
+import 'package:randevu_sistem/Models/adisyonpaketler.dart';
+import 'package:randevu_sistem/Models/adisyonurunler.dart';
+import 'package:randevu_sistem/Models/ajanda.dart';
+import 'package:randevu_sistem/Models/cdr.dart';
+import 'package:randevu_sistem/Models/cihazlar.dart';
+import 'package:randevu_sistem/Models/dashboard.dart';
+import 'package:randevu_sistem/Models/etkinlikler.dart';
+import 'package:randevu_sistem/Models/form.dart';
+import 'package:randevu_sistem/Models/hizmetler.dart';
+import 'package:randevu_sistem/Models/isletmecalismasaatleri.dart';
+import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
+import 'package:randevu_sistem/Models/molasaatleri.dart';
+import 'package:randevu_sistem/Models/musterisayilari.dart';
+import 'package:randevu_sistem/Models/ongorusmeler.dart';
+import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
+import 'package:randevu_sistem/Models/randevuhizmetyardimcipersonelleri.dart';
+import 'package:randevu_sistem/Models/salonlar.dart';
+import 'package:randevu_sistem/Models/sehirler.dart';
+import 'package:randevu_sistem/Models/senetvadeleri.dart';
+import 'package:randevu_sistem/Models/sozlesme.dart';
+import 'package:randevu_sistem/Models/kampanyalar.dart';
+import 'package:randevu_sistem/Models/odalar.dart';
+import 'package:randevu_sistem/Models/paketler.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/taksitvadeleri.dart';
+import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/Models/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../musteripaneli/musterialtbar.dart';
-import '../yonetici/dashboard/ozetsayfasi.dart';
+import 'package:randevu_sistem/musteripaneli/musterialtbar.dart';
+import 'package:randevu_sistem/yonetici/dashboard/ozetsayfasi.dart';
 import 'dart:io';
 import 'package:path/path.dart';
 
-import '../yonetici/diger/menu/ayarlar/personeller/personelcalismasaatleri.dart';
-import '../yonetici/diger/menu/ayarlar/personeller/personelmolasaatleri.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personelcalismasaatleri.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personelmolasaatleri.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../yonetici/diger/menu/musteriler/rehberdekimusteriler.dart';
-import '../yonetici/diger/menu/musteriler/yeni_musteri.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/rehberdekimusteriler.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
 
 Future<Map<String,dynamic>> ajandagetir(String salonid,String currpage,String baslik) async {
   SharedPreferences localStorage = await SharedPreferences.getInstance();
@@ -668,6 +668,31 @@ Future<OzetSayfasi> dashboardGunlukRapor(String salonid ) async{
 
   return OzetSayfasi.fromJson(jsonresponse);
 
+}
+
+/// Dashboard karşılaştırma — periyot bazlı (gunluk|haftalik|aylik|yillik) toplam ciro,
+/// önceki periyot, son 7 periyot serisi, top performer'lar, saat yoğunluğu,
+/// kâr-maliyet özeti, alacak.
+///
+/// Backend henüz deploy edilmediyse null döner — UI mock veri ile devam eder.
+Future<Map<String, dynamic>?> dashboardKarsilastirma(
+    String salonId, String period) async {
+  try {
+    final response = await http
+        .get(
+          Uri.parse(
+              'https://app.randevumcepte.com.tr/api/v1/dashboardKarsilastirma/$salonId?period=$period'),
+          headers: {'Content-Type': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      if (body is Map<String, dynamic>) return body;
+    }
+  } catch (e) {
+    log('dashboardKarsilastirma hata: $e');
+  }
+  return null;
 }
 Future<File> _fileFromImageUrl() async {
   final response = await http.get(Uri.parse('https://example.com/xyz.jpg)'));

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,5 +13,5 @@ import 'package:syncfusion_flutter_core/core.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
 
 
-import '../../Frontend/indexedstack.dart';
-import '../../yukselt.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/yukselt.dart';

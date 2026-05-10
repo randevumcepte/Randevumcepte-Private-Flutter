@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
-import '../../../../Models/seanstakibi.dart';
+import 'package:randevu_sistem/Models/seanstakibi.dart';
 
 class SeansTakibi extends StatefulWidget {
   final dynamic isletmebilgi;

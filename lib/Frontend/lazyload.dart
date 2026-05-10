@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/MusteriDanisanSecimLazyLoad.dart';
-import '../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
 class LazyDropdown extends StatefulWidget {
   final String salonId;

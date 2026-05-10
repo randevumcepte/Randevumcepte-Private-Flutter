@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Models/colorandtext.dart';
-import '../../../../Models/etkinlikler.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/colorandtext.dart';
+import 'package:randevu_sistem/Models/etkinlikler.dart';
 
 
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../yonetici/adisyonlar/musteri_detay.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/musteri_detay.dart';
 
 class Tarih extends StatefulWidget {
   Tarih({Key? key}) : super(key: key);

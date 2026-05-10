@@ -1,4 +1,4 @@
-﻿import 'dart:developer';
+import 'dart:developer';
 
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -13,8 +13,8 @@ import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'dart:async';
 
-import '../../../../../Models/musteri_danisanlar.dart';
-import '../../../../../Models/randevular.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/randevular.dart';
 
 
 class MusteriRandevulari extends StatefulWidget {

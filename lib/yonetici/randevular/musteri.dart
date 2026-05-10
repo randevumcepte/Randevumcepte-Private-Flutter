@@ -1,10 +1,10 @@
-﻿import 'dart:developer';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../Backend/backend.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
 import '../diger/menu/musteriler/yeni_musteri.dart';
 
 class Musteri extends StatefulWidget {

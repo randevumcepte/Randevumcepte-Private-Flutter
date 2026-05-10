@@ -10,15 +10,15 @@ import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/randevualma/randevuozetonay.dart';
 import 'package:randevu_sistem/yonetici/subesecimi.dart';
 // ! import here file animate 
-import '../Frontend/indexedstack.dart';
-import '../Models/musteri_danisanlar.dart';
-import '../Models/randevuhizmetleri.dart';
-import '../basic_bottom_nav_bar.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
+import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../musteripaneli/musterialtbar.dart';
+import 'package:randevu_sistem/musteripaneli/musterialtbar.dart';
 
-import '../yonetici/dashboard/home_screen.dart';
+import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
 import 'fade_animation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/network_utils/api.dart';
@@ -26,6 +26,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:randevu_sistem/musteripaneli/anasayfa/anasayfa.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/theme/premium_components.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -74,279 +75,302 @@ class _HomeState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: SingleChildScrollView(
-        child: Container(
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height,
-          decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-
-                    Colors.purple.shade50,
-                    Colors.purple.shade900,
-                  ])),
-          child: Column(
-            children: [
-              Container(
-                  margin: const EdgeInsets.only(top: 40),
-                  child:  FadeAnimation(
-                    1,
-                    Image.asset(
-                      'images/yasemintuzun.png',
-                      width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
-                      height: 100,
-                      fit: BoxFit.contain,
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.42), Colors.white),
+              Color.alphaBlend(
+                  scheme.tertiary.withValues(alpha: 0.10), Colors.white),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: size.height -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom -
+                    32,
+              ),
+              child: Form(
+                key: _formKey,
+                autovalidateMode: _autoValidate,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 24),
+                    // Logo card
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: scheme.primary.withValues(alpha: 0.18),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: FadeAnimation(
+                          1,
+                          Image.asset(
+                            'images/yasemintuzun.png',
+                            height: 80,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
-                  )),
-              Expanded(
-                child: Container(
-                    width: double.infinity,
-                    height: 200,
-                    decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(50),
-                            topRight: Radius.circular(50))),
-                    margin: const EdgeInsets.only(top: 60),
-                    child: Form(
-                      key: _formKey,
-                      autovalidateMode: _autoValidate,
+                    const SizedBox(height: 36),
+                    Text(
+                      'Tekrar Hoşgeldiniz 👋',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Giriş Yap',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    // Form glass card
+                    PremiumGlassCard(
+                      padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          const SizedBox(
-                            height: 50,
-                          ),
-                          Container(
-                              alignment: Alignment.center,
-                              margin: const EdgeInsets.only(left: 1, bottom: 20),
-                              child: const
-                                Text(
-                                  "Kullanıcı Girişi",
-                                  style: TextStyle(
-                                      fontSize: 25,
-                                      color: Colors.purple,
-                                      fontFamily: "Lobster"),
-                                ),
-                              ),
-
-                            Container(
-                                width: double.infinity,
-                                height: 50,
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 10),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 15, vertical: 5),
-                                decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.purple, width: 2),
-
-                                    color: Colors.white,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(20))),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    const Icon(Icons.phone_in_talk),
-                                    Expanded(
-                                      child: Container(
-                                        margin: const EdgeInsets.only(left: 10),
-                                        child: TextFormField(
-                                          keyboardType: TextInputType.number,
-                                          maxLines: 1,
-                                          controller: ceptelefon,
-                                          decoration: const InputDecoration(
-                                            hintText: "Telefon Numarası ...",
-                                            border: InputBorder.none,
-                                          ),
-                                          inputFormatters: [phoneMask],
-                                          validator: (telefonNo) {
-                                            if (telefonNo!.isEmpty) {
-                                              return 'Telefon alanı gereklidir';
-                                            }
-                                            cep_telefon = telefonNo;
-                                            ceptelefon.text=telefonNo;
-                                            return null;
-                                          },
-                                          onSaved: (String? val) {
-                                            cep_telefon = val;
-                                            ceptelefon.text=val!;
-                                          },
-                                          onTap: () {
-                                            // Cursor daima +90'ın sonuna gelsin
-                                            if (ceptelefon.text.length < 2) {
-                                              ceptelefon.text = "0";
-                                            }
-                                            ceptelefon.selection = TextSelection.fromPosition(
-                                              TextPosition(offset: ceptelefon.text.length),
-                                            );
-                                          },
-
-                                          onChanged: (value) {
-                                            // Kullanıcı +90 kısmını silmeye çalışırsa düzelt
-                                            if (!value.startsWith("0")) {
-                                              ceptelefon.text = "0";
-                                              ceptelefon.selection = TextSelection.fromPosition(
-                                                TextPosition(offset: ceptelefon.text.length),
-                                              );
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                )),
-
-
-                            Container(
-                                width: double.infinity,
-                                height: 50,
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 5),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 15, vertical: 5),
-                                decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.purple, width: 2),
-
-                                    color: Colors.white,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(20))),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    const Icon(Icons.password_outlined),
-                                    Expanded(
-                                      child: Container(
-                                        margin: const EdgeInsets.only(left: 10),
-                                        child: TextFormField(
-                                          obscureText: true,
-                                          maxLines: 1,
-                                          decoration: const InputDecoration(
-                                            hintText: "Şifre ...",
-                                            border: InputBorder.none,
-                                          ),
-                                          validator: (passwordValue) {
-                                            if (passwordValue!.isEmpty) {
-                                              return 'Şifre gereklidir';
-                                            }
-                                            password = passwordValue;
-                                            return null;
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                )),
-
-
-                            Padding(
-                              padding: EdgeInsets.only(top: 0.0),
-                              child: TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (builder) => SifremiUnuttum(randevuSayfasinaYonlendir: widget.randevuSayfasinaYonlendir,seciliHizmetler: widget.seciliHizmetler,tarih: widget.tarih,saat: widget.saat,),
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    "Şifremi Unuttum",
-                                    style: TextStyle(
-                                        decoration: TextDecoration.underline,
-                                        color: Colors.deepPurple,
-                                        fontSize: 16.0,
-                                        fontFamily: "WorkSansMedium"),
-                                  )),
+                          TextFormField(
+                            keyboardType: TextInputType.number,
+                            maxLines: 1,
+                            controller: ceptelefon,
+                            decoration: InputDecoration(
+                              labelText: 'Telefon',
+                              hintText: '0### ### ## ##',
+                              prefixIcon: const Icon(Icons.phone_in_talk_rounded),
                             ),
-
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
-                                      _login();
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.purpleAccent, backgroundColor: Colors.transparent, // Set the text color
-                                    shadowColor: Colors.transparent, // Remove shadow
-                                    elevation: 0, // Remove elevation
-                                    side: BorderSide(color: Colors.purple, width: 1.5), // Add a border
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
+                            inputFormatters: [phoneMask],
+                            validator: (telefonNo) {
+                              if (telefonNo!.isEmpty) {
+                                return 'Telefon alanı gereklidir';
+                              }
+                              cep_telefon = telefonNo;
+                              ceptelefon.text = telefonNo;
+                              return null;
+                            },
+                            onSaved: (String? val) {
+                              cep_telefon = val;
+                              ceptelefon.text = val!;
+                            },
+                            onTap: () {
+                              if (ceptelefon.text.length < 2) {
+                                ceptelefon.text = "0";
+                              }
+                              ceptelefon.selection =
+                                  TextSelection.fromPosition(
+                                TextPosition(offset: ceptelefon.text.length),
+                              );
+                            },
+                            onChanged: (value) {
+                              if (!value.startsWith("0")) {
+                                ceptelefon.text = "0";
+                                ceptelefon.selection =
+                                    TextSelection.fromPosition(
+                                  TextPosition(
+                                      offset: ceptelefon.text.length),
+                                );
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            obscureText: true,
+                            maxLines: 1,
+                            decoration: const InputDecoration(
+                              labelText: 'Şifre',
+                              hintText: '••••••••',
+                              prefixIcon: Icon(Icons.lock_outline_rounded),
+                            ),
+                            validator: (passwordValue) {
+                              if (passwordValue!.isEmpty) {
+                                return 'Şifre gereklidir';
+                              }
+                              password = passwordValue;
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (builder) => SifremiUnuttum(
+                                      randevuSayfasinaYonlendir:
+                                          widget.randevuSayfasinaYonlendir,
+                                      seciliHizmetler:
+                                          widget.seciliHizmetler,
+                                      tarih: widget.tarih,
+                                      saat: widget.saat,
                                     ),
                                   ),
-                                  child: Container(
-                                    width: 90,
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      'Giriş Yap',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.purple, // Match the text color to the border
-                                      ),
-                                    ),
-                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Şifremi Unuttum',
+                                style: TextStyle(
+                                  color: scheme.primary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
-
-
-
-                              const SizedBox(
-                                width: 25,
                               ),
-
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (builder) => KayitOl(randevuSayfasinaYonlendir: widget.randevuSayfasinaYonlendir,seciliHizmetler: widget.seciliHizmetler,tarih: widget.tarih,saat: widget.saat,),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.purpleAccent, backgroundColor: Colors.transparent, // Set the text color
-                                    shadowColor: Colors.transparent, // Remove shadow
-                                    elevation: 0, // Remove elevation
-                                    side: BorderSide(color: Colors.purple, width: 1.5), // Add a border
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  child: Container(
-                                    width: 150,
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    child: const Text(
-                                      'Müşteri Ol',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.purple, // Match the text color to the border
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-
-                            ],
+                            ),
                           ),
-                          const SizedBox(
-                            height: 20.00,
-                          ),
-
-
                         ],
                       ),
-                    )),
-              )
-            ],
+                    ),
+                    const SizedBox(height: 20),
+                    // Giriş Yap — gradient action button (full width)
+                    Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: () {
+                          if (_formKey.currentState!.validate()) {
+                            _login();
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [scheme.primary, scheme.tertiary],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: scheme.primary.withValues(alpha: 0.36),
+                                blurRadius: 18,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Giriş Yap',
+                                style: TextStyle(
+                                  color: scheme.onPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_rounded,
+                                  size: 18, color: scheme.onPrimary),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Divider with text
+                    Row(
+                      children: [
+                        Expanded(
+                            child: Container(
+                                height: 1,
+                                color: scheme.onSurface
+                                    .withValues(alpha: 0.10))),
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'VEYA',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface.withValues(alpha: 0.45),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                            child: Container(
+                                height: 1,
+                                color: scheme.onSurface
+                                    .withValues(alpha: 0.10))),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Müşteri Ol — outlined
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (builder) => KayitOl(
+                              randevuSayfasinaYonlendir:
+                                  widget.randevuSayfasinaYonlendir,
+                              seciliHizmetler: widget.seciliHizmetler,
+                              tarih: widget.tarih,
+                              saat: widget.saat,
+                            ),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 52),
+                        side: BorderSide(
+                            color: scheme.primary.withValues(alpha: 0.5),
+                            width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        foregroundColor: scheme.primary,
+                      ),
+                      child: const Text(
+                        'Müşteri Ol',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

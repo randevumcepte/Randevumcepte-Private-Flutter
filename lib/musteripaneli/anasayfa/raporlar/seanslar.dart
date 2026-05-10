@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:developer';
 
 
@@ -9,19 +9,19 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/datetimeformatting.dart';
-import '../../../../Frontend/popupdialogs.dart';
-import '../../../../Models/randevular.dart';
-import '../../../../Models/seanstakibi.dart';
-import '../../../../Models/urunler.dart';
-import '../../../../yeni/urun_ekle.dart';
+import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
+import 'package:randevu_sistem/Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Models/randevular.dart';
+import 'package:randevu_sistem/Models/seanstakibi.dart';
+import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/yeni/urun_ekle.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 
-import '../../../yonetici/randevular/randevuduzenle-yeni.dart';
+import 'package:randevu_sistem/yonetici/randevular/randevuduzenle-yeni.dart';
 
 
 

@@ -1,8 +1,8 @@
-﻿import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
-import '../../../../../Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 
 
 

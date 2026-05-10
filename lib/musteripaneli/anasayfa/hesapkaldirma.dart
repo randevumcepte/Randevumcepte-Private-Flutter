@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
-import '../../Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
 
 class HesapKaldirma extends StatefulWidget {
   final MusteriDanisan kullanici;

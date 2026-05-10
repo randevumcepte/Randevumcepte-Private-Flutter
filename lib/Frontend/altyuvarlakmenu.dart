@@ -1,10 +1,10 @@
-﻿/*import 'package:circular_menu/circular_menu.dart';
+/*import 'package:circular_menu/circular_menu.dart';
 import 'package:flutter/material.dart';
 
-import '../yonetici/adisyonlar/satislar/tahsilat.dart';
-import '../yonetici/diger/menu/musteriler/yeni_musteri.dart';
-import '../yonetici/randevular/appointment-editor.dart';
-import '../yonetici/randevular/randevu_page.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
+import 'package:randevu_sistem/yonetici/randevular/appointment-editor.dart';
+import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 
 class AltYuvarlakYeniEkleMenu extends StatelessWidget {
   final dynamic isletme_bilgi;

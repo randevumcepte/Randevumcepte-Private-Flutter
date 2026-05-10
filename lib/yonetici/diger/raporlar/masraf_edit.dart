@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
 
 

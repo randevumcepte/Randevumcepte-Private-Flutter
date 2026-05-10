@@ -3,13 +3,13 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 
-import '../Backend/backend.dart';
-import '../Frontend/popupdialogs.dart';
-import '../Frontend/sfdatatable.dart';
-import '../Models/cihazlar.dart';
-import '../Models/hizmetler.dart';
-import '../Models/personel.dart';
-import '../Models/personelcihaz.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/cihazlar.dart';
+import 'package:randevu_sistem/Models/hizmetler.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/personelcihaz.dart';
 import 'app_colors.dart';
 
 class CalisanSecimi extends StatefulWidget {

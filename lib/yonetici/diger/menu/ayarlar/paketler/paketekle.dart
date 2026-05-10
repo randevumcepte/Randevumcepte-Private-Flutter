@@ -1,4 +1,4 @@
-﻿
+
 import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart' as http;
@@ -9,10 +9,10 @@ import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
 
-import '../../../../../Backend/backend.dart';
-import '../../../../../Models/isletmehizmetleri.dart';
-import '../../../../../Models/paket_hizmetleri.dart';
-import '../../../../../Models/user.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
+import 'package:randevu_sistem/Models/paket_hizmetleri.dart';
+import 'package:randevu_sistem/Models/user.dart';
 import '../../satislar/paketsatislariyeni.dart';
 import 'birhizmetdaha.dart';
 

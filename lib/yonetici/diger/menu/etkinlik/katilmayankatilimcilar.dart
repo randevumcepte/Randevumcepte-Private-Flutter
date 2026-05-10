@@ -5,7 +5,7 @@ import 'package:randevu_sistem/Models/etkinlikler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 
 int kayitsayisi=0;
 class KatilmayanEtkinlikKatilimci extends StatefulWidget {

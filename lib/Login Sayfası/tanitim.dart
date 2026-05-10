@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';
@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 
-import '../randevualma/randevual.dart';
+import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'login_page.dart';
 
 

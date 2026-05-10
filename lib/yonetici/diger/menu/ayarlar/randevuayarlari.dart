@@ -1,4 +1,4 @@
-﻿
+
 import 'dart:convert';
 import 'dart:developer';
 
@@ -8,10 +8,10 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/takvimayari.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import '../../../../Backend/backend.dart';
-import '../../../../Frontend/altyuvarlakmenu.dart';
-import '../../../../Models/randevuaraligi.dart';
-import '../../../../Models/salonlar.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Models/randevuaraligi.dart';
+import 'package:randevu_sistem/Models/salonlar.dart';
 
 
 

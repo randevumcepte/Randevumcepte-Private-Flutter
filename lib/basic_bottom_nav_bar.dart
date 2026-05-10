@@ -235,6 +235,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
 
     _menuOverlayEntry = OverlayEntry(
       builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
         final bottomNavigationBarHeight = 60.0;
         final safeAreaBottom = MediaQuery.of(context).padding.bottom;
         final screenSize = MediaQuery.of(context).size;
@@ -314,7 +315,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                                   vertical: isLandscape ? 12 : 16
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.deepPurple.withOpacity(0.05),
+                                color: scheme.primary.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.only(
                                   topLeft: Radius.circular(24),
                                   topRight: Radius.circular(24),
@@ -326,7 +327,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                                     width: 40,
                                     height: 4,  // Yükseklik aynı kaldı
                                     decoration: BoxDecoration(
-                                      color: Colors.deepPurple.withOpacity(0.2),
+                                      color: scheme.primary.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),
@@ -337,7 +338,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                                       style: TextStyle(
                                         fontSize: 18,  // FONT AYNEN 18 PİKSEL KALDI
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.deepPurple,
+                                        color: scheme.primary,
                                         fontFamily: 'Montserrat',
                                         decoration: TextDecoration.none,
                                       ),
@@ -349,13 +350,13 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                                       width: 36,  // Boyut aynı kaldı
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        color: Colors.deepPurple.withOpacity(0.1),
+                                        color: scheme.primary.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(18),
                                       ),
                                       child: Icon(
                                         Icons.close,
                                         size: 20,  // İkon boyutu aynı kaldı
-                                        color: Colors.deepPurple,
+                                        color: scheme.primary,
                                       ),
                                     ),
                                   ),
@@ -516,11 +517,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
   }
 
 // Menü başlığı widget'ı
-  Widget _buildMenuHeader() {
+  Widget _buildMenuHeader(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.withOpacity(0.05),
+        color: scheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -532,7 +534,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withOpacity(0.2),
+              color: scheme.primary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -543,7 +545,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.deepPurple,
+                color: scheme.primary,
                 fontFamily: 'Montserrat',
                 decoration: TextDecoration.none,
               ),
@@ -555,13 +557,13 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.deepPurple.withOpacity(0.1),
+                color: scheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Icon(
                 Icons.close,
                 size: 20,
-                color: Colors.deepPurple,
+                color: scheme.primary,
               ),
             ),
           ),
@@ -868,7 +870,10 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
           return false;
         }
       },
-      child: Scaffold(
+      child: Builder(
+        builder: (context) {
+          final scheme = Theme.of(context).colorScheme;
+          return Scaffold(
         resizeToAvoidBottomInset: false,
         body: _pages[_selectedTab],
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -887,14 +892,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                colors: _isMenuOpen
-                    ? [Colors.deepPurple.shade700, Colors.purple.shade700]
-                    : [Colors.deepPurple, Colors.purple],
+                colors: [scheme.primary, scheme.tertiary],
               ),
               border: Border.all(color: Colors.white, width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.deepPurple.withOpacity(0.4),
+                  color: scheme.primary.withValues(alpha: 0.4),
                   blurRadius: 15,
                   offset: Offset(0, 5),
                 ),
@@ -934,7 +937,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                       }
                       _selectScreen(index);
                     },
-                    selectedItemColor: Colors.deepPurple,
+                    selectedItemColor: scheme.primary,
                     unselectedItemColor: Colors.black26,
                     type: BottomNavigationBarType.fixed,
                     selectedFontSize: 10,
@@ -979,6 +982,8 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
             );
           },
         ),
+      );
+        },
       ),
     );
   }

@@ -10,7 +10,7 @@ import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../Backend/backend.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
 import '../home_screen.dart';
 
 

@@ -5,8 +5,8 @@ import 'package:randevu_sistem/Models/etkinlikler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Frontend/smsgondersabitbuton.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Frontend/smsgondersabitbuton.dart';
 
 int kayitsayisi=0;
 class BeklenenEtkinlikKatilimci extends StatefulWidget {

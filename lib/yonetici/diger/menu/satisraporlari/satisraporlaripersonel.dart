@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../Backend/backend.dart';
-import '../../../../Models/musteri_danisanlar.dart';
-import '../../../../Models/user.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/user.dart';
 import '../musteriler/musteridetaylar.dart';
 
 class SalesReportsPersonelPage extends StatefulWidget {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yeni/tarih_secimi.dart';
 
-import '../yonetici/diger/menu/musteriler/yeni_musteri.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
 
 
 class MusteriSecim extends StatefulWidget {

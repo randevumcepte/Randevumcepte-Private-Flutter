@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 
 
 
-import '../Models/kampanyalar.dart';
+import 'package:randevu_sistem/Models/kampanyalar.dart';
 
 class Services {
 

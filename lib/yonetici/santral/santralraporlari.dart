@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -13,22 +13,22 @@ import 'package:randevu_sistem/yonetici/santral/callkit/main.dart';
 // import 'package:randevu_sistem/yonetici/santral/sipsrc/dialpad.dart'; // SIP devre dışı
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../../Frontend/popupdialogs.dart';
-import '../../../../Models/randevular.dart';
+import 'package:randevu_sistem/Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Models/randevular.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 
-import '../../Frontend/dialpad.dart';
-import '../../Frontend/filedownload.dart';
-import '../../Frontend/indexedstack.dart';
-import '../../Models/cdr.dart';
-import '../../Models/personel.dart';
-import '../../Models/sipclient.dart';
-import '../../Models/user.dart';
-import '../../main.dart';
+import 'package:randevu_sistem/Frontend/dialpad.dart';
+import 'package:randevu_sistem/Frontend/filedownload.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Models/cdr.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/sipclient.dart';
+import 'package:randevu_sistem/Models/user.dart';
+import 'package:randevu_sistem/main.dart';
 import '../diger/menu/musteriler/yeni_musteri.dart';
 //import 'arama.dart';
 //import 'arama.dart';

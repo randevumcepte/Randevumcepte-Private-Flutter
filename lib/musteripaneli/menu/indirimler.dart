@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
 class KazanilanIndirimlerPage extends StatefulWidget {
   final MusteriDanisan md;

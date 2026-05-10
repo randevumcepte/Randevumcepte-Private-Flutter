@@ -8,7 +8,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/kampanyalar.dart';
-import '../../../../Models/kampanyalar.dart';
+import 'package:randevu_sistem/Models/kampanyalar.dart';
 
 import 'kampanyabeklenenkatilimcilar.dart';
 import 'kampanyakatilankatilimcilar.dart';

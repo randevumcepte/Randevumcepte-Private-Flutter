@@ -7,9 +7,9 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../Frontend/sfdatatable.dart';
-import '../../../../Models/ajanda.dart';
-import '../../../../Models/hatirlatma_saat.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/ajanda.dart';
+import 'package:randevu_sistem/Models/hatirlatma_saat.dart';
 import 'ajanda.dart';
 
 class AjandaDuzenle extends StatefulWidget {

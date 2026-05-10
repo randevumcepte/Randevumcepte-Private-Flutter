@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../Models/ajanda.dart';
+import 'package:randevu_sistem/Models/ajanda.dart';
 import '../../diger/menu/ajanda/ajanda.dart';
 
 class AjandaDuzenle extends StatefulWidget {

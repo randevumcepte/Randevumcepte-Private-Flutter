@@ -1,4 +1,4 @@
-﻿import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';
@@ -15,15 +15,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sticky_headers/sticky_headers/widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../Backend/backend.dart';
-import '../../Frontend/indexedstack.dart';
-import '../../Login Sayfası/login_page.dart';
-import '../../Login Sayfası/tanitim.dart';
-import '../../Models/dashboard.dart';
-import '../../Models/musteri_danisanlar.dart';
-import '../../Models/musteridashboard.dart';
-import '../../randevualma/randevual.dart';
-import '../../yonetici/dashboard/bildirimler/bildirimler.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Login Sayfası/login_page.dart';
+import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
+import 'package:randevu_sistem/Models/dashboard.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/musteridashboard.dart';
+import 'package:randevu_sistem/randevualma/randevual.dart';
+import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler.dart';
 
 import '../randevularim/randevularim.dart';
 import '../test.dart';

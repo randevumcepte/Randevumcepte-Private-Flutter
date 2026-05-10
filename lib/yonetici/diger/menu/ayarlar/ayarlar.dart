@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/theme/theme_picker_screen.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/odalar/odalar.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/calisma_saatleri.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeller.dart';
@@ -68,6 +69,15 @@ class _AyarlarState extends State<Ayarlar> {
         iconColor: const Color(0xFFF44336),
         gradientColors: [const Color(0xFFEF5350), const Color(0xFFF44336)],
         route: MusteriIndirimleri(isletmebilgi: widget.isletmebilgi),
+      ),
+      AyarlarItem(
+        title: 'Görünüm',
+        icon: Icons.palette_rounded,
+        iconColor: const Color(0xFF7C3AED),
+        gradientColors: [const Color(0xFFA78BFA), const Color(0xFF7C3AED)],
+        route: ThemePickerScreen(
+          canEditServer: widget.kullanicirolu < 4,
+        ),
       ),
 
     ]);

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/senetler/senetodeme.dart';
 
-import '../../../../Models/senetler.dart';
+import 'package:randevu_sistem/Models/senetler.dart';
 
 class SenetVadeleri extends StatefulWidget {
   final Senet senet;

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'dart:collection';
 
-import '../../../yeni/app_colors.dart';
+import 'package:randevu_sistem/yeni/app_colors.dart';
 import 'hizmetler.dart';
 
 class HizmetCalisan extends StatefulWidget {

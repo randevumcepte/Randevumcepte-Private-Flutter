@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../yeni/hizmet.dart';
+import 'package:randevu_sistem/yeni/hizmet.dart';
 
 
 

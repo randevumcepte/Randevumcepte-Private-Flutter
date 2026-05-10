@@ -1,10 +1,13 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:provider/provider.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
+import 'package:randevu_sistem/theme/theme_provider.dart';
 import 'package:randevu_sistem/yonetici/dashboard/ozetsayfasi_sevices.dart';
 import 'package:randevu_sistem/yonetici/dashboard/profilbilgileri.dart';
 import 'package:randevu_sistem/yonetici/dashboard/satisPerformanslari/alacaklardashboard.dart';
@@ -14,15 +17,15 @@ import 'package:randevu_sistem/yonetici/diger/menu/kasa/kasaraporu.dart';
 import 'package:sticky_headers/sticky_headers/widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
-import '../../Frontend/dialpad.dart';
-import '../../Frontend/sfdatatable.dart';
-import '../../Models/ajanda.dart';
-import '../../Models/dashboard.dart';
-import '../../Models/e_asistan.dart';
-import '../../Models/musteri_danisanlar.dart';
-import '../../Models/paketler.dart';
-import '../../Models/sms_taslaklari.dart';
-import '../../Models/user.dart';
+import 'package:randevu_sistem/Frontend/dialpad.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Models/ajanda.dart';
+import 'package:randevu_sistem/Models/dashboard.dart';
+import 'package:randevu_sistem/Models/e_asistan.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/paketler.dart';
+import 'package:randevu_sistem/Models/sms_taslaklari.dart';
+import 'package:randevu_sistem/Models/user.dart';
 import '../adisyonlar/adisyonpage.dart';
 import '../adisyonlar/yeniadisyon.dart';
 import '../diger/menu/ajanda/ajandaekle.dart';
@@ -67,6 +70,14 @@ class _HomeState extends State<DashBoard> {
   bool isloading = true;
   bool randevularYukleniyor = true;
 
+  // Performans bölümünde seçilen periyot
+  // 'gunluk' | 'haftalik' | 'aylik' | 'yillik'
+  String _perfPeriod = 'aylik';
+
+  // Periyot bazlı API yanıt cache'i — anahtar 'gunluk', 'haftalik' vb.
+  // Backend endpoint canlı değilse boş kalır, UI mock fallback'e düşer.
+  final Map<String, Map<String, dynamic>> _karsCache = {};
+
   void _updateNotificationCount() {
     _refreshDashboardData();
   }
@@ -97,6 +108,14 @@ class _HomeState extends State<DashBoard> {
     SharedPreferences localStorage = await SharedPreferences.getInstance();
     isletmeadi = localStorage.getString('isletmeadi')!;
     seciliisletme = await secilisalonid();
+
+    // Tema bilgisini salon-bazlı server senkronu için bağla.
+    if (mounted && seciliisletme != null && seciliisletme!.isNotEmpty) {
+      // ignore: use_build_context_synchronously
+      context.read<ThemeProvider>().bindSalon(seciliisletme!);
+      // Karşılaştırma verisini de yükle (background, fallback'li)
+      _loadKarsilastirma(_perfPeriod);
+    }
 
     int bugunYarinTimestamp = DateTime.now().millisecondsSinceEpoch;
 
@@ -173,916 +192,640 @@ class _HomeState extends State<DashBoard> {
 
   @override
   Widget build(BuildContext context) {
-    double _ratingValue = 0;
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
+    if (isloading) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Color(0xFFF5F5F5),
-      body: isloading
-          ? Center(child: CircularProgressIndicator())
-          : ScaffoldLayoutBuilder(
-        backgroundColorAppBar:
-        const ColorBuilder(Colors.transparent, Color(0xFF6A1B9A)),
-        textColorAppBar: const ColorBuilder(Colors.white),
-        appBarBuilder: _appBar,
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.36), Colors.white),
+              Color.alphaBlend(
+                  scheme.tertiary.withValues(alpha: 0.08), Colors.white),
+            ],
+          ),
+        ),
         child: SafeArea(
-          child: Container(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height,
-            child: Center(
-              child: RefreshIndicator(
-                color: Colors.purple[800],
-                backgroundColor: Colors.white,
-                strokeWidth: 3.0,
-                onRefresh: () => _refreshPage(),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  physics: BouncingScrollPhysics(
-                      parent: ClampingScrollPhysics()),
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          Container(
-                            height: 260,
-                            width: double.infinity,
-                            decoration: const BoxDecoration(
-                                image: DecorationImage(
-                                    image: AssetImage(
-                                        'images/randevumcepte.jpg'),
-                                    fit: BoxFit.fill),
-                                borderRadius: BorderRadius.only(
-                                    bottomLeft: Radius.circular(20),
-                                    bottomRight: Radius.circular(20))),
-                          ),
-                          Container(
-                            child: Column(children: [
-                              kullanicirolu < 5
-                                  ? SizedBox(height: 50)
-                                  : SizedBox(height: 100),
-                              if (kullanicirolu < 5)
-                                Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // SMS bilgisini sola taşıdık
-                                    Container(
-                                      padding: EdgeInsets.only(
-                                          left: 30, top: 40),
-                                      child: Text(
-                                        ozetsayfabilgi.kalansms + " SMS",
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18),
-                                      ),
-                                    ),
-                                    // Telefon ikonunu sağa ekledik
-                                    Container(
-                                      padding:
-                                      EdgeInsets.only(right: 30, top: 40),
-                                      child: IconButton(
-                                        onPressed: () {
-                                          _dialPadManager.updateDialPad(context, true, "", widget.kullanici);
-                                        },
-                                        icon: Icon(
-                                          Icons.phone,
-                                          color: Colors.white,
-                                          size: 28,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+        bottom: false,
+        child: RefreshIndicator(
+          color: scheme.primary,
+          backgroundColor: Colors.white,
+          strokeWidth: 3,
+          onRefresh: _refreshPage,
+          child: ListView(
+            physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics()),
+            padding: const EdgeInsets.only(bottom: 40),
+            children: [
+              _premiumTopBar(context),
+              _premiumGreeting(context),
+              const SizedBox(height: 16),
+              _premiumQuickStrip(context),
+              const SizedBox(height: 18),
+              _premiumSectionHeader(context, 'Bugünün Özeti', null),
+              const SizedBox(height: 10),
+              _premiumDailyGrid(context),
+              if (kullanicirolu != 4) ...[
+                const SizedBox(height: 18),
+                _periodChips(context),
+                const SizedBox(height: 10),
+                _premiumPerformanceRow(context),
+                const SizedBox(height: 12),
+                _comparisonCard(context),
+                const SizedBox(height: 12),
+                _topPerformersCard(context),
+                const SizedBox(height: 12),
+                _hourlyDensityCard(context),
+                if (widget.kullanici.yetkili_olunan_isletmeler.length > 1) ...[
+                  const SizedBox(height: 12),
+                  _branchPerformanceCard(context),
+                ],
+                const SizedBox(height: 12),
+                _profitMarginCard(context),
+              ],
+              if (kullanicirolu < 5) ...[
+                const SizedBox(height: 18),
+                _premiumSectionHeader(context, 'Santral Aktivitesi', null),
+                const SizedBox(height: 10),
+                _premiumSantralRow(context),
+              ],
+              const SizedBox(height: 18),
+              _premiumSectionHeader(
+                  context,
+                  kullanicirolu == 5
+                      ? 'Bugünün Randevuları'
+                      : 'Asistanım',
+                  null),
+              const SizedBox(height: 10),
+              kullanicirolu == 5
+                  ? _premiumTodayAppointments(context)
+                  : _premiumEAsistan(context),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+      ),
+    );
+  }
 
-                              Container(
-                                decoration: const BoxDecoration(
-                                    borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(15),
-                                        topRight: Radius.circular(15),
-                                        bottomLeft: Radius.circular(15),
-                                        bottomRight: Radius.circular(15)),
-                                    color: Colors.white),
-                                width: width * 0.9,
-                                height: 180,
-                                padding: EdgeInsets.only(top: 15),
-                                child: Column(
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                          bottom: 10, right: 10),
-                                      child: Text(
-                                        'Günlük Raporlar',
-                                        style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    Wrap(
-                                      spacing: 5.0,
-                                      runSpacing: 5.0,
-                                      alignment: WrapAlignment.center,
-                                      children: [
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              PageTransition(
-                                                type: PageTransitionType
-                                                    .rightToLeft,
-                                                duration: Duration(
-                                                    milliseconds: 500),
-                                                child: RandevularDashboard(
-                                                    kullanicirolu: widget
-                                                        .kullanicirolu,
-                                                    isletmebilgi: widget
-                                                        .isletmebilgi),
-                                              ),
-                                            );
-                                          },
-                                          child: Column(
-                                            children: [
-                                              Text('Randevular'),
-                                              Text(ozetsayfabilgi
-                                                  .randevusayisi
-                                                  .toString()),
-                                            ],
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                            Color(0xFF5E35B1),
-                                            foregroundColor: Colors.white,
-                                            elevation: 5,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                              BorderRadius.circular(
-                                                  5.0),
-                                            ),
-                                            minimumSize: Size(150, 50),
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              PageTransition(
-                                                type: PageTransitionType
-                                                    .rightToLeft,
-                                                duration: Duration(
-                                                    milliseconds: 500),
-                                                child: OnGorusmelerDashboard(
-                                                    isletmebilgi: widget
-                                                        .isletmebilgi),
-                                              ),
-                                            );
-                                          },
-                                          child: Column(
-                                            children: [
-                                              Text('Ön Görüşme'),
-                                              Text(ozetsayfabilgi
-                                                  .ongorusmesayisi
-                                                  .toString()),
-                                            ],
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            foregroundColor: Colors.white,
-                                            backgroundColor:
-                                            Color(0xFF9C27B0),
-                                            elevation: 5,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                              BorderRadius.circular(
-                                                  5.0),
-                                            ),
-                                            minimumSize: Size(150, 50),
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                                context,
-                                                PageTransition(
-                                                    type:
-                                                    PageTransitionType
-                                                        .rightToLeft,
-                                                    duration: Duration(
-                                                        milliseconds:
-                                                        500),
-                                                    child:
-                                                    PaketSatislariDashboard(
-                                                      kullanicirolu: widget
-                                                          .kullanicirolu,
-                                                      isletmebilgi: widget
-                                                          .isletmebilgi,
-                                                    )));
-                                          },
-                                          child: Column(
-                                            children: [
-                                              Text('Paket Satışı'),
-                                              Text(ozetsayfabilgi
-                                                  .paketsatissayisi
-                                                  .toString())
-                                            ],
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                              Color(0xFFEA80FC),
-                                              foregroundColor:
-                                              Colors.white,
-                                              elevation: 5,
-                                              shape:
-                                              RoundedRectangleBorder(
-                                                  borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                      5.0)),
-                                              minimumSize:
-                                              Size(150, 50)),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                                context,
-                                                PageTransition(
-                                                    type:
-                                                    PageTransitionType
-                                                        .rightToLeft,
-                                                    duration: Duration(
-                                                        milliseconds:
-                                                        500),
-                                                    child:
-                                                    UrunSatislariDashboard(
-                                                      kullanicirolu: widget
-                                                          .kullanicirolu,
-                                                      isletmebilgi: widget
-                                                          .isletmebilgi,
-                                                    )));
-                                          },
-                                          child: Column(
-                                            children: [
-                                              Text('Ürün Satışı'),
-                                              Text(ozetsayfabilgi
-                                                  .urunsatissayisi
-                                                  .toString())
-                                            ],
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                              foregroundColor:
-                                              Colors.white,
-                                              backgroundColor:
-                                              Color(0xFF1976D2),
-                                              elevation: 5,
-                                              shape:
-                                              RoundedRectangleBorder(
-                                                  borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                      5.0)),
-                                              minimumSize:
-                                              Size(150, 50)),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                  width: MediaQuery.of(context).size.width,
-                                  height: MediaQuery.of(context)
-                                      .size
-                                      .height *
-                                      0.62,
-                                  child: Column(
-                                    children: [
-                                      if (kullanicirolu != 4)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              right: 115, top: 5),
-                                          child: Text(
-                                            'Aylık Satış Performansı',
-                                            style: TextStyle(
-                                                fontWeight:
-                                                FontWeight.bold,
-                                                fontSize: 16),
-                                          ),
-                                        ),
-                                      if (kullanicirolu != 4)
-                                        SizedBox(height: 5),
-                                      if (kullanicirolu != 4)
-                                        Container(
-                                          width: width * 0.95,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                            children: [
-                                              ElevatedButton(
-                                                  onPressed: () {
-                                                    if (widget.kullanicirolu !=
-                                                        5)
-                                                      Navigator.push(
-                                                          context,
-                                                          PageTransition(
-                                                              type:
-                                                              PageTransitionType
-                                                                  .rightToLeft,
-                                                              duration:
-                                                              Duration(
-                                                                  milliseconds:
-                                                                  500),
-                                                              child: KasaRaporu(
-                                                                  isletmebilgi:
-                                                                  widget
-                                                                      .isletmebilgi)));
-                                                    else
-                                                      Navigator.push(
-                                                          context,
-                                                          PageTransition(
-                                                              type:
-                                                              PageTransitionType
-                                                                  .rightToLeft,
-                                                              duration:
-                                                              Duration(
-                                                                  milliseconds:
-                                                                  500),
-                                                              child: AdisyonlarPage(
-                                                                  kullanicirolu: widget
-                                                                      .kullanicirolu,
-                                                                  kullanici:
-                                                                  widget
-                                                                      .kullanici,
-                                                                  isletmebilgi: widget
-                                                                      .isletmebilgi,
-                                                                  geriGitBtn:
-                                                                  true)));
-                                                  },
-                                                  style: ElevatedButton
-                                                      .styleFrom(
-                                                      backgroundColor:
-                                                      Color(
-                                                          0xFFB39DDB),
-                                                      foregroundColor:
-                                                      Colors.white,
-                                                      elevation: 8,
-                                                      textStyle:
-                                                      const TextStyle(
-                                                        color:
-                                                        Colors.white,
-                                                        fontSize: 13,
-                                                      ),
-                                                      minimumSize: Size(
-                                                          150, 65),
-                                                      shape:
-                                                      const RoundedRectangleBorder(
-                                                          borderRadius:
-                                                          BorderRadius.all(
-                                                              Radius.circular(5)))),
-                                                  child: Column(
-                                                    children: [
-                                                      Text(
-                                                        (kullanicirolu < 5
-                                                            ? 'Kasa'
-                                                            : 'Toplam Satış'),
-                                                        style: TextStyle(
-                                                            fontWeight:
-                                                            FontWeight
-                                                                .bold,
-                                                            fontSize: 15),
-                                                      ),
-                                                      Text(
-                                                          ozetsayfabilgi
-                                                              .toplamkasa
-                                                              .toString() +
-                                                              " ₺",
-                                                          style: TextStyle(
-                                                              fontSize: 17,
-                                                              fontWeight:
-                                                              FontWeight
-                                                                  .bold))
-                                                    ],
-                                                  )),
-                                              SizedBox(width: 5),
-                                              ElevatedButton(
-                                                onPressed: () {
-                                                  if (widget.kullanicirolu !=
-                                                      5)
-                                                    Navigator.push(
-                                                        context,
-                                                        PageTransition(
-                                                            type:
-                                                            PageTransitionType
-                                                                .rightToLeft,
-                                                            duration:
-                                                            Duration(
-                                                                milliseconds:
-                                                                500),
-                                                            child:
-                                                            AlacaklarDashboard(
-                                                                isletmebilgi:
-                                                                widget.isletmebilgi)));
-                                                  else
-                                                    Navigator.push(
-                                                        context,
-                                                        PageTransition(
-                                                            type:
-                                                            PageTransitionType
-                                                                .rightToLeft,
-                                                            duration:
-                                                            Duration(
-                                                                milliseconds:
-                                                                500),
-                                                            child: AdisyonlarPage(
-                                                                kullanicirolu: widget
-                                                                    .kullanicirolu,
-                                                                kullanici:
-                                                                widget
-                                                                    .kullanici,
-                                                                isletmebilgi: widget
-                                                                    .isletmebilgi,
-                                                                geriGitBtn:
-                                                                true)));
-                                                },
-                                                style: ElevatedButton
-                                                    .styleFrom(
-                                                    backgroundColor:
-                                                    Colors
-                                                        .purple[
-                                                    800],
-                                                    foregroundColor:
-                                                    Colors.white,
-                                                    elevation: 8,
-                                                    textStyle:
-                                                    const TextStyle(
-                                                      color:
-                                                      Colors.white,
-                                                      fontSize: 13,
-                                                    ),
-                                                    minimumSize: Size(
-                                                        150, 65),
-                                                    shape:
-                                                    const RoundedRectangleBorder(
-                                                        borderRadius:
-                                                        BorderRadius.all(
-                                                            Radius.circular(5)))),
-                                                child: Column(
-                                                  children: [
-                                                    Text(
-                                                      (kullanicirolu < 5
-                                                          ? 'Alacak'
-                                                          : 'Prim Hakediş'),
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                          FontWeight
-                                                              .bold,
-                                                          fontSize: 15),
-                                                    ),
-                                                    Text(
-                                                        (kullanicirolu < 5
-                                                            ? ozetsayfabilgi
-                                                            .kalantutar
-                                                            .toString()
-                                                            : ozetsayfabilgi
-                                                            .prim
-                                                            .toString()) +
-                                                            " ₺",
-                                                        style: TextStyle(
-                                                            fontSize: 17,
-                                                            fontWeight:
-                                                            FontWeight
-                                                                .bold))
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      if (kullanicirolu < 5)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              right: 108, top: 10),
-                                          child: Text(
-                                            'Günlük Santral Raporları',
-                                            style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight:
-                                                FontWeight.bold),
-                                          ),
-                                        ),
-                                      if (kullanicirolu < 5)
-                                        SingleChildScrollView(
-                                          child: Container(
-                                            height: 60,
-                                            margin: EdgeInsets.symmetric(
-                                                vertical: 8.0),
-                                            child: ListView(
-                                              scrollDirection:
-                                              Axis.horizontal,
-                                              shrinkWrap: true,
-                                              padding: EdgeInsets.only(
-                                                  left: 10, right: 10),
-                                              children: [
-                                                // Giden arama butonu
-                                                Container(
-                                                  child: ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        PageTransition(
-                                                          type:
-                                                          PageTransitionType
-                                                              .rightToLeft,
-                                                          duration:
-                                                          Duration(
-                                                              milliseconds:
-                                                              500),
-                                                          child:
-                                                          CDRRaporlari(
-                                                            kullanicirolu:
-                                                            widget
-                                                                .kullanicirolu,
-                                                            isletmebilgi:
-                                                            widget
-                                                                .isletmebilgi,
-                                                            dialPadManager:
-                                                            DialPadManager(),
-                                                            scaffoldMessengerKey:
-                                                            GlobalKey<
-                                                                ScaffoldMessengerState>(),
-                                                            kullanici: widget
-                                                                .kullanici,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                      backgroundColor:
-                                                      Colors.white,
-                                                      side:
-                                                      const BorderSide(
-                                                        width: 2,
-                                                        color: Colors.green,
-                                                      ),
-                                                      minimumSize: Size(
-                                                          90, 200),
-                                                      shape:
-                                                      const RoundedRectangleBorder(
-                                                        borderRadius:
-                                                        BorderRadius
-                                                            .all(Radius
-                                                            .circular(
-                                                            5)),
-                                                      ),
-                                                    ),
-                                                    child: Column(
-                                                      children: [
-                                                        SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        Text(
-                                                          'Giden',
-                                                          style: TextStyle(
-                                                              fontSize: 14,
-                                                              color: Colors
-                                                                  .green),
-                                                        ),
-                                                        SizedBox(
-                                                          height: 5,
-                                                        ),
-                                                        Text(
-                                                          ozetsayfabilgi
-                                                              .gidenarama,
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .green,
-                                                              fontSize:
-                                                              17),
-                                                        )
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                SizedBox(width: 10),
-                                                // Gelen arama butonu
-                                                Container(
-                                                  child: ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        PageTransition(
-                                                          type:
-                                                          PageTransitionType
-                                                              .rightToLeft,
-                                                          duration:
-                                                          Duration(
-                                                              milliseconds:
-                                                              500),
-                                                          child:
-                                                          CDRRaporlari(
-                                                            kullanicirolu:
-                                                            widget
-                                                                .kullanicirolu,
-                                                            isletmebilgi:
-                                                            widget
-                                                                .isletmebilgi,
-                                                            dialPadManager:
-                                                            DialPadManager(),
-                                                            scaffoldMessengerKey:
-                                                            GlobalKey<
-                                                                ScaffoldMessengerState>(),
-                                                            kullanici: widget
-                                                                .kullanici,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                      backgroundColor:
-                                                      Colors.white,
-                                                      side:
-                                                      const BorderSide(
-                                                        width: 2,
-                                                        color: Color(
-                                                            0xFF6A1B9A),
-                                                      ),
-                                                      minimumSize: Size(
-                                                          90, 200),
-                                                      shape:
-                                                      const RoundedRectangleBorder(
-                                                        borderRadius:
-                                                        BorderRadius
-                                                            .all(Radius
-                                                            .circular(
-                                                            5)),
-                                                      ),
-                                                    ),
-                                                    child: Column(
-                                                      children: [
-                                                        SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        Text(
-                                                          'Gelen',
-                                                          style: TextStyle(
-                                                              fontSize: 14,
-                                                              color: Colors
-                                                                  .purple[
-                                                              800]),
-                                                        ),
-                                                        SizedBox(
-                                                          height: 5,
-                                                        ),
-                                                        Text(
-                                                          ozetsayfabilgi
-                                                              .gelenarama,
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .purple[
-                                                              800],
-                                                              fontSize:
-                                                              17),
-                                                        )
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                SizedBox(width: 10),
-                                                // Cevapsız arama butonu
-                                                Container(
-                                                  child: ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        PageTransition(
-                                                          type:
-                                                          PageTransitionType
-                                                              .rightToLeft,
-                                                          duration:
-                                                          Duration(
-                                                              milliseconds:
-                                                              500),
-                                                          child:
-                                                          CDRRaporlari(
-                                                            kullanicirolu:
-                                                            widget
-                                                                .kullanicirolu,
-                                                            isletmebilgi:
-                                                            widget
-                                                                .isletmebilgi,
-                                                            dialPadManager:
-                                                            DialPadManager(),
-                                                            scaffoldMessengerKey:
-                                                            GlobalKey<
-                                                                ScaffoldMessengerState>(),
-                                                            kullanici: widget
-                                                                .kullanici,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                      backgroundColor:
-                                                      Colors.white,
-                                                      foregroundColor:
-                                                      Colors.white,
-                                                      minimumSize: Size(
-                                                          70, 200),
-                                                      side:
-                                                      const BorderSide(
-                                                        width: 2,
-                                                        color: Color(
-                                                            0xFFFF1744),
-                                                      ),
-                                                      shape:
-                                                      const RoundedRectangleBorder(
-                                                        borderRadius:
-                                                        BorderRadius
-                                                            .all(Radius
-                                                            .circular(
-                                                            5)),
-                                                      ),
-                                                    ),
-                                                    child: Column(
-                                                      children: [
-                                                        SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        Text(
-                                                          'Cevapsız',
-                                                          style: TextStyle(
-                                                              fontSize: 14,
-                                                              color: Color(
-                                                                  0xFFFF1744)),
-                                                        ),
-                                                        SizedBox(
-                                                          height: 5,
-                                                        ),
-                                                        Text(
-                                                          ozetsayfabilgi
-                                                              .cevapsizarama,
-                                                          style: TextStyle(
-                                                              color: Color(
-                                                                  0xFFFF1744),
-                                                              fontSize:
-                                                              17),
-                                                        )
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      if (kullanicirolu == 5)
-                                        Container(
-                                          padding: EdgeInsets.all(8),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            '',
-                                            style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight:
-                                                FontWeight.bold),
-                                          ),
-                                        ),
-                                      kullanicirolu == 5
-                                          ? Container(
-                                          decoration:
-                                          const BoxDecoration(
-                                              borderRadius:
-                                              BorderRadius.only(
-                                                  topLeft: Radius
-                                                      .circular(
-                                                      15),
-                                                  topRight: Radius
-                                                      .circular(
-                                                      15),
-                                                  bottomLeft:
-                                                  Radius.circular(
-                                                      15),
-                                                  bottomRight:
-                                                  Radius.circular(
-                                                      15)),
-                                              color: Colors.white),
-                                          width: width * 0.9,
-                                          height: height * 0.35,
-                                          padding:
-                                          EdgeInsets.only(top: 5),
-                                          child: randevularYukleniyor
-                                              ? Center(
-                                              child:
-                                              CircularProgressIndicator())
-                                              : ListView(
-                                            children: [
-                                              StickyHeader(
-                                                header:
-                                                Container(
-                                                  color: Colors
-                                                      .white,
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .center,
-                                                    children: [
-                                                      Text(
-                                                        'Bugünün Randevuları',
-                                                        style: TextStyle(
-                                                            fontSize:
-                                                            16,
-                                                            fontWeight:
-                                                            FontWeight.bold),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                content:
-                                                ListCardRandevular(
-                                                    randevular:
-                                                    randevuList),
-                                              ),
-                                            ],
-                                          ))
-                                          : Expanded(
-                                        child: Container(
-                                          decoration:
-                                          const BoxDecoration(
-                                            borderRadius:
-                                            BorderRadius.all(
-                                                Radius.circular(
-                                                    15)),
-                                            color: Colors.white,
-                                          ),
-                                          width: width * 0.9,
-                                          height: height * 0.35,
-                                          padding: EdgeInsets.only(
-                                              top: 5),
-                                          child: Column(
-                                            children: [
-                                              Expanded(
-                                                child: FutureBuilder<
-                                                    List<EAsistan>>(
-                                                  future:
-                                                  futureEAsistanData,
-                                                  builder: (context,
-                                                      snapshot) {
-                                                    if (snapshot
-                                                        .connectionState ==
-                                                        ConnectionState
-                                                            .waiting) {
-                                                      return Center(
-                                                          child:
-                                                          CircularProgressIndicator());
-                                                    } else if (snapshot
-                                                        .hasError) {
-                                                      return Center(
-                                                          child: Text(
-                                                              "Veri alınırken hata oluştu"));
-                                                    } else if (!snapshot
-                                                        .hasData ||
-                                                        snapshot.data!
-                                                            .isEmpty) {
-                                                      return Center(
-                                                        child:
-                                                        Padding(
-                                                          padding: const EdgeInsets
-                                                              .all(
-                                                              16.0),
-                                                          child: Text(
-                                                              'Tabloda herhangi bir veri mevcut değil',
-                                                              style: TextStyle(
-                                                                  fontSize: 16,
-                                                                  fontWeight: FontWeight.w500)),
-                                                        ),
-                                                      );
-                                                    } else {
-                                                      return ListView(
-                                                        children: [
-                                                          ListCard(
-                                                              tasks:
-                                                              snapshot.data!),
-                                                        ],
-                                                      );
-                                                    }
-                                                  },
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                    ],
-                                  ))
-                            ]),
-                          ),
-                        ],
-                      ),
-                    ],
+  Widget _premiumTopBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final unread = ozetsayfabilgi.okunmamisbildirimler;
+    final hasUnread = unread.isNotEmpty && unread != "0";
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _circleAction(
+            context,
+            icon: Icons.notifications_outlined,
+            badge: hasUnread ? unread : null,
+            onTap: () {
+              Navigator.push(
+                context,
+                PageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  duration: const Duration(milliseconds: 400),
+                  child: BildirimlerScreen(
+                    kullanicirolu: kullanicirolu,
+                    isletmebilgi: widget.isletmebilgi,
+                    onNotificationRead: _updateNotificationCount,
+                  ),
+                ),
+              ).then((_) => _refreshDashboardData());
+            },
+          ),
+          Flexible(
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                isletmeadi,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.primary,
+                  letterSpacing: 0.1,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          _circleAction(
+            context,
+            icon: Icons.person_outline_rounded,
+            onTap: () {
+              Navigator.push(
+                context,
+                PageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  duration: const Duration(milliseconds: 400),
+                  child: ProfilBilgileri(kullanici: widget.kullanici),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _circleAction(
+    BuildContext context, {
+    required IconData icon,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: Colors.white,
+          shape: const CircleBorder(),
+          elevation: 0,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.12),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: scheme.primary, size: 20),
+            ),
+          ),
+        ),
+        if (badge != null)
+          Positioned(
+            top: -2,
+            right: -2,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
                   ),
                 ),
               ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _premiumGreeting(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Hoşgeldiniz 👋',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface.withValues(alpha: 0.55),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            isletmeadi,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+              color: scheme.onSurface,
+              height: 1.15,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumQuickStrip(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _quickPill(
+            context,
+            icon: Icons.sms_outlined,
+            value: ozetsayfabilgi.kalansms,
+            label: 'SMS',
+            tint: scheme.primary,
+          ),
+          const SizedBox(width: 10),
+          _quickPill(
+            context,
+            icon: Icons.account_balance_wallet_outlined,
+            value: '${ozetsayfabilgi.toplamkasa} ₺',
+            label: kullanicirolu < 5 ? 'Bugünkü Kasa' : 'Toplam Satış',
+            tint: const Color(0xFF10B981),
+          ),
+          if (kullanicirolu < 5) ...[
+            const SizedBox(width: 10),
+            _quickActionPill(
+              context,
+              icon: Icons.phone_in_talk_rounded,
+              label: 'Çevir',
+              onTap: () {
+                _dialPadManager.updateDialPad(
+                    context, true, "", widget.kullanici);
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _quickPill(
+    BuildContext context, {
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color tint,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: tint),
+          ),
+          const SizedBox(width: 9),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                  height: 1.1,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: scheme.onSurface.withValues(alpha: 0.55),
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionPill(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, scheme.tertiary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.15),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: scheme.onPrimary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: scheme.onPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _premiumSectionHeader(
+      BuildContext context, String title, VoidCallback? onSeeAll) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+              color: scheme.onSurface,
+            ),
+          ),
+          if (onSeeAll != null)
+            GestureDetector(
+              onTap: onSeeAll,
+              child: Row(
+                children: [
+                  Text(
+                    'Tümü',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_rounded,
+                      size: 16, color: scheme.primary),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumDailyGrid(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    final items = [
+      _DashItem(
+        icon: Icons.calendar_month_rounded,
+        title: 'Randevular',
+        value: ozetsayfabilgi.randevusayisi.toString(),
+        tint: scheme.primary,
+        onTap: () => Navigator.push(
+          context,
+          PageTransition(
+            type: PageTransitionType.rightToLeft,
+            duration: const Duration(milliseconds: 400),
+            child: RandevularDashboard(
+                kullanicirolu: widget.kullanicirolu,
+                isletmebilgi: widget.isletmebilgi),
+          ),
+        ),
+      ),
+      _DashItem(
+        icon: Icons.chat_bubble_outline_rounded,
+        title: 'Ön Görüşme',
+        value: ozetsayfabilgi.ongorusmesayisi.toString(),
+        tint: scheme.tertiary,
+        onTap: () => Navigator.push(
+          context,
+          PageTransition(
+            type: PageTransitionType.rightToLeft,
+            duration: const Duration(milliseconds: 400),
+            child: OnGorusmelerDashboard(isletmebilgi: widget.isletmebilgi),
+          ),
+        ),
+      ),
+      _DashItem(
+        icon: Icons.shopping_bag_outlined,
+        title: 'Paket Satışı',
+        value: ozetsayfabilgi.paketsatissayisi.toString(),
+        tint: ext.successColor,
+        onTap: () => Navigator.push(
+          context,
+          PageTransition(
+            type: PageTransitionType.rightToLeft,
+            duration: const Duration(milliseconds: 400),
+            child: PaketSatislariDashboard(
+              kullanicirolu: widget.kullanicirolu,
+              isletmebilgi: widget.isletmebilgi,
+            ),
+          ),
+        ),
+      ),
+      _DashItem(
+        icon: Icons.inventory_2_outlined,
+        title: 'Ürün Satışı',
+        value: ozetsayfabilgi.urunsatissayisi.toString(),
+        tint: ext.infoColor,
+        onTap: () => Navigator.push(
+          context,
+          PageTransition(
+            type: PageTransitionType.rightToLeft,
+            duration: const Duration(milliseconds: 400),
+            child: UrunSatislariDashboard(
+              kullanicirolu: widget.kullanicirolu,
+              isletmebilgi: widget.isletmebilgi,
+            ),
+          ),
+        ),
+      ),
+    ];
+    // GridView yerine manuel Row of Rows — shrinkWrap içinde GridView
+    // ListView'in scroll perf'ini ciddi şekilde bozuyor. Bu daha akışkan.
+    final width = MediaQuery.of(context).size.width;
+    final cardW = (width - 50) / 2; // 20+20 padding + 10 spacing
+    final cardH = cardW / 1.75;
+    Widget row(_DashItem a, _DashItem b) => Row(
+          children: [
+            SizedBox(width: cardW, height: cardH, child: _premiumStatCard(context, a)),
+            const SizedBox(width: 10),
+            SizedBox(width: cardW, height: cardH, child: _premiumStatCard(context, b)),
+          ],
+        );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          row(items[0], items[1]),
+          const SizedBox(height: 10),
+          row(items[2], items[3]),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumStatCard(BuildContext context, _DashItem item) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Color.alphaBlend(
+                item.tint.withValues(alpha: 0.07), Colors.white),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: item.onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: item.tint.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Icon(item.icon, size: 16, color: item.tint),
+                    ),
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 9,
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.2,
+                        height: 1.15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '${item.value} bugün',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
@@ -1090,7 +833,1406 @@ class _HomeState extends State<DashBoard> {
     );
   }
 
+  // Periyot çoğaltıcısı — backend henüz periyot bazlı toplam vermediği için
+  // bugünkü değeri ölçekliyoruz; backend hazır olunca buraya gerçek query gelir.
+  // Periyot bazlı donut progress — visual demo (backend hazır olunca değişir)
+  double _periodProgress(String kind) {
+    if (kind == 'kasa') {
+      switch (_perfPeriod) {
+        case 'gunluk':
+          return 0.35;
+        case 'haftalik':
+          return 0.55;
+        case 'aylik':
+          return 0.72;
+        case 'yillik':
+          return 0.88;
+      }
+    } else {
+      switch (_perfPeriod) {
+        case 'gunluk':
+          return 0.18;
+        case 'haftalik':
+          return 0.30;
+        case 'aylik':
+          return 0.48;
+        case 'yillik':
+          return 0.62;
+      }
+    }
+    return 0.5;
+  }
+
+  num _periodMultiplier() {
+    switch (_perfPeriod) {
+      case 'gunluk':
+        return 1;
+      case 'haftalik':
+        return 7;
+      case 'aylik':
+        return 30;
+      case 'yillik':
+        return 365;
+    }
+    return 1;
+  }
+
+  num _parseAmount(String raw) {
+    final cleaned = raw.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', '.');
+    return num.tryParse(cleaned) ?? 0;
+  }
+
+  String _formatAmount(num v) {
+    if (v == v.roundToDouble()) return v.round().toString();
+    return v.toStringAsFixed(2);
+  }
+
+  Widget _periodChips(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    const periods = [
+      ['gunluk', 'Günlük'],
+      ['haftalik', 'Haftalık'],
+      ['aylik', 'Aylık'],
+      ['yillik', 'Yıllık'],
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: periods.map((p) {
+          final selected = _perfPeriod == p[0];
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+                child: InkWell(
+                  onTap: () => _onPeriodChange(p[0]),
+                  borderRadius: BorderRadius.circular(999),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? scheme.primary
+                          : scheme.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: selected
+                          ? [
+                              BoxShadow(
+                                color:
+                                    scheme.primary.withValues(alpha: 0.20),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Text(
+                      p[1],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? scheme.onPrimary : scheme.primary,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _premiumPerformanceRow(BuildContext context) {
+    final ext = context.appTheme;
+    final mult = _periodMultiplier();
+    final kasaBase = _parseAmount(ozetsayfabilgi.toplamkasa.toString());
+    final alacakBase = _parseAmount(kullanicirolu < 5
+        ? ozetsayfabilgi.kalantutar.toString()
+        : ozetsayfabilgi.prim.toString());
+    final kasaScaled = kasaBase * mult;
+    final alacakScaled = alacakBase * mult;
+    // Donut progress'i periyot bazlı değişir → her tıklamada animasyonlu hareket
+    // (Backend periyot endpoint'i hazır olunca buraya gerçek query gelir.)
+    final kasaProgress = _periodProgress('kasa');
+    final alacakProgress = _periodProgress('alacak');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: _premiumPerfCard(
+              context,
+              title: kullanicirolu < 5 ? 'Toplam Kasa' : 'Toplam Satış',
+              value: '${_formatAmount(kasaScaled)} ₺',
+              icon: Icons.account_balance_wallet_rounded,
+              tint: ext.successColor,
+              progress: kasaProgress,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageTransition(
+                    type: PageTransitionType.rightToLeft,
+                    duration: const Duration(milliseconds: 400),
+                    child: widget.kullanicirolu != 5
+                        ? KasaRaporu(isletmebilgi: widget.isletmebilgi)
+                        : AdisyonlarPage(
+                            kullanicirolu: widget.kullanicirolu,
+                            kullanici: widget.kullanici,
+                            isletmebilgi: widget.isletmebilgi,
+                            geriGitBtn: true),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _premiumPerfCard(
+              context,
+              title: kullanicirolu < 5 ? 'Alacak' : 'Prim Hakediş',
+              value: '${_formatAmount(alacakScaled)} ₺',
+              icon: Icons.payments_outlined,
+              tint: ext.warningColor,
+              progress: alacakProgress,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageTransition(
+                    type: PageTransitionType.rightToLeft,
+                    duration: const Duration(milliseconds: 400),
+                    child: widget.kullanicirolu != 5
+                        ? AlacaklarDashboard(isletmebilgi: widget.isletmebilgi)
+                        : AdisyonlarPage(
+                            kullanicirolu: widget.kullanicirolu,
+                            kullanici: widget.kullanici,
+                            isletmebilgi: widget.isletmebilgi,
+                            geriGitBtn: true),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumPerfCard(
+    BuildContext context, {
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color tint,
+    required VoidCallback onTap,
+    double progress = 0.65,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Color.alphaBlend(tint.withValues(alpha: 0.07), Colors.white),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: tint.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(icon, size: 15, color: tint),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurface
+                                        .withValues(alpha: 0.55),
+                                    letterSpacing: 0.1,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            value,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: scheme.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _miniDonut(context, progress: progress, tint: tint),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Backend'den karşılaştırma verisi yükle (cache + graceful fallback)
+  Future<void> _loadKarsilastirma(String period) async {
+    if (seciliisletme == null || seciliisletme!.isEmpty) return;
+    if (_karsCache.containsKey(period)) return;
+    final data = await dashboardKarsilastirma(seciliisletme!, period);
+    if (data != null && mounted) {
+      setState(() => _karsCache[period] = data);
+    }
+  }
+
+  void _onPeriodChange(String period) {
+    setState(() => _perfPeriod = period);
+    _loadKarsilastirma(period); // background fetch — cache'de yoksa
+  }
+
+  // Karşılaştırma verisi — gerçek (backend) varsa onu, yoksa mock döner.
+  Map<String, dynamic> _comparisonData() {
+    final real = _karsCache[_perfPeriod];
+    if (real != null && real['current'] != null && real['previous'] != null) {
+      final cur = real['current'] as Map;
+      final prev = real['previous'] as Map;
+      final seriesRaw = (real['series'] as List?) ?? [];
+      final series = seriesRaw
+          .map((v) => (v as num).toDouble())
+          .toList();
+      return {
+        'currentLabel': (cur['label'] ?? '').toString(),
+        'previousLabel': (prev['label'] ?? '').toString(),
+        'current': (cur['value'] as num? ?? 0).toDouble(),
+        'previous': (prev['value'] as num? ?? 0).toDouble(),
+        'series': series.isEmpty
+            ? <double>[0, 0, 0, 0, 0, 0, 0]
+            : series,
+      };
+    }
+    return _mockComparisonData();
+  }
+
+  // Mock karşılaştırma — backend hazır değilse fallback
+  Map<String, dynamic> _mockComparisonData() {
+    switch (_perfPeriod) {
+      case 'gunluk':
+        return {
+          'currentLabel': 'Bugün',
+          'previousLabel': 'Geçen Aynı Gün',
+          'current': 1850.0,
+          'previous': 1480.0,
+          'series': [1100.0, 1300.0, 1450.0, 1280.0, 1400.0, 1620.0, 1850.0],
+        };
+      case 'haftalik':
+        return {
+          'currentLabel': 'Bu Hafta',
+          'previousLabel': 'Geçen Hafta',
+          'current': 9800.0,
+          'previous': 8500.0,
+          'series': [
+            6800.0, 7400.0, 7900.0, 8500.0, 8200.0, 9100.0, 9800.0
+          ],
+        };
+      case 'aylik':
+        return {
+          'currentLabel': 'Bu Ay',
+          'previousLabel': 'Geçen Ay',
+          'current': 42500.0,
+          'previous': 38900.0,
+          'series': [
+            32000.0, 35000.0, 31500.0, 36200.0, 38900.0, 41000.0, 42500.0
+          ],
+        };
+      case 'yillik':
+        return {
+          'currentLabel': 'Bu Yıl',
+          'previousLabel': 'Geçen Yıl',
+          'current': 510000.0,
+          'previous': 470000.0,
+          'series': [
+            380000.0, 400000.0, 420000.0, 445000.0, 470000.0, 490000.0, 510000.0
+          ],
+        };
+    }
+    return {
+      'currentLabel': '',
+      'previousLabel': '',
+      'current': 0.0,
+      'previous': 0.0,
+      'series': <double>[]
+    };
+  }
+
+  Widget _comparisonCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    final data = _comparisonData();
+    final current = data['current'] as double;
+    final prev = data['previous'] as double;
+    final series = (data['series'] as List).cast<double>();
+    final delta = prev > 0 ? ((current - prev) / prev * 100) : 0.0;
+    final isUp = delta >= 0;
+    final deltaColor = isUp ? ext.successColor : scheme.error;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.05), Colors.white),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Karşılaştırma',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${data['currentLabel']} ↔ ${data['previousLabel']}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: deltaColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isUp
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                          color: deltaColor,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${isUp ? '+' : ''}${delta.toStringAsFixed(1)}%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: deltaColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Şu An',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_formatAmount(current)} ₺',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 36,
+                    color: scheme.onSurface.withValues(alpha: 0.08),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Önceki',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_formatAmount(prev)} ₺',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface.withValues(alpha: 0.65),
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 56,
+                child: _miniBars(series, deltaColor),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _miniBars(List<double> series, Color color) {
+    if (series.isEmpty) return const SizedBox.shrink();
+    final max = series.reduce((a, b) => a > b ? a : b);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: List.generate(series.length, (i) {
+        final v = series[i];
+        final ratio = max > 0 ? (v / max) : 0.0;
+        final isLast = i == series.length - 1;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: FractionallySizedBox(
+              heightFactor: ratio.clamp(0.05, 1.0),
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isLast
+                        ? [color, color.withValues(alpha: 0.65)]
+                        : [
+                            color.withValues(alpha: 0.55),
+                            color.withValues(alpha: 0.30),
+                          ],
+                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(5)),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  // Top performers — backend gerçek veri varsa kullan, yoksa mock
+  Widget _topPerformersCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    final real = _karsCache[_perfPeriod];
+    final topP = real?['topPersonel'] as Map?;
+    final topH = real?['topHizmet'] as Map?;
+    final topU = real?['topUrun'] as Map?;
+    final List<Map<String, dynamic>> rows = [
+      {
+        'icon': Icons.person_rounded,
+        'category': 'En İyi Personel',
+        'name': topP?['name']?.toString() ?? 'Ayşe Yılmaz',
+        'value': topP != null
+            ? '₺ ${_formatAmount((topP['value'] as num? ?? 0).toDouble())}'
+            : '₺ 12.450',
+        'tint': scheme.primary,
+      },
+      {
+        'icon': Icons.spa_rounded,
+        'category': 'En Çok Satan Hizmet',
+        'name': topH?['name']?.toString() ?? 'Saç Bakımı',
+        'value': topH != null ? '${topH['count']} satış' : '47 satış',
+        'tint': ext.successColor,
+      },
+      {
+        'icon': Icons.shopping_bag_rounded,
+        'category': 'En Çok Satan Ürün',
+        'name': topU?['name']?.toString() ?? 'Şampuan Premium',
+        'value': topU != null ? '${topU['count']} adet' : '23 adet',
+        'tint': ext.warningColor,
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 4, top: 2, bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.emoji_events_rounded,
+                        size: 16, color: scheme.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Zirvedekiler',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              for (int i = 0; i < rows.length; i++) ...[
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    color: scheme.onSurface.withValues(alpha: 0.06),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: (rows[i]['tint'] as Color)
+                              .withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(
+                          rows[i]['icon'] as IconData,
+                          size: 16,
+                          color: rows[i]['tint'] as Color,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              rows[i]['category'] as String,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: scheme.onSurface
+                                    .withValues(alpha: 0.55),
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              rows[i]['name'] as String,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onSurface,
+                                letterSpacing: -0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        rows[i]['value'] as String,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: rows[i]['tint'] as Color,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Saat bazlı yoğunluk — 24 saatlik bar grafiği (backend hazırsa gerçek)
+  Widget _hourlyDensityCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final real = _karsCache[_perfPeriod];
+    final realHourly = (real?['hourlyDensity'] as List?)
+        ?.map((n) => (n as num).toDouble())
+        .toList();
+    final hours = realHourly ??
+        <double>[
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05,
+          0.45, 0.85, 0.72, 0.55, 0.62, 0.88, 0.70, 0.55, 0.62, 0.78,
+          0.95, 1.00, 0.85, 0.50, 0.10,
+        ];
+    final maxIdx = hours.indexWhere((v) => v == hours.reduce((a, b) => a > b ? a : b));
+    final peakHour = '$maxIdx:00';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.access_time_rounded,
+                      size: 16, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Saat Bazlı Yoğunluk',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'Pik: $peakHour',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 70,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: List.generate(hours.length, (i) {
+                    final v = hours[i];
+                    final isPeak = i == maxIdx;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
+                        child: FractionallySizedBox(
+                          heightFactor: v.clamp(0.04, 1.0),
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: isPeak
+                                    ? [
+                                        scheme.primary,
+                                        scheme.primary
+                                            .withValues(alpha: 0.65),
+                                      ]
+                                    : v > 0.6
+                                        ? [
+                                            scheme.primary
+                                                .withValues(alpha: 0.70),
+                                            scheme.primary
+                                                .withValues(alpha: 0.40),
+                                          ]
+                                        : [
+                                            scheme.primary
+                                                .withValues(alpha: 0.40),
+                                            scheme.primary
+                                                .withValues(alpha: 0.18),
+                                          ],
+                              ),
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(3)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final label in ['00', '06', '12', '18', '23'])
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: scheme.onSurface.withValues(alpha: 0.45),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Şubeler arası performans — multi-salon için (mock veri)
+  Widget _branchPerformanceCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    // Mock: salon listesini al, ilk 3'e fake değer at
+    final branches = widget.kullanici.yetkili_olunan_isletmeler;
+    final mockValues = [42500.0, 28900.0, 18400.0, 14200.0, 9800.0];
+    final colors = [
+      scheme.primary,
+      ext.successColor,
+      ext.warningColor,
+      ext.infoColor,
+      scheme.tertiary,
+    ];
+    final maxValue = mockValues.first;
+    final shown = branches.length > 5 ? 5 : branches.length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.storefront_rounded,
+                      size: 16, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Şubeler',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              for (int i = 0; i < shown; i++) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              branches[i]['salonlar']['salon_adi'].toString(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_formatAmount(mockValues[i])} ₺',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: colors[i],
+                              letterSpacing: -0.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: LinearProgressIndicator(
+                          value: mockValues[i] / maxValue,
+                          minHeight: 6,
+                          backgroundColor:
+                              colors[i].withValues(alpha: 0.12),
+                          valueColor: AlwaysStoppedAnimation(colors[i]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Kâr - Maliyet özet kartı (backend hazırsa gerçek, yoksa mock %40)
+  Widget _profitMarginCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    final real = _karsCache[_perfPeriod];
+    final ciro = _comparisonData()['current'] as double;
+    final maliyet = (real?['maliyet'] as num?)?.toDouble() ?? (ciro * 0.40);
+    final kar = (real?['kar'] as num?)?.toDouble() ?? (ciro - maliyet);
+    final marj = ciro > 0 ? (kar / ciro * 100) : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Color.alphaBlend(
+                  ext.successColor.withValues(alpha: 0.06), Colors.white),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.trending_up_rounded,
+                      size: 16, color: ext.successColor),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Kâr - Maliyet',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: ext.successColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '%${marj.toStringAsFixed(1)} marj',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: ext.successColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _profitMetric(context,
+                        label: 'Ciro',
+                        value: ciro,
+                        color: scheme.primary),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 30,
+                    color: scheme.onSurface.withValues(alpha: 0.08),
+                  ),
+                  Expanded(
+                    child: _profitMetric(context,
+                        label: 'Maliyet',
+                        value: maliyet,
+                        color: scheme.error),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 30,
+                    color: scheme.onSurface.withValues(alpha: 0.08),
+                  ),
+                  Expanded(
+                    child: _profitMetric(context,
+                        label: 'Kâr',
+                        value: kar,
+                        color: ext.successColor),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _profitMetric(BuildContext context,
+      {required String label, required double value, required Color color}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: scheme.onSurface.withValues(alpha: 0.55),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${_formatAmount(value)}',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: color,
+            letterSpacing: -0.2,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          '₺',
+          style: TextStyle(
+            fontSize: 9,
+            color: scheme.onSurface.withValues(alpha: 0.45),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _miniDonut(BuildContext context,
+      {required double progress, required Color tint}) {
+    final scheme = Theme.of(context).colorScheme;
+    final clamped = progress.clamp(0.0, 1.0);
+    final pct = (clamped * 100).round();
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              value: clamped,
+              strokeWidth: 5,
+              strokeCap: StrokeCap.round,
+              backgroundColor: tint.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation(tint),
+            ),
+          ),
+          Text(
+            '%$pct',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumSantralRow(BuildContext context) {
+    final ext = context.appTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: _santralPill(
+              context,
+              icon: Icons.call_made_rounded,
+              count: ozetsayfabilgi.gidenarama,
+              label: 'Giden',
+              tint: ext.successColor,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _santralPill(
+              context,
+              icon: Icons.call_received_rounded,
+              count: ozetsayfabilgi.gelenarama,
+              label: 'Gelen',
+              tint: scheme.primary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _santralPill(
+              context,
+              icon: Icons.phone_missed_rounded,
+              count: ozetsayfabilgi.cevapsizarama,
+              label: 'Cevapsız',
+              tint: scheme.error,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _santralPill(
+    BuildContext context, {
+    required IconData icon,
+    required String count,
+    required String label,
+    required Color tint,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Color.alphaBlend(tint.withValues(alpha: 0.07), Colors.white),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: tint.withValues(alpha: 0.04),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: () => Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 400),
+              child: CDRRaporlari(
+                kullanicirolu: widget.kullanicirolu,
+                isletmebilgi: widget.isletmebilgi,
+                dialPadManager: DialPadManager(),
+                scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
+                kullanici: widget.kullanici,
+              ),
+            ),
+          ),
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 16, color: tint),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  count,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: tint,
+                    letterSpacing: -0.4,
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _premiumTodayAppointments(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (randevularYukleniyor) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: _glassEmpty(context,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            )),
+      );
+    }
+    if (randevuList.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: _glassEmpty(context,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: Text(
+                  'Bugün için randevu bulunmuyor',
+                  style: TextStyle(
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+            )),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: _glassEmpty(
+        context,
+        child: ListCardRandevular(randevular: randevuList),
+      ),
+    );
+  }
+
+  Widget _premiumEAsistan(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: _glassEmpty(
+        context,
+        child: FutureBuilder<List<EAsistan>>(
+          future: futureEAsistanData,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            } else if (snapshot.hasError) {
+              return const Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(child: Text('Veri alınırken hata oluştu')),
+              );
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: Text(
+                    'Bugün için tablo boş',
+                    style: TextStyle(
+                      color: scheme.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+              );
+            } else {
+              return ListCard(tasks: snapshot.data!);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _glassEmpty(BuildContext context, {required Widget child}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: child,
+      ),
+    );
+  }
+
   Widget _appBar(BuildContext context, ColorAnimated colorAnimated) {
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
     return AppBar(
         automaticallyImplyLeading: false,
         elevation: 100,
@@ -1099,7 +2241,7 @@ class _HomeState extends State<DashBoard> {
           children: [
             Text(
               isletmeadi,
-              style: (TextStyle(color: Colors.white, fontSize: 16)),
+              style: TextStyle(color: onPrimary, fontSize: 16),
             ),
             SizedBox(width: 28),
             Expanded(
@@ -1130,7 +2272,7 @@ class _HomeState extends State<DashBoard> {
                           },
                           icon: Icon(
                             Icons.notifications_active,
-                            color: Colors.white,
+                            color: onPrimary,
                           ),
                           iconSize: 20,
                         ),
@@ -1172,7 +2314,7 @@ class _HomeState extends State<DashBoard> {
                       },
                       icon: Icon(
                         Icons.notifications_active,
-                        color: Colors.white,
+                        color: onPrimary,
                       ),
                       iconSize: 20,
                     ),
@@ -1185,7 +2327,7 @@ class _HomeState extends State<DashBoard> {
                                 duration: Duration(milliseconds: 500),
                                 child: ProfilBilgileri(kullanici: widget.kullanici)));
                       },
-                      icon: Icon(Icons.person, color: Colors.white),
+                      icon: Icon(Icons.person, color: onPrimary),
                       iconSize: 20,
                     )
                   ],
@@ -1927,3 +3069,18 @@ class ListCardRandevular extends StatelessWidget {
       },
     );
   }}
+
+class _DashItem {
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color tint;
+  final VoidCallback onTap;
+  _DashItem({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.tint,
+    required this.onTap,
+  });
+}

@@ -2,7 +2,7 @@
 // Stub DialPadManager — preserves API for callers but performs no SIP operations.
 // Original implementation backed up as Frontend/dialpad.dart.bak
 import 'package:flutter/material.dart';
-import '../Models/user.dart';
+import 'package:randevu_sistem/Models/user.dart';
 
 class DialPadManager {
   bool _isOpen = false;

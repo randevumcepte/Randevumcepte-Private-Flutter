@@ -11,9 +11,9 @@ import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/odemeturu.dart';
 
-import '../../../../Models/masrafkategorileri.dart';
-import '../../../../Models/masraflar.dart';
-import '../../../../Models/personel.dart';
+import 'package:randevu_sistem/Models/masrafkategorileri.dart';
+import 'package:randevu_sistem/Models/masraflar.dart';
+import 'package:randevu_sistem/Models/personel.dart';
 
 
 

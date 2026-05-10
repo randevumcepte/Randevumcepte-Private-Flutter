@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../../Backend/backend.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
 
 class KasaRaporu extends StatefulWidget {
   final dynamic isletmebilgi;

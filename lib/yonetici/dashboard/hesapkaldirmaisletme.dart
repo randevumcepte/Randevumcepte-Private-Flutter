@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/user.dart';
 
-import '../../Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
 
 class HesapKaldirmaIsletme extends StatefulWidget {
   final Kullanici kullanici;

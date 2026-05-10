@@ -6,8 +6,8 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/sadikmusteriler.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
 // import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteri_toplu_ocr.dart'; // TODO: Toplu OCR tamamlanınca aç
-import '../../../../Backend/backend.dart';
-import '../../../../Models/musterisayilari.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Models/musterisayilari.dart';
 import 'rehberdekimusteriler.dart';
 import 'aktifmusteriler.dart';
 import 'pasifmusteriler.dart';

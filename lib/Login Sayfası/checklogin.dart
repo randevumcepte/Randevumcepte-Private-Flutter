@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -6,16 +6,16 @@ import 'package:randevu_sistem/Login%20Sayfas%C4%B1/login_page.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/tanitim.dart';
 import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../Models/musteri_danisanlar.dart';
-import '../Models/user.dart';
-import '../basic_bottom_nav_bar.dart';
-import '../musteripaneli/anasayfa/anasayfa.dart';
-import '../musteripaneli/musterialtbar.dart';
+import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/user.dart';
+import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/anasayfa.dart';
+import 'package:randevu_sistem/musteripaneli/musterialtbar.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:syncfusion_localizations/syncfusion_localizations.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
-import '../yonetici/subesecimi.dart';
+import 'package:randevu_sistem/yonetici/subesecimi.dart';
 
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();

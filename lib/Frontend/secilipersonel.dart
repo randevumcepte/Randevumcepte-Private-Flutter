@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../Models/personel.dart';
-import '../Models/user.dart';
+import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Models/user.dart';
 
 Future<Personel>seciliPersonelgetir(dynamic isletmebilgi)
 async {
