@@ -40,9 +40,15 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.index == 2 && _ayarlar == null && !_ayarLoading) {
+        _yukleAyarlar();
+      }
+    });
     _salonId = widget.isletmebilgi['id'].toString();
     _yukleSonuclar();
     _yukleSablonlar();
+    _yukleAyarlar();
   }
 
   @override
@@ -78,12 +84,20 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
   }
 
   Future<void> _yukleAyarlar() async {
-    if (_ayarlar != null) return;
+    if (_ayarlar != null && !_ayarLoading) return;
     setState(() => _ayarLoading = true);
     final a = await anketAyarlarGetir(_salonId);
     if (!mounted) return;
     setState(() {
-      _ayarlar = a;
+      // API null/hata dönse bile default değerlerle formu göster
+      _ayarlar = a ??
+          {
+            'google_url': '',
+            'google_review_esik_nps': 9,
+            'google_review_esik_csat': 4.5,
+            'kotu_puan_uyari_esik_nps': 6,
+            'kotu_puan_uyari_esik_csat': 3.0,
+          };
       _ayarLoading = false;
     });
   }
@@ -797,13 +811,9 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
   Widget _buildAyarlarTab(ColorScheme scheme) {
     if (_ayarLoading) return _loadingCard();
     if (_ayarlar == null) {
-      return Center(
-        child: TextButton.icon(
-          onPressed: _yukleAyarlar,
-          icon: Icon(Icons.refresh),
-          label: Text('Yükle'),
-        ),
-      );
+      // Henuz yuklenmediyse otomatik tetikle (yan tab'a swipe ile gelis)
+      WidgetsBinding.instance.addPostFrameCallback((_) => _yukleAyarlar());
+      return _loadingCard();
     }
     return _AyarlarFormu(
       salonId: _salonId,
