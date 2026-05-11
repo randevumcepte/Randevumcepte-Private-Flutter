@@ -903,14 +903,28 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
   late double _uyariCsat;
   bool _kaydediliyor = false;
 
+  int _toInt(dynamic v, int def) {
+    if (v == null) return def;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? double.tryParse(v)?.toInt() ?? def;
+    return def;
+  }
+
+  double _toDouble(dynamic v, double def) {
+    if (v == null) return def;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v) ?? def;
+    return def;
+  }
+
   @override
   void initState() {
     super.initState();
     _googleUrl = TextEditingController(text: widget.ayarlar['google_url']?.toString() ?? '');
-    _esikNps = (widget.ayarlar['google_review_esik_nps'] as num?)?.toInt() ?? 9;
-    _esikCsat = (widget.ayarlar['google_review_esik_csat'] as num?)?.toDouble() ?? 4.5;
-    _uyariNps = (widget.ayarlar['kotu_puan_uyari_esik_nps'] as num?)?.toInt() ?? 6;
-    _uyariCsat = (widget.ayarlar['kotu_puan_uyari_esik_csat'] as num?)?.toDouble() ?? 3.0;
+    _esikNps = _toInt(widget.ayarlar['google_review_esik_nps'], 9);
+    _esikCsat = _toDouble(widget.ayarlar['google_review_esik_csat'], 4.5);
+    _uyariNps = _toInt(widget.ayarlar['kotu_puan_uyari_esik_nps'], 6);
+    _uyariCsat = _toDouble(widget.ayarlar['kotu_puan_uyari_esik_csat'], 3.0);
   }
 
   @override
