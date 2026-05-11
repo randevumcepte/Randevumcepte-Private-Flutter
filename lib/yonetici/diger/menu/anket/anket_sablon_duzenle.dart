@@ -16,7 +16,7 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
   late TextEditingController _adCtrl;
   late TextEditingController _aciklamaCtrl;
   bool _otomatik = true;
-  int _saatSonra = 24;
+  int _saatSonra = 0;
   bool _varsayilan = false;
   bool _aktif = true;
   List<Map<String, dynamic>> _sorular = [];
@@ -41,7 +41,7 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
     _adCtrl = TextEditingController(text: s?['ad']?.toString() ?? '');
     _aciklamaCtrl = TextEditingController(text: s?['aciklama']?.toString() ?? '');
     _otomatik = s != null ? ((s['otomatik_gonder'] as num?)?.toInt() == 1 || s['otomatik_gonder'] == true) : true;
-    _saatSonra = (s?['gonder_saat_sonra'] as num?)?.toInt() ?? 24;
+    _saatSonra = (s?['gonder_saat_sonra'] as num?)?.toInt() ?? 0;
     _varsayilan = s != null && ((s['varsayilan'] as num?)?.toInt() == 1 || s['varsayilan'] == true);
     _aktif = s == null ? true : ((s['aktif'] as num?)?.toInt() == 1 || s['aktif'] == true);
 
@@ -192,26 +192,50 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
             _kart(scheme, 'Otomatik Gönderim', [
               SwitchListTile(
                 value: _otomatik,
-                title: Text('Randevu sonrası otomatik gönder'),
+                title: Text('Randevu bitiminde otomatik gönder'),
+                subtitle: Text('Hizmet süresi tamamlanır tamamlanmaz SMS gönderilir', style: TextStyle(fontSize: 11)),
                 onChanged: (v) => setState(() => _otomatik = v),
                 contentPadding: EdgeInsets.zero,
               ),
-              if (_otomatik)
+              if (_otomatik) ...[
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.schedule, size: 16, color: scheme.primary),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _saatSonra == 0
+                              ? 'Randevu biter bitmez SMS gider (önerilen — müşteri salondan çıkmadan)'
+                              : 'Randevu bitiminden $_saatSonra saat sonra SMS gider',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.primary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 8),
                 Row(
                   children: [
-                    Text('Randevu bitiminden '),
+                    Text('Gecikme: '),
                     SizedBox(
                       width: 70,
                       child: TextField(
                         keyboardType: TextInputType.number,
                         controller: TextEditingController(text: '$_saatSonra'),
-                        onChanged: (v) => _saatSonra = int.tryParse(v) ?? 24,
+                        onChanged: (v) => setState(() => _saatSonra = int.tryParse(v) ?? 0),
                         decoration: InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                       ),
                     ),
-                    Text(' saat sonra'),
+                    Text(' saat (0 = hemen)'),
                   ],
                 ),
+              ],
               SwitchListTile(
                 value: _varsayilan,
                 title: Text('Varsayılan şablon yap'),
