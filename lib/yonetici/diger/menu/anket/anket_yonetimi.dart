@@ -244,12 +244,12 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  aktif ? 'Reputation Booster' : 'Reputation Booster (Pasif)',
+                  aktif ? 'İtibar Yönetimi' : 'İtibar Yönetimi (Pasif)',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
                 ),
                 Text(
                   aktif
-                      ? 'PREMIUM AKTİF — Google\'a otomatik yönlendirme + kötü puan uyarısı'
+                      ? 'ÖZEL ÜYELİK AKTİF — Google\'a otomatik yönlendirme + kötü puan uyarısı'
                       : 'Ayarlardan Google linkini girip aktifleştirebilirsiniz',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 11),
                 ),
@@ -500,11 +500,11 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
             SizedBox(height: 6),
             Row(
               children: [
-                _legend(Colors.red.shade400, 'Detractor $detractor'),
+                _legend(Colors.red.shade400, 'Karşıt $detractor'),
                 SizedBox(width: 12),
-                _legend(Colors.amber.shade400, 'Passive $passive'),
+                _legend(Colors.amber.shade400, 'Kararsız $passive'),
                 SizedBox(width: 12),
-                _legend(Colors.green.shade500, 'Promoter $promoter'),
+                _legend(Colors.green.shade500, 'Tavsiyeci $promoter'),
               ],
             ),
           ],
