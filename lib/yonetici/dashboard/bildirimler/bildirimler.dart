@@ -125,15 +125,37 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            Color.alphaBlend(scheme.primary.withValues(alpha: 0.32), Colors.white),
+            Color.alphaBlend(scheme.tertiary.withValues(alpha: 0.06), Colors.white),
+          ],
+        ),
+      ),
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text('Bildirimler', style: TextStyle(color: Colors.black)),
+        title: Text(
+          'Bildirimler',
+          style: TextStyle(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.3,
+          ),
+        ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: scheme.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
         toolbarHeight: 60,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: FutureBuilder<List<SistemBildirimleri>>(
         future: items,
@@ -264,6 +286,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
           }
         },
       ),
+    ),
     );
   }
 }
