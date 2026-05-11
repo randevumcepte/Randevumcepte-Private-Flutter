@@ -293,7 +293,7 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
             scheme,
             ikon: Icons.warning_amber,
             renk: Colors.red.shade600,
-            baslik: 'Kötü Puan Uyarısı',
+            baslik: 'Düşük Puan Veren',
             sayi: kotuSay,
             aciklama: 'Özür dilenecekler',
             filtre: 'kotu_puan',
