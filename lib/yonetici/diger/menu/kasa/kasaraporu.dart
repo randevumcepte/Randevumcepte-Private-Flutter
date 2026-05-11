@@ -208,28 +208,39 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
   }
 
   @override
-  @override
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: _buildAppBar(),
-      body: _isloading
-          ? _buildLoadingState()
-          : RefreshIndicator(
-        onRefresh: fetchAllData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              _buildStatsCards(),
-              const SizedBox(height: 24),
-              _buildChart(),
-              const SizedBox(height: 24),
-              _buildTransactionTabs(),
-              const SizedBox(height: 80),
-            ],
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            Color.alphaBlend(scheme.primary.withValues(alpha: 0.32), Colors.white),
+            Color.alphaBlend(scheme.tertiary.withValues(alpha: 0.06), Colors.white),
+          ],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _buildAppBar(),
+        body: _isloading
+            ? _buildLoadingState()
+            : RefreshIndicator(
+          onRefresh: fetchAllData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildStatsCards(),
+                const SizedBox(height: 24),
+                _buildChart(),
+                const SizedBox(height: 24),
+                _buildTransactionTabs(),
+                const SizedBox(height: 80),
+              ],
+            ),
           ),
         ),
       ),
@@ -237,15 +248,17 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
   }
 
   Widget _buildTransactionTabs() {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: scheme.primary.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -254,8 +267,9 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
         children: [
           TabBar(
             controller: _tabController,
-            indicatorColor: Colors.purple,
-            labelColor: Colors.purple,
+            indicatorColor: scheme.primary,
+            indicatorWeight: 3,
+            labelColor: scheme.primary,
             unselectedLabelColor: Colors.grey,
             tabs: const [
               Tab(text: 'Gelirler', icon: Icon(Icons.arrow_upward)),
@@ -314,20 +328,22 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final scheme = Theme.of(context).colorScheme;
     return AppBar(
-      title: const Text(
+      title: Text(
         'Kasa Raporu',
         style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 24,
-          color: Colors.black87,
+          fontWeight: FontWeight.w800,
+          fontSize: 22,
+          color: scheme.onSurface,
+          letterSpacing: -0.3,
         ),
       ),
       centerTitle: false,
       elevation: 0,
       backgroundColor: Colors.transparent,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+        icon: Icon(Icons.arrow_back_ios, color: scheme.onSurface),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
@@ -339,19 +355,21 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
               const SizedBox(width: 8),
               IconButton(
                 onPressed: _showFilterDialog,
-                icon: const Icon(Icons.tune, color: Colors.purple),
+                icon: Icon(Icons.tune, color: scheme.primary),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white,
-                  elevation: 2,
+                  elevation: 0,
+                  shadowColor: scheme.primary.withValues(alpha: 0.06),
                 ),
               ),
               const SizedBox(width: 8),
               IconButton(
                 onPressed: _showDevredenAylarModal,
-                icon: const Icon(Icons.calendar_month, color: Colors.orange),
+                icon: Icon(Icons.calendar_month, color: scheme.secondary),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white,
-                  elevation: 2,
+                  elevation: 0,
+                  shadowColor: scheme.primary.withValues(alpha: 0.06),
                 ),
               ),
             ],
