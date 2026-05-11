@@ -190,12 +190,16 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
       child: ListView(
         padding: EdgeInsets.fromLTRB(12, 12, 12, 80),
         children: [
+          if (_ozet != null) _reputationBadge(scheme, _ozet!),
           _gunFiltreChips(scheme),
           SizedBox(height: 12),
           if (_ozetLoading)
             _loadingCard()
-          else if (_ozet != null)
+          else if (_ozet != null) ...[
             _ozetKart(scheme, _ozet!),
+            SizedBox(height: 12),
+            _reputationKartlar(scheme, _ozet!),
+          ],
           SizedBox(height: 16),
           _sectionHeader(scheme, 'Son Cevaplar', Icons.list_alt),
           SizedBox(height: 8),
@@ -206,6 +210,191 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
           else
             ..._gonderimler.map((g) => _gonderimSatiri(scheme, g)),
         ],
+      ),
+    );
+  }
+
+  Widget _reputationBadge(ColorScheme scheme, Map<String, dynamic> o) {
+    final aktif = o['reputationPremiumAktif'] == true;
+    final googleVar = o['googleUrlVar'] == true;
+    if (!aktif && !googleVar) return SizedBox.shrink();
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: aktif
+              ? [Colors.amber.shade600, Colors.orange.shade700]
+              : [Colors.grey.shade400, Colors.grey.shade600],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: (aktif ? Colors.orange : Colors.grey).withValues(alpha: 0.25), blurRadius: 10, offset: Offset(0, 3)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.workspace_premium, color: Colors.white, size: 22),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  aktif ? 'Reputation Booster' : 'Reputation Booster (Pasif)',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+                ),
+                Text(
+                  aktif
+                      ? 'PREMIUM AKTİF — Google\'a otomatik yönlendirme + kötü puan uyarısı'
+                      : 'Ayarlardan Google linkini girip aktifleştirebilirsiniz',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          if (aktif)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text('AKTİF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 10)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reputationKartlar(ColorScheme scheme, Map<String, dynamic> o) {
+    final googleSay = (o['googleTiklamalar'] as num?)?.toInt() ?? 0;
+    final kotuSay = (o['kotuPuanUyarilari'] as num?)?.toInt() ?? 0;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _reputationMiniKart(
+            scheme,
+            ikon: Icons.thumb_up_alt,
+            renk: Colors.green.shade600,
+            baslik: 'Google\'a Yönlendirildi',
+            sayi: googleSay,
+            aciklama: 'Teşekkür edilecekler',
+            filtre: 'google_tiklayan',
+          ),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: _reputationMiniKart(
+            scheme,
+            ikon: Icons.warning_amber,
+            renk: Colors.red.shade600,
+            baslik: 'Kötü Puan Uyarısı',
+            sayi: kotuSay,
+            aciklama: 'Özür dilenecekler',
+            filtre: 'kotu_puan',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _reputationMiniKart(ColorScheme scheme,
+      {required IconData ikon, required Color renk, required String baslik, required int sayi, required String aciklama, required String filtre}) {
+    return InkWell(
+      onTap: () => _reputationListeAc(filtre, baslik),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6),
+                  decoration: BoxDecoration(color: renk.withValues(alpha: 0.12), shape: BoxShape.circle),
+                  child: Icon(ikon, color: renk, size: 16),
+                ),
+                Spacer(),
+                Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text('$sayi', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22, color: renk)),
+            Text(baslik, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: scheme.onSurface)),
+            Text(aciklama, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reputationListeAc(String filtre, String baslik) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        expand: false,
+        builder: (c, scroll) {
+          return FutureBuilder<List<Map<String, dynamic>>?>(
+            future: anketGonderimleri(_salonId, limit: 100, sadeceCevaplilar: true, filtre: filtre),
+            builder: (c, snap) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  children: [
+                    Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                    SizedBox(height: 12),
+                    Text(baslik, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                    Text(
+                      filtre == 'google_tiklayan'
+                          ? 'Bu müşteriler Google\'a yorum bırakmak için tıkladı — teşekkür etmeyi unutmayın'
+                          : 'Bu müşteriler düşük puan verdi — özür dileyip durumu telafi edebilirsiniz',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                    ),
+                    SizedBox(height: 12),
+                    Expanded(
+                      child: snap.connectionState != ConnectionState.done
+                          ? Center(child: CircularProgressIndicator())
+                          : (snap.data == null || snap.data!.isEmpty)
+                              ? Center(child: Text('Bu kategoride kayıt yok', style: TextStyle(color: Colors.grey)))
+                              : ListView.builder(
+                                  controller: scroll,
+                                  itemCount: snap.data!.length,
+                                  itemBuilder: (c, i) {
+                                    final g = snap.data![i];
+                                    return Padding(
+                                      padding: EdgeInsets.only(bottom: 6),
+                                      child: _gonderimSatiri(Theme.of(context).colorScheme, g),
+                                    );
+                                  },
+                                ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
