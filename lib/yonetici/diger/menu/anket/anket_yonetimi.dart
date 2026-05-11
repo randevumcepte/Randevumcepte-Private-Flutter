@@ -856,7 +856,11 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
             children: [
               if (otomatik)
                 Chip(
-                  label: Text('Oto. ${s['gonder_saat_sonra']}sa sonra'),
+                  label: Text(
+                    ((s['gonder_saat_sonra'] as num?)?.toInt() ?? 0) == 0
+                        ? 'Hizmet süresi sonunda SMS'
+                        : 'Bitişten ${s['gonder_saat_sonra']}sa sonra',
+                  ),
                   backgroundColor: scheme.primary.withValues(alpha: 0.10),
                   labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600, fontSize: 11),
                   visualDensity: VisualDensity.compact,

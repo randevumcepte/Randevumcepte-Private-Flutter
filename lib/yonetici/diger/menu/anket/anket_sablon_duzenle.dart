@@ -192,8 +192,8 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
             _kart(scheme, 'Otomatik Gönderim', [
               SwitchListTile(
                 value: _otomatik,
-                title: Text('Randevu bitiminde otomatik gönder'),
-                subtitle: Text('Hizmet süresi tamamlanır tamamlanmaz SMS gönderilir', style: TextStyle(fontSize: 11)),
+                title: Text('Hizmet süresi sonunda SMS gönder'),
+                subtitle: Text('Randevu bittiği anda müşteriye anket linki SMS olarak gider', style: TextStyle(fontSize: 11)),
                 onChanged: (v) => setState(() => _otomatik = v),
                 contentPadding: EdgeInsets.zero,
               ),
@@ -206,13 +206,13 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.schedule, size: 16, color: scheme.primary),
+                      Icon(Icons.bolt, size: 16, color: scheme.primary),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           _saatSonra == 0
-                              ? 'Randevu biter bitmez SMS gider (önerilen — müşteri salondan çıkmadan)'
-                              : 'Randevu bitiminden $_saatSonra saat sonra SMS gider',
+                              ? 'Hizmet süresi sonunda SMS gider (müşteri salondan çıkmadan)'
+                              : 'Hizmet süresi bitiminden $_saatSonra saat sonra SMS gider',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.primary),
                         ),
                       ),
