@@ -112,6 +112,7 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
+    final scheme = Theme.of(context).colorScheme;
 
     // Determine if the keyboard is visible by checking the view insets (keyboard height)
     final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
@@ -122,14 +123,29 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
       onTap: () {
         FocusScope.of(context).unfocus(); // Hide the keyboard
       },
-      child: Scaffold(
-
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(scheme.primary.withValues(alpha: 0.32), Colors.white),
+              Color.alphaBlend(scheme.tertiary.withValues(alpha: 0.06), Colors.white),
+            ],
+          ),
+        ),
+        child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text('Ajanda', style: TextStyle(color: Colors.black, fontSize: 18)),
-          /*leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
-          ),*/
+          title: Text(
+            'Ajanda',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+            ),
+          ),
           toolbarHeight: 60,
           actions: <Widget>[
             if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
@@ -140,23 +156,38 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
                 child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,),
               ),
             ),
-            IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AjandaEkle(
-                      isletmebilgi: widget.isletmebilgi,
-                      ajandaDataSource: _ajandaDataGridSource,
-                    ),
+            Container(
+              margin: EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: Offset(0, 3),
                   ),
-                );
-              },
-              icon: Icon(Icons.add, color: Colors.black),
-              iconSize: 26,
+                ],
+              ),
+              child: IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AjandaEkle(
+                        isletmebilgi: widget.isletmebilgi,
+                        ajandaDataSource: _ajandaDataGridSource,
+                      ),
+                    ),
+                  );
+                },
+                icon: Icon(Icons.add, color: scheme.primary),
+                iconSize: 24,
+              ),
             ),
           ],
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
@@ -307,6 +338,7 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
             );
           },
         ),
+      ),
       ),
     );
   }

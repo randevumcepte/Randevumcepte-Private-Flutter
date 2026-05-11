@@ -30,9 +30,8 @@ class MusteriDetaylari extends StatefulWidget {
 
 class _MusteriDetaylariState extends State<MusteriDetaylari>
 		with TickerProviderStateMixin {
-	static const Color _primary = Color(0xFF6A1B9A);
-	static const Color _primaryDark = Color(0xFF4A148C);
-	static const Color _bg = Color(0xFFF5F6FA);
+	Color get _primary => Theme.of(context).colorScheme.primary;
+	Color get _primaryDark => Theme.of(context).colorScheme.primary.withValues(alpha: 0.85);
 
 	late final TabController _mainTab;
 	late final TabController _notTab;
@@ -255,44 +254,63 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 
 	@override
 	Widget build(BuildContext context) {
-		return Scaffold(
-			backgroundColor: _bg,
-			body: SafeArea(
-				bottom: false,
-				child: NestedScrollView(
-					headerSliverBuilder: (context, _) => [
-						SliverToBoxAdapter(child: _buildTopBar()),
-						SliverToBoxAdapter(child: _buildHero()),
-						SliverToBoxAdapter(child: _buildQuickActions()),
-						SliverToBoxAdapter(child: _buildStatsRow()),
-						SliverToBoxAdapter(child: const SizedBox(height: 12)),
-						SliverPersistentHeader(
-							pinned: true,
-							delegate: _StickyTabBarDelegate(
-								TabBar(
-									controller: _mainTab,
-									labelColor: _primary,
-									unselectedLabelColor: Colors.grey.shade600,
-									indicatorColor: _primary,
-									indicatorWeight: 3,
-									labelStyle: const TextStyle(
-										fontWeight: FontWeight.w600,
-										fontSize: 14,
-									),
-									tabs: const [
-										Tab(text: 'Genel'),
-										Tab(text: 'Notlar'),
-									],
-								),
-							),
+		final scheme = Theme.of(context).colorScheme;
+		return Container(
+			decoration: BoxDecoration(
+				gradient: LinearGradient(
+					begin: Alignment.topRight,
+					end: Alignment.bottomLeft,
+					colors: [
+						Color.alphaBlend(
+							scheme.primary.withValues(alpha: 0.32),
+							Colors.white,
+						),
+						Color.alphaBlend(
+							scheme.tertiary.withValues(alpha: 0.06),
+							Colors.white,
 						),
 					],
-					body: TabBarView(
-						controller: _mainTab,
-						children: [
-							_buildGenelTab(),
-							_buildNotlarTab(),
+				),
+			),
+			child: Scaffold(
+				backgroundColor: Colors.transparent,
+				body: SafeArea(
+					bottom: false,
+					child: NestedScrollView(
+						headerSliverBuilder: (context, _) => [
+							SliverToBoxAdapter(child: _buildTopBar()),
+							SliverToBoxAdapter(child: _buildHero()),
+							SliverToBoxAdapter(child: _buildQuickActions()),
+							SliverToBoxAdapter(child: _buildStatsRow()),
+							SliverToBoxAdapter(child: const SizedBox(height: 12)),
+							SliverPersistentHeader(
+								pinned: true,
+								delegate: _StickyTabBarDelegate(
+									TabBar(
+										controller: _mainTab,
+										labelColor: _primary,
+										unselectedLabelColor: Colors.grey.shade600,
+										indicatorColor: _primary,
+										indicatorWeight: 3,
+										labelStyle: const TextStyle(
+											fontWeight: FontWeight.w700,
+											fontSize: 14,
+										),
+										tabs: const [
+											Tab(text: 'Genel'),
+											Tab(text: 'Notlar'),
+										],
+									),
+								),
+							),
 						],
+						body: TabBarView(
+							controller: _mainTab,
+							children: [
+								_buildGenelTab(),
+								_buildNotlarTab(),
+							],
+						),
 					),
 				),
 			),
@@ -300,26 +318,28 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	}
 
 	Widget _buildTopBar() {
+		final scheme = Theme.of(context).colorScheme;
 		return Padding(
 			padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
 			child: Row(
 				children: [
 					IconButton(
-						icon: const Icon(Icons.arrow_back, color: Colors.black87),
+						icon: Icon(Icons.arrow_back, color: scheme.onSurface),
 						onPressed: () => Navigator.of(context).pop(),
 					),
-					const Expanded(
+					Expanded(
 						child: Text(
 							'Müşteri Detayı',
 							style: TextStyle(
-								fontSize: 16,
-								fontWeight: FontWeight.w600,
-								color: Colors.black87,
+								fontSize: 18,
+								fontWeight: FontWeight.w800,
+								color: scheme.onSurface,
+								letterSpacing: -0.2,
 							),
 						),
 					),
 					IconButton(
-						icon: const Icon(Icons.edit_outlined, color: Colors.black87),
+						icon: Icon(Icons.edit_outlined, color: scheme.onSurface),
 						tooltip: 'Düzenle',
 						onPressed: _openDuzenle,
 					),
@@ -339,7 +359,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			margin: const EdgeInsets.symmetric(horizontal: 12),
 			padding: const EdgeInsets.all(20),
 			decoration: BoxDecoration(
-				gradient: const LinearGradient(
+				gradient: LinearGradient(
 					begin: Alignment.topLeft,
 					end: Alignment.bottomRight,
 					colors: [_primary, _primaryDark],
@@ -347,7 +367,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				borderRadius: BorderRadius.circular(20),
 				boxShadow: [
 					BoxShadow(
-						color: _primary.withOpacity(0.25),
+						color: _primary.withValues(alpha: 0.25),
 						blurRadius: 16,
 						offset: const Offset(0, 6),
 					),
@@ -895,7 +915,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 						future: _randevularFuture,
 						builder: (context, snap) {
 							if (snap.connectionState != ConnectionState.done) {
-								return const Center(
+								return Center(
 										child: CircularProgressIndicator(
 												color: _primary));
 							}
@@ -1055,12 +1075,12 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 																		.map((h) => Container(
 																					padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
 																					decoration: BoxDecoration(
-																						color: _primary.withOpacity(0.10),
+																						color: _primary.withValues(alpha: 0.10),
 																						borderRadius: BorderRadius.circular(20),
 																					),
 																					child: Text(
 																						h,
-																						style: const TextStyle(
+																						style: TextStyle(
 																							fontSize: 11,
 																							color: _primary,
 																							fontWeight: FontWeight.w500,
@@ -1096,12 +1116,12 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 																.map((h) => Container(
 																			padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
 																			decoration: BoxDecoration(
-																				color: _primary.withOpacity(0.10),
+																				color: _primary.withValues(alpha: 0.10),
 																				borderRadius: BorderRadius.circular(20),
 																			),
 																			child: Text(
 																				h,
-																				style: const TextStyle(
+																				style: TextStyle(
 																					fontSize: 11,
 																					color: _primary,
 																					fontWeight: FontWeight.w500,

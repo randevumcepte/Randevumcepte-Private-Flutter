@@ -106,20 +106,21 @@ class _MusteriListesiState extends State<MusteriListesi> {
 
 
   Widget _buildTabWithCount(String title, int? count, Color color) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Tab(
         child: Container(
           constraints: BoxConstraints(minWidth: 120),
-          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
+                color: scheme.primary.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: Offset(0, 3),
               ),
             ],
           ),
@@ -131,8 +132,8 @@ class _MusteriListesiState extends State<MusteriListesi> {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
                     color: color,
                   ),
                   maxLines: 1,
@@ -140,18 +141,18 @@ class _MusteriListesiState extends State<MusteriListesi> {
                 ),
               ),
               if (count != null) ...[
-                SizedBox(width: 6),
+                SizedBox(width: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     count.toString(),
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
                       color: color,
                     ),
                   ),
@@ -190,26 +191,44 @@ class _MusteriListesiState extends State<MusteriListesi> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryColor = Color(0xFF7E57C2);
-    final Color secondaryColor = Color(0xFF9575CD);
-    final Color backgroundColor = Color(0xFFF8F9FA);
+    final scheme = Theme.of(context).colorScheme;
+    final Color primaryColor = scheme.primary;
 
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
       },
-      child: DefaultTabController(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(
+                primaryColor.withValues(alpha: 0.36),
+                Colors.white,
+              ),
+              Color.alphaBlend(
+                scheme.tertiary.withValues(alpha: 0.08),
+                Colors.white,
+              ),
+            ],
+          ),
+        ),
+        child: DefaultTabController(
         length: 4,
         child: Scaffold(
-          backgroundColor: backgroundColor,
+          backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: false,
           appBar: AppBar(
             centerTitle: false,
             title: Text(
               'Müşteriler',
               style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
-                fontSize: 20,
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w800,
+                fontSize: 22,
+                letterSpacing: -0.3,
               ),
             ),
             leading:
@@ -224,12 +243,12 @@ class _MusteriListesiState extends State<MusteriListesi> {
                 margin: EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                      color: primaryColor.withValues(alpha: 0.06),
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
                     ),
                   ],
                 ),
@@ -291,12 +310,12 @@ class _MusteriListesiState extends State<MusteriListesi> {
                 margin: EdgeInsets.only(right: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                      color: primaryColor.withValues(alpha: 0.06),
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
                     ),
                   ],
                 ),
@@ -310,7 +329,7 @@ class _MusteriListesiState extends State<MusteriListesi> {
               ),
             ],
             toolbarHeight: 80,
-            backgroundColor: backgroundColor,
+            backgroundColor: Colors.transparent,
             elevation: 0,
             bottom: PreferredSize(
               preferredSize: Size.fromHeight(_isLoading || _errorMessage != null ? 80 : 70),
@@ -318,13 +337,13 @@ class _MusteriListesiState extends State<MusteriListesi> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 5,
+                      color: primaryColor.withValues(alpha: 0.05),
+                      blurRadius: 14,
                       offset: Offset(0, -2),
                     ),
                   ],
@@ -346,9 +365,10 @@ class _MusteriListesiState extends State<MusteriListesi> {
                         indicatorSize: TabBarIndicatorSize.label,
                         labelColor: primaryColor,
                         unselectedLabelColor: Colors.grey[600],
+                        dividerColor: Colors.transparent,
                         indicator: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(18),
+                          color: primaryColor.withValues(alpha: 0.10),
                         ),
                         labelStyle: TextStyle(
                           fontWeight: FontWeight.w600,
@@ -387,25 +407,17 @@ class _MusteriListesiState extends State<MusteriListesi> {
               ),
             ),
           ),
-          body: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: TabBarView(
-              children: <Widget>[
-                TumMusteriler(kullanicirolu: widget.kullanicirolu,isletmebilgi: widget.isletmebilgi),
-                SadikMusteriler(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi),
-                AktifMusteriler(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi),
-                PasifMusteriler(kullanicirolu: widget.kullanicirolu,isletmebilgi: widget.isletmebilgi),
-              ],
-            ),
+          body: TabBarView(
+            children: <Widget>[
+              TumMusteriler(kullanicirolu: widget.kullanicirolu,isletmebilgi: widget.isletmebilgi),
+              SadikMusteriler(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi),
+              AktifMusteriler(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi),
+              PasifMusteriler(kullanicirolu: widget.kullanicirolu,isletmebilgi: widget.isletmebilgi),
+            ],
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

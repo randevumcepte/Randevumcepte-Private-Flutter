@@ -694,6 +694,62 @@ Future<Map<String, dynamic>?> dashboardKarsilastirma(
   }
   return null;
 }
+
+/// Anket ozeti: toplam gonderim/cevap, response rate, ort NPS/CSAT,
+/// promoter/passive/detractor sayilari, son 7 gun cevap trend serisi.
+Future<Map<String, dynamic>?> anketOzet(String salonId, {int gun = 30}) async {
+  if (salonId.isEmpty) return null;
+  try {
+    final response = await http.get(
+      Uri.parse(
+          'https://app.randevumcepte.com.tr/api/v1/anketOzet/$salonId?gun=$gun'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      if (body is Map<String, dynamic>) return body;
+    }
+  } catch (e) {
+    log('anketOzet hata: $e');
+  }
+  return null;
+}
+
+/// Anket gonderim listesi (cevaplanmis olanlar, en yeni once).
+/// Pagination destekli (limit/offset).
+Future<List<Map<String, dynamic>>?> anketGonderimleri(
+  String salonId, {
+  int limit = 20,
+  int offset = 0,
+  bool sadeceCevaplilar = true,
+}) async {
+  if (salonId.isEmpty) return null;
+  try {
+    final response = await http.get(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/anketGonderimleri/'
+          '$salonId?limit=$limit&offset=$offset&sadeceCevaplilar=${sadeceCevaplilar ? 1 : 0}'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      if (body is Map<String, dynamic> && body['kayitlar'] is List) {
+        return (body['kayitlar'] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    }
+  } catch (e) {
+    log('anketGonderimleri hata: $e');
+  }
+  return null;
+}
+
 Future<File> _fileFromImageUrl() async {
   final response = await http.get(Uri.parse('https://example.com/xyz.jpg)'));
 
