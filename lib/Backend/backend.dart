@@ -4577,3 +4577,515 @@ Future<Map<String, dynamic>> carkPuanOdulTalep(String userId, String salonId, in
   }
   throw Exception(response.reasonPhrase);
 }
+
+// ============================================================
+// ANKET YONETIMI API (mobil admin)
+// ============================================================
+const String _apiBase = 'https://app.randevumcepte.com.tr/api/v1';
+Map<String, String> _jsonHeaders() => {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
+
+Future<List<Map<String, dynamic>>?> anketSablonListesi(String salonId) async {
+  if (salonId.isEmpty) return null;
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/anketSablonlari/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      if (body is Map && body['sablonlar'] is List) {
+        return (body['sablonlar'] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    }
+  } catch (e) {
+    log('anketSablonListesi: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> anketSablonDetay(String salonId, int sablonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/anketSablon/$salonId/$sablonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      if (body is Map && body['sablon'] is Map) {
+        return Map<String, dynamic>.from(body['sablon'] as Map);
+      }
+    }
+  } catch (e) {
+    log('anketSablonDetay: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> anketSablonOlustur(String salonId, Map<String, dynamic> data) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/anketSablon/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode(data),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('anketSablonOlustur: $e');
+  }
+  return null;
+}
+
+Future<bool> anketSablonGuncelle(String salonId, int sablonId, Map<String, dynamic> data) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/anketSablon/$salonId/$sablonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode(data),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      return body is Map && body['basarili'] == true;
+    }
+  } catch (e) {
+    log('anketSablonGuncelle: $e');
+  }
+  return false;
+}
+
+Future<Map<String, dynamic>?> anketSablonSil(String salonId, int sablonId) async {
+  try {
+    final res = await http.delete(
+      Uri.parse('$_apiBase/anketSablon/$salonId/$sablonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('anketSablonSil: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> anketManuelGonder(String salonId, {
+  required int sablonId,
+  required String telefon,
+  int? userId,
+  String? adSoyad,
+  int? randevuId,
+  int? personelId,
+}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/anketManuelGonder/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({
+        'sablon_id': sablonId,
+        'telefon': telefon,
+        if (userId != null) 'user_id': userId,
+        if (adSoyad != null) 'ad_soyad': adSoyad,
+        if (randevuId != null) 'randevu_id': randevuId,
+        if (personelId != null) 'personel_id': personelId,
+      }),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('anketManuelGonder: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> anketGonderimDetay(String salonId, int gonderimId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/anketGonderimDetay/$salonId/$gonderimId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('anketGonderimDetay: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> anketAyarlarGetir(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/anketAyarlar/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('anketAyarlarGetir: $e');
+  }
+  return null;
+}
+
+Future<bool> anketAyarlarKaydet(String salonId, Map<String, dynamic> data) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/anketAyarlar/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode(data),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      return body is Map && body['basarili'] == true;
+    }
+  } catch (e) {
+    log('anketAyarlarKaydet: $e');
+  }
+  return false;
+}
+
+// ============================================================
+// CARK-I FELEK ADMIN API (mobil)
+// ============================================================
+
+Future<Map<String, dynamic>?> carkAdminSistemGetir(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/carkAdmin/sistem/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdminSistemGetir: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> carkAdminDilimKaydet(String salonId, List<Map<String, dynamic>> dilimler, {int aktifmi = 1}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/dilim-kaydet/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'dilimler': dilimler, 'aktifmi': aktifmi}),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+    return {'basarili': false, 'mesaj': 'HTTP ${res.statusCode}: ${res.body}'};
+  } catch (e) {
+    log('carkAdminDilimKaydet: $e');
+  }
+  return null;
+}
+
+Future<bool> carkAdminAktifToggle(String salonId, bool aktif) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/aktif-toggle/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'aktifmi': aktif ? 1 : 0}),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      return body is Map && body['basarili'] == true;
+    }
+  } catch (e) {
+    log('carkAdminAktifToggle: $e');
+  }
+  return false;
+}
+
+Future<Map<String, dynamic>?> carkAdminKazananlar(String salonId, {String filtre = 'tumu'}) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/carkAdmin/kazananlar/$salonId?filtre=$filtre'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdminKazananlar: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> carkAdminKuponDogrula(String salonId, String kod) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/kupon-dogrula/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'kod': kod}),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200 || res.statusCode == 404 || res.statusCode == 403) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdminKuponDogrula: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> carkAdminKuponKullan(String salonId, int odulId, {String aksiyon = 'kullan'}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/kupon-kullan/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'odul_id': odulId, 'aksiyon': aksiyon}),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdminKuponKullan: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> carkAdminHatirlatmaGetir(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/carkAdmin/hatirlatma/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdminHatirlatmaGetir: $e');
+  }
+  return null;
+}
+
+Future<bool> carkAdminHatirlatmaKaydet(String salonId, Map<String, dynamic> data) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/hatirlatma/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode(data),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      return body is Map && body['basarili'] == true;
+    }
+  } catch (e) {
+    log('carkAdminHatirlatmaKaydet: $e');
+  }
+  return false;
+}
+
+// ============================================================
+// WHATSAPP API (mobil)
+// ============================================================
+
+Future<Map<String, dynamic>?> whatsappBaslat(String salonId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/whatsapp/baslat/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappBaslat: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> whatsappDurum(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/whatsapp/durum/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappDurum: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> whatsappQR(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/whatsapp/qr/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappQR: $e');
+  }
+  return null;
+}
+
+Future<bool> whatsappCikis(String salonId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/whatsapp/cikis/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      return body is Map && body['ok'] == true;
+    }
+  } catch (e) {
+    log('whatsappCikis: $e');
+  }
+  return false;
+}
+
+Future<Map<String, dynamic>?> whatsappOzet(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/whatsapp/ozet/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappOzet: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> whatsappLoglar(String salonId, {
+  int page = 1,
+  int perPage = 50,
+  int? durum,
+  String? telefon,
+  String? baslangic,
+  String? bitis,
+  String? arama,
+}) async {
+  try {
+    final params = <String, String>{
+      'page': '$page',
+      'per_page': '$perPage',
+      if (durum != null) 'durum': '$durum',
+      if (telefon != null && telefon.isNotEmpty) 'telefon': telefon,
+      if (baslangic != null && baslangic.isNotEmpty) 'baslangic': baslangic,
+      if (bitis != null && bitis.isNotEmpty) 'bitis': bitis,
+      if (arama != null && arama.isNotEmpty) 'arama': arama,
+    };
+    final uri = Uri.parse('$_apiBase/whatsapp/loglar/$salonId').replace(queryParameters: params);
+    final res = await http.get(uri, headers: _jsonHeaders()).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappLoglar: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> whatsappAliciler(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/whatsapp/aliciler/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappAliciler: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> whatsappAliciGecmis(String salonId, String telefon) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/whatsapp/alici/$salonId/$telefon'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappAliciGecmis: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> whatsappKanalDurum(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/whatsapp/kanal-durum/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappKanalDurum: $e');
+  }
+  return null;
+}
+
+Future<bool> whatsappKanalToggle(String salonId, bool aktif) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/whatsapp/kanal-toggle/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'aktif': aktif ? 1 : 0}),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      return body is Map && body['ok'] == true;
+    }
+  } catch (e) {
+    log('whatsappKanalToggle: $e');
+  }
+  return false;
+}
+
+Future<Map<String, dynamic>?> whatsappPaketDurum(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/whatsapp/paket-durum/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappPaketDurum: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> whatsappPaketTalep(String salonId, {
+  required String paket,
+  required String periyot,
+  String iletisim = '',
+}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/whatsapp/paket-talep/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'paket': paket, 'periyot': periyot, 'iletisim': iletisim}),
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('whatsappPaketTalep: $e');
+  }
+  return null;
+}

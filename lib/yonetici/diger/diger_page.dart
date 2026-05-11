@@ -21,6 +21,9 @@ import '../dashboard/profilbilgileri.dart';
 import '../santral/santralraporlari.dart';
 import '../subesecimi.dart';
 import 'menu/ajanda/ajanda.dart';
+import 'menu/anket/anket_yonetimi.dart';
+import 'menu/cark/cark_yonetimi.dart';
+import 'menu/whatsapp/whatsapp_yonetimi.dart';
 import 'menu/arsiv/arsivyonetimipage.dart';
 import 'menu/asistanim/asistanpage.dart';
 import 'menu/ayarlar/ayarlar.dart';
@@ -538,6 +541,63 @@ class _MenuState extends State<Menu> {
                           child: OnGorusmeler(
                             kullanicirolu: kullanicirolu,
                             isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                if (kullanicirolu < 5)
+                  _buildMenuButton(
+                    icon: Icons.poll_outlined,
+                    label: 'Anket Yönetimi',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: AnketYonetimiPage(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                if (kullanicirolu < 5)
+                  _buildMenuButton(
+                    icon: Icons.casino_outlined,
+                    label: 'Çark-ı Felek',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: CarkYonetimiPage(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                if (kullanicirolu < 5)
+                  _buildMenuButton(
+                    icon: Icons.chat_bubble_outline,
+                    label: 'WhatsApp',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: WhatsappYonetimiPage(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
                           ),
                         ),
                       );
