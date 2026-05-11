@@ -980,6 +980,8 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
                 border: OutlineInputBorder(),
               ),
             ),
+            SizedBox(height: 10),
+            _googleYardimKutusu(scheme),
             SizedBox(height: 12),
             _sliderRow('NPS eşiği (≥)', _esikNps.toDouble(), 0, 10, 10,
                 (v) => setState(() => _esikNps = v.round())),
@@ -1014,6 +1016,76 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _googleYardimKutusu(ColorScheme scheme) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.35), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.star, color: Colors.amber.shade700, size: 18),
+              SizedBox(width: 6),
+              Text(
+                'EN DOĞRU YOL — Google Business\'tan yorum bağlantısı:',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.amber.shade900),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          _yardimSatiri('1.', 'business.google.com → İşletmenize girin'),
+          _yardimSatiri('2.', 'Sol menü: Müşteriler → Yorumlar'),
+          _yardimSatiri('3.', '"Daha fazla yorum al" butonu → "Bağlantıyı paylaş"'),
+          _yardimSatiri('4.', 'Bağlantıyı kopyalayıp yukarıya yapıştırın (g.page/r/... formatında olmalı)'),
+          SizedBox(height: 8),
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 14, color: Colors.grey.shade700),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Alternatif: Google Maps\'ten "Paylaş" da çalışır ama bazı linkler haritayı açar, doğrudan yorum diyaloğunu açmaz.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade800, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _yardimSatiri(String num, String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 18,
+            child: Text(num, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.amber.shade900)),
+          ),
+          Expanded(
+            child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade800, height: 1.35)),
+          ),
+        ],
+      ),
     );
   }
 
