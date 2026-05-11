@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'anket_sablon_duzenle.dart';
 
@@ -1019,6 +1021,12 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
     );
   }
 
+  Future<void> _openUrl(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
   Widget _googleYardimKutusu(ColorScheme scheme) {
     return Container(
       padding: EdgeInsets.all(12),
@@ -1031,17 +1039,31 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(Icons.star, color: Colors.amber.shade700, size: 18),
               SizedBox(width: 6),
-              Text(
-                'EN DOĞRU YOL — Google Business\'tan yorum bağlantısı:',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.amber.shade900),
+              Expanded(
+                child: Text(
+                  'EN DOĞRU YOL — Google Business\'tan yorum bağlantısı:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    color: Colors.amber.shade900,
+                    height: 1.35,
+                  ),
+                  softWrap: true,
+                ),
               ),
             ],
           ),
           SizedBox(height: 8),
-          _yardimSatiri('1.', 'business.google.com → İşletmenize girin'),
+          _yardimSatiriLink(
+            '1.',
+            link: 'business.google.com',
+            linkUrl: 'https://business.google.com/',
+            after: ' → İşletmenize girin',
+          ),
           _yardimSatiri('2.', 'Sol menü: Müşteriler → Yorumlar'),
           _yardimSatiri('3.', '"Daha fazla yorum al" butonu → "Bağlantıyı paylaş"'),
           _yardimSatiri('4.', 'Bağlantıyı kopyalayıp yukarıya yapıştırın (g.page/r/... formatında olmalı)'),
@@ -1083,6 +1105,40 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
           ),
           Expanded(
             child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade800, height: 1.35)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _yardimSatiriLink(String num, {required String link, required String linkUrl, required String after}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 18,
+            child: Text(num, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.amber.shade900)),
+          ),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade800, height: 1.35),
+                children: [
+                  TextSpan(
+                    text: link,
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    recognizer: TapGestureRecognizer()..onTap = () => _openUrl(linkUrl),
+                  ),
+                  TextSpan(text: after),
+                ],
+              ),
+            ),
           ),
         ],
       ),
