@@ -81,18 +81,11 @@ class _RandevularMenuState extends State<RandevularMenu> {
   void _onSearchChanged() {
     if (_controller.text.isEmpty || _controller.text.length >= 3) {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 500), () {
+      _debounce = Timer(const Duration(milliseconds: 500), () async {
         if (_controller.text != lastQuery && !firsttimetyping) {
-          setState(() {
-            firsttimetyping = false;
-            lastQuery = _controller.text;
-            _randevuDataGridSource.search(
-              _controller.text,
-              selectedrandevudurum,
-              selectedrandevuolusturma,
-              selectedrandevutarih,
-            );
-          });
+          firsttimetyping = false;
+          lastQuery = _controller.text;
+          await _applyFilters(page: 1);
         }
       });
     } else {
@@ -855,8 +848,12 @@ class _RandevularMenuState extends State<RandevularMenu> {
   }
 
   Future<void> _refresh() async {
+    await _applyFilters(page: _randevuDataGridSource.currentPage);
+  }
+
+  Future<void> _applyFilters({required int page}) async {
     await _randevuDataGridSource.fetchData(
-      _randevuDataGridSource.currentPage.toString(),
+      page.toString(),
       _controller.text,
       selectedrandevuolusturma,
       selectedrandevudurum,
@@ -864,6 +861,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
       widget.personelid,
       widget.cihazid,
     );
+    if (mounted) setState(() {});
   }
 
   // ───────────────────────────── Pagination
@@ -894,14 +892,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
             _pageBtn(
               icon: Icons.arrow_back_rounded,
               enabled: canPrev,
-              onTap: () {
-                _randevuDataGridSource.setPage(
-                  cur - 1,
-                  selectedrandevudurum,
-                  selectedrandevuolusturma,
-                  selectedrandevutarih,
-                );
-              },
+              onTap: () => _applyFilters(page: cur - 1),
             ),
             Expanded(
               child: Center(
@@ -918,14 +909,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
             _pageBtn(
               icon: Icons.arrow_forward_rounded,
               enabled: canNext,
-              onTap: () {
-                _randevuDataGridSource.setPage(
-                  cur + 1,
-                  selectedrandevudurum,
-                  selectedrandevuolusturma,
-                  selectedrandevutarih,
-                );
-              },
+              onTap: () => _applyFilters(page: cur + 1),
             ),
           ],
         ),
@@ -1109,7 +1093,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             child: InkWell(
-                              onTap: () {
+                              onTap: () async {
                                 Navigator.of(ctx).pop();
                                 setState(() {
                                   selectedrandevutarih = tarih;
@@ -1117,12 +1101,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
                                   selectedrandevuolusturma = olusturma;
                                 });
                                 log("durum $durum");
-                                _randevuDataGridSource.search(
-                                  _controller.text,
-                                  durum,
-                                  olusturma,
-                                  tarih,
-                                );
+                                await _applyFilters(page: 1);
                               },
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
