@@ -28,6 +28,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   Timer? _autoSyncTimer;
   late final ConfettiController _konfeti;
   final AudioPlayer _player = AudioPlayer();
+  final ScrollController _carkScroll = ScrollController();
 
   // Kazananlar
   bool _kazLoading = false;
@@ -44,6 +45,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     _tab = TabController(length: 3, vsync: this);
     _salonId = widget.isletmebilgi['id'].toString();
     _konfeti = ConfettiController(duration: Duration(seconds: 3));
+    // audioplayers default prefix 'assets/' — bizim asset 'images/' altında
+    AudioCache.instance.prefix = '';
     WidgetsBinding.instance.addObserver(this);
     _yukleSistem();
     // Sayfa açıkken her 15 saniyede bir hafif senkron (web'de değişiklik olursa anlamak için)
@@ -67,6 +70,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     _autoSyncTimer?.cancel();
     _konfeti.dispose();
     _player.dispose();
+    _carkScroll.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _tab.dispose();
     super.dispose();
@@ -105,6 +109,9 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     );
   }
 
+  int _uidCounter = 0;
+  int _yeniUid() => ++_uidCounter;
+
   Future<void> _yukleSistem() async {
     setState(() => _sistemLoading = true);
     final r = await carkAdminSistemGetir(_salonId);
@@ -117,6 +124,10 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
             .toList();
       }
       if (_dilimler.isEmpty) _dilimler = _ornekDilimler();
+      // Her dilime stabil bir _uid ata (yoksa) — TextField state korunması için
+      for (final d in _dilimler) {
+        d['_uid'] = d['_uid'] ?? _yeniUid();
+      }
       _sistemLoading = false;
     });
   }
@@ -230,6 +241,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     final valid = toplam == 100 && kazanan == 1 && yeterli;
 
     return ListView(
+      controller: _carkScroll,
       padding: EdgeInsets.fromLTRB(12, 12, 12, 100),
       children: [
         // Görsel çark (animasyonlu) + konfeti overlay
@@ -373,14 +385,17 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         ),
         SizedBox(height: 4),
 
-        // Dilim listesi (her biri kendi StatefulWidget'ı, controller bug'ı yok)
-        ..._dilimler.asMap().entries.map((e) => _DilimSatiri(
-              key: ValueKey('dilim_${e.key}_${_dilimler.length}'),
-              index: e.key,
-              dilim: e.value,
-              onSil: () => setState(() => _dilimler.removeAt(e.key)),
-              onDegisti: () => setState(() {}),
-            )),
+        // Dilim listesi — key olarak stabil _uid (ekleme/silme'de TextField korunur)
+        ..._dilimler.asMap().entries.map((e) {
+          final uid = e.value['_uid'] ?? e.key;
+          return _DilimSatiri(
+            key: ValueKey('dilim_$uid'),
+            index: e.key,
+            dilim: e.value,
+            onSil: () => setState(() => _dilimler.removeAt(e.key)),
+            onDegisti: () => setState(() {}),
+          );
+        }),
 
         SizedBox(height: 16),
 
@@ -402,14 +417,30 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   }
 
   void _dilimEkle() {
-    setState(() => _dilimler.add({
-          'name': 'Dilim ${_dilimler.length + 1}',
-          'probability': 0,
-          'color': _renkler[_dilimler.length % _renkler.length],
-          'tip': 'bos',
-          'deger': null,
-          'kupon_mu': 0,
-        }));
+    setState(() {
+      // Yeni dilimi en BAŞA ekle ki kullanıcı hemen görsün
+      _dilimler.insert(0, {
+        '_uid': _yeniUid(),
+        'name': 'Dilim ${_dilimler.length + 1}',
+        'probability': 0,
+        'color': _renkler[_dilimler.length % _renkler.length],
+        'tip': 'bos',
+        'deger': null,
+        'kupon_mu': 0,
+      });
+    });
+    HapticFeedback.lightImpact();
+    // Sayfayı dilim listesine kaydır (yeni dilim ekranda görünsün)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_carkScroll.hasClients) {
+        // Dilim listesi yaklaşık 540 px civarında başlıyor (çark + butonlar + validasyon kartı)
+        _carkScroll.animateTo(
+          540,
+          duration: Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
   }
 
   static const _renkler = ['#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#00b894', '#e17055', '#74b9ff', '#55efc4'];
@@ -420,6 +451,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         // 6'ya tamamla
         while (_dilimler.length < 6) {
           _dilimler.add({
+            '_uid': _yeniUid(),
             'name': 'Dilim ${_dilimler.length + 1}',
             'probability': 0,
             'color': _renkler[_dilimler.length % _renkler.length],
@@ -1116,6 +1148,7 @@ class _CarkPreviewState extends State<_CarkPreview> with SingleTickerProviderSta
     if (dilimGecis != _lastTickedSlice) {
       _lastTickedSlice = dilimGecis;
       HapticFeedback.selectionClick();
+      SystemSound.play(SystemSoundType.click);
     }
   }
 
