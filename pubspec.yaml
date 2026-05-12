@@ -115,6 +115,7 @@ dependencies:
   csc_picker: ^0.2.7
   flutter_contacts: ^1.1.9+2
   barcode_scan2: ^4.5.1
+  mobile_scanner: ^5.2.3
   flutter_launcher_icons: ^0.14.4
   crop_your_image: ^2.0.0
   # sip_ua: 1.0.1  # Apple deprecated-API rejection avoidance — SIP feature disabled, files renamed to .bak

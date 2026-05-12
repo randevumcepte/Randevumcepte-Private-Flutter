@@ -37,7 +37,7 @@ import 'menu/musteriler/musteriliste.dart';
 import 'menu/ongorusmeler/ongorusmeler.dart';
 import 'menu/randvular/randevularmenu.dart';
 import 'menu/satislar/paketsatislariyeni.dart';
-import 'menu/satislar/urunsatislariyenisayfa.dart';
+import 'menu/stok/stok_yonetimi.dart';
 import 'menu/satisraporlari/satisraporlaripersonel.dart';
 import 'menu/satisraporlari/satisraporu.dart';
 import 'menu/seanstakibi/seanstakibi.dart';
@@ -758,10 +758,7 @@ class _MenuState extends State<Menu> {
                         PageTransition(
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
-                          child: Urunler(
-                            adisyonId: "",
-                            kullanicirolu: kullanicirolu,
-                            kullanici: widget.kullanici,
+                          child: StokYonetimiSayfa(
                             isletmebilgi: widget.isletmebilgi,
                           ),
                         ),
