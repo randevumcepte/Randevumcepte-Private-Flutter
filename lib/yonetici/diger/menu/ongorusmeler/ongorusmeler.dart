@@ -211,31 +211,13 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 							),
 						),
 					),
-					const SizedBox(width: 12),
 					if (isDemo) ...[
+						const SizedBox(width: 12),
 						SizedBox(
 							height: 44,
 							child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
 						),
-						const SizedBox(width: 8),
 					],
-					PremiumCircleAction(
-						icon: Icons.add_rounded,
-						onTap: () {
-							Navigator.push(
-								context,
-								PageTransition(
-									type: PageTransitionType.rightToLeft,
-									duration: const Duration(milliseconds: 350),
-									child: YeniOnGorusme(
-										kullanicirolu: widget.kullanicirolu,
-										ongorusmedatasource: _ongorusmeDataGridSource,
-										isletmebilgi: widget.isletmebilgi,
-									),
-								),
-							);
-						},
-					),
 				],
 			),
 		);

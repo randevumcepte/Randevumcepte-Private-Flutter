@@ -5003,17 +5003,24 @@ Future<Map<String, dynamic>?> whatsappLoglar(String salonId, {
 
 Future<Map<String, dynamic>?> whatsappAliciler(String salonId) async {
   try {
+    final url = '$_apiBase/whatsapp/aliciler/$salonId';
     final res = await http.get(
-      Uri.parse('$_apiBase/whatsapp/aliciler/$salonId'),
+      Uri.parse(url),
       headers: _jsonHeaders(),
     ).timeout(const Duration(seconds: 12));
+    log('whatsappAliciler: GET $url -> ${res.statusCode}, body len: ${res.body.length}');
     if (res.statusCode == 200) {
-      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+      final decoded = json.decode(res.body);
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+      return {'hata': 'Beklenmeyen yanıt formatı (Map değil)'};
     }
+    return {'hata': 'Sunucu hatası: HTTP ${res.statusCode}'};
   } catch (e) {
-    log('whatsappAliciler: $e');
+    log('whatsappAliciler exception: $e');
+    return {'hata': 'Bağlantı hatası: $e'};
   }
-  return null;
 }
 
 Future<Map<String, dynamic>?> whatsappAliciGecmis(String salonId, String telefon) async {

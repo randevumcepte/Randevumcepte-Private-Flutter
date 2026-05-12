@@ -35,22 +35,43 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
   // Alıcılar
   bool _aliciLoading = false;
   List<Map<String, dynamic>> _aliciler = [];
+  String? _aliciHata;
 
   // Paket
   bool _paketLoading = false;
   Map<String, dynamic>? _paket;
+  String _paketPeriyot = 'aylik';
+
+  static const Map<String, Map<String, int>> _paketFiyat = {
+    'pro': {'aylik': 499, 'yillik': 4990},
+  };
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 4, vsync: this);
+    _tab.addListener(_onTabChanged);
     _salonId = widget.isletmebilgi['id'].toString();
     _yukleDurum();
+    // Eager load all tabs in parallel - so user never sees empty/gray initial state
+    _yukleAliciler();
+    _yukleLoglar(page: 1);
+    _yuklePaket();
+  }
+
+  void _onTabChanged() {
+    if (_tab.indexIsChanging) return;
+    final i = _tab.index;
+    // Reload on tab switch only if previous load failed (kept empty + no loading)
+    if (i == 1 && _loglar.isEmpty && !_logLoading) _yukleLoglar(page: 1);
+    if (i == 2 && _aliciler.isEmpty && !_aliciLoading) _yukleAliciler();
+    if (i == 3 && _paket == null && !_paketLoading) _yuklePaket();
   }
 
   @override
   void dispose() {
     _qrPoll?.cancel();
+    _tab.removeListener(_onTabChanged);
     _tab.dispose();
     super.dispose();
   }
@@ -165,22 +186,32 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
   }
 
   Future<void> _yukleAliciler() async {
-    setState(() => _aliciLoading = true);
+    setState(() {
+      _aliciLoading = true;
+      _aliciHata = null;
+    });
     final r = await whatsappAliciler(_salonId);
     if (!mounted) return;
     setState(() {
-      _aliciler = ((r?['rows'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      if (r == null) {
+        _aliciHata = 'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.';
+        _aliciler = [];
+      } else if (r['hata'] != null) {
+        _aliciHata = r['hata'].toString();
+        _aliciler = [];
+      } else {
+        _aliciler = ((r['rows'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
       _aliciLoading = false;
     });
   }
 
   Future<void> _yuklePaket() async {
-    if (_paket != null) return;
     setState(() => _paketLoading = true);
     final r = await whatsappPaketDurum(_salonId);
     if (!mounted) return;
     setState(() {
-      _paket = r;
+      _paket = r ?? {'paket': 'baslangic'};
       _paketLoading = false;
     });
   }
@@ -242,11 +273,6 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                   Tab(icon: Icon(Icons.people, size: 18), text: 'Alıcılar'),
                   Tab(icon: Icon(Icons.workspace_premium, size: 18), text: 'Paket'),
                 ],
-                onTap: (i) {
-                  if (i == 1) _yukleLoglar(page: 1);
-                  if (i == 2) _yukleAliciler();
-                  if (i == 3) _yuklePaket();
-                },
               ),
             ),
           ),
@@ -476,30 +502,36 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                     hintText: 'Telefon ara...',
                     prefixIcon: Icon(Icons.search, size: 18),
                     isDense: true,
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                   onSubmitted: (v) {
-                    _logFiltreTel = v;
+                    _logFiltreTel = v.trim();
                     _yukleLoglar(page: 1);
                   },
                 ),
               ),
-              SizedBox(width: 6),
-              PopupMenuButton<int?>(
-                icon: Icon(Icons.filter_list),
-                onSelected: (v) {
-                  _logFiltreDurum = v;
-                  _yukleLoglar(page: 1);
-                },
-                itemBuilder: (c) => [
-                  PopupMenuItem(value: null, child: Text('Tümü')),
-                  PopupMenuItem(value: 1, child: Text('Başarılı')),
-                  PopupMenuItem(value: 2, child: Text('Başarısız')),
-                  PopupMenuItem(value: 3, child: Text('Fallback')),
-                  PopupMenuItem(value: 0, child: Text('Beklemede')),
-                ],
+              IconButton(
+                icon: Icon(Icons.help_outline, color: Colors.grey.shade600),
+                tooltip: 'Durumlar hakkında',
+                onPressed: _durumBilgisiAc,
               ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 40,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            children: [
+              _filtreChip('Tümü', null, Colors.grey),
+              _filtreChip('WhatsApp Gönderildi', 1, Colors.green),
+              _filtreChip('Başarısız', 2, Colors.red),
+              _filtreChip('SMS ile Gönderildi', 3, Colors.orange),
+              _filtreChip('Kuyrukta', 0, Colors.blueGrey),
             ],
           ),
         ),
@@ -507,12 +539,39 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
           child: _logLoading
               ? Center(child: CircularProgressIndicator())
               : _loglar.isEmpty
-                  ? Center(child: Text('Log yok', style: TextStyle(color: Colors.grey)))
-                  : ListView.separated(
-                      padding: EdgeInsets.fromLTRB(12, 4, 12, 80),
-                      itemCount: _loglar.length,
-                      separatorBuilder: (_, __) => SizedBox(height: 6),
-                      itemBuilder: (c, i) => _logSatiri(scheme, _loglar[i]),
+                  ? RefreshIndicator(
+                      onRefresh: () => _yukleLoglar(page: 1),
+                      child: ListView(
+                        physics: AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(height: 120),
+                          Center(child: Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400)),
+                          SizedBox(height: 8),
+                          Center(child: Text('Bu filtre için log yok', style: TextStyle(color: Colors.grey))),
+                          SizedBox(height: 8),
+                          if (_logFiltreDurum != null || _logFiltreTel.isNotEmpty)
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  _logFiltreDurum = null;
+                                  _logFiltreTel = '';
+                                  _yukleLoglar(page: 1);
+                                },
+                                icon: Icon(Icons.clear, size: 16),
+                                label: Text('Filtreleri Temizle'),
+                              ),
+                            ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => _yukleLoglar(page: _logPage),
+                      child: ListView.separated(
+                        padding: EdgeInsets.fromLTRB(12, 4, 12, 80),
+                        itemCount: _loglar.length,
+                        separatorBuilder: (_, __) => SizedBox(height: 6),
+                        itemBuilder: (c, i) => _logSatiri(scheme, _loglar[i]),
+                      ),
                     ),
         ),
         if (_logSonSayfa > 1) _paginationBar(scheme),
@@ -520,52 +579,276 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
     );
   }
 
+  Widget _filtreChip(String label, int? deger, Color color) {
+    final aktif = _logFiltreDurum == deger;
+    return Padding(
+      padding: EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        label: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: aktif ? Colors.white : color)),
+        selected: aktif,
+        showCheckmark: false,
+        backgroundColor: Colors.white,
+        selectedColor: color,
+        side: BorderSide(color: aktif ? color : color.withValues(alpha: 0.4)),
+        onSelected: (_) {
+          _logFiltreDurum = deger;
+          _yukleLoglar(page: 1);
+        },
+      ),
+    );
+  }
+
   Widget _logSatiri(ColorScheme scheme, Map<String, dynamic> l) {
     final d = (l['durum'] as num?)?.toInt() ?? 0;
-    Color dc;
-    String dl;
-    IconData di;
+    final dInfo = _durumInfo(d);
+    return InkWell(
+      onTap: () => _logDetayAc(l),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: Offset(0, 1))],
+        ),
+        child: Row(
+          children: [
+            Icon(dInfo.icon, color: dInfo.color, size: 22),
+            SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Text(l['telefon']?.toString() ?? '-', style: TextStyle(fontWeight: FontWeight.w700))),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: dInfo.color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                        child: Text(dInfo.label, style: TextStyle(color: dInfo.color, fontWeight: FontWeight.w700, fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                  if ((l['musteri_adi']?.toString() ?? '').isNotEmpty)
+                    Text(l['musteri_adi'].toString(), style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text(
+                    l['mesaj']?.toString() ?? '',
+                    style: TextStyle(fontSize: 12),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(l['created_at']?.toString() ?? '', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  if ((l['hata']?.toString() ?? '').isNotEmpty)
+                    Text(l['hata'].toString(),
+                        style: TextStyle(fontSize: 11, color: Colors.red),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  ({Color color, String label, IconData icon}) _durumInfo(int d) {
     switch (d) {
-      case 1: dc = Colors.green; dl = 'Başarılı'; di = Icons.check_circle; break;
-      case 2: dc = Colors.red; dl = 'Başarısız'; di = Icons.error; break;
-      case 3: dc = Colors.orange; dl = 'Fallback'; di = Icons.swap_horiz; break;
-      default: dc = Colors.grey; dl = 'Beklemede'; di = Icons.schedule;
+      case 1: return (color: Colors.green, label: 'WhatsApp Gönderildi', icon: Icons.check_circle);
+      case 2: return (color: Colors.red, label: 'Başarısız', icon: Icons.error);
+      case 3: return (color: Colors.orange, label: 'SMS ile Gönderildi', icon: Icons.sms);
+      default: return (color: Colors.blueGrey, label: 'Kuyrukta', icon: Icons.schedule);
     }
-    return Container(
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+  }
+
+  void _durumBilgisiAc() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (c) => Container(
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            SizedBox(height: 16),
+            Text('Durumlar Ne Anlama Geliyor?',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            SizedBox(height: 12),
+            _durumAciklamaSatir(
+              Icons.check_circle, Colors.green, 'WhatsApp Gönderildi',
+              'Mesaj müşterinin WhatsApp\'ına başarıyla iletildi.',
+            ),
+            _durumAciklamaSatir(
+              Icons.sms, Colors.orange, 'SMS ile Gönderildi',
+              'WhatsApp\'a ulaşılamadı (numara WhatsApp\'ta yok, internet yok vb.) — sistem otomatik olarak SMS gönderdi. Bu SMS bakiyenizden düşer.',
+            ),
+            _durumAciklamaSatir(
+              Icons.error, Colors.red, 'Başarısız',
+              'Mesaj hiçbir kanaldan gönderilemedi. Hata detayını mesaj kartına tıklayarak görebilirsiniz.',
+            ),
+            _durumAciklamaSatir(
+              Icons.schedule, Colors.blueGrey, 'Kuyrukta',
+              'Mesaj gönderim sırasında bekliyor, kısa süre içinde işlenecek.',
+            ),
+            SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.pop(c),
+                child: Text('Tamam'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _durumAciklamaSatir(IconData ikon, Color renk, String baslik, String aciklama) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(di, color: dc, size: 22),
-          SizedBox(width: 8),
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(color: renk.withValues(alpha: 0.12), shape: BoxShape.circle),
+            child: Icon(ikon, color: renk, size: 18),
+          ),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(l['telefon']?.toString() ?? '-', style: TextStyle(fontWeight: FontWeight.w700))),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: dc.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-                      child: Text(dl, style: TextStyle(color: dc, fontWeight: FontWeight.w700, fontSize: 10)),
-                    ),
-                  ],
-                ),
-                if ((l['musteri_adi']?.toString() ?? '').isNotEmpty)
-                  Text(l['musteri_adi'].toString(), style: TextStyle(fontSize: 11, color: Colors.grey)),
-                Text(
-                  l['mesaj']?.toString() ?? '',
-                  style: TextStyle(fontSize: 12),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(l['created_at']?.toString() ?? '', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                if ((l['hata']?.toString() ?? '').isNotEmpty)
-                  Text(l['hata'].toString(), style: TextStyle(fontSize: 11, color: Colors.red)),
+                Text(baslik, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: renk)),
+                SizedBox(height: 2),
+                Text(aciklama, style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.4)),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _logDetayAc(Map<String, dynamic> l) {
+    final d = (l['durum'] as num?)?.toInt() ?? 0;
+    final info = _durumInfo(d);
+    final mesaj = l['mesaj']?.toString() ?? '';
+    final hata = l['hata']?.toString() ?? '';
+    final telefon = l['telefon']?.toString() ?? '-';
+    final musteri = l['musteri_adi']?.toString() ?? '';
+    final tarih = l['created_at']?.toString() ?? '';
+    final randevuId = l['randevu_id'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (c) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.3,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (c, scroll) => Container(
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: info.color.withValues(alpha: 0.12), shape: BoxShape.circle),
+                    child: Icon(info.icon, color: info.color, size: 22),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Mesaj Detayı', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                        Text(info.label, style: TextStyle(color: info.color, fontWeight: FontWeight.w700, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  controller: scroll,
+                  children: [
+                    _detaySatir('Telefon', telefon),
+                    if (musteri.isNotEmpty) _detaySatir('Müşteri', musteri),
+                    if (tarih.isNotEmpty) _detaySatir('Tarih', tarih),
+                    if (randevuId != null) _detaySatir('Randevu ID', randevuId.toString()),
+                    SizedBox(height: 12),
+                    Text('Mesaj İçeriği', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.grey.shade700)),
+                    SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF7F9FC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border(left: BorderSide(color: Color(0xFF25D366), width: 3)),
+                      ),
+                      child: SelectableText(
+                        mesaj.isEmpty ? '—' : mesaj,
+                        style: TextStyle(fontSize: 14, height: 1.4),
+                      ),
+                    ),
+                    if (hata.isNotEmpty) ...[
+                      SizedBox(height: 12),
+                      Text('Hata', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.red)),
+                      SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+                        ),
+                        child: SelectableText(hata, style: TextStyle(fontSize: 12, color: Colors.red.shade900)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detaySatir(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 90, child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+          Expanded(child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -595,62 +878,193 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
   // ============ ALICILAR TAB ============
 
   Widget _alicilarTab(ColorScheme scheme) {
-    if (_aliciLoading) return Center(child: CircularProgressIndicator());
-    return RefreshIndicator(
-      onRefresh: _yukleAliciler,
-      child: _aliciler.isEmpty
-          ? ListView(children: [SizedBox(height: 100), Center(child: Text('Alıcı yok', style: TextStyle(color: Colors.grey)))])
-          : ListView.separated(
-              padding: EdgeInsets.fromLTRB(12, 8, 12, 80),
-              itemCount: _aliciler.length,
-              separatorBuilder: (_, __) => SizedBox(height: 6),
-              itemBuilder: (c, i) {
-                final a = _aliciler[i];
-                final t = (a['toplam'] as num?)?.toInt() ?? 0;
-                final b = (a['basari'] as num?)?.toInt() ?? 0;
-                final f = (a['fail'] as num?)?.toInt() ?? 0;
-                return InkWell(
-                  onTap: () => _aliciGecmisAc(a['telefon']?.toString() ?? ''),
-                  child: Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: Color(0xFF25D366).withValues(alpha: 0.12),
-                          child: Icon(Icons.phone, color: Color(0xFF25D366)),
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(a['telefon']?.toString() ?? '-', style: TextStyle(fontWeight: FontWeight.w700)),
-                              if ((a['musteri_adi']?.toString() ?? '').isNotEmpty)
-                                Text(a['musteri_adi'].toString(), style: TextStyle(fontSize: 11, color: Colors.grey)),
-                              Row(
-                                children: [
-                                  Text('$t toplam', style: TextStyle(fontSize: 11)),
-                                  SizedBox(width: 8),
-                                  Text('✓$b', style: TextStyle(fontSize: 11, color: Colors.green)),
-                                  SizedBox(width: 8),
-                                  Text('✗$f', style: TextStyle(fontSize: 11, color: Colors.red)),
-                                ],
-                              ),
-                            ],
+    // Tab'ın TÜM alanını doldur, beyaz arka plan ile (gradient'i kapat)
+    return Container(
+      color: Colors.white,
+      width: double.infinity,
+      height: double.infinity,
+      child: Column(
+        children: [
+          // ÜST DURUM ŞERİDİ — her zaman görünür
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: _aliciHata != null
+                ? Colors.red.shade50
+                : (_aliciLoading
+                    ? Colors.blue.shade50
+                    : (_aliciler.isEmpty ? Colors.amber.shade50 : Colors.green.shade50)),
+            child: Row(
+              children: [
+                Icon(
+                  _aliciHata != null
+                      ? Icons.error
+                      : (_aliciLoading
+                          ? Icons.hourglass_top
+                          : (_aliciler.isEmpty ? Icons.info_outline : Icons.check_circle)),
+                  color: _aliciHata != null
+                      ? Colors.red
+                      : (_aliciLoading
+                          ? Colors.blue
+                          : (_aliciler.isEmpty ? Colors.orange : Colors.green)),
+                  size: 20,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _aliciHata != null
+                        ? 'Hata: ${_aliciHata!}'
+                        : (_aliciLoading
+                            ? 'Yükleniyor...'
+                            : (_aliciler.isEmpty
+                                ? 'Henüz hiç alıcı yok. WhatsApp mesajı gönderdikçe burada görünür.'
+                                : '${_aliciler.length} alıcı listelendi')),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.refresh, size: 20),
+                  tooltip: 'Yenile',
+                  onPressed: _aliciLoading ? null : _yukleAliciler,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
+            ),
+          ),
+          // İÇERİK
+          Expanded(
+            child: _aliciler.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_aliciLoading)
+                            CircularProgressIndicator(color: Color(0xFF25D366))
+                          else
+                            Icon(
+                              _aliciHata != null ? Icons.cloud_off : Icons.people_outline,
+                              size: 72,
+                              color: _aliciHata != null ? Colors.red.shade300 : Colors.grey.shade400,
+                            ),
+                          SizedBox(height: 16),
+                          Text(
+                            _aliciLoading
+                                ? 'Alıcılar yükleniyor...'
+                                : (_aliciHata != null ? 'Bağlantı kurulamadı' : 'Henüz alıcı yok'),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black87),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        Icon(Icons.chevron_right, color: Colors.grey),
-                      ],
+                          SizedBox(height: 8),
+                          Text(
+                            _aliciLoading
+                                ? 'Lütfen bekleyin'
+                                : (_aliciHata != null
+                                    ? _aliciHata!
+                                    : 'WhatsApp üzerinden mesaj gönderdiğiniz müşteriler burada listelenecek.'),
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 20),
+                          if (!_aliciLoading)
+                            ElevatedButton.icon(
+                              onPressed: _yukleAliciler,
+                              icon: Icon(Icons.refresh, size: 18),
+                              label: Text('Tekrar Dene'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF25D366),
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _yukleAliciler,
+                    child: ListView.separated(
+                      padding: EdgeInsets.fromLTRB(12, 12, 12, 80),
+                      itemCount: _aliciler.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 8),
+                      itemBuilder: (c, i) {
+                        final a = _aliciler[i];
+                        final t = (a['toplam'] as num?)?.toInt() ?? 0;
+                        final b = (a['basari'] as num?)?.toInt() ?? 0;
+                        final f = (a['fail'] as num?)?.toInt() ?? 0;
+                        final fb = (a['fallback'] as num?)?.toInt() ?? 0;
+                        final sonMesaj = a['son_mesaj']?.toString() ?? '';
+                        final musteri = a['musteri_adi']?.toString() ?? '';
+                        return InkWell(
+                          onTap: () => _aliciGecmisAc(a['telefon']?.toString() ?? '', musteri),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: Color(0xFF25D366).withValues(alpha: 0.15),
+                                  child: Icon(Icons.person, color: Color(0xFF25D366)),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (musteri.isNotEmpty)
+                                        Text(musteri, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                      Text(a['telefon']?.toString() ?? '-',
+                                          style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                                      SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          _aliciBadge('$t', 'toplam', Colors.blueGrey),
+                                          _aliciBadge('✓$b', 'başarılı', Colors.green),
+                                          if (f > 0) _aliciBadge('✗$f', 'hata', Colors.red),
+                                          if (fb > 0) _aliciBadge('📱$fb', 'SMS', Colors.orange),
+                                        ],
+                                      ),
+                                      if (sonMesaj.isNotEmpty)
+                                        Padding(
+                                          padding: EdgeInsets.only(top: 4),
+                                          child: Text('Son: $sonMesaj',
+                                              style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                );
-              },
-            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Future<void> _aliciGecmisAc(String telefon) async {
+  Widget _aliciBadge(String sayi, String label, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+      child: Text('$sayi $label', style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+    );
+  }
+
+  Future<void> _aliciGecmisAc(String telefon, [String musteri = '']) async {
     if (telefon.isEmpty) return;
     showModalBottomSheet(
       context: context,
@@ -666,26 +1080,38 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
           builder: (c, snap) {
             return Container(
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: snap.connectionState != ConnectionState.done
                   ? Center(child: CircularProgressIndicator())
                   : Column(
                       children: [
                         Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
                         SizedBox(height: 12),
-                        Text(telefon, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                        if (musteri.isNotEmpty)
+                          Text(musteri, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                        Text(telefon,
+                            style: TextStyle(
+                              fontWeight: musteri.isNotEmpty ? FontWeight.w500 : FontWeight.w800,
+                              fontSize: musteri.isNotEmpty ? 13 : 18,
+                              color: musteri.isNotEmpty ? Colors.grey.shade700 : Colors.black,
+                            )),
+                        SizedBox(height: 4),
+                        Text('${((snap.data?['rows'] as List?) ?? []).length} mesaj',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
                         SizedBox(height: 12),
                         Expanded(
-                          child: ListView(
-                            controller: scroll,
-                            children: ((snap.data?['rows'] as List?) ?? []).map<Widget>((r) {
-                              final m = Map<String, dynamic>.from(r as Map);
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: 6),
-                                child: _logSatiri(Theme.of(context).colorScheme, m),
-                              );
-                            }).toList(),
-                          ),
+                          child: ((snap.data?['rows'] as List?) ?? []).isEmpty
+                              ? Center(child: Text('Mesaj geçmişi yok', style: TextStyle(color: Colors.grey)))
+                              : ListView.separated(
+                                  controller: scroll,
+                                  itemCount: ((snap.data?['rows'] as List?) ?? []).length,
+                                  separatorBuilder: (_, __) => SizedBox(height: 6),
+                                  itemBuilder: (c, i) {
+                                    final m = Map<String, dynamic>.from(
+                                        ((snap.data?['rows'] as List?) ?? [])[i] as Map);
+                                    return _logSatiri(Theme.of(context).colorScheme, m);
+                                  },
+                                ),
                         ),
                       ],
                     ),
@@ -703,137 +1129,394 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
     if (_paket == null) {
       return Center(child: TextButton.icon(onPressed: _yuklePaket, icon: Icon(Icons.refresh), label: Text('Yükle')));
     }
-    final paket = _paket!['paket']?.toString() ?? 'baslangic';
-    final periyot = _paket!['periyot']?.toString();
+    final aktifPaket = _paket!['paket']?.toString() ?? 'baslangic';
     final kalanGun = (_paket!['kalan_gun'] as num?)?.toInt();
     final deneme = _paket!['deneme'] == true;
+    final bitis = _paket!['bitis']?.toString();
+    final baslangic = _paket!['baslangic']?.toString();
 
-    return ListView(
-      padding: EdgeInsets.fromLTRB(12, 12, 12, 80),
-      children: [
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Mevcut Paket', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-              SizedBox(height: 6),
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _paketRengi(paket).withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(paket.toUpperCase(),
-                        style: TextStyle(color: _paketRengi(paket), fontWeight: FontWeight.w800)),
-                  ),
-                  if (periyot != null) ...[
-                    SizedBox(width: 6),
-                    Text(periyot, style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  ],
-                  if (deneme) ...[
-                    SizedBox(width: 6),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(6)),
-                      child: Text('DENEME', style: TextStyle(color: Colors.amber.shade800, fontWeight: FontWeight.w800, fontSize: 10)),
-                    ),
-                  ],
-                ],
-              ),
-              if (kalanGun != null) ...[
-                SizedBox(height: 8),
-                Text('Kalan süre: $kalanGun gün', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ],
-          ),
-        ),
-        SizedBox(height: 16),
-        Text('Paket Yükselt', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        SizedBox(height: 8),
-        _paketTeklif(scheme, 'pro', 'Pro Paket', 'Aylık 1500 mesaj, öncelikli destek', Colors.blue),
-        _paketTeklif(scheme, 'premium', 'Premium Paket', 'Sınırsız mesaj + WA Business API + dedike destek', Colors.purple),
-      ],
-    );
-  }
-
-  Color _paketRengi(String p) {
-    switch (p) {
-      case 'pro': return Colors.blue;
-      case 'premium': return Colors.purple;
-      default: return Colors.grey;
-    }
-  }
-
-  Widget _paketTeklif(ColorScheme scheme, String paketTip, String baslik, String aciklama, Color color) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() => _paket = null);
+        await _yuklePaket();
+      },
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(12, 12, 12, 80),
         children: [
-          Row(
-            children: [
-              Icon(Icons.workspace_premium, color: color),
-              SizedBox(width: 6),
-              Text(baslik, style: TextStyle(fontWeight: FontWeight.w800, color: color)),
+          if (deneme && bitis != null) _denemeBandi(baslangic, bitis, kalanGun),
+          _paketBaslik(aktifPaket, kalanGun, deneme),
+          SizedBox(height: 16),
+          _periyotToggle(),
+          SizedBox(height: 16),
+          _paketKart(
+            scheme,
+            paketTip: 'baslangic',
+            baslik: 'Başlangıç',
+            aciklama: 'Sadece SMS hatırlatma kullanmak isteyen küçük işletmeler için',
+            fiyatBuyuk: 'Ücretsiz',
+            fiyatAlt: 'Ek ücret yok',
+            ozellikler: [
+              _Ozellik('SMS ile randevu hatırlatma', true),
+              _Ozellik('Mevcut SMS bakiyenizden düşülür', true),
+              _Ozellik('Temel raporlama', true),
+              _Ozellik('WhatsApp gönderimi', false),
+              _Ozellik('Detaylı istatistik', false),
             ],
+            aktif: aktifPaket == 'baslangic',
+            populer: false,
+            deneme: deneme && aktifPaket == 'baslangic',
+            kalanGun: kalanGun,
+            color: Colors.grey,
           ),
-          SizedBox(height: 4),
-          Text(aciklama, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _paketTalepEt(paketTip, 'aylik'),
-                  child: Text('Aylık Talep'),
-                ),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _paketTalepEt(paketTip, 'yillik'),
-                  style: ElevatedButton.styleFrom(backgroundColor: color, foregroundColor: Colors.white),
-                  child: Text('Yıllık Talep'),
-                ),
-              ),
+          SizedBox(height: 12),
+          _paketKart(
+            scheme,
+            paketTip: 'pro',
+            baslik: 'WhatsApp Randevu Hatırlatma',
+            aciklama: 'WhatsApp ile profesyonel hatırlatma — randevuya gelmeyenleri azaltın',
+            fiyatBuyuk: _paketPeriyot == 'aylik'
+                ? '${_paketFiyat['pro']!['aylik']} TL/ay'
+                : '${_paketFiyat['pro']!['yillik']} TL/yıl',
+            fiyatAlt: _paketPeriyot == 'aylik'
+                ? ''
+                : '≈ ${(_paketFiyat['pro']!['yillik']! / 12).round()} TL/ay — 2 ay bedava',
+            ozellikler: [
+              _Ozellik('Başlangıç paketinin tüm özellikleri', true, bold: true),
+              _Ozellik('WhatsApp ile randevu hatırlatma (1 gün önce + yaklaşan)', true),
+              _Ozellik('Randevu iptali / güncelleme bildirimi', true),
+              _Ozellik('Otomatik SMS yedek', true),
+              _Ozellik('Mesaj geçmişi ve alıcı listesi', true),
+              _Ozellik('Detaylı istatistik paneli', true),
             ],
+            aktif: aktifPaket == 'pro' || aktifPaket == 'premium',
+            populer: true,
+            deneme: deneme && (aktifPaket == 'pro' || aktifPaket == 'premium'),
+            kalanGun: kalanGun,
+            color: Color(0xFF25D366),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _paketTalepEt(String paket, String periyot) async {
+  Widget _denemeBandi(String? baslangic, String bitis, int? kalanGun) {
+    final uyari = (kalanGun != null && kalanGun <= 7);
+    final renk = uyari ? Colors.orange : Color(0xFF25D366);
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [renk.withValues(alpha: 0.15), renk.withValues(alpha: 0.05)]),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: renk.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Text('🎁', style: TextStyle(fontSize: 28)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Ücretsiz Deneme Aktif',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: renk)),
+                SizedBox(height: 2),
+                Text(
+                  '📅 Başlangıç: ${baslangic ?? "—"}  ·  Bitiş: $bitis',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                ),
+                if (kalanGun != null)
+                  Text('$kalanGun gün kaldı',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: renk)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paketBaslik(String aktifPaket, int? kalanGun, bool deneme) {
+    final labels = {
+      'baslangic': 'Başlangıç (Ücretsiz)',
+      'pro': 'WhatsApp Hatırlatma',
+      'premium': 'WhatsApp Hatırlatma',
+    };
+    var mevcut = labels[aktifPaket] ?? aktifPaket;
+    if (kalanGun != null && (aktifPaket == 'pro' || aktifPaket == 'premium')) {
+      mevcut += ' — $kalanGun gün kaldı';
+    }
+    if (deneme) mevcut += ' (Deneme)';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'WhatsApp Randevu Hatırlatma Paketi',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'WhatsApp üzerinden otomatik randevu hatırlatması gönderin, randevuya gelmeyen müşteri sayısını azaltın.',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+        ),
+        SizedBox(height: 8),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Color(0xFF25D366).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: 'Mevcut paket: ', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                TextSpan(text: mevcut, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF25D366))),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _periyotToggle() {
+    Widget btn(String key, String label, {String? rozet}) {
+      final aktif = _paketPeriyot == key;
+      return Expanded(
+        child: InkWell(
+          onTap: () => setState(() => _paketPeriyot = key),
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: aktif ? Color(0xFF25D366) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: aktif ? Colors.white : Colors.grey.shade700,
+                    )),
+                if (rozet != null) ...[
+                  SizedBox(width: 6),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: aktif ? Colors.white : Colors.orange,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(rozet,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: aktif ? Color(0xFF25D366) : Colors.white,
+                        )),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.all(4),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          btn('aylik', 'Aylık'),
+          btn('yillik', 'Yıllık', rozet: '2 AY BEDAVA'),
+        ],
+      ),
+    );
+  }
+
+  Widget _paketKart(
+    ColorScheme scheme, {
+    required String paketTip,
+    required String baslik,
+    required String aciklama,
+    required String fiyatBuyuk,
+    required String fiyatAlt,
+    required List<_Ozellik> ozellikler,
+    required bool aktif,
+    required bool populer,
+    required bool deneme,
+    required int? kalanGun,
+    required Color color,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: aktif ? Border.all(color: color, width: 2) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (aktif)
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              ),
+              child: Text(
+                deneme ? '🎁 DENEME — ${kalanGun ?? 0} GÜN KALDI' : '✓ MEVCUT PAKETİNİZ',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),
+              ),
+            )
+          else if (populer)
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              ),
+              child: Text(
+                '⭐ ÖNERİLEN',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),
+              ),
+            ),
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(baslik, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                SizedBox(height: 4),
+                Text(aciklama, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                SizedBox(height: 12),
+                Text(fiyatBuyuk, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22, color: color)),
+                if (fiyatAlt.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Text(fiyatAlt, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  ),
+                SizedBox(height: 12),
+                ...ozellikler.map((o) => Padding(
+                      padding: EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            o.var_ ? Icons.check_circle : Icons.cancel,
+                            color: o.var_ ? Color(0xFF25D366) : Colors.grey.shade400,
+                            size: 16,
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              o.metin,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: o.var_ ? Colors.black87 : Colors.grey,
+                                fontWeight: o.bold ? FontWeight.w700 : FontWeight.normal,
+                                decoration: o.var_ ? null : TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: aktif
+                      ? OutlinedButton(
+                          onPressed: null,
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            disabledForegroundColor: color,
+                            side: BorderSide(color: color.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(deneme ? 'Deneme Aktif' : 'Mevcut Paket',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                        )
+                      : paketTip == 'baslangic'
+                          ? OutlinedButton(
+                              onPressed: null,
+                              style: OutlinedButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 12)),
+                              child: Text('Ücretsiz', style: TextStyle(fontWeight: FontWeight.w700)),
+                            )
+                          : ElevatedButton(
+                              onPressed: () => _paketTalepEt(paketTip),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: color,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: Text('Hemen Başla', style: TextStyle(fontWeight: FontWeight.w800)),
+                            ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _paketTalepEt(String paket) async {
     final iletisimCtrl = TextEditingController();
+    final fiyat = _paketFiyat[paket]?[_paketPeriyot] ?? 0;
+    final birim = _paketPeriyot == 'aylik' ? 'TL/ay' : 'TL/yıl';
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('${paket.toUpperCase()} / ${periyot.toUpperCase()} talep'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'WhatsApp Randevu Hatırlatma\n$fiyat $birim',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Müşteri temsilcimiz sizinle iletişime geçecek.', style: TextStyle(fontSize: 12)),
-            SizedBox(height: 8),
+            Text(
+              'Müşteri temsilcimiz sizinle iletişime geçerek ödeme ve aktivasyon süreci hakkında bilgi verecektir.',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+            SizedBox(height: 12),
             TextField(
               controller: iletisimCtrl,
-              decoration: InputDecoration(labelText: 'Tercih ettiğin iletişim (telefon/email)', border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: 'İletişim Bilgisi',
+                hintText: 'örn. 0555 123 45 67',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                isDense: true,
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text('İptal')),
-          ElevatedButton(onPressed: () => Navigator.pop(c, true), child: Text('Talep Et')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF25D366), foregroundColor: Colors.white),
+            child: Text('Talebi Gönder'),
+          ),
         ],
       ),
     );
     if (ok != true) return;
-    final r = await whatsappPaketTalep(_salonId, paket: paket, periyot: periyot, iletisim: iletisimCtrl.text.trim());
+    final iletisim = iletisimCtrl.text.trim();
+    if (iletisim.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lütfen iletişim bilgisi girin.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    final r = await whatsappPaketTalep(_salonId, paket: paket, periyot: _paketPeriyot, iletisim: iletisim);
     if (!mounted) return;
     if (r != null && r['ok'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -845,4 +1528,11 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
       );
     }
   }
+}
+
+class _Ozellik {
+  final String metin;
+  final bool var_;
+  final bool bold;
+  const _Ozellik(this.metin, this.var_, {this.bold = false});
 }
