@@ -500,19 +500,13 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     setState(() => _ceviriliyor = false);
     HapticFeedback.heavyImpact();
 
-    // Kazanma efekti: konfeti + zafer sesi
+    // Kazanma efekti: konfeti + zafer titreşim/ses
     _konfeti.play();
-    try {
-      // pubspec'te 'images/ring.mp3' olarak kayıtlı, audioplayers prefix'i 'assets/'
-      // o yüzden absolute path için UrlSource yerine direkt asset key
-      await _player.setSource(AssetSource('images/ring.mp3'));
-      await _player.setVolume(0.7);
-      await _player.resume();
-      Timer(Duration(seconds: 3), () {
-        try { _player.stop(); } catch (_) {}
-      });
-    } catch (e) {
-      // ses çalmazsa sessiz devam et (konfeti zaten var)
+    // 3 ardarda "ding" — sistem ses kanalını kullanır (telefon zil değil)
+    for (var i = 0; i < 3; i++) {
+      SystemSound.play(SystemSoundType.alert);
+      HapticFeedback.heavyImpact();
+      await Future.delayed(Duration(milliseconds: 180));
     }
 
     final sec = _dilimler[hedefIndex];
