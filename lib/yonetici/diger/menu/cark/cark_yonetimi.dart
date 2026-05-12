@@ -30,8 +30,6 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   Timer? _autoSyncTimer;
   late final ConfettiController _konfeti;
   final AudioPlayer _cheerPlayer = AudioPlayer();
-  final AudioPlayer _tickPlayer = AudioPlayer();
-  Uint8List? _tickBytes;
   Uint8List? _cheerBytes;
   final ScrollController _carkScroll = ScrollController();
 
@@ -51,7 +49,6 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     _salonId = widget.isletmebilgi['id'].toString();
     _konfeti = ConfettiController(duration: Duration(seconds: 3));
     // Runtime WAV ses byte'larını hazırla (web Audio API'nin Flutter karşılığı)
-    _tickBytes = _generateTickWav();
     _cheerBytes = _generateCheerWav();
     WidgetsBinding.instance.addObserver(this);
     _yukleSistem();
@@ -76,7 +73,6 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     _autoSyncTimer?.cancel();
     _konfeti.dispose();
     _cheerPlayer.dispose();
-    _tickPlayer.dispose();
     _carkScroll.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _tab.dispose();
@@ -85,85 +81,53 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   // ============= Runtime WAV ses üretici (web Audio API portu) =============
 
-  /// Tick sesi: kısa beyaz gürültü, üstel azalan envelope. (~55 ms)
-  /// Web'deki playTick() ile aynı: random noise * (1-t)^4
-  Uint8List _generateTickWav() {
-    const sr = 44100;
-    final len = (sr * 0.055).floor();
-    final rand = math.Random();
-    final samples = Int16List(len);
-    for (var i = 0; i < len; i++) {
-      final t = i / len;
-      final env = math.pow(1 - t, 4).toDouble();
-      final n = (rand.nextDouble() * 2 - 1) * env * 0.55;
-      samples[i] = (n.clamp(-1.0, 1.0) * 32767).round();
-    }
-    return _wrapWav(samples, sampleRate: sr, channels: 1);
-  }
-
-  /// Kazanma sesi (alkış + arpeggio): 4 sn, stereo.
-  /// Web'deki playCheer() ile aynı: filtered white noise crowd + 5 sine nota arpeggio.
+  /// Kazanma sesi: net "ta-da" arpeggio (5 nota, ~1.5 sn, mono).
+  /// Sadece sine wave nota katmanları — gürültü yok.
   Uint8List _generateCheerWav() {
     const sr = 44100;
-    const dur = 4.0;
+    const dur = 1.6; // saniye
     final n = (sr * dur).floor();
-    final rand = math.Random();
-    final samples = Int16List(n * 2); // stereo interleaved
+    final samples = Int16List(n);
 
-    // 5 nota: C5(0ms), E5(280ms), G5(520ms), A5(720ms), C6(880ms)
+    // 5 nota: do-mi-sol-la-do (C major triad + 6th, yukarı doğru)
+    // Web'deki playCheer ile aynı, alkış noise'suz
     final notalar = [
-      {'ms': 0, 'f': 523.25},
-      {'ms': 280, 'f': 659.25},
-      {'ms': 520, 'f': 783.99},
-      {'ms': 720, 'f': 880.00},
-      {'ms': 880, 'f': 1046.50},
+      {'ms': 0,   'f': 523.25},  // C5
+      {'ms': 130, 'f': 659.25},  // E5
+      {'ms': 260, 'f': 783.99},  // G5
+      {'ms': 390, 'f': 880.00},  // A5
+      {'ms': 520, 'f': 1046.50}, // C6 — uzun çalsın
     ];
-
-    // Tek-pole bandpass için durum (basit IIR yaklaşımı)
-    double yL = 0, yR = 0;
 
     for (var i = 0; i < n; i++) {
       final t = i / sr;
-      // Alkış envelope: fade-in 0.5s, sustain to 3s, fade-out 3-4s
-      final env = t < 0.5
-          ? t / 0.5
-          : t < 3
-              ? 1.0
-              : math.max(0.0, math.pow(1 - (t - 3) / 1, 1.5).toDouble());
-      final modL = 0.5 + 0.5 * math.sin(t * 7.5 * 2 * math.pi).abs();
-      final modR = 0.5 + 0.5 * math.sin((t * 7.5 + 0.4) * 2 * math.pi).abs();
-      final noiseL = (rand.nextDouble() * 2 - 1) * modL * env * 0.3;
-      final noiseR = (rand.nextDouble() * 2 - 1) * modR * env * 0.3;
-      // Basit bandpass (~1600 Hz): low-pass + high-pass
-      yL = yL + (noiseL - yL) * 0.20;
-      yR = yR + (noiseR - yR) * 0.20;
-      double sL = (noiseL - yL) * 2.0;
-      double sR = (noiseR - yR) * 2.0;
+      double s = 0;
 
-      // Arpeggio notaları ekle
-      for (final nota in notalar) {
-        final ms = (nota['ms'] as num).toDouble();
-        final f = (nota['f'] as num).toDouble();
+      for (var k = 0; k < notalar.length; k++) {
+        final ms = (notalar[k]['ms'] as num).toDouble();
+        final f = (notalar[k]['f'] as num).toDouble();
         final nt = t - ms / 1000;
-        if (nt < 0 || nt > 0.6) continue;
-        // 60ms attack, 540ms exp decay
+        if (nt < 0) continue;
+        // Son nota uzun (900ms), diğerleri kısa (300ms)
+        final notaUzun = (k == notalar.length - 1) ? 0.95 : 0.30;
+        if (nt > notaUzun) continue;
+        // 30ms attack, gerisi exp decay
         double g;
-        if (nt < 0.06) {
-          g = (nt / 0.06) * 0.25;
+        if (nt < 0.03) {
+          g = (nt / 0.03) * 0.45;
         } else {
-          final decT = (nt - 0.06) / 0.54;
-          g = 0.25 * math.exp(-decT * 6);
+          final decT = (nt - 0.03) / (notaUzun - 0.03);
+          g = 0.45 * math.exp(-decT * 3.5);
         }
-        final s = math.sin(2 * math.pi * f * nt) * g;
-        sL += s;
-        sR += s;
+        // Sine wave + ufak harmonic (5. harmonic) — daha "parlak" duyulsun
+        s += math.sin(2 * math.pi * f * nt) * g;
+        s += math.sin(2 * math.pi * f * 2 * nt) * g * 0.12;
       }
 
-      samples[i * 2] = (sL.clamp(-1.0, 1.0) * 32767).round();
-      samples[i * 2 + 1] = (sR.clamp(-1.0, 1.0) * 32767).round();
+      samples[i] = (s.clamp(-1.0, 1.0) * 32767).round();
     }
 
-    return _wrapWav(samples, sampleRate: sr, channels: 2);
+    return _wrapWav(samples, sampleRate: sr, channels: 1);
   }
 
   Uint8List _wrapWav(Int16List samples, {required int sampleRate, required int channels}) {
@@ -199,12 +163,9 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   List<int> _le16(int v) => [v & 0xFF, (v >> 8) & 0xFF];
   List<int> _le32(int v) => [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF];
 
+  /// Tick: sistem click sesi (audioplayers çok yavaş, native click anında çalar)
   Future<void> _playTick() async {
-    if (_tickBytes == null) return;
-    try {
-      await _tickPlayer.stop();
-      await _tickPlayer.play(BytesSource(_tickBytes!, mimeType: 'audio/wav'));
-    } catch (_) {}
+    SystemSound.play(SystemSoundType.click);
   }
 
   Future<void> _playCheer() async {
