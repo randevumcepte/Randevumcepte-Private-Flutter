@@ -42,6 +42,9 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   bool _hatLoading = false;
   Map<String, dynamic>? _hatData;
 
+  // Kaydedilmemiş değişiklik var mı? (true ise otomatik sync yapılmaz — kullanıcının emeği silinmesin)
+  bool _dilimDirty = false;
+
   @override
   void initState() {
     super.initState();
@@ -81,16 +84,16 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   // ============= Runtime WAV ses üretici (web Audio API portu) =============
 
-  /// Kazanma sesi: net "ta-da" arpeggio (5 nota, ~1.5 sn, mono).
-  /// Sadece sine wave nota katmanları — gürültü yok.
+  /// Kazanma sesi: "ta-da" arpeggio + 3 konfeti pop + alkış (clap clap clap...) — ~2.4 sn mono.
+  /// Hepsi runtime'da WAV byte olarak üretilir (asset gerektirmez).
   Uint8List _generateCheerWav() {
     const sr = 44100;
-    const dur = 1.6; // saniye
+    const dur = 2.4; // saniye — alkışlara yer açmak için uzatıldı
     final n = (sr * dur).floor();
     final samples = Int16List(n);
+    final rand = math.Random(42);
 
     // 5 nota: do-mi-sol-la-do (C major triad + 6th, yukarı doğru)
-    // Web'deki playCheer ile aynı, alkış noise'suz
     final notalar = [
       {'ms': 0,   'f': 523.25},  // C5
       {'ms': 130, 'f': 659.25},  // E5
@@ -99,29 +102,71 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
       {'ms': 520, 'f': 1046.50}, // C6 — uzun çalsın
     ];
 
+    // Konfeti pop'ları: 3 adet, kısa yüksek frekans patlamalar
+    // (mantıken konfeti atılırken "pop pop pop" sesi)
+    final popZamanlari = [0.00, 0.10, 0.20]; // saniye
+    // Her pop için rastgele tepe frekansı (1500-3000 Hz)
+    final popFrekanslari = popZamanlari.map((_) => 1500.0 + rand.nextDouble() * 1500).toList();
+
+    // Alkış patlamaları: 9 adet, kısa beyaz gürültü patlamaları (clap clap clap...)
+    // 0.45 sn'den başlar, gittikçe yoğunlaşır, sonra yavaşlar (gerçek alkış ritmi)
+    final clapZamanlari = [
+      0.45, 0.62, 0.78, 0.92, 1.06, 1.22, 1.40, 1.62, 1.88,
+    ];
+    // Her alkış için rastgele güç (0.7-1.0) ve süre (60-110ms) — doğal seda
+    final clapGucu = clapZamanlari.map((_) => 0.7 + rand.nextDouble() * 0.3).toList();
+    final clapSuresi = clapZamanlari.map((_) => 0.06 + rand.nextDouble() * 0.05).toList();
+
     for (var i = 0; i < n; i++) {
       final t = i / sr;
       double s = 0;
 
+      // ===== ARPEGGIO (mevcut "ta-da") =====
       for (var k = 0; k < notalar.length; k++) {
         final ms = (notalar[k]['ms'] as num).toDouble();
         final f = (notalar[k]['f'] as num).toDouble();
         final nt = t - ms / 1000;
         if (nt < 0) continue;
-        // Son nota uzun (900ms), diğerleri kısa (300ms)
         final notaUzun = (k == notalar.length - 1) ? 0.95 : 0.30;
         if (nt > notaUzun) continue;
-        // 30ms attack, gerisi exp decay
         double g;
         if (nt < 0.03) {
-          g = (nt / 0.03) * 0.45;
+          g = (nt / 0.03) * 0.40;
         } else {
           final decT = (nt - 0.03) / (notaUzun - 0.03);
-          g = 0.45 * math.exp(-decT * 3.5);
+          g = 0.40 * math.exp(-decT * 3.5);
         }
-        // Sine wave + ufak harmonic (5. harmonic) — daha "parlak" duyulsun
         s += math.sin(2 * math.pi * f * nt) * g;
         s += math.sin(2 * math.pi * f * 2 * nt) * g * 0.12;
+      }
+
+      // ===== KONFETI POP'LARI =====
+      for (var p = 0; p < popZamanlari.length; p++) {
+        final dt = t - popZamanlari[p];
+        if (dt < 0 || dt > 0.08) continue;
+        // Hızlı attack + exp decay, yüksek frekans
+        final env = math.exp(-dt * 50);
+        final f = popFrekanslari[p];
+        // Frekans hızla düşer (pitch-down efekti)
+        final freqMod = f * (1 - dt * 8).clamp(0.3, 1.0);
+        s += math.sin(2 * math.pi * freqMod * dt) * env * 0.35;
+      }
+
+      // ===== ALKIŞ (filtered noise burst'ler) =====
+      for (var c = 0; c < clapZamanlari.length; c++) {
+        final dt = t - clapZamanlari[c];
+        final maxSure = clapSuresi[c];
+        if (dt < 0 || dt > maxSure) continue;
+        // Çok hızlı attack (3ms), exp decay
+        double clapEnv;
+        if (dt < 0.003) {
+          clapEnv = (dt / 0.003) * clapGucu[c];
+        } else {
+          clapEnv = clapGucu[c] * math.exp(-(dt - 0.003) / (maxSure * 0.35));
+        }
+        // Beyaz gürültü (band-limited, yüksek frekanslı)
+        final noise = rand.nextDouble() * 2 - 1;
+        s += noise * clapEnv * 0.30;
       }
 
       samples[i] = (s.clamp(-1.0, 1.0) * 32767).round();
@@ -178,6 +223,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   /// Loading spinner göstermeden sessizce yeniden çek (sync için).
   Future<void> _yukleSistemSessiz() async {
+    // Kaydedilmemiş değişiklik varsa sync atlanır — kullanıcının emeği silinmesin
+    if (_dilimDirty) return;
     final r = await carkAdminSistemGetir(_salonId);
     if (!mounted || r == null) return;
     final yeniDilimler = ((r['dilimler'] as List?) ?? [])
@@ -229,6 +276,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         d['_uid'] = d['_uid'] ?? _yeniUid();
       }
       _sistemLoading = false;
+      _dilimDirty = false;
     });
   }
 
@@ -344,17 +392,29 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
       controller: _carkScroll,
       padding: EdgeInsets.fromLTRB(12, 12, 12, 100),
       children: [
-        // Görsel çark (animasyonlu) + konfeti overlay
+        // Görsel çark (web tarzı: koyu zemin + conic-gradient glow ring)
         Stack(
           alignment: Alignment.topCenter,
           children: [
             Container(
-              height: 280,
+              height: 340,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.06), blurRadius: 14, offset: Offset(0, 4))],
+                // Hero gradient — web'deki ck-hero ile aynı (purple → pink)
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF6c5ce7),
+                    Color(0xFFa29bfe),
+                    Color(0xFFfd79a8),
+                  ],
+                  stops: [0.0, 0.55, 1.0],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: Color(0xFF6c5ce7).withValues(alpha: 0.45), blurRadius: 28, offset: Offset(0, 8)),
+                ],
               ),
               child: _CarkPreview(key: _carkKey, dilimler: _dilimler, onTick: _playTick),
             ),
@@ -475,6 +535,26 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         Row(
           children: [
             Text('Dilimler (${_dilimler.length})', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            if (_dilimDirty) ...[
+              SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade400),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit, size: 11, color: Colors.orange.shade800),
+                    SizedBox(width: 4),
+                    Text('Kaydedilmedi',
+                        style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ],
             Spacer(),
             TextButton.icon(
               onPressed: _dilimEkle,
@@ -492,8 +572,11 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
             key: ValueKey('dilim_$uid'),
             index: e.key,
             dilim: e.value,
-            onSil: () => setState(() => _dilimler.removeAt(e.key)),
-            onDegisti: () => setState(() {}),
+            onSil: () => setState(() {
+              _dilimler.removeAt(e.key);
+              _dilimDirty = true;
+            }),
+            onDegisti: () => setState(() => _dilimDirty = true),
           );
         }),
 
@@ -528,6 +611,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         'deger': null,
         'kupon_mu': 0,
       });
+      _dilimDirty = true;
     });
     HapticFeedback.lightImpact();
     // Sayfayı dilim listesine kaydır (yeni dilim ekranda görünsün)
@@ -565,6 +649,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
       for (var i = 0; i < _dilimler.length; i++) {
         _dilimler[i]['probability'] = i == 0 ? 100 : 0;
       }
+      _dilimDirty = true;
     });
   }
 
@@ -690,6 +775,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     if (!mounted) return;
     if (r != null && r['basarili'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Çark kaydedildi'), backgroundColor: Colors.green));
+      _dilimDirty = false;
       _yukleSistem();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r?['mesaj'] ?? 'Kayıt hatası'), backgroundColor: Colors.red));
@@ -1249,109 +1335,287 @@ class _CarkPreviewState extends State<_CarkPreview> with SingleTickerProviderSta
       animation: _anim,
       builder: (c, _) {
         final rot = (_baseRotation + (_anim.value));
-        return CustomPaint(
-          size: Size(220, 220),
-          painter: _CarkPainter(widget.dilimler, rot),
+        return SizedBox(
+          width: 300,
+          height: 300,
+          child: CustomPaint(painter: _CarkPainter(widget.dilimler, rot)),
         );
       },
     );
   }
 }
 
+/// Web çark widget'ının birebir Flutter portu.
+/// Renkler, rakam/kategori yerleşimi, ayraç çizgileri, işaretçi — hepsi web ile aynı.
 class _CarkPainter extends CustomPainter {
   final List<Map<String, dynamic>> dilimler;
-  final double rotation; // radian
+  final double rotation;
   _CarkPainter(this.dilimler, [this.rotation = 0]);
+
+  static const double _cx = 150, _cy = 150, _R = 130;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) / 2 - 8;
+    // Web SVG 300x300, scale et
+    final scale = size.width / 300;
+    canvas.scale(scale);
+
+    final center = Offset(_cx, _cy);
+
+    // Çark zemini — koyu mor (web: #160630)
+    canvas.drawCircle(center, _R + 4, Paint()..color = Color(0xFF160630));
 
     if (dilimler.isEmpty) {
-      final paint = Paint()..color = Colors.grey.shade200;
-      canvas.drawCircle(center, radius, paint);
       return;
     }
 
     final n = dilimler.length;
-    final sweep = 2 * math.pi / n;
+    final angDeg = 360 / n; // her dilim açısı (derece)
 
     // Çark gövdesini döndür (işaretçi sabit, çark döner)
     canvas.save();
-    canvas.translate(center.dx, center.dy);
+    canvas.translate(_cx, _cy);
     canvas.rotate(rotation);
-    canvas.translate(-center.dx, -center.dy);
+    canvas.translate(-_cx, -_cy);
+
+    // Conic-gradient glow ring (dış)
+    final ringRect = Rect.fromCircle(center: center, radius: _R + 3);
+    final gradPaint = Paint()
+      ..shader = SweepGradient(
+        colors: [
+          Color(0xFF6c5ce7), Color(0xFFa29bfe), Color(0xFFfd79a8),
+          Color(0xFFfdcb6e), Color(0xFF00b894), Color(0xFF6c5ce7),
+        ],
+      ).createShader(ringRect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7;
+    canvas.drawCircle(center, _R + 3, gradPaint);
 
     for (var i = 0; i < n; i++) {
-      final paint = Paint()..color = _hexToColor(dilimler[i]['color']?.toString());
-      final rect = Rect.fromCircle(center: center, radius: radius);
-      final start = -math.pi / 2 + i * sweep;
-      canvas.drawArc(rect, start, sweep, true, paint);
+      final saDeg = i * angDeg;
+      final sweepDeg = angDeg;
+      final saRad = (saDeg - 90) * math.pi / 180;
+      final sweepRad = sweepDeg * math.pi / 180;
 
-      // Dilim ayırıcı çizgi
-      final sepPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.6)
+      // Dilim path: M cx,cy L x1,y1 A R R 0 lg 1 x2,y2 Z
+      final dilim = Path()
+        ..moveTo(_cx, _cy)
+        ..lineTo(_cx + _R * math.cos(saRad), _cy + _R * math.sin(saRad))
+        ..arcTo(
+          Rect.fromCircle(center: center, radius: _R),
+          saRad, sweepRad, false,
+        )
+        ..close();
+
+      // Dilim dolgusu (renk)
+      canvas.drawPath(dilim, Paint()..color = _hexToColor(dilimler[i]['color']?.toString()));
+
+      // Beyaz ayraç (stroke .7 alpha)
+      canvas.drawPath(dilim, Paint()
+        ..color = Colors.white.withValues(alpha: 0.7)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
-      canvas.drawArc(rect, start, sweep, true, sepPaint);
+        ..strokeWidth = 2);
 
-      // İsim — dilim merkezine sığdır (saat 12 yönüne uzaktan okuyabilmek için döndür)
-      final textSpan = TextSpan(
-        text: (dilimler[i]['name']?.toString() ?? '').split(' ').first,
-        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800, shadows: [Shadow(color: Colors.black54, blurRadius: 3)]),
-      );
-      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr, maxLines: 1, ellipsis: '…');
-      tp.layout(maxWidth: radius * 0.8);
-      final angle = start + sweep / 2;
-      final tx = center.dx + math.cos(angle) * radius * 0.62;
-      final ty = center.dy + math.sin(angle) * radius * 0.62;
-      // Yazıyı dilim açısına göre döndür (saat 12'den okunsun)
-      canvas.save();
-      canvas.translate(tx, ty);
-      canvas.rotate(angle + math.pi / 2);
-      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
-      canvas.restore();
+      // ===== YAZILAR (web kodu ile bire bir) =====
+      final tAngDeg = saDeg + angDeg / 2;
+      final tRad = (tAngDeg - 90) * math.pi / 180;
+      // SVG'de text-rotate: tAng <= 180 ? tAng - 90 : tAng - 270 (sağ ya da sol okunsun diye flip)
+      final textRotDeg = tAngDeg <= 180 ? tAngDeg - 90 : tAngDeg - 270;
+      final textRotRad = textRotDeg * math.pi / 180;
+
+      final tip = dilimler[i]['tip']?.toString() ?? '';
+      final deger = dilimler[i]['deger'];
+      final hasDeger = (tip == 'puan' || tip == 'hizmet_indirimi' || tip == 'urun_indirimi') && deger != null;
+
+      if (hasDeger) {
+        final numFs = n <= 8 ? 17.0 : 14.0;
+        final catFs = n <= 8 ? 11.0 : 9.0;
+
+        // Rakam — dış kenara teğet
+        final numStr = tip.contains('indirimi') ? '%${_fmt(deger)}' : _fmt(deger);
+        final numDist = _R - (n <= 8 ? 16 : 13);
+        final nx = _cx + numDist * math.cos(tRad);
+        final ny = _cy + numDist * math.sin(tRad);
+
+        canvas.save();
+        canvas.translate(nx, ny);
+        canvas.rotate(tAngDeg * math.pi / 180);
+        _drawStrokedText(canvas, Offset.zero, numStr, numFs, FontWeight.w900, Colors.white, Color(0xCC000000), 3.5);
+        canvas.restore();
+
+        // Kategori — iç bölgede radyal
+        final innerLabel = _buildLabel(dilimler[i]);
+        final catDist = (n <= 8 ? 68.0 : 60.0);
+        final cx2 = _cx + catDist * math.cos(tRad);
+        final cy2 = _cy + catDist * math.sin(tRad);
+        final catMaxCh = math.max(4, (55 / (catFs * 0.62)).floor());
+        final lines = _wrapText(innerLabel, catMaxCh);
+        final catLH = catFs + 2;
+        final catSY = -((lines.length - 1) * catLH / 2);
+
+        canvas.save();
+        canvas.translate(cx2, cy2);
+        canvas.rotate(textRotRad);
+        for (var li = 0; li < lines.length; li++) {
+          _drawStrokedText(canvas, Offset(0, catSY + li * catLH), lines[li], catFs, FontWeight.w700,
+              Color(0xEBFFFFFF), Color(0x80000000), 2);
+        }
+        canvas.restore();
+      } else {
+        // Metin ödülü (Tekrar Dene, Boş, isim)
+        final dist = (n <= 8 ? 76.0 : 68.0);
+        final fs = (n <= 8 ? 12.0 : 10.0);
+        final maxCh = math.max(6, (80 / (fs * 0.60)).floor());
+        final lh = fs + 3;
+        final label = _buildLabel(dilimler[i]);
+        var lines = _wrapText(label, maxCh);
+        if (lines.length > 2) lines = [label.substring(0, math.min(maxCh - 1, label.length)) + '…'];
+        final tx = _cx + dist * math.cos(tRad);
+        final ty = _cy + dist * math.sin(tRad);
+        final sy = -((lines.length - 1) * lh / 2);
+
+        canvas.save();
+        canvas.translate(tx, ty);
+        canvas.rotate(textRotRad);
+        for (var li = 0; li < lines.length; li++) {
+          _drawStrokedText(canvas, Offset(0, sy + li * lh), lines[li], fs, FontWeight.w700,
+              Colors.white, Color(0x8C000000), 2.5);
+        }
+        canvas.restore();
+      }
     }
+
+    // Merkez beyaz daire (dönmeyle uyumlu)
+    canvas.drawCircle(center, 14, Paint()..color = Colors.white);
+    canvas.drawCircle(center, 14, Paint()
+      ..color = Color(0xFF6c5ce7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3);
 
     canvas.restore();
 
-    // Dış çerçeve (dönmüyor)
-    final framePaint = Paint()
-      ..color = Colors.amber.shade400
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5;
-    canvas.drawCircle(center, radius + 2, framePaint);
+    // İşaretçi (sabit, çarkın üstünde — saat 12 yönü)
+    _drawPointer(canvas, _cx, _cy - _R);
+  }
 
-    // Merkez nokta
-    final centerPaint = Paint()..color = Colors.white;
-    canvas.drawCircle(center, radius * 0.16, centerPaint);
-    final centerBorder = Paint()
-      ..color = Colors.amber.shade700
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawCircle(center, radius * 0.16, centerBorder);
-
-    // İşaretçi (sabit, saat 12 yönünde)
-    final pointer = Path()
-      ..moveTo(center.dx, center.dy - radius + 6)
-      ..lineTo(center.dx - 11, center.dy - radius - 16)
-      ..lineTo(center.dx + 11, center.dy - radius - 16)
+  void _drawPointer(Canvas canvas, double x, double yTop) {
+    // Web SVG pointer: kırmızı gövde + altın taban — saat 12'den aşağı işaret eder
+    final body = Path()
+      ..moveTo(x, yTop + 6)              // alt uç (çarkın üstüne değiyor)
+      ..lineTo(x - 14, yTop - 32)        // sol üst
+      ..lineTo(x + 14, yTop - 32)        // sağ üst
       ..close();
-    canvas.drawPath(pointer, Paint()..color = Colors.red.shade700);
-    canvas.drawPath(
-      pointer,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
+    // Kırmızı gradient (web: pg)
+    canvas.drawShadow(body, Colors.black.withValues(alpha: 0.5), 6, false);
+    final bodyPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [Color(0xFF7f1d1d), Color(0xFFef4444), Color(0xFFfca5a5), Color(0xFF7f1d1d)],
+        stops: [0, 0.4, 0.7, 1],
+      ).createShader(Rect.fromLTWH(x - 14, yTop - 32, 28, 38));
+    canvas.drawPath(body, bodyPaint);
+    canvas.drawPath(body, Paint()
+      ..color = Color(0xFF7f1d1d)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1);
+
+    // Üst yuvarlatılmış kutu
+    final cap = RRect.fromRectAndRadius(Rect.fromLTWH(x - 14, yTop - 42, 28, 12), Radius.circular(5));
+    canvas.drawRRect(cap, bodyPaint);
+    canvas.drawRRect(cap, Paint()
+      ..color = Color(0xFF7f1d1d)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1);
+
+    // Altın yuvarlak (tip)
+    final tipPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [Color(0xFF92400e), Color(0xFFfbbf24), Color(0xFF92400e)],
+      ).createShader(Rect.fromCircle(center: Offset(x, yTop + 6), radius: 4));
+    canvas.drawCircle(Offset(x, yTop + 6), 4, tipPaint);
+    canvas.drawCircle(Offset(x, yTop + 6), 4, Paint()
+      ..color = Color(0xFF78350f)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1);
+  }
+
+  // ============= Yardımcılar =============
+
+  String _buildLabel(Map<String, dynamic> d) {
+    final tip = d['tip']?.toString() ?? '';
+    final ismi = d['name']?.toString() ?? '';
+    switch (tip) {
+      case 'puan':            return 'Puan';
+      case 'hizmet_indirimi': return 'Hizmet İnd.';
+      case 'urun_indirimi':   return 'Ürün İnd.';
+      case 'tekrar_dene':     return 'Tekrar Dene';
+      case 'bos':             return 'Boş';
+      default:                return ismi.isEmpty ? 'Ödül' : ismi;
+    }
+  }
+
+  String _fmt(dynamic v) {
+    if (v == null) return '';
+    if (v is num) {
+      if (v == v.toInt()) return v.toInt().toString();
+      return v.toString();
+    }
+    return v.toString();
+  }
+
+  List<String> _wrapText(String text, int maxCh) {
+    final words = text.split(RegExp(r'\s+'));
+    final lines = <String>[];
+    var cur = '';
+    for (final w in words) {
+      final cand = (cur.isEmpty ? w : '$cur $w');
+      if (cand.length <= maxCh) {
+        cur = cand;
+      } else {
+        if (cur.isNotEmpty) lines.add(cur);
+        cur = w;
+      }
+    }
+    if (cur.isNotEmpty) lines.add(cur);
+    return lines.isEmpty ? [''] : lines;
+  }
+
+  void _drawStrokedText(Canvas canvas, Offset center, String text, double fontSize,
+      FontWeight weight, Color fill, Color stroke, double strokeWidth) {
+    // Stroke (alt katman)
+    final strokePainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: weight,
+          foreground: Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeWidth
+            ..strokeJoin = StrokeJoin.round
+            ..color = stroke,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    strokePainter.paint(canvas, Offset(center.dx - strokePainter.width / 2, center.dy - strokePainter.height / 2));
+
+    // Fill (üst katman)
+    final fillPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(fontSize: fontSize, fontWeight: weight, color: fill),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    fillPainter.paint(canvas, Offset(center.dx - fillPainter.width / 2, center.dy - fillPainter.height / 2));
   }
 
   Color _hexToColor(String? hex) {
-    if (hex == null || hex.isEmpty) return Colors.purple;
+    if (hex == null || hex.isEmpty) return Color(0xFF6c5ce7);
     final h = hex.replaceAll('#', '');
-    if (h.length != 6) return Colors.purple;
+    if (h.length != 6) return Color(0xFF6c5ce7);
     return Color(int.parse('FF$h', radix: 16));
   }
 
