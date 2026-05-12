@@ -879,10 +879,8 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
 
   Widget _alicilarTab(ColorScheme scheme) {
     // Tab'ın TÜM alanını doldur, beyaz arka plan ile (gradient'i kapat)
-    return Container(
+    return Material(
       color: Colors.white,
-      width: double.infinity,
-      height: double.infinity,
       child: Column(
         children: [
           // ÜST DURUM ŞERİDİ — her zaman görünür
@@ -990,11 +988,19 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                       itemCount: _aliciler.length,
                       separatorBuilder: (_, __) => SizedBox(height: 8),
                       itemBuilder: (c, i) {
+                        // Defansif parse: MySQL COUNT/SUM bazen string olarak geliyor
+                        int asInt(dynamic v) {
+                          if (v == null) return 0;
+                          if (v is int) return v;
+                          if (v is num) return v.toInt();
+                          if (v is String) return int.tryParse(v) ?? 0;
+                          return 0;
+                        }
                         final a = _aliciler[i];
-                        final t = (a['toplam'] as num?)?.toInt() ?? 0;
-                        final b = (a['basari'] as num?)?.toInt() ?? 0;
-                        final f = (a['fail'] as num?)?.toInt() ?? 0;
-                        final fb = (a['fallback'] as num?)?.toInt() ?? 0;
+                        final t = asInt(a['toplam']);
+                        final b = asInt(a['basari']);
+                        final f = asInt(a['fail']);
+                        final fb = asInt(a['fallback']);
                         final sonMesaj = a['son_mesaj']?.toString() ?? '';
                         final musteri = a['musteri_adi']?.toString() ?? '';
                         return InkWell(
@@ -1003,9 +1009,21 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                           child: Container(
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade200),
+                              border: Border(
+                                left: BorderSide(color: Color(0xFF25D366), width: 4),
+                                top: BorderSide(color: Colors.grey.shade300, width: 1),
+                                right: BorderSide(color: Colors.grey.shade300, width: 1),
+                                bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Row(
                               children: [
