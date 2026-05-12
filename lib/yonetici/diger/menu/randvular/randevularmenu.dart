@@ -415,7 +415,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
 
     return PremiumGlassCard(
       padding: const EdgeInsets.all(12),
-      onTap: () => _randevuDataGridSource.randevudetayi(context, r, false),
+      onTap: () => _detayDialog(r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -686,22 +686,22 @@ class _RandevularMenuState extends State<RandevularMenu> {
 
   Future<void> _handleAction(String value, Randevu r) async {
     if (value == 'detaylibilgi') {
-      _randevuDataGridSource.randevudetayi(context, r, false);
+      _detayDialog(r);
       return;
     }
     if (value == 'randevuonayla') {
-      await randevuonayla(r.id, context);
-      await _refresh();
+      _optimisticUpdate(r, durum: '1');
+      randevuonayla(r.id, context);
       return;
     }
     if (value == 'randevuyageldi') {
-      await randevugeldiisaretle(r.id, '', context, '');
-      await _refresh();
+      _optimisticUpdate(r, geldimi: '1');
+      randevugeldiisaretle(r.id, '', context, '');
       return;
     }
     if (value == 'randevuyagelmedi') {
-      await randevugelmediisaretle(r.id, context);
-      await _refresh();
+      _optimisticUpdate(r, geldimi: '0');
+      randevugelmediisaretle(r.id, context);
       return;
     }
     if (value == 'randevuiptalet') {
@@ -710,9 +710,253 @@ class _RandevularMenuState extends State<RandevularMenu> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       final usertype = prefs.getString('user_type') ?? '';
       if (!mounted) return;
-      await randevuiptalet(r.id, context, usertype);
-      await _refresh();
+      _optimisticRemove(r);
+      randevuiptalet(r.id, context, usertype);
     }
+  }
+
+  void _optimisticRemove(Randevu r) {
+    setState(() {
+      _randevuDataGridSource.randevu.removeWhere((x) => x.id == r.id);
+    });
+  }
+
+  void _optimisticUpdate(Randevu r, {String? durum, String? geldimi}) {
+    final idx = _randevuDataGridSource.randevu.indexWhere((x) => x.id == r.id);
+    if (idx < 0) return;
+    final old = _randevuDataGridSource.randevu[idx];
+    setState(() {
+      _randevuDataGridSource.randevu[idx] = Randevu(
+        id: old.id,
+        user_id: old.user_id,
+        tarih: old.tarih,
+        telefonno: old.telefonno,
+        durum: durum ?? old.durum,
+        musteriname: old.musteriname,
+        geldimi: geldimi ?? old.geldimi,
+        hizmetler: old.hizmetler,
+        yardimci_personeller: old.yardimci_personeller,
+        olusturulma: old.olusturulma,
+        olusturan: old.olusturan,
+        musteri: old.musteri,
+        toplam: old.toplam,
+        musterinotu: old.musterinotu,
+        personelnotu: old.personelnotu,
+        tahsilat_eklendi: old.tahsilat_eklendi,
+      );
+    });
+  }
+
+  void _detayDialog(Randevu r) {
+    final scheme = Theme.of(context).colorScheme;
+    final status = getStatusColorRandevu(r.durum, r.geldimi);
+
+    String hizmetler = '';
+    try {
+      for (final h in r.hizmetler) {
+        final ad = h["hizmetler"]?["hizmet_adi"]?.toString() ?? '';
+        if (ad.isNotEmpty) {
+          hizmetler += (hizmetler.isEmpty ? '' : ', ') + ad;
+        }
+      }
+    } catch (_) {}
+
+    String telefon = '';
+    try {
+      telefon = r.musteri?["cep_telefon"]?.toString() ?? '';
+    } catch (_) {}
+
+    String olusturanAdi = '';
+    try {
+      olusturanAdi = r.olusturan?["name"]?.toString() ?? '';
+    } catch (_) {}
+
+    final musteriNot = (r.musterinotu == 'null' || r.musterinotu.isEmpty)
+        ? ''
+        : r.musterinotu;
+    final personelNot = (r.personelnotu == 'null' || r.personelnotu.isEmpty)
+        ? ''
+        : r.personelnotu;
+    final geldiText = r.geldimi == '1'
+        ? 'Geldi'
+        : (r.geldimi == '0' ? 'Gelmedi' : '—');
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.40),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.20),
+                blurRadius: 28,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [scheme.primary, scheme.tertiary],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.event_available_rounded,
+                          color: scheme.onPrimary, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.musteriname,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurface,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Randevu Detayı',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.onSurface.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _statusBadge(status),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _detayRow(Icons.calendar_month_outlined, 'Tarih & Saat', r.tarih),
+                if (telefon.isNotEmpty)
+                  _detayRow(Icons.phone_outlined, 'Telefon', telefon),
+                if (hizmetler.isNotEmpty)
+                  _detayRow(Icons.spa_outlined, 'Hizmetler', hizmetler),
+                if (r.toplam.isNotEmpty && r.toplam != 'null')
+                  _detayRow(Icons.payments_outlined, 'Toplam', '${r.toplam} ₺'),
+                if (olusturanAdi.isNotEmpty)
+                  _detayRow(Icons.person_outline_rounded, 'Oluşturan',
+                      olusturanAdi),
+                _detayRow(Icons.flag_outlined, 'Geldi mi?', geldiText),
+                if (musteriNot.isNotEmpty)
+                  _detayRow(Icons.chat_bubble_outline_rounded,
+                      'Müşteri Notu', musteriNot),
+                if (personelNot.isNotEmpty)
+                  _detayRow(Icons.sticky_note_2_outlined, 'Personel Notu',
+                      personelNot),
+                const SizedBox(height: 14),
+                Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: () => Navigator.of(ctx).pop(),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [scheme.primary, scheme.tertiary],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Kapat',
+                          style: TextStyle(
+                            color: scheme.onPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detayRow(IconData icon, String label, String value) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: scheme.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<bool?> _iptalOnayDialog() {
@@ -845,10 +1089,6 @@ class _RandevularMenuState extends State<RandevularMenu> {
         ),
       ),
     );
-  }
-
-  Future<void> _refresh() async {
-    await _applyFilters(page: _randevuDataGridSource.currentPage);
   }
 
   Future<void> _applyFilters({required int page}) async {
