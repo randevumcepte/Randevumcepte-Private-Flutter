@@ -181,14 +181,7 @@ class _SubeSecimiState extends State<SubeSecimi> {
                             isletme['salon_id'].toString(),
                             salonAdi,
                           );
-                          bildirimkimligiekleguncelle(
-                              widget.kullanici.id,
-                              isletme['salon_id'].toString(),
-                              "1",
-                              localStorage.getString('onesignal_player_id') ??
-                                  "");
-
-                          // Yeni FCM cihaz kaydı (şube seçildi)
+                          // FCM cihaz kaydı (şube seçildi)
                           NotificationService.instance.registerForUser(
                             kullaniciTipi: 'yetkili',
                             yetkiliId: widget.kullanici.id,

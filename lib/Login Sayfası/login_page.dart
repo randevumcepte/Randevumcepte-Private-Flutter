@@ -436,9 +436,7 @@ class _HomeState extends State<LoginPage> {
         //saveVoipTokenToBackend(localStorage.getString('ios_voip_token')??'',kullanici.id.toString(),localStorage.getString('fcm_token')??"");
           if(kullanici.yetkili_olunan_isletmeler.length == 1)
           {
-            bildirimkimligiekleguncelle(kullanici.id.toString(),kullanici.yetkili_olunan_isletmeler[0]['salon_id'].toString(),body['message']['user_type'],localStorage.getString('onesignal_player_id')??"");
-
-            // Yeni FCM cihaz kaydı (yetkili = salon sahibi)
+            // FCM cihaz kaydı (yetkili = salon sahibi)
             NotificationService.instance.registerForUser(
               kullaniciTipi: 'yetkili',
               yetkiliId: kullanici.id.toString(),
@@ -466,9 +464,7 @@ class _HomeState extends State<LoginPage> {
 
         var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '20')['salonlar'];
 
-        bildirimkimligiekleguncelle(musteri.id.toString(),"",body['message']['user_type'].toString(),localStorage.getString('onesignal_player_id')??"");
-
-        // Yeni FCM cihaz kaydı (müşteri)
+        // FCM cihaz kaydı (müşteri)
         NotificationService.instance.registerForUser(
           kullaniciTipi: 'musteri',
           userId: musteri.id.toString(),

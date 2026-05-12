@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -10,36 +8,18 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Frontend/randevuguncellemeprovider.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
-import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/theme/app_theme.dart';
 import 'package:randevu_sistem/theme/theme_provider.dart';
 
 late SharedPreferences prefs;
-
-// OneSignal Player ID alma
-Future<void> ensurePlayerId() async {
-  for (int i = 0; i < 10; i++) {
-    final playerId = OneSignal.User.pushSubscription.id;
-    if (playerId != null && playerId.isNotEmpty) {
-      prefs.setString('onesignal_player_id', playerId);
-      print("✅ OneSignal Player ID: $playerId");
-      return;
-    }
-    await Future.delayed(Duration(seconds: 1));
-  }
-  print("❌ OneSignal Player ID alınamadı");
-}
 
 // Main
 void main() async {
@@ -52,17 +32,10 @@ void main() async {
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(rmcNotificationBackgroundHandler);
 
-  // 3) Yeni bildirim altyapısı (FCM + local + foreground + tıklama + popup)
+  // 3) Bildirim altyapısı (FCM + local + foreground + tıklama + popup)
   await NotificationService.instance.init();
 
-  // 4) OneSignal — geriye dönük uyum için açık tutuluyor.
-  // TODO: Müşteri/personel/yetkili tüm flow'lar yeni FCM kayıt'a geçtiğinde kaldırılacak.
-  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-  OneSignal.initialize("6046dbbf-44fe-41a4-b1e4-a1bbcbf14cc0");
-  await OneSignal.Notifications.requestPermission(true);
-  await ensurePlayerId();
-
-  // 5) Uygulamayı başlat
+  // 4) Uygulamayı başlat
   runApp(MyApp());
 }
 
