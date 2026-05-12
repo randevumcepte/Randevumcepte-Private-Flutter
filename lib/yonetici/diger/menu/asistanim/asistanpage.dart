@@ -24,7 +24,6 @@ class _AsistanimPageState extends State<AsistanimPage> {
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
-          extendBodyBehindAppBar: true,
           appBar: _buildPremiumAppBar(context, scheme),
           body: PremiumGradientBg(
             child: SafeArea(
