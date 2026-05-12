@@ -108,31 +108,6 @@ class _AsistanimPageState extends State<AsistanimPage> {
                           ],
                         ),
                       ),
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [scheme.primary, scheme.tertiary],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  scheme.primary.withValues(alpha: 0.30),
-                              blurRadius: 14,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.headset_mic_rounded,
-                          size: 20,
-                          color: scheme.onPrimary,
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
