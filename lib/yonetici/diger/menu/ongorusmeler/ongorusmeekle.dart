@@ -5,7 +5,6 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
@@ -856,6 +855,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		final TextEditingController qTel = TextEditingController(text: telefon.text);
 		String qGender = _selectedGender;
 		bool kaydediliyor = false;
+		String? hataMsg;
 
 		showModalBottomSheet(
 			context: context,
@@ -941,10 +941,24 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 											],
 										),
 										const SizedBox(height: 16),
-										_sheetField('Ad Soyad', qAd, 'Ad ve soyad'),
+										_sheetField('Ad Soyad', qAd, 'Ad ve soyad',
+												onChanged: (_) {
+													if (hataMsg != null) {
+														setSheet(() => hataMsg = null);
+													}
+												}),
 										const SizedBox(height: 10),
 										_sheetField('Telefon', qTel, '5xx xxx xx xx',
-												kbType: TextInputType.phone),
+												kbType: TextInputType.phone,
+												onChanged: (_) {
+													if (hataMsg != null) {
+														setSheet(() => hataMsg = null);
+													}
+												}),
+										if (hataMsg != null) ...[
+											const SizedBox(height: 10),
+											_inlineError(hataMsg!),
+										],
 										const SizedBox(height: 12),
 										Row(
 											children: [
@@ -1000,27 +1014,26 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 																	: () async {
 																		if (qAd.text.trim().isEmpty ||
 																				qTel.text.trim().isEmpty) {
-																			ScaffoldMessenger.of(ctx).showSnackBar(
-																				const SnackBar(
-																					content: Text(
-																							'Ad ve telefon zorunlu.'),
-																				),
-																			);
+																			setSheet(() => hataMsg =
+																					'Ad ve telefon zorunlu.');
 																			return;
 																		}
-																		setSheet(() => kaydediliyor = true);
-																		final musteri =
-																				await _hizliMusteriEkle(
+																		setSheet(() {
+																			kaydediliyor = true;
+																			hataMsg = null;
+																		});
+																		final sonuc = await _hizliMusteriEkle(
 																			qAd.text.trim(),
 																			qTel.text.trim(),
 																			qGender,
-																			ctx,
 																		);
-																		if (musteri != null && mounted) {
+																		if (!mounted) return;
+																		if (sonuc.musteri != null) {
+																			final m = sonuc.musteri!;
 																			setState(() {
-																				selectedMusteri = musteri;
-																				adsoyad.text = musteri.name;
-																				telefon.text = musteri.cep_telefon;
+																				selectedMusteri = m;
+																				adsoyad.text = m.name;
+																				telefon.text = m.cep_telefon;
 																				if (qGender.isNotEmpty) {
 																					_selectedGender = qGender;
 																				}
@@ -1036,7 +1049,11 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 																				),
 																			);
 																		} else {
-																			setSheet(() => kaydediliyor = false);
+																			setSheet(() {
+																				kaydediliyor = false;
+																				hataMsg = sonuc.hata ??
+																						'Bilinmeyen hata';
+																			});
 																		}
 																	},
 															borderRadius: BorderRadius.circular(12),
@@ -1094,7 +1111,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	}
 
 	Widget _sheetField(String label, TextEditingController controller, String hint,
-			{TextInputType? kbType}) {
+			{TextInputType? kbType, ValueChanged<String>? onChanged}) {
 		final scheme = Theme.of(context).colorScheme;
 		return Column(
 			crossAxisAlignment: CrossAxisAlignment.start,
@@ -1122,6 +1139,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 					child: TextField(
 						controller: controller,
 						keyboardType: kbType,
+						onChanged: onChanged,
 						style: TextStyle(
 							fontSize: 14,
 							fontWeight: FontWeight.w600,
@@ -1142,6 +1160,35 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 					),
 				),
 			],
+		);
+	}
+
+	Widget _inlineError(String msg) {
+		const errColor = Color(0xFFDC2626);
+		return Container(
+			padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+			decoration: BoxDecoration(
+				color: errColor.withValues(alpha: 0.10),
+				borderRadius: BorderRadius.circular(12),
+				border: Border.all(color: errColor.withValues(alpha: 0.40), width: 1.2),
+			),
+			child: Row(
+				children: [
+					const Icon(Icons.error_outline_rounded, color: errColor, size: 18),
+					const SizedBox(width: 8),
+					Expanded(
+						child: Text(
+							msg,
+							style: const TextStyle(
+								fontSize: 12.5,
+								fontWeight: FontWeight.w700,
+								color: errColor,
+								height: 1.3,
+							),
+						),
+					),
+				],
+			),
 		);
 	}
 
@@ -1195,15 +1242,13 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		);
 	}
 
-	Future<MusteriDanisan?> _hizliMusteriEkle(
+	Future<({MusteriDanisan? musteri, String? hata})> _hizliMusteriEkle(
 		String ad,
 		String tel,
 		String cinsiyet,
-		BuildContext ctx,
 	) async {
 		final cinsiyetCode =
 				cinsiyet == 'kadin' ? '0' : (cinsiyet == 'erkek' ? '1' : '');
-		showProgressLoading(ctx);
 		try {
 			final response = await http.post(
 				Uri.parse(
@@ -1220,43 +1265,28 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 					'ozel_notlar': '',
 				}),
 			);
-			Navigator.of(ctx, rootNavigator: true).pop();
 
 			if (response.statusCode != 200 && response.statusCode != 201) {
-				ScaffoldMessenger.of(ctx).showSnackBar(
-					SnackBar(content: Text('Hata: ${response.statusCode}')),
-				);
-				return null;
+				return (musteri: null, hata: 'Hata kodu: ${response.statusCode}');
 			}
 			if (response.body.trim().isEmpty) {
-				ScaffoldMessenger.of(ctx).showSnackBar(
-					const SnackBar(content: Text('Sunucudan boş yanıt geldi.')),
-				);
-				return null;
+				return (musteri: null, hata: 'Sunucudan boş yanıt geldi.');
 			}
 			final decoded = json.decode(response.body);
 			if (decoded is Map &&
 					decoded.containsKey('status') &&
 					decoded['status'] == 'warning') {
-				final mesaj = decoded['mesaj']?.toString() ?? 'Bu müşteri zaten kayıtlı';
-				ScaffoldMessenger.of(ctx).showSnackBar(
-					SnackBar(
-						content: Text(mesaj),
-						backgroundColor: Colors.orange,
-					),
-				);
-				return null;
+				final mesaj =
+						decoded['mesaj']?.toString() ?? 'Bu numara zaten kayıtlı';
+				return (musteri: null, hata: mesaj);
 			}
-			return MusteriDanisan.fromJson(decoded as Map<String, dynamic>);
-		} catch (e, st) {
-			try {
-				Navigator.of(ctx, rootNavigator: true).pop();
-			} catch (_) {}
-			log('hizli musteri ekle hata: $e\n$st');
-			ScaffoldMessenger.of(ctx).showSnackBar(
-				SnackBar(content: Text('Müşteri eklenemedi: $e')),
+			return (
+				musteri: MusteriDanisan.fromJson(decoded as Map<String, dynamic>),
+				hata: null,
 			);
-			return null;
+		} catch (e, st) {
+			log('hizli musteri ekle hata: $e\n$st');
+			return (musteri: null, hata: 'Müşteri eklenemedi: $e');
 		}
 	}
 
