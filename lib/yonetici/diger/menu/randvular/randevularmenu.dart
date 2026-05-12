@@ -1,21 +1,16 @@
+import 'dart:async';
 import 'dart:developer';
-
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:randevu_sistem/Frontend/popupdialogs.dart';
-import 'package:randevu_sistem/Models/randevular.dart';
-import '../../../adisyonlar/adisyonpage.dart';
-import '../../../adisyonlar/musteri_detay.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
-import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
-import 'dart:async';
-
+import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Models/colorandtext.dart';
+import 'package:randevu_sistem/Models/randevular.dart';
+import 'package:randevu_sistem/theme/premium_components.dart';
 
 class RandevularMenu extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -24,36 +19,43 @@ class RandevularMenu extends StatefulWidget {
   final String personel_adi;
   final String cihaz_adi;
   final int kullanicirolu;
-  const RandevularMenu({Key? key,required this.kullanicirolu,required this.isletmebilgi,required this.personelid,required this.cihazid,required this.cihaz_adi,required this.personel_adi}) : super(key: key);
+
+  const RandevularMenu({
+    Key? key,
+    required this.kullanicirolu,
+    required this.isletmebilgi,
+    required this.personelid,
+    required this.cihazid,
+    required this.cihaz_adi,
+    required this.personel_adi,
+  }) : super(key: key);
+
   @override
   _RandevularMenuState createState() => _RandevularMenuState();
 }
 
 class _RandevularMenuState extends State<RandevularMenu> {
   Timer? _debounce;
-  bool _isFetching = false;
   late RandevuDataSource _randevuDataGridSource;
-  List<Randevu> _randevu = [];
-  late List<Randevu> _filteredRandevu = [];
   late String? seciliisletme;
-  bool  _isLoading= true;
+  bool _isLoading = true;
+  bool firsttimetyping = true;
+  String? lastQuery;
+
   final List<String> randevuolusturma = [
     'Tümü',
     'Salon',
     'Web',
     'Uygulama',
   ];
-  final List<String> randevudurum= [
+  final List<String> randevudurum = [
     'Tümü',
     'Onay bekleyen',
     'Onaylı',
     'Reddedilen/İptal Edilen',
     'Müşteri tarafından iptal edilen',
-
-
   ];
-  final List<String> randevutarih= [
-
+  final List<String> randevutarih = [
     'Tümü',
     'Bugün',
     'Yarın',
@@ -61,646 +63,1300 @@ class _RandevularMenuState extends State<RandevularMenu> {
     'Önümüzdeki ay',
     'Bu yıl',
     'Önümüzdeki yıl',
-
-
   ];
-  int totalPages = 1;
-  String? selectedrandevuolusturma = 'Tümü';
-  TextEditingController randevuolusturmacontroller = TextEditingController();
-  String? lastQuery;
-  String? selectedrandevudurum = 'Tümü';
-  TextEditingController randevudurumcontroller = TextEditingController();
 
-  String? selectedrandevutarih = 'Bu yıl';
-  TextEditingController randevutarihcontroller = TextEditingController();
-  bool firsttimetyping = true;
-  TextEditingController _controller = TextEditingController();
+  String selectedrandevuolusturma = 'Tümü';
+  String selectedrandevudurum = 'Tümü';
+  String selectedrandevutarih = 'Bu yıl';
+
+  final TextEditingController _controller = TextEditingController();
+
   @override
   void initState() {
-
     super.initState();
     initialize();
-
-
-
-    _controller.addListener(() {
-
-      _onSearchChanged();
-
-    });
+    _controller.addListener(_onSearchChanged);
   }
+
   void _onSearchChanged() {
-    // Check if the search query has changed or is reset to empty
-    if (_controller.text.length == 0 || _controller.text.length >= 3) {
-      // Cancel any active debounce timer
+    if (_controller.text.isEmpty || _controller.text.length >= 3) {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-      // Debounce the search to delay the API call until the user stops typing
       _debounce = Timer(const Duration(milliseconds: 500), () {
-        if (_controller.text != lastQuery && !firsttimetyping) {  // Check if the query is different
+        if (_controller.text != lastQuery && !firsttimetyping) {
           setState(() {
-
-            firsttimetyping=false;
-            lastQuery = _controller.text; // Update the last search query
+            firsttimetyping = false;
+            lastQuery = _controller.text;
             _randevuDataGridSource.search(
-                _controller.text,
-                selectedrandevudurum!,
-                selectedrandevuolusturma!,
-                selectedrandevutarih!
+              _controller.text,
+              selectedrandevudurum,
+              selectedrandevuolusturma,
+              selectedrandevutarih,
             );
-            //FocusScope.of(context).unfocus();
           });
         }
       });
-    }
-    else
-      {
-        if((_controller.text == '' || _controller.text.length<3) && firsttimetyping)
-          {
-
-            setState(() {
-              firsttimetyping = false;
-            });
-          }
+    } else {
+      if ((_controller.text.isEmpty || _controller.text.length < 3) &&
+          firsttimetyping) {
+        setState(() => firsttimetyping = false);
       }
+    }
   }
+
   @override
   void dispose() {
+    _controller.removeListener(_onSearchChanged);
     _controller.dispose();
     _debounce?.cancel();
     super.dispose();
   }
-  Future<void> initialize() async
-  {
+
+  Future<void> initialize() async {
     seciliisletme = await secilisalonid();
-
-      setState(() {
-
-
-        _randevuDataGridSource = RandevuDataSource(kullanicirolu: widget.kullanicirolu, isletmebilgi:widget.isletmebilgi,rowsPerPage:10,durum: selectedrandevudurum!, olusturma: selectedrandevuolusturma!,salonid: seciliisletme!,tarih:selectedrandevutarih!,context: context,musteriid: "",personelid: widget.personelid,cihazid: widget.cihazid,musteriMi: false);
-        _randevuDataGridSource.isLoadingNotifier.addListener(_onLoadingStateChanged);
-        _isLoading = false;
-
-      });
-
-  }
-
-  void _onLoadingStateChanged() {
+    if (!mounted) return;
     setState(() {
-      // This empty setState function just triggers a rebuild of the widget when the loading state changes
+      _randevuDataGridSource = RandevuDataSource(
+        kullanicirolu: widget.kullanicirolu,
+        isletmebilgi: widget.isletmebilgi,
+        rowsPerPage: 10,
+        durum: selectedrandevudurum,
+        olusturma: selectedrandevuolusturma,
+        salonid: seciliisletme!,
+        tarih: selectedrandevutarih,
+        context: context,
+        musteriid: "",
+        personelid: widget.personelid,
+        cihazid: widget.cihazid,
+        musteriMi: false,
+      );
+      _randevuDataGridSource.isLoadingNotifier.addListener(_onLoadingChanged);
+      _randevuDataGridSource.addListener(_onLoadingChanged);
+      _isLoading = false;
     });
   }
 
+  void _onLoadingChanged() {
+    if (mounted) setState(() {});
+  }
+
+  String get _baslik {
+    if (widget.personel_adi.isNotEmpty) return '${widget.personel_adi} Randevuları';
+    if (widget.cihaz_adi.isNotEmpty) return '${widget.cihaz_adi} Randevuları';
+    return 'Randevular';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final double width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
-    return   _isLoading
-        ? Center(child: CircularProgressIndicator())
-        : GestureDetector(
-            onTap: () {
-              FocusScope.of(context).unfocus(); // Hide the keyboard
-            },
-            child: Scaffold(
-                resizeToAvoidBottomInset:false,
-                appBar: AppBar(
-                  title: FittedBox(
-                    fit: BoxFit.scaleDown, // Ensures the text scales to fit within the available space
-                    child: Text(
-                      widget.personel_adi.isNotEmpty
-                          ? '${widget.personel_adi} Randevuları'
-                          : (widget.cihaz_adi.isNotEmpty
-                          ? '${widget.cihaz_adi} Randevuları'
-                          : 'Randevular'),
-                      style: TextStyle(color: Colors.black, fontSize: 18),
-                    ),
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      body: PremiumGradientBg(
+        child: SafeArea(
+          bottom: false,
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator(color: scheme.primary))
+              : GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  child: Column(
+                    children: [
+                      _topBar(context),
+                      const SizedBox(height: 10),
+                      _header(context),
+                      const SizedBox(height: 12),
+                      _searchBar(context),
+                      const SizedBox(height: 10),
+                      _activeFilterStrip(context),
+                      const SizedBox(height: 8),
+                      Expanded(child: _list(context)),
+                      _pagination(context),
+                    ],
                   ),
-                  leading: IconButton(
-                    icon: Icon(Icons.arrow_back, color: Colors.black),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+                ),
+        ),
+      ),
+    );
+  }
 
-                  toolbarHeight: 60,
-                  actions: <Widget>[
-                    if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: SizedBox(
-                          width: 100, // <-- Your width
-                          child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+  // ───────────────────────────── Top Bar
+  Widget _topBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDemo = widget.isletmebilgi["demo_hesabi"].toString() == "1";
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Row(
+        children: [
+          PremiumCircleAction(
+            icon: Icons.arrow_back_rounded,
+            onTap: () => Navigator.of(context).pop(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_available_rounded,
+                      size: 16, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      _baslik,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.primary,
                       ),
                     ),
-                    IconButton(onPressed: (){
-                      showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (context) {
-                            return StatefulBuilder(
-                                builder: (context, setStateSB){
-                                  return SafeArea(
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        maxHeight: MediaQuery.of(context).size.height * 0.85,
-                                      ),
-                                      child: SingleChildScrollView(
-                                        padding: EdgeInsets.only(
-                                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                                        ),
-                                        child: Column(
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          PremiumCircleAction(
+            icon: Icons.tune_rounded,
+            onTap: _openFilterSheet,
+          ),
+          if (isDemo) ...[
+            const SizedBox(width: 8),
+            SizedBox(
+              height: 44,
+              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: <Widget>[
-                                            SizedBox(height: 20,),
-                                      Container(
-                                        padding: const EdgeInsets.only(left: 20.0),
-                                        child: Text('Randevu Oluşturma Yeri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                                      ),
-                                      SizedBox(height: 10,),
-                                      Container(
+  // ───────────────────────────── Header
+  Widget _header(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final toplam = _randevuDataGridSource.randevu.length;
+    final sayfa = _randevuDataGridSource.currentPage;
+    final son = _randevuDataGridSource.totalPages;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 4, 22, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Randevular',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+              color: scheme.onSurface,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            son > 0
+                ? 'Sayfa $sayfa / $son  •  Bu sayfada $toplam kayıt'
+                : 'Henüz kayıt yok',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface.withValues(alpha: 0.55),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                                        alignment: Alignment.center,
-                                        margin: EdgeInsets.only(left:20,right: 20),
-                                        height: 40,
-                                        width:double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          border: Border.all(color: Color(0xFF6A1B9A)),
-                                          borderRadius: BorderRadius.circular(10), //border corner radius
+  // ───────────────────────────── Search Bar
+  Widget _searchBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.10),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: TextFormField(
+          controller: _controller,
+          keyboardType: TextInputType.text,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurface,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Müşteri adıyla ara…',
+            hintStyle: TextStyle(
+              color: scheme.onSurface.withValues(alpha: 0.40),
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+            ),
+            prefixIcon: Icon(Icons.search_rounded,
+                color: scheme.primary, size: 20),
+            suffixIcon: _controller.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.close_rounded,
+                        size: 18, color: scheme.onSurface.withValues(alpha: 0.55)),
+                    onPressed: () {
+                      _controller.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+      ),
+    );
+  }
 
-                                          //you can set more BoxShadow() here
+  // ───────────────────────────── Active Filter Chips
+  Widget _activeFilterStrip(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _filterChip(Icons.calendar_month_outlined, selectedrandevutarih),
+          const SizedBox(width: 8),
+          _filterChip(Icons.flag_outlined, selectedrandevudurum),
+          const SizedBox(width: 8),
+          _filterChip(Icons.devices_other_outlined, selectedrandevuolusturma),
+        ],
+      ),
+    );
+  }
 
-                                        ),
-                                        child: DropdownButtonHideUnderline(
-
-                                            child: DropdownButton2<String>(
-
-                                              isExpanded: true,
-                                              hint: Text(
-                                                'Seçiniz..',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Theme.of(context).hintColor,
-                                                ),
-                                              ),
-                                              items: randevuolusturma
-                                                  .map((item) => DropdownMenuItem(
-                                                value: item,
-                                                child: Text(
-                                                  item,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ))
-                                                  .toList(),
-                                              value: selectedrandevuolusturma,
-
-                                              onChanged: (value) {
-                                                setStateSB(() {
-                                                  selectedrandevuolusturma = value;
-                                                  randevuolusturmacontroller.text = value!;
-                                                });
-                                              },
-                                              buttonStyleData: const ButtonStyleData(
-                                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                                height: 50,
-                                                width: 400,
-                                              ),
-
-                                              dropdownStyleData: const DropdownStyleData(
-                                                maxHeight: 200,
-                                              ),
-                                              menuItemStyleData: const MenuItemStyleData(
-                                                height: 40,
-                                              ),
-
-                                              //This to clear the search value when you close the menu
-                                              onMenuStateChange: (isOpen) {
-                                                if (!isOpen) {
-                                                  randevuolusturmacontroller.clear();
-                                                }
-                                              },
-
-                                            )),
-                                      ),
-                                      SizedBox(height: 20,),
-                                      Container(
-                                        padding: const EdgeInsets.only(left: 20.0),
-                                        child: Text('Randevu Durumu',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                                      ),
-                                      SizedBox(height: 10,),
-                                      Container(
-
-                                        alignment: Alignment.center,
-                                        margin: EdgeInsets.only(left:20,right: 20),
-                                        height: 40,
-                                        width:double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          border: Border.all(color: Color(0xFF6A1B9A)),
-                                          borderRadius: BorderRadius.circular(10), //border corner radius
-
-                                          //you can set more BoxShadow() here
-
-                                        ),
-                                        child: DropdownButtonHideUnderline(
-
-                                            child: DropdownButton2<String>(
-
-                                              isExpanded: true,
-                                              hint: Text(
-                                                'Seçiniz..',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Theme.of(context).hintColor,
-                                                ),
-                                              ),
-                                              items: randevudurum
-                                                  .map((item) => DropdownMenuItem(
-                                                value: item,
-                                                child: Text(
-                                                  item,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ))
-                                                  .toList(),
-                                              value: selectedrandevudurum,
-
-                                              onChanged: (value) {
-                                                setStateSB(() {
-                                                  selectedrandevudurum = value;
-                                                  randevudurumcontroller.text = value!;
-                                                });
-                                              },
-                                              buttonStyleData: const ButtonStyleData(
-                                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                                height: 50,
-                                                width: 400,
-                                              ),
-
-                                              dropdownStyleData: const DropdownStyleData(
-                                                maxHeight: 200,
-                                              ),
-                                              menuItemStyleData: const MenuItemStyleData(
-                                                height: 40,
-                                              ),
-
-                                              //This to clear the search value when you close the menu
-                                              onMenuStateChange: (isOpen) {
-                                                if (!isOpen) {
-                                                  randevudurumcontroller.clear();
-                                                }
-                                              },
-
-                                            )),
-                                      ),
-                                      SizedBox(height: 20,),
-                                      Container(
-                                        padding: const EdgeInsets.only(left: 20.0),
-                                        child: Text('Tarih',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                                      ),
-                                      SizedBox(height: 10,),
-                                      Container(
-
-                                        alignment: Alignment.center,
-                                        margin: EdgeInsets.only(left:20,right: 20),
-                                        height: 40,
-                                        width:double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          border: Border.all(color: Color(0xFF6A1B9A)),
-                                          borderRadius: BorderRadius.circular(10), //border corner radius
-
-                                          //you can set more BoxShadow() here
-
-                                        ),
-                                        child: DropdownButtonHideUnderline(
-
-                                            child: DropdownButton2<String>(
-
-                                              isExpanded: true,
-                                              hint: Text(
-                                                'Seçiniz..',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Theme.of(context).hintColor,
-                                                ),
-                                              ),
-                                              items: randevutarih
-                                                  .map((item) => DropdownMenuItem(
-                                                value: item,
-                                                child: Text(
-                                                  item,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ))
-                                                  .toList(),
-                                              value: selectedrandevutarih,
-
-                                              onChanged: (value) {
-                                                setStateSB(() {
-                                                  selectedrandevutarih = value;
-                                                  randevutarihcontroller.text = value!;
-                                                });
-                                              },
-                                              buttonStyleData: const ButtonStyleData(
-                                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                                height: 50,
-                                                width: 400,
-                                              ),
-
-                                              dropdownStyleData: const DropdownStyleData(
-                                                maxHeight: 200,
-                                              ),
-                                              menuItemStyleData: const MenuItemStyleData(
-                                                height: 40,
-                                              ),
-
-                                              //This to clear the search value when you close the menu
-                                              onMenuStateChange: (isOpen) {
-                                                if (!isOpen) {
-                                                  randevutarihcontroller.clear();
-                                                }
-                                              },
-
-                                            )),
-                                      ),
-                                      SizedBox(height: 30,),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          ElevatedButton(onPressed: (){
-                                            Navigator.of(context).pop();
-                                            log("durum "+selectedrandevudurum!);
-                                            _randevuDataGridSource.search(_controller.text,selectedrandevudurum!,selectedrandevuolusturma!,selectedrandevutarih!);
-                                          }, child: Text('Sonuçları Göster'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.purple[800],
-                                              foregroundColor: Colors.white,
-
-                                            ),
-
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 50,),
-                                    ],
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                }
-                            );
-                          }
-                      );
-                    }, icon:  Icon(Icons.filter_list_outlined,color:Colors.black,),iconSize: 26,),
-
-
-                  ],
-                  backgroundColor: Colors.white,
-
-
-
-
+  Widget _filterChip(IconData icon, String label) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: _openFilterSheet,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: scheme.primary.withValues(alpha: 0.18),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: scheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
                 ),
-                body:LayoutBuilder(
-                  builder: (context, constraints) {
-                  return Column(
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 16, color: scheme.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
+  // ───────────────────────────── List
+  Widget _list(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (_randevuDataGridSource.isLoadingNotifier.value) {
+      return Center(child: CircularProgressIndicator(color: scheme.primary));
+    }
+    final list = _randevuDataGridSource.randevu;
+    if (list.isEmpty) {
+      return _emptyState(context);
+    }
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      itemCount: list.length,
+      itemBuilder: (context, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: _randevuCard(list[i]),
+      ),
+    );
+  }
 
-                          controller: _controller,
-                          keyboardType: TextInputType.text,
+  Widget _emptyState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    scheme.primary.withValues(alpha: 0.18),
+                    scheme.tertiary.withValues(alpha: 0.10),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Icon(Icons.event_busy_rounded,
+                  color: scheme.primary, size: 36),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Kayıt bulunamadı',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Filtreleri değiştirip tekrar dene.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                          decoration: InputDecoration(
-                            hintText: 'Müşteri Adı...',
-                            enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(5.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+  Widget _randevuCard(Randevu r) {
+    final scheme = Theme.of(context).colorScheme;
+    final status = getStatusColorRandevu(r.durum, r.geldimi);
+    final tarihParts = r.tarih.split(' ');
+    final dateStr = tarihParts.isNotEmpty ? tarihParts[0] : '';
+    final timeStr = tarihParts.length > 1 ? tarihParts[1] : '';
+    final dateBits = dateStr.split('-');
+    final gun = dateBits.length == 3 ? dateBits[2] : '';
+    final ay = dateBits.length == 3 ? _ayKisa(dateBits[1]) : '';
+    final yil = dateBits.length == 3 ? dateBits[0] : '';
+
+    String hizmetler = '';
+    try {
+      for (final h in r.hizmetler) {
+        final ad = h["hizmetler"]?["hizmet_adi"]?.toString() ?? '';
+        if (ad.isNotEmpty) {
+          hizmetler += (hizmetler.isEmpty ? '' : ', ') + ad;
+        }
+      }
+    } catch (_) {}
+
+    return PremiumGlassCard(
+      padding: const EdgeInsets.all(12),
+      onTap: () => _randevuDataGridSource.randevudetayi(context, r, false),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Tarih bloğu
+          Container(
+            width: 58,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  scheme.primary.withValues(alpha: 0.14),
+                  scheme.tertiary.withValues(alpha: 0.10),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  gun,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.primary,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  ay,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  yil,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.50),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Orta blok
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  r.musteriname,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (hizmetler.isNotEmpty)
+                  Text(
+                    hizmetler,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurface.withValues(alpha: 0.65),
+                      height: 1.3,
+                    ),
+                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.access_time_rounded,
+                        size: 12, color: scheme.primary.withValues(alpha: 0.75)),
+                    const SizedBox(width: 4),
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface.withValues(alpha: 0.70),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    if (r.toplam.isNotEmpty && r.toplam != 'null') ...[
+                      Icon(Icons.payments_outlined,
+                          size: 12,
+                          color: scheme.primary.withValues(alpha: 0.75)),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          '${r.toplam} ₺',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface.withValues(alpha: 0.70),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Sağ: status + menü
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _statusBadge(status),
+              const SizedBox(height: 6),
+              _actionMenu(r),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusBadge(ColorAndText s) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: s.color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: s.color.withValues(alpha: 0.30),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: s.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            s.text,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: s.color,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionMenu(Randevu r) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: PopupMenuButton<String>(
+        tooltip: 'İşlemler',
+        padding: EdgeInsets.zero,
+        offset: const Offset(0, 32),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        icon: Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.more_horiz_rounded,
+              size: 18, color: scheme.primary),
+        ),
+        onSelected: (value) => _handleAction(value, r),
+        itemBuilder: (ctx) => _menuItems(r),
+      ),
+    );
+  }
+
+  List<PopupMenuEntry<String>> _menuItems(Randevu r) {
+    final items = <PopupMenuEntry<String>>[];
+    items.add(_menuEntry(
+      'detaylibilgi',
+      'Detaylı Bilgi',
+      Icons.info_outline_rounded,
+    ));
+    if (r.durum == "0" && widget.kullanicirolu != 5) {
+      items.add(_menuEntry(
+        'randevuonayla',
+        'Onayla',
+        Icons.check_circle_outline_rounded,
+        tint: const Color(0xFF16A34A),
+      ));
+    }
+    if (r.durum != "2" && r.durum != "3") {
+      if (r.tahsilat_eklendi != "1" && widget.kullanicirolu != 5) {
+        items.add(_menuEntry(
+          'randevuiptalet',
+          'İptal Et',
+          Icons.cancel_outlined,
+          tint: const Color(0xFFDC2626),
+        ));
+      }
+      if (r.durum != "0" && widget.kullanicirolu != 5) {
+        items.add(_menuEntry(
+          'randevuyageldi',
+          'Geldi',
+          Icons.event_available_rounded,
+          tint: const Color(0xFF16A34A),
+        ));
+        items.add(_menuEntry(
+          'randevuyagelmedi',
+          'Gelmedi',
+          Icons.event_busy_rounded,
+          tint: const Color(0xFFDC2626),
+        ));
+      }
+    }
+    return items;
+  }
+
+  PopupMenuItem<String> _menuEntry(
+    String value,
+    String label,
+    IconData icon, {
+    Color? tint,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final c = tint ?? scheme.primary;
+    return PopupMenuItem<String>(
+      value: value,
+      height: 40,
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: c),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleAction(String value, Randevu r) async {
+    if (value == 'detaylibilgi') {
+      _randevuDataGridSource.randevudetayi(context, r, false);
+      return;
+    }
+    if (value == 'randevuonayla') {
+      await randevuonayla(r.id, context);
+      await _refresh();
+      return;
+    }
+    if (value == 'randevuyageldi') {
+      await randevugeldiisaretle(r.id, '', context, '');
+      await _refresh();
+      return;
+    }
+    if (value == 'randevuyagelmedi') {
+      await randevugelmediisaretle(r.id, context);
+      await _refresh();
+      return;
+    }
+    if (value == 'randevuiptalet') {
+      final onay = await _iptalOnayDialog();
+      if (onay != true) return;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final usertype = prefs.getString('user_type') ?? '';
+      if (!mounted) return;
+      await randevuiptalet(r.id, context, usertype);
+      await _refresh();
+    }
+  }
+
+  Future<bool?> _iptalOnayDialog() {
+    final scheme = Theme.of(context).colorScheme;
+    return showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.40),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding:
+            const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFDC2626).withValues(alpha: 0.20),
+                blurRadius: 28,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFDC2626).withValues(alpha: 0.20),
+                      const Color(0xFFDC2626).withValues(alpha: 0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFDC2626), size: 30),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Randevuyu iptal et?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: scheme.onSurface,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Bu işlem geri alınamaz.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: scheme.onSurface.withValues(alpha: 0.70),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Vazgeç',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: () => Navigator.of(ctx).pop(true),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFFDC2626),
+                                const Color(0xFFDC2626).withValues(alpha: 0.85),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'İptal Et',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.2,
+                              ),
                             ),
                           ),
                         ),
-
                       ),
-                      Expanded(
-
-                        // Adjust the height based on your requirements
-                        child: SfDataGrid(
-                          source: _randevuDataGridSource,
-                          shrinkWrapRows: true,
-                          columnWidthMode: ColumnWidthMode.fill,
-                          defaultColumnWidth: 120,
-                          allowSwiping: true,
-
-
-
-                          onSwipeStart: (details) {
-                            if (details.swipeDirection == DataGridRowSwipeDirection.startToEnd) {
-                              details.setSwipeMaxOffset(0);
-                            } else if (details.swipeDirection == DataGridRowSwipeDirection.endToStart) {
-                              details.setSwipeMaxOffset(0);
-                            }
-                            return true;
-                          },
-
-                          startSwipeActionsBuilder:
-                              (BuildContext context, DataGridRow row, int rowIndex) {
-                            return GestureDetector(
-                                onTap: () {
-                                  //Navigator.of(context).pop();
-                                  //Navigator.push(context, new MaterialPageRoute(builder: (context) => new KampanyaDuzenle(kampanyadetayi: row.getCells()[0].value as Kampanya,)));
-                                },
-                                child: Container(
-                                    color: Colors.purple,
-                                    child: Center(
-                                      child: Icon(Icons.edit,color: Colors.white),
-                                    )));
-                          },
-                          endSwipeActionsBuilder:
-                              (BuildContext context, DataGridRow row, int rowIndex) {
-                            return GestureDetector(
-                                onTap: () async {
-                                  /*final confirmed = await showKampanyaDeleteConfirmationDialog(context,int.parse(row.getCells()[1].value), () {
-                          // Perform deletion
-
-                          setState(() {
-                            kampanyasil(context,int.parse(row.getCells()[1].value));
-                            Navigator.of(context).pop();
-                            Navigator.push(context, new MaterialPageRoute(builder: (context) => new TumArsiv()));
-
-
-                          });
-                        });*/
-
-                                },
-                                child: Container(
-                                    color: Colors.red,
-                                    child: Center(
-                                      child: Icon(Icons.delete,color: Colors.white,),
-                                    )));
-                          },
-                          onCellTap: (DataGridCellTapDetails details) {
-
-                            final tappedRow = _randevuDataGridSource.rows[details.rowColumnIndex.rowIndex - 1];
-                            /*ArsivDetayGosterDialog(context );
-                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => KampanyaDetay(kampanyadetayi: tappedRow.getCells()[0].value,)),
-                  );*/
-
-                          },
-                          columns: <GridColumn>[
-                            GridColumn(
-
-                              width: width*0,
-                              columnName: 'randevu',
-                              label: Container(
-
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Text('a'),
-                              ),
-                            ),
-                            GridColumn(
-
-                              width: width*0,
-                              columnName: 'id',
-                              label: Container(
-
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Text('#'),
-                              ),
-                            ),
-                            GridColumn(
-
-                              width: width*0.3,
-                              columnName: 'tarih',
-                              label: Container(
-
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Text('Tarih'),
-                              ),
-                            ),
-                            GridColumn(
-
-                              width: width*0.3,
-                              columnName: 'musteridanisan',
-                              label: Container(
-
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Text('Müşteri'),
-                              ),
-                            ),
-
-                            GridColumn(
-                              width: width*0,
-                              columnName: 'durum',
-                              label: Container(
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Text('Durum'),
-                              ),
-                            ),
-
-
-                            GridColumn(
-                              width: width*0,
-                              columnName: 'geldi',
-                              label: Container(
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Text('Durum'),
-                              ),
-                            ),
-                            GridColumn(
-                              width: width*0.3,
-                              columnName: 'durum_text',
-                              label: Container(
-                                padding: EdgeInsets.all(5.0),
-                                alignment: Alignment.centerLeft,
-                                child: Text('Durum'),
-                              ),
-                            ),
-
-                            GridColumn(
-                              width: width*0.1,
-                              columnName: 'islem',
-                              label: Container(
-                                  padding: EdgeInsets.all(5.0),
-                                  alignment: Alignment.center,
-                                  child: Text("")
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                       _buildPaginationControls()
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                ],
               ),
-
-
-            ),
+            ],
+          ),
+        ),
+      ),
     );
-
-
-
   }
 
+  Future<void> _refresh() async {
+    await _randevuDataGridSource.fetchData(
+      _randevuDataGridSource.currentPage.toString(),
+      _controller.text,
+      selectedrandevuolusturma,
+      selectedrandevudurum,
+      selectedrandevutarih,
+      widget.personelid,
+      widget.cihazid,
+    );
+  }
 
-   Widget _buildPaginationControls() {
-
-    final totalPages = (_randevuDataGridSource.totalPages).ceil();
-    log("totalpages 1 : "+totalPages.toString());
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: _randevuDataGridSource.currentPage > 1
-              ? () {
-            setState(() {
-
-              _randevuDataGridSource.setPage(_randevuDataGridSource.currentPage - 1,selectedrandevudurum!,selectedrandevuolusturma!,selectedrandevutarih!);
-            });
-          }
-              : null,
+  // ───────────────────────────── Pagination
+  Widget _pagination(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final total = _randevuDataGridSource.totalPages.ceil();
+    final cur = _randevuDataGridSource.currentPage;
+    final canPrev = cur > 1;
+    final canNext = cur < total;
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.12),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        Text('Sayfa ${_randevuDataGridSource.currentPage} / $totalPages'),
-        IconButton(
-          icon: Icon(Icons.arrow_forward),
-          onPressed: _randevuDataGridSource.currentPage < totalPages
-              ? () {
-            setState(() {
-              _randevuDataGridSource.setPage(_randevuDataGridSource.currentPage + 1,selectedrandevudurum!,selectedrandevuolusturma!,selectedrandevutarih!);
-            });
-          }
-              : null,
+        child: Row(
+          children: [
+            _pageBtn(
+              icon: Icons.arrow_back_rounded,
+              enabled: canPrev,
+              onTap: () {
+                _randevuDataGridSource.setPage(
+                  cur - 1,
+                  selectedrandevudurum,
+                  selectedrandevuolusturma,
+                  selectedrandevutarih,
+                );
+              },
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Sayfa $cur / $total',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
+            ),
+            _pageBtn(
+              icon: Icons.arrow_forward_rounded,
+              enabled: canNext,
+              onTap: () {
+                _randevuDataGridSource.setPage(
+                  cur + 1,
+                  selectedrandevudurum,
+                  selectedrandevuolusturma,
+                  selectedrandevutarih,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pageBtn({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 42,
+          height: 38,
+          decoration: BoxDecoration(
+            color: enabled
+                ? scheme.primary.withValues(alpha: 0.10)
+                : scheme.onSurface.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: enabled
+                ? scheme.primary
+                : scheme.onSurface.withValues(alpha: 0.30),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ───────────────────────────── Filter Sheet
+  void _openFilterSheet() {
+    final scheme = Theme.of(context).colorScheme;
+    String tarih = selectedrandevutarih;
+    String durum = selectedrandevudurum;
+    String olusturma = selectedrandevuolusturma;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: StatefulBuilder(
+            builder: (ctx, setSheet) {
+              return Container(
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.20),
+                      blurRadius: 28,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: scheme.onSurface.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [scheme.primary, scheme.tertiary],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.tune_rounded,
+                              color: scheme.onPrimary, size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Filtrele',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                'Sonuçları daralt',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.55),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _sheetLabel('Tarih', Icons.calendar_month_outlined),
+                    const SizedBox(height: 6),
+                    _sheetDropdown(
+                      value: tarih,
+                      items: randevutarih,
+                      onChanged: (v) => setSheet(() => tarih = v ?? 'Tümü'),
+                    ),
+                    const SizedBox(height: 12),
+                    _sheetLabel('Randevu Durumu', Icons.flag_outlined),
+                    const SizedBox(height: 6),
+                    _sheetDropdown(
+                      value: durum,
+                      items: randevudurum,
+                      onChanged: (v) => setSheet(() => durum = v ?? 'Tümü'),
+                    ),
+                    const SizedBox(height: 12),
+                    _sheetLabel(
+                        'Oluşturma Yeri', Icons.devices_other_outlined),
+                    const SizedBox(height: 6),
+                    _sheetDropdown(
+                      value: olusturma,
+                      items: randevuolusturma,
+                      onChanged: (v) => setSheet(() => olusturma = v ?? 'Tümü'),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Vazgeç',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onSurface
+                                    .withValues(alpha: 0.65),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                setState(() {
+                                  selectedrandevutarih = tarih;
+                                  selectedrandevudurum = durum;
+                                  selectedrandevuolusturma = olusturma;
+                                });
+                                log("durum $durum");
+                                _randevuDataGridSource.search(
+                                  _controller.text,
+                                  durum,
+                                  olusturma,
+                                  tarih,
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 13),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      scheme.primary,
+                                      scheme.tertiary,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.check_rounded,
+                                        size: 16, color: scheme.onPrimary),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Uygula',
+                                      style: TextStyle(
+                                        color: scheme.onPrimary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _sheetLabel(String label, IconData icon) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: scheme.primary.withValues(alpha: 0.85)),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurface.withValues(alpha: 0.72),
+            letterSpacing: 0.1,
+          ),
         ),
       ],
     );
+  }
+
+  Widget _sheetDropdown({
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: scheme.primary.withValues(alpha: 0.18),
+          width: 1.2,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton2<String>(
+          isExpanded: true,
+          value: value,
+          items: items
+              .map((e) => DropdownMenuItem(
+                    value: e,
+                    child: Text(
+                      e,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+          iconStyleData: IconStyleData(
+            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                color: scheme.primary, size: 22),
+          ),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurface,
+          ),
+          buttonStyleData: const ButtonStyleData(
+            padding: EdgeInsets.zero,
+            height: 44,
+          ),
+          dropdownStyleData: DropdownStyleData(
+            maxHeight: 280,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: 0.16),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            offset: const Offset(0, -4),
+          ),
+          menuItemStyleData: const MenuItemStyleData(
+            height: 44,
+            padding: EdgeInsets.symmetric(horizontal: 14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _ayKisa(String mm) {
+    switch (mm) {
+      case '01':
+        return 'OCA';
+      case '02':
+        return 'ŞUB';
+      case '03':
+        return 'MAR';
+      case '04':
+        return 'NİS';
+      case '05':
+        return 'MAY';
+      case '06':
+        return 'HAZ';
+      case '07':
+        return 'TEM';
+      case '08':
+        return 'AĞU';
+      case '09':
+        return 'EYL';
+      case '10':
+        return 'EKİ';
+      case '11':
+        return 'KAS';
+      case '12':
+        return 'ARA';
+      default:
+        return mm;
+    }
   }
 }
