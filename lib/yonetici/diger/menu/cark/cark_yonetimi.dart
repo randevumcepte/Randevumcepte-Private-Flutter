@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +29,10 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   bool _ceviriliyor = false;
   Timer? _autoSyncTimer;
   late final ConfettiController _konfeti;
-  final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _cheerPlayer = AudioPlayer();
+  final AudioPlayer _tickPlayer = AudioPlayer();
+  Uint8List? _tickBytes;
+  Uint8List? _cheerBytes;
   final ScrollController _carkScroll = ScrollController();
 
   // Kazananlar
@@ -45,8 +50,9 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     _tab = TabController(length: 3, vsync: this);
     _salonId = widget.isletmebilgi['id'].toString();
     _konfeti = ConfettiController(duration: Duration(seconds: 3));
-    // audioplayers default prefix 'assets/' — bizim asset 'images/' altında
-    AudioCache.instance.prefix = '';
+    // Runtime WAV ses byte'larını hazırla (web Audio API'nin Flutter karşılığı)
+    _tickBytes = _generateTickWav();
+    _cheerBytes = _generateCheerWav();
     WidgetsBinding.instance.addObserver(this);
     _yukleSistem();
     // Sayfa açıkken her 15 saniyede bir hafif senkron (web'de değişiklik olursa anlamak için)
@@ -69,11 +75,144 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   void dispose() {
     _autoSyncTimer?.cancel();
     _konfeti.dispose();
-    _player.dispose();
+    _cheerPlayer.dispose();
+    _tickPlayer.dispose();
     _carkScroll.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _tab.dispose();
     super.dispose();
+  }
+
+  // ============= Runtime WAV ses üretici (web Audio API portu) =============
+
+  /// Tick sesi: kısa beyaz gürültü, üstel azalan envelope. (~55 ms)
+  /// Web'deki playTick() ile aynı: random noise * (1-t)^4
+  Uint8List _generateTickWav() {
+    const sr = 44100;
+    final len = (sr * 0.055).floor();
+    final rand = math.Random();
+    final samples = Int16List(len);
+    for (var i = 0; i < len; i++) {
+      final t = i / len;
+      final env = math.pow(1 - t, 4).toDouble();
+      final n = (rand.nextDouble() * 2 - 1) * env * 0.55;
+      samples[i] = (n.clamp(-1.0, 1.0) * 32767).round();
+    }
+    return _wrapWav(samples, sampleRate: sr, channels: 1);
+  }
+
+  /// Kazanma sesi (alkış + arpeggio): 4 sn, stereo.
+  /// Web'deki playCheer() ile aynı: filtered white noise crowd + 5 sine nota arpeggio.
+  Uint8List _generateCheerWav() {
+    const sr = 44100;
+    const dur = 4.0;
+    final n = (sr * dur).floor();
+    final rand = math.Random();
+    final samples = Int16List(n * 2); // stereo interleaved
+
+    // 5 nota: C5(0ms), E5(280ms), G5(520ms), A5(720ms), C6(880ms)
+    final notalar = [
+      {'ms': 0, 'f': 523.25},
+      {'ms': 280, 'f': 659.25},
+      {'ms': 520, 'f': 783.99},
+      {'ms': 720, 'f': 880.00},
+      {'ms': 880, 'f': 1046.50},
+    ];
+
+    // Tek-pole bandpass için durum (basit IIR yaklaşımı)
+    double yL = 0, yR = 0;
+
+    for (var i = 0; i < n; i++) {
+      final t = i / sr;
+      // Alkış envelope: fade-in 0.5s, sustain to 3s, fade-out 3-4s
+      final env = t < 0.5
+          ? t / 0.5
+          : t < 3
+              ? 1.0
+              : math.max(0.0, math.pow(1 - (t - 3) / 1, 1.5).toDouble());
+      final modL = 0.5 + 0.5 * math.sin(t * 7.5 * 2 * math.pi).abs();
+      final modR = 0.5 + 0.5 * math.sin((t * 7.5 + 0.4) * 2 * math.pi).abs();
+      final noiseL = (rand.nextDouble() * 2 - 1) * modL * env * 0.3;
+      final noiseR = (rand.nextDouble() * 2 - 1) * modR * env * 0.3;
+      // Basit bandpass (~1600 Hz): low-pass + high-pass
+      yL = yL + (noiseL - yL) * 0.20;
+      yR = yR + (noiseR - yR) * 0.20;
+      double sL = (noiseL - yL) * 2.0;
+      double sR = (noiseR - yR) * 2.0;
+
+      // Arpeggio notaları ekle
+      for (final nota in notalar) {
+        final ms = (nota['ms'] as num).toDouble();
+        final f = (nota['f'] as num).toDouble();
+        final nt = t - ms / 1000;
+        if (nt < 0 || nt > 0.6) continue;
+        // 60ms attack, 540ms exp decay
+        double g;
+        if (nt < 0.06) {
+          g = (nt / 0.06) * 0.25;
+        } else {
+          final decT = (nt - 0.06) / 0.54;
+          g = 0.25 * math.exp(-decT * 6);
+        }
+        final s = math.sin(2 * math.pi * f * nt) * g;
+        sL += s;
+        sR += s;
+      }
+
+      samples[i * 2] = (sL.clamp(-1.0, 1.0) * 32767).round();
+      samples[i * 2 + 1] = (sR.clamp(-1.0, 1.0) * 32767).round();
+    }
+
+    return _wrapWav(samples, sampleRate: sr, channels: 2);
+  }
+
+  Uint8List _wrapWav(Int16List samples, {required int sampleRate, required int channels}) {
+    final dataLen = samples.length * 2;
+    final fileSize = 36 + dataLen;
+    final byteRate = sampleRate * channels * 2;
+    final blockAlign = channels * 2;
+
+    final bb = BytesBuilder();
+    bb.add(ascii.encode('RIFF'));
+    bb.add(_le32(fileSize));
+    bb.add(ascii.encode('WAVE'));
+    bb.add(ascii.encode('fmt '));
+    bb.add(_le32(16));
+    bb.add(_le16(1));        // PCM
+    bb.add(_le16(channels));
+    bb.add(_le32(sampleRate));
+    bb.add(_le32(byteRate));
+    bb.add(_le16(blockAlign));
+    bb.add(_le16(16));       // bits per sample
+    bb.add(ascii.encode('data'));
+    bb.add(_le32(dataLen));
+    // PCM data little-endian
+    final pcm = Uint8List(dataLen);
+    final bd = ByteData.view(pcm.buffer);
+    for (var i = 0; i < samples.length; i++) {
+      bd.setInt16(i * 2, samples[i], Endian.little);
+    }
+    bb.add(pcm);
+    return bb.takeBytes();
+  }
+
+  List<int> _le16(int v) => [v & 0xFF, (v >> 8) & 0xFF];
+  List<int> _le32(int v) => [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF];
+
+  Future<void> _playTick() async {
+    if (_tickBytes == null) return;
+    try {
+      await _tickPlayer.stop();
+      await _tickPlayer.play(BytesSource(_tickBytes!, mimeType: 'audio/wav'));
+    } catch (_) {}
+  }
+
+  Future<void> _playCheer() async {
+    if (_cheerBytes == null) return;
+    try {
+      await _cheerPlayer.stop();
+      await _cheerPlayer.play(BytesSource(_cheerBytes!, mimeType: 'audio/wav'));
+    } catch (_) {}
   }
 
   /// Loading spinner göstermeden sessizce yeniden çek (sync için).
@@ -256,7 +395,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.06), blurRadius: 14, offset: Offset(0, 4))],
               ),
-              child: _CarkPreview(key: _carkKey, dilimler: _dilimler),
+              child: _CarkPreview(key: _carkKey, dilimler: _dilimler, onTick: _playTick),
             ),
             // Konfeti: çarkın üstünden aşağı doğru dökülür
             Positioned(
@@ -500,14 +639,10 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     setState(() => _ceviriliyor = false);
     HapticFeedback.heavyImpact();
 
-    // Kazanma efekti: konfeti + zafer titreşim/ses
+    // Kazanma efekti: konfeti + alkış+arpeggio (web ile aynı)
     _konfeti.play();
-    // 3 ardarda "ding" — sistem ses kanalını kullanır (telefon zil değil)
-    for (var i = 0; i < 3; i++) {
-      SystemSound.play(SystemSoundType.alert);
-      HapticFeedback.heavyImpact();
-      await Future.delayed(Duration(milliseconds: 180));
-    }
+    HapticFeedback.heavyImpact();
+    _playCheer();
 
     final sec = _dilimler[hedefIndex];
     final color = _hexToColor(sec['color']?.toString());
@@ -1075,7 +1210,8 @@ class _DilimSatiriState extends State<_DilimSatiri> {
 
 class _CarkPreview extends StatefulWidget {
   final List<Map<String, dynamic>> dilimler;
-  const _CarkPreview({Key? key, required this.dilimler}) : super(key: key);
+  final VoidCallback? onTick;
+  const _CarkPreview({Key? key, required this.dilimler, this.onTick}) : super(key: key);
 
   @override
   State<_CarkPreview> createState() => _CarkPreviewState();
@@ -1142,7 +1278,7 @@ class _CarkPreviewState extends State<_CarkPreview> with SingleTickerProviderSta
     if (dilimGecis != _lastTickedSlice) {
       _lastTickedSlice = dilimGecis;
       HapticFeedback.selectionClick();
-      SystemSound.play(SystemSoundType.click);
+      widget.onTick?.call();
     }
   }
 
