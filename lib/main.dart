@@ -21,32 +21,11 @@ import 'package:randevu_sistem/Frontend/randevuguncellemeprovider.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/theme/app_theme.dart';
 import 'package:randevu_sistem/theme/theme_provider.dart';
 
 late SharedPreferences prefs;
-
-// Firebase background handler
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  print("🔹 Firebase background mesaj alındı");
-}
-
-
-
-// FCM token alma
-Future<void> _initFCMToken() async {
-  try {
-    final token = await FirebaseMessaging.instance.getToken();
-    if (token != null && token.isNotEmpty) {
-      print("✅ FCM token alındı: $token");
-      prefs.setString('fcm_token', token);
-    }
-  } catch (e) {
-    print("❌ FCM token alınamadı: $e");
-  }
-}
 
 // OneSignal Player ID alma
 Future<void> ensurePlayerId() async {
@@ -71,25 +50,19 @@ void main() async {
 
   // 2) Firebase init
   await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onBackgroundMessage(rmcNotificationBackgroundHandler);
 
-  // 3) OneSignal init
+  // 3) Yeni bildirim altyapısı (FCM + local + foreground + tıklama + popup)
+  await NotificationService.instance.init();
+
+  // 4) OneSignal — geriye dönük uyum için açık tutuluyor.
+  // TODO: Müşteri/personel/yetkili tüm flow'lar yeni FCM kayıt'a geçtiğinde kaldırılacak.
   OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
   OneSignal.initialize("6046dbbf-44fe-41a4-b1e4-a1bbcbf14cc0");
-
-  // 4) iOS push permission
   await OneSignal.Notifications.requestPermission(true);
-
-
-  // 5) Player ID alma
   await ensurePlayerId();
 
-  // 6) Android 13+ izin
-  if (Platform.isAndroid) {
-    await Permission.notification.request();
-  }
-
-  // 7) Uygulamayı başlat
+  // 5) Uygulamayı başlat
   runApp(MyApp());
 }
 
@@ -186,7 +159,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       print("Step 4: HTTP isteği atılıyor...");
       final response = await http.post(
-        Uri.parse("https://app.randevumcepte.com.tr/api/v1/versiyonAppKontrol"),
+        Uri.parse("https://apptest.randevumcepte.com.tr/api/v1/versiyonAppKontrol"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );
@@ -345,7 +318,7 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 3),
           opacity: _opacity,
           child: Image.asset(
-            "images/yasemintuzun.png",
+            "images/randevumcepte.png",
             height: 200,
           ),
         ),

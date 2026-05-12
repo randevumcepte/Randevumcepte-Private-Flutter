@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Models/user.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
 import 'dashboard/home_screen.dart';
 
 class SubeSecimi extends StatefulWidget {
@@ -186,6 +187,13 @@ class _SubeSecimiState extends State<SubeSecimi> {
                               "1",
                               localStorage.getString('onesignal_player_id') ??
                                   "");
+
+                          // Yeni FCM cihaz kaydı (şube seçildi)
+                          NotificationService.instance.registerForUser(
+                            kullaniciTipi: 'yetkili',
+                            yetkiliId: widget.kullanici.id,
+                            salonId: isletme['salon_id'].toString(),
+                          );
                           if (!context.mounted) return;
                           Navigator.of(context).pop();
                           Navigator.pushAndRemoveUntil(

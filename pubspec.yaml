@@ -86,6 +86,7 @@ dependencies:
   # Firebase & Notifications
   firebase_core: ^3.4.0
   firebase_messaging: ^15.2.5
+  flutter_local_notifications: ^18.0.1
   onesignal_flutter: ^5.3.0
 
   # Audio / SIP / Background

@@ -8,6 +8,7 @@ import 'package:randevu_sistem/Login%20Sayfas%C4%B1/kayit_ol.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/sifremi_unuttum.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/randevualma/randevuozetonay.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/yonetici/subesecimi.dart';
 // ! import here file animate 
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
@@ -131,7 +132,7 @@ class _HomeState extends State<LoginPage> {
                         child: FadeAnimation(
                           1,
                           Image.asset(
-                            'images/yasemintuzun.png',
+                            'images/randevumcepte.png',
                             height: 80,
                             fit: BoxFit.contain,
                           ),
@@ -437,6 +438,13 @@ class _HomeState extends State<LoginPage> {
           {
             bildirimkimligiekleguncelle(kullanici.id.toString(),kullanici.yetkili_olunan_isletmeler[0]['salon_id'].toString(),body['message']['user_type'],localStorage.getString('onesignal_player_id')??"");
 
+            // Yeni FCM cihaz kaydı (yetkili = salon sahibi)
+            NotificationService.instance.registerForUser(
+              kullaniciTipi: 'yetkili',
+              yetkiliId: kullanici.id.toString(),
+              salonId: kullanici.yetkili_olunan_isletmeler[0]['salon_id'].toString(),
+            );
+
             localStorage.setString('sube',kullanici.yetkili_olunan_isletmeler[0]['salon_id'].toString());
             localStorage.setString('isletmeadi', kullanici.yetkili_olunan_isletmeler[0]['salonlar']['salon_adi']);
 
@@ -456,9 +464,15 @@ class _HomeState extends State<LoginPage> {
       } else {
         MusteriDanisan musteri = MusteriDanisan.fromJson(userMap);
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '361')['salonlar'];
+        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '20')['salonlar'];
 
         bildirimkimligiekleguncelle(musteri.id.toString(),"",body['message']['user_type'].toString(),localStorage.getString('onesignal_player_id')??"");
+
+        // Yeni FCM cihaz kaydı (müşteri)
+        NotificationService.instance.registerForUser(
+          kullaniciTipi: 'musteri',
+          userId: musteri.id.toString(),
+        );
         if(widget.randevuSayfasinaYonlendir)
           Navigator.of(context).pop();
         else
