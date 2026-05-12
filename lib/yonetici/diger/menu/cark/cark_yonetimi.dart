@@ -1188,7 +1188,7 @@ class _CarkPreviewState extends State<_CarkPreview> with SingleTickerProviderSta
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: Duration(milliseconds: 4500));
+    _ctrl = AnimationController(vsync: this, duration: Duration(milliseconds: 8000));
     _anim = AlwaysStoppedAnimation(0);
   }
 
@@ -1209,7 +1209,7 @@ class _CarkPreviewState extends State<_CarkPreview> with SingleTickerProviderSta
     // Painter dilim 0'ı saat 12'den başlatıyor, dilim merkezi = i * sweep + sweep/2
     // İşaretçi saat 12'de. Çark döndüğünde, hedef dilim saat 12'ye gelsin.
     // Tam tur sayısı + son ayarlama
-    final tamTurlar = 4 + math.Random().nextInt(2); // 4-5 tam tur
+    final tamTurlar = 8 + math.Random().nextInt(3); // 8-10 tam tur (daha dramatik dönüş)
     // Hedefin saat 12'ye gelmesi için: rotation = (tamTurlar * 2π) - (hedef_merkez_açısı)
     final hedefMerkez = hedefIndex * sweep + sweep / 2;
     final hedefRotation = (tamTurlar * 2 * math.pi) - hedefMerkez;
