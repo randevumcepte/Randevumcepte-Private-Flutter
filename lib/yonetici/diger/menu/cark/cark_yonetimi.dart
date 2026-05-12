@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 class CarkYonetimiPage extends StatefulWidget {
@@ -11,7 +13,7 @@ class CarkYonetimiPage extends StatefulWidget {
   State<CarkYonetimiPage> createState() => _CarkYonetimiPageState();
 }
 
-class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProviderStateMixin {
+class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProviderStateMixin, WidgetsBindingObserver {
   late final TabController _tab;
   late final String _salonId;
 
@@ -19,6 +21,9 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   bool _sistemLoading = false;
   int _carkAktif = 1;
   List<Map<String, dynamic>> _dilimler = [];
+  final GlobalKey<_CarkPreviewState> _carkKey = GlobalKey<_CarkPreviewState>();
+  bool _ceviriliyor = false;
+  Timer? _autoSyncTimer;
 
   // Kazananlar
   bool _kazLoading = false;
@@ -34,13 +39,63 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     super.initState();
     _tab = TabController(length: 3, vsync: this);
     _salonId = widget.isletmebilgi['id'].toString();
+    WidgetsBinding.instance.addObserver(this);
     _yukleSistem();
+    // Sayfa açıkken her 15 saniyede bir hafif senkron (web'de değişiklik olursa anlamak için)
+    _autoSyncTimer = Timer.periodic(Duration(seconds: 15), (_) {
+      if (_tab.index == 0 && !_ceviriliyor && mounted) {
+        _yukleSistemSessiz();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted && !_ceviriliyor) {
+      // Uygulama arka plandan döndüğünde çarkı yenile
+      _yukleSistemSessiz();
+    }
   }
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _tab.dispose();
     super.dispose();
+  }
+
+  /// Loading spinner göstermeden sessizce yeniden çek (sync için).
+  Future<void> _yukleSistemSessiz() async {
+    final r = await carkAdminSistemGetir(_salonId);
+    if (!mounted || r == null) return;
+    final yeniDilimler = ((r['dilimler'] as List?) ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    if (yeniDilimler.isEmpty) return;
+    // Sadece gerçekten değişiklik varsa state'i güncelle
+    final farkVar = yeniDilimler.length != _dilimler.length ||
+        yeniDilimler.asMap().entries.any((e) {
+          final eski = e.key < _dilimler.length ? _dilimler[e.key] : null;
+          if (eski == null) return true;
+          return eski['name'] != e.value['name'] ||
+              eski['probability'] != e.value['probability'] ||
+              eski['tip'] != e.value['tip'] ||
+              eski['deger'] != e.value['deger'] ||
+              eski['color'] != e.value['color'];
+        });
+    if (!farkVar) return;
+    setState(() {
+      _carkAktif = (r['sistem']?['aktifmi'] as num?)?.toInt() ?? _carkAktif;
+      _dilimler = yeniDilimler;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(children: [Icon(Icons.sync, color: Colors.white, size: 16), SizedBox(width: 8), Text('Çark verisi güncellendi (web tarafından)')]),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.blue.shade700,
+      ),
+    );
   }
 
   Future<void> _yukleSistem() async {
@@ -170,18 +225,44 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     return ListView(
       padding: EdgeInsets.fromLTRB(12, 12, 12, 100),
       children: [
-        // Görsel çark
+        // Görsel çark (animasyonlu)
         Container(
-          height: 240,
+          height: 280,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.06), blurRadius: 14, offset: Offset(0, 4))],
           ),
-          child: _CarkPreview(dilimler: _dilimler),
+          child: _CarkPreview(key: _carkKey, dilimler: _dilimler),
         ),
-        SizedBox(height: 12),
+        SizedBox(height: 10),
+
+        // Test Çevir butonu (büyük, çarkın hemen altında)
+        ElevatedButton.icon(
+          onPressed: (_dilimler.length >= 6 && !_ceviriliyor) ? _testCevir : null,
+          icon: _ceviriliyor
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                )
+              : Icon(Icons.refresh, size: 22),
+          label: Text(
+            _ceviriliyor ? 'Çark dönüyor...' : 'Test Çevir',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.3),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber.shade700,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            disabledBackgroundColor: Colors.grey.shade400,
+            elevation: 3,
+            shadowColor: Colors.amber.withValues(alpha: 0.4),
+          ),
+        ),
+        SizedBox(height: 14),
 
         // Aktif/Pasif + doğrulama
         Container(
@@ -268,39 +349,18 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
         SizedBox(height: 16),
 
-        // Kaydet + Test Çevir
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: ElevatedButton.icon(
-                onPressed: valid ? _kaydet : null,
-                icon: Icon(Icons.save),
-                label: Text('Kaydet'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  disabledBackgroundColor: Colors.grey.shade400,
-                ),
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _dilimler.length >= 6 ? _testCevir : null,
-                icon: Icon(Icons.refresh),
-                label: Text('Test Çevir'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: scheme.primary,
-                  side: BorderSide(color: scheme.primary),
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ),
-          ],
+        // Kaydet
+        ElevatedButton.icon(
+          onPressed: valid ? _kaydet : null,
+          icon: Icon(Icons.save),
+          label: Text('Çarkı Kaydet'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: scheme.primary,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            disabledBackgroundColor: Colors.grey.shade400,
+          ),
         ),
       ],
     );
@@ -341,56 +401,108 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     });
   }
 
-  void _testCevir() {
+  Future<void> _testCevir() async {
+    if (_dilimler.length < 6) return;
+
+    // Gerçek olasılıklara göre dilim seç
     final rand = math.Random();
-    final r = rand.nextInt(_dilimler.length);
-    final sec = _dilimler[r];
+    final toplam = _dilimler.fold<int>(0, (s, d) => s + ((d['probability'] as num?)?.toInt() ?? 0));
+    int hedefIndex = 0;
+    if (toplam > 0) {
+      final r = rand.nextInt(toplam);
+      int kumulatif = 0;
+      for (var i = 0; i < _dilimler.length; i++) {
+        kumulatif += ((_dilimler[i]['probability'] as num?)?.toInt() ?? 0);
+        if (r < kumulatif) {
+          hedefIndex = i;
+          break;
+        }
+      }
+    } else {
+      hedefIndex = rand.nextInt(_dilimler.length);
+    }
+
+    setState(() => _ceviriliyor = true);
+    HapticFeedback.mediumImpact();
+
+    // Çark dönüş animasyonu (~4 saniye)
+    await _carkKey.currentState?.cevirSonuc(hedefIndex);
+
+    if (!mounted) return;
+    setState(() => _ceviriliyor = false);
+    HapticFeedback.heavyImpact();
+
+    final sec = _dilimler[hedefIndex];
+    final color = _hexToColor(sec['color']?.toString());
+
+    // Sonuç dialogu
     showDialog(
       context: context,
-      builder: (c) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.celebration, color: Colors.amber.shade700),
-            SizedBox(width: 6),
-            Text('Test Çevirme'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _hexToColor(sec['color']?.toString()).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+      builder: (c) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: Icon(Icons.celebration, color: color, size: 36),
               ),
-              child: Row(
-                children: [
-                  Container(width: 18, height: 18, decoration: BoxDecoration(color: _hexToColor(sec['color']?.toString()), shape: BoxShape.circle)),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      sec['name']?.toString() ?? '-',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                    ),
+              SizedBox(height: 12),
+              Text('Çark Durdu!', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+              SizedBox(height: 6),
+              Text(
+                sec['name']?.toString() ?? '-',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22, color: color),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8),
+              if (sec['tip'] != null && sec['tip'] != 'bos')
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                    _tipText(sec['tip']?.toString() ?? '', sec['deger']),
+                    style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
                   ),
-                ],
+                ),
+              SizedBox(height: 16),
+              Text(
+                'Bu bir simülasyondur. Gerçek dağıtımda olasılıklar geçerlidir.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+                textAlign: TextAlign.center,
               ),
-            ),
-            SizedBox(height: 12),
-            Text('Tip: ${sec['tip']}', style: TextStyle(fontSize: 12)),
-            if (sec['deger'] != null) Text('Değer: ${sec['deger']}', style: TextStyle(fontSize: 12)),
-            SizedBox(height: 8),
-            Text(
-              '(Bu rastgele bir testtir, gerçek olasılıklar üretimde geçerlidir.)',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
+              SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(c),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text('Tamam', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(c), child: Text('Kapat'))],
       ),
     );
+  }
+
+  String _tipText(String tip, dynamic deger) {
+    switch (tip) {
+      case 'puan': return '+ ${deger ?? '?'} Puan';
+      case 'hizmet_indirimi': return '%${deger ?? '?'} Hizmet İndirimi';
+      case 'urun_indirimi': return '%${deger ?? '?'} Ürün İndirimi';
+      case 'tekrar_dene': return 'Tekrar Dene';
+      default: return tip;
+    }
   }
 
   Color _hexToColor(String? hex) {
@@ -884,27 +996,102 @@ class _DilimSatiriState extends State<_DilimSatiri> {
 // CARK PREVIEW — basit pasta dilim önizlemesi
 // ============================================================
 
-class _CarkPreview extends StatelessWidget {
+class _CarkPreview extends StatefulWidget {
   final List<Map<String, dynamic>> dilimler;
   const _CarkPreview({Key? key, required this.dilimler}) : super(key: key);
 
   @override
+  State<_CarkPreview> createState() => _CarkPreviewState();
+}
+
+class _CarkPreviewState extends State<_CarkPreview> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+  double _baseRotation = 0;
+  Timer? _tickTimer;
+  int _lastTickedSlice = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: Duration(milliseconds: 4500));
+    _anim = AlwaysStoppedAnimation(0);
+  }
+
+  @override
+  void dispose() {
+    _tickTimer?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  /// Çarkı verilen dilim üzerinde durdur. ~4 saniye dönüş + yavaşlama.
+  Future<void> cevirSonuc(int hedefIndex) async {
+    if (widget.dilimler.isEmpty) return;
+    final n = widget.dilimler.length;
+    final sweep = 2 * math.pi / n;
+
+    // Dilimin merkez açısı (0 = saat 12 yönü, pozitif saat yönünde)
+    // Painter dilim 0'ı saat 12'den başlatıyor, dilim merkezi = i * sweep + sweep/2
+    // İşaretçi saat 12'de. Çark döndüğünde, hedef dilim saat 12'ye gelsin.
+    // Tam tur sayısı + son ayarlama
+    final tamTurlar = 4 + math.Random().nextInt(2); // 4-5 tam tur
+    // Hedefin saat 12'ye gelmesi için: rotation = (tamTurlar * 2π) - (hedef_merkez_açısı)
+    final hedefMerkez = hedefIndex * sweep + sweep / 2;
+    final hedefRotation = (tamTurlar * 2 * math.pi) - hedefMerkez;
+
+    final baslangic = _baseRotation;
+    final fark = hedefRotation - (baslangic % (2 * math.pi));
+
+    _ctrl.reset();
+    _anim = Tween<double>(begin: 0, end: fark).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutQuart),
+    );
+
+    // "Tick tick" hissi için her dilim geçişinde haptic
+    _lastTickedSlice = -1;
+    _ctrl.addListener(_haptickTick);
+    await _ctrl.forward();
+    _ctrl.removeListener(_haptickTick);
+    _baseRotation = baslangic + fark;
+  }
+
+  void _haptickTick() {
+    final n = widget.dilimler.length;
+    if (n == 0) return;
+    final sweep = 2 * math.pi / n;
+    final donmus = _anim.value;
+    final dilimGecis = (donmus / sweep).floor();
+    if (dilimGecis != _lastTickedSlice) {
+      _lastTickedSlice = dilimGecis;
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(200, 200),
-      painter: _CarkPainter(dilimler),
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (c, _) {
+        final rot = (_baseRotation + (_anim.value));
+        return CustomPaint(
+          size: Size(220, 220),
+          painter: _CarkPainter(widget.dilimler, rot),
+        );
+      },
     );
   }
 }
 
 class _CarkPainter extends CustomPainter {
   final List<Map<String, dynamic>> dilimler;
-  _CarkPainter(this.dilimler);
+  final double rotation; // radian
+  _CarkPainter(this.dilimler, [this.rotation = 0]);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) / 2 - 4;
+    final radius = math.min(size.width, size.height) / 2 - 8;
 
     if (dilimler.isEmpty) {
       final paint = Paint()..color = Colors.grey.shade200;
@@ -915,41 +1102,75 @@ class _CarkPainter extends CustomPainter {
     final n = dilimler.length;
     final sweep = 2 * math.pi / n;
 
+    // Çark gövdesini döndür (işaretçi sabit, çark döner)
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(rotation);
+    canvas.translate(-center.dx, -center.dy);
+
     for (var i = 0; i < n; i++) {
       final paint = Paint()..color = _hexToColor(dilimler[i]['color']?.toString());
       final rect = Rect.fromCircle(center: center, radius: radius);
       final start = -math.pi / 2 + i * sweep;
       canvas.drawArc(rect, start, sweep, true, paint);
 
-      // İsim
+      // Dilim ayırıcı çizgi
+      final sepPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawArc(rect, start, sweep, true, sepPaint);
+
+      // İsim — dilim merkezine sığdır (saat 12 yönüne uzaktan okuyabilmek için döndür)
       final textSpan = TextSpan(
         text: (dilimler[i]['name']?.toString() ?? '').split(' ').first,
-        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700, shadows: [Shadow(color: Colors.black54, blurRadius: 2)]),
+        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800, shadows: [Shadow(color: Colors.black54, blurRadius: 3)]),
       );
       final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr, maxLines: 1, ellipsis: '…');
-      tp.layout(maxWidth: radius * 0.7);
+      tp.layout(maxWidth: radius * 0.8);
       final angle = start + sweep / 2;
-      final tx = center.dx + math.cos(angle) * radius * 0.6 - tp.width / 2;
-      final ty = center.dy + math.sin(angle) * radius * 0.6 - tp.height / 2;
-      tp.paint(canvas, Offset(tx, ty));
+      final tx = center.dx + math.cos(angle) * radius * 0.62;
+      final ty = center.dy + math.sin(angle) * radius * 0.62;
+      // Yazıyı dilim açısına göre döndür (saat 12'den okunsun)
+      canvas.save();
+      canvas.translate(tx, ty);
+      canvas.rotate(angle + math.pi / 2);
+      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+      canvas.restore();
     }
+
+    canvas.restore();
+
+    // Dış çerçeve (dönmüyor)
+    final framePaint = Paint()
+      ..color = Colors.amber.shade400
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5;
+    canvas.drawCircle(center, radius + 2, framePaint);
 
     // Merkez nokta
     final centerPaint = Paint()..color = Colors.white;
-    canvas.drawCircle(center, radius * 0.18, centerPaint);
+    canvas.drawCircle(center, radius * 0.16, centerPaint);
     final centerBorder = Paint()
-      ..color = Colors.grey.shade400
+      ..color = Colors.amber.shade700
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawCircle(center, radius * 0.18, centerBorder);
+      ..strokeWidth = 3;
+    canvas.drawCircle(center, radius * 0.16, centerBorder);
 
-    // İşaretçi
+    // İşaretçi (sabit, saat 12 yönünde)
     final pointer = Path()
-      ..moveTo(center.dx, center.dy - radius - 2)
-      ..lineTo(center.dx - 8, center.dy - radius - 14)
-      ..lineTo(center.dx + 8, center.dy - radius - 14)
+      ..moveTo(center.dx, center.dy - radius + 6)
+      ..lineTo(center.dx - 11, center.dy - radius - 16)
+      ..lineTo(center.dx + 11, center.dy - radius - 16)
       ..close();
     canvas.drawPath(pointer, Paint()..color = Colors.red.shade700);
+    canvas.drawPath(
+      pointer,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   Color _hexToColor(String? hex) {
@@ -960,7 +1181,7 @@ class _CarkPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CarkPainter old) => old.dilimler != dilimler;
+  bool shouldRepaint(_CarkPainter old) => old.dilimler != dilimler || old.rotation != rotation;
 }
 
 // ============================================================
