@@ -166,8 +166,6 @@ class _RandevularMenuState extends State<RandevularMenu> {
                       const SizedBox(height: 12),
                       _searchBar(context),
                       const SizedBox(height: 10),
-                      _activeFilterStrip(context),
-                      const SizedBox(height: 8),
                       Expanded(child: _list(context)),
                       _pagination(context),
                     ],
@@ -325,72 +323,6 @@ class _RandevularMenuState extends State<RandevularMenu> {
                 const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
           ),
           onChanged: (_) => setState(() {}),
-        ),
-      ),
-    );
-  }
-
-  // ───────────────────────────── Active Filter Chips
-  Widget _activeFilterStrip(BuildContext context) {
-    return SizedBox(
-      height: 36,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          _filterChip(Icons.calendar_month_outlined, selectedrandevutarih),
-          const SizedBox(width: 8),
-          _filterChip(Icons.flag_outlined, selectedrandevudurum),
-          const SizedBox(width: 8),
-          _filterChip(Icons.devices_other_outlined, selectedrandevuolusturma),
-        ],
-      ),
-    );
-  }
-
-  Widget _filterChip(IconData icon, String label) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: _openFilterSheet,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: scheme.primary.withValues(alpha: 0.18),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.primary.withValues(alpha: 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: scheme.primary),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onSurface,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 16, color: scheme.primary),
-            ],
-          ),
         ),
       ),
     );
