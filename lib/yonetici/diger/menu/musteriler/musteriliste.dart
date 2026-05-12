@@ -12,7 +12,6 @@ import 'rehberdekimusteriler.dart';
 import 'aktifmusteriler.dart';
 import 'pasifmusteriler.dart';
 import 'tummusteriler.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MusteriListesi extends StatefulWidget {
@@ -322,8 +321,20 @@ class _MusteriListesiState extends State<MusteriListesi> {
                 child: IconButton(
                   icon: Icon(Icons.contacts_rounded, color: primaryColor),
                   iconSize: 22,
-                  onPressed: (){
-                    rehberdenSecAlternatif(context,widget.isletmebilgi,widget.kullanicirolu);
+                  tooltip: 'Rehberden toplu ekle',
+                  onPressed: () async {
+                    final hasPermission = await _checkAndRequestPermission();
+                    if (!hasPermission) return;
+                    if (!mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ContactSelectionPage(
+                          isletmebilgi: widget.isletmebilgi,
+                          kullanicirolu: widget.kullanicirolu,
+                        ),
+                      ),
+                    );
                   },
                 ),
               ),
