@@ -1,5 +1,5 @@
 name: randevu_sistem
-description: Yasemin Tüzün Güzellik Merkezi Randevu Sistemi Uygulaması
+description: RandevumCepte Randevu Sistemi Uygulaması
 publish_to: 'none'
 version: 1.0.0+1
 environment:
@@ -92,6 +92,9 @@ dependencies:
   audioplayers: ^6.4.0
   flutter_background_service: ^5.1.0
 
+  # Konfeti — cark kazaninca animasyon
+  confetti: ^0.7.0
+
   # PDF & Printing
   pdf: ^3.9.0
   printing: ^5.4.2
@@ -139,8 +142,8 @@ flutter:
 
   assets:
     - images/
-    - images/yasemintuzun.png
-    - images/yasemintuzunicon.png
+    - images/randevumcepte.png
+    - images/randevumcepteicon.png
     - images/ring.mp3
     - images/announcement.png
     - images/hesapsil.png
@@ -148,12 +151,12 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "images/yasemintuzunicon.png"
+  image_path: "images/randevumcepteicon.png"
   remove_alpha_ios: true
 
 flutter_native_splash:
   color: "#ffffff"
-  image: images/yasemintuzun.png
+  image: images/randevumcepte.png
   android: true
   ios: true
   web: false

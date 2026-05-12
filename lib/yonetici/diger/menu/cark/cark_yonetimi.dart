@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:audioplayers/audioplayers.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -24,6 +26,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   final GlobalKey<_CarkPreviewState> _carkKey = GlobalKey<_CarkPreviewState>();
   bool _ceviriliyor = false;
   Timer? _autoSyncTimer;
+  late final ConfettiController _konfeti;
+  final AudioPlayer _player = AudioPlayer();
 
   // Kazananlar
   bool _kazLoading = false;
@@ -39,6 +43,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     super.initState();
     _tab = TabController(length: 3, vsync: this);
     _salonId = widget.isletmebilgi['id'].toString();
+    _konfeti = ConfettiController(duration: Duration(seconds: 3));
     WidgetsBinding.instance.addObserver(this);
     _yukleSistem();
     // Sayfa açıkken her 15 saniyede bir hafif senkron (web'de değişiklik olursa anlamak için)
@@ -60,6 +65,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   @override
   void dispose() {
     _autoSyncTimer?.cancel();
+    _konfeti.dispose();
+    _player.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _tab.dispose();
     super.dispose();
@@ -225,16 +232,44 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     return ListView(
       padding: EdgeInsets.fromLTRB(12, 12, 12, 100),
       children: [
-        // Görsel çark (animasyonlu)
-        Container(
-          height: 280,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.06), blurRadius: 14, offset: Offset(0, 4))],
-          ),
-          child: _CarkPreview(key: _carkKey, dilimler: _dilimler),
+        // Görsel çark (animasyonlu) + konfeti overlay
+        Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Container(
+              height: 280,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.06), blurRadius: 14, offset: Offset(0, 4))],
+              ),
+              child: _CarkPreview(key: _carkKey, dilimler: _dilimler),
+            ),
+            // Konfeti: çarkın üstünden aşağı doğru dökülür
+            Positioned(
+              top: 0,
+              child: ConfettiWidget(
+                confettiController: _konfeti,
+                blastDirection: math.pi / 2, // aşağı yön
+                blastDirectionality: BlastDirectionality.explosive,
+                maxBlastForce: 18,
+                minBlastForce: 6,
+                emissionFrequency: 0.06,
+                numberOfParticles: 18,
+                gravity: 0.2,
+                shouldLoop: false,
+                colors: const [
+                  Colors.amber,
+                  Colors.pinkAccent,
+                  Colors.lightBlueAccent,
+                  Colors.greenAccent,
+                  Colors.deepPurpleAccent,
+                  Colors.orangeAccent,
+                ],
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 10),
 
@@ -424,6 +459,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
     setState(() => _ceviriliyor = true);
     HapticFeedback.mediumImpact();
+    SystemSound.play(SystemSoundType.click);
 
     // Çark dönüş animasyonu (~4 saniye)
     await _carkKey.currentState?.cevirSonuc(hedefIndex);
@@ -431,6 +467,21 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     if (!mounted) return;
     setState(() => _ceviriliyor = false);
     HapticFeedback.heavyImpact();
+
+    // Kazanma efekti: konfeti + zafer sesi
+    _konfeti.play();
+    try {
+      // pubspec'te 'images/ring.mp3' olarak kayıtlı, audioplayers prefix'i 'assets/'
+      // o yüzden absolute path için UrlSource yerine direkt asset key
+      await _player.setSource(AssetSource('images/ring.mp3'));
+      await _player.setVolume(0.7);
+      await _player.resume();
+      Timer(Duration(seconds: 3), () {
+        try { _player.stop(); } catch (_) {}
+      });
+    } catch (e) {
+      // ses çalmazsa sessiz devam et (konfeti zaten var)
+    }
 
     final sec = _dilimler[hedefIndex];
     final color = _hexToColor(sec['color']?.toString());
