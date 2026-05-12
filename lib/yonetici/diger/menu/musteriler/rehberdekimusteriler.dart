@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/theme/premium_components.dart';
 import 'musteriliste.dart';
 import 'yeni_musteri.dart';
 
@@ -94,7 +95,7 @@ class _ContactSelectionPageState extends State<ContactSelectionPage> {
       }).toList();
 
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/check_phone'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/check_phone'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'phones': phoneNumbers}),
       );
@@ -308,7 +309,7 @@ Future<void> submitForm(dynamic isletmebilgi, String musteri_id, String salonid,
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/' + salonid.toString()),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/' + salonid.toString()),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -320,23 +321,11 @@ Future<void> submitForm(dynamic isletmebilgi, String musteri_id, String salonid,
       if (response.body.isNotEmpty) {
         var responseData = json.decode(response.body);
         if (responseData['status'] == 'warning') {
-          // Müşteri zaten var, popup göster
-          showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text(responseData['title']),
-                content: Text(responseData['mesaj']),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: Text('Tamam'),
-                  ),
-                ],
-              );
-            },
+          await showPremiumWarning(
+            context,
+            title: responseData['title']?.toString() ?? 'Müşteri Zaten Kayıtlı',
+            message: responseData['mesaj']?.toString() ?? 'Bu numara zaten kayıtlı.',
+            tone: 'warning',
           );
         } else {
           log('müşteri ekleme : ' + response.body);

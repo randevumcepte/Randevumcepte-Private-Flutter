@@ -349,3 +349,144 @@ class PremiumSectionHeader extends StatelessWidget {
     );
   }
 }
+
+/// Premium uyarı dialog'u — "Bu numara zaten kayıtlı" gibi durumlar için.
+/// Tek bir Tamam butonuyla dismiss edilir. tone = warning (orange) | error (red) | success (green) | info (primary).
+Future<void> showPremiumWarning(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String okLabel = 'Tamam',
+  String tone = 'warning',
+}) {
+  final scheme = Theme.of(context).colorScheme;
+  Color accent;
+  IconData icon;
+  switch (tone) {
+    case 'error':
+      accent = const Color(0xFFDC2626);
+      icon = Icons.error_outline_rounded;
+      break;
+    case 'success':
+      accent = const Color(0xFF16A34A);
+      icon = Icons.check_circle_outline_rounded;
+      break;
+    case 'info':
+      accent = scheme.primary;
+      icon = Icons.info_outline_rounded;
+      break;
+    case 'warning':
+    default:
+      accent = const Color(0xFFD97706);
+      icon = Icons.warning_amber_rounded;
+      break;
+  }
+  return showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.40),
+    builder: (ctx) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: 0.20),
+                blurRadius: 28,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withValues(alpha: 0.20),
+                        accent.withValues(alpha: 0.08),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: accent, size: 30),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: scheme.onSurface,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: scheme.onSurface.withValues(alpha: 0.70),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: () => Navigator.of(ctx).pop(),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [accent, accent.withValues(alpha: 0.85)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: 0.30),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        okLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}

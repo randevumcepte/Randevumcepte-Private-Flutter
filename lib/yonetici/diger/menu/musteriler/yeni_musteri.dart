@@ -16,6 +16,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
+import 'package:randevu_sistem/theme/premium_components.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:randevu_sistem/Models/user.dart';
@@ -577,7 +578,7 @@ class _YenimusteriState extends State<Yenimusteri> {
 
         try {
             final response = await http.post(
-                Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/'+salonid.toString()),
+                Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/'+salonid.toString()),
                 headers: {'Content-Type': 'application/json'},
                 body: jsonEncode(formData),
             );
@@ -611,13 +612,13 @@ class _YenimusteriState extends State<Yenimusteri> {
 
             // Warning response'u kontrol et
             if (decoded is Map && decoded.containsKey('status') && decoded['status'] == 'warning') {
-                final mesaj = decoded['mesaj']?.toString() ?? 'Bu müşteri zaten kayıtlı';
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(mesaj),
-                        backgroundColor: Colors.orange,
-                        duration: Duration(seconds: 4),
-                    ),
+                final mesaj = decoded['mesaj']?.toString() ?? 'Bu numara zaten kayıtlı';
+                final baslik = decoded['title']?.toString() ?? 'Müşteri Zaten Kayıtlı';
+                await showPremiumWarning(
+                    context,
+                    title: baslik,
+                    message: mesaj,
+                    tone: 'warning',
                 );
                 throw Exception(mesaj);
             }
