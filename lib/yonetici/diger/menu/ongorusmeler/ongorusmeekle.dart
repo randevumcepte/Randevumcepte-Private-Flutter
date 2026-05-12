@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
@@ -34,9 +37,8 @@ class YeniOnGorusme extends StatefulWidget {
 class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	TimeOfDay _selectedTime = TimeOfDay.now();
 
-	late List<MusteriDanisan> musteri;
+	final GlobalKey<LazyDropdownState> _lazyDropdownKey = GlobalKey<LazyDropdownState>();
 	MusteriDanisan? selectedMusteri;
-
 	late List<Sehir> ongorusmesehir;
 	Sehir? selectedongorusmesehir;
 
@@ -49,14 +51,13 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		Referans(id: "5", referans: "Tanıdık"),
 	];
 	Referans? selectedongorusmereferans;
-
 	OnGorusmeNedeni? selectedongorusmesebep;
+	Personel? selectedongorusmeyapan;
 	late String seciliisletme;
 
 	final TextEditingController ongorusmesebepcontroller = TextEditingController();
 	final TextEditingController adsoyad = TextEditingController();
 	final TextEditingController telefon = TextEditingController();
-	final TextEditingController email = TextEditingController();
 	final TextEditingController meslek = TextEditingController();
 	final TextEditingController ongorusmetarihi = TextEditingController();
 	final TextEditingController ongorusmesaati = TextEditingController();
@@ -65,13 +66,11 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 
 	late List<Personel> ongorusmeyapan;
 	late List<OnGorusmeNedeni> ongorusmeneden;
-	Personel? selectedongorusmeyapan;
 	bool yukleniyor = true;
 
 	String _selectedGender = '';
 
 	final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-	final AutovalidateMode _autoValidate = AutovalidateMode.disabled;
 
 	@override
 	void initState() {
@@ -82,14 +81,12 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	Future<void> initialize() async {
 		seciliisletme = (await secilisalonid())!;
 		final isletmeVerileri = await isletmeVerileriGetir(seciliisletme, false, '', '', '', 0, 0);
-		List<MusteriDanisan> musteridanisan = isletmeVerileri['musteriler'];
 		List<Personel> isletmepersonellerliste = isletmeVerileri['personeller'];
 		List<OnGorusmeNedeni> ongorusmenedeniliste = isletmeVerileri['onGorusmeNedeni'];
 		List<Sehir> sehirler = isletmeVerileri['sehirler'];
 		final secili = await seciliPersonelgetir(widget.isletmebilgi);
 		if (!mounted) return;
 		setState(() {
-			musteri = musteridanisan;
 			ongorusmeyapan = isletmepersonellerliste;
 			ongorusmesehir = sehirler;
 			ongorusmeneden = ongorusmenedeniliste;
@@ -97,6 +94,9 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 			selectedongorusmereferans =
 					ongorusmereferans.firstWhere((item) => item.id == "");
 			selectedongorusmeyapan = secili;
+			ongorusmetarihi.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
+			ongorusmesaati.text =
+					'${_selectedTime.hour.toString().padLeft(2, '0')}:${_getNearestQuarterMinute(_selectedTime.minute).toString().padLeft(2, '0')}';
 		});
 	}
 
@@ -105,7 +105,6 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		ongorusmesebepcontroller.dispose();
 		adsoyad.dispose();
 		telefon.dispose();
-		email.dispose();
 		meslek.dispose();
 		ongorusmetarihi.dispose();
 		ongorusmesaati.dispose();
@@ -124,8 +123,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 				child: SafeArea(
 					bottom: false,
 					child: yukleniyor
-							? Center(
-								child: CircularProgressIndicator(color: scheme.primary))
+							? Center(child: CircularProgressIndicator(color: scheme.primary))
 							: GestureDetector(
 								onTap: () => FocusScope.of(context).unfocus(),
 								child: Column(
@@ -137,19 +135,12 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 										Expanded(
 											child: Form(
 												key: _formKey,
-												autovalidateMode: _autoValidate,
 												child: ListView(
 													physics: const BouncingScrollPhysics(),
 													padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
 													children: [
-														_musteriCard(context),
-														const SizedBox(height: 14),
-														_detayCard(context),
-														const SizedBox(height: 14),
-														_zamanCard(context),
-														const SizedBox(height: 14),
-														_aciklamaCard(context),
-														const SizedBox(height: 18),
+														_formCard(context),
+														const SizedBox(height: 16),
 													],
 												),
 											),
@@ -186,8 +177,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 							child: Row(
 								mainAxisAlignment: MainAxisAlignment.center,
 								children: [
-									Icon(Icons.handshake_outlined,
-											size: 16, color: scheme.primary),
+									Icon(Icons.handshake_outlined, size: 16, color: scheme.primary),
 									const SizedBox(width: 6),
 									Flexible(
 										child: Text(
@@ -217,7 +207,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		);
 	}
 
-	// ───────────────────────────── Greeting
+	// ───────────────────────────── Header
 	Widget _header(BuildContext context) {
 		final scheme = Theme.of(context).colorScheme;
 		return Padding(
@@ -228,18 +218,18 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 					Text(
 						'Yeni Ön Görüşme',
 						style: TextStyle(
-							fontSize: 26,
+							fontSize: 24,
 							fontWeight: FontWeight.w800,
 							letterSpacing: -0.5,
 							color: scheme.onSurface,
 							height: 1.1,
 						),
 					),
-					const SizedBox(height: 4),
+					const SizedBox(height: 3),
 					Text(
-						'Müşteri bilgilerini doldurun, görüşmeyi planlayın.',
+						'Hızlı kayıt — 5 saniyede tamamla.',
 						style: TextStyle(
-							fontSize: 12.5,
+							fontSize: 12,
 							fontWeight: FontWeight.w500,
 							color: scheme.onSurface.withValues(alpha: 0.55),
 						),
@@ -249,43 +239,31 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		);
 	}
 
-	// ───────────────────────────── Müşteri Bilgileri Card
-	Widget _musteriCard(BuildContext context) {
+	// ───────────────────────────── Single Unified Form Card
+	Widget _formCard(BuildContext context) {
 		return PremiumGlassCard(
-			padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+			padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
-					_sectionTitle('Müşteri Bilgileri', Icons.person_outline_rounded),
-					const SizedBox(height: 14),
-					_fieldLabel('Müşteri Seç'),
+					_rowLabel('Müşteri', Icons.person_search_rounded, trailing: _addMusteriBtn()),
+					const SizedBox(height: 6),
 					_lazyDropdownWrap(),
-					const SizedBox(height: 14),
-					_fieldLabel('Ad Soyad'),
-					_premiumTextField(
-						controller: adsoyad,
-						hint: 'Ad ve soyad',
-						prefix: Icons.badge_outlined,
-					),
-					const SizedBox(height: 14),
-					_fieldLabel('Telefon Numarası'),
+					const SizedBox(height: 12),
+					_rowLabel('Ad Soyad', Icons.badge_outlined),
+					const SizedBox(height: 6),
+					_premiumTextField(controller: adsoyad, hint: 'Ad ve soyad'),
+					const SizedBox(height: 12),
+					_rowLabel('Telefon', Icons.phone_outlined),
+					const SizedBox(height: 6),
 					_premiumTextField(
 						controller: telefon,
 						hint: '5xx xxx xx xx',
-						prefix: Icons.phone_outlined,
 						keyboardType: TextInputType.phone,
 					),
-					const SizedBox(height: 14),
-					_fieldLabel('E-mail'),
-					_premiumTextField(
-						controller: email,
-						hint: 'ornek@mail.com',
-						prefix: Icons.mail_outline_rounded,
-						keyboardType: TextInputType.emailAddress,
-					),
-					const SizedBox(height: 16),
-					_fieldLabel('Cinsiyet'),
-					const SizedBox(height: 4),
+					const SizedBox(height: 12),
+					_rowLabel('Cinsiyet', Icons.wc_outlined),
+					const SizedBox(height: 6),
 					Row(
 						children: [
 							Expanded(child: _genderPill('kadin', 'Kadın', Icons.female_rounded)),
@@ -293,7 +271,168 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 							Expanded(child: _genderPill('erkek', 'Erkek', Icons.male_rounded)),
 						],
 					),
+					const SizedBox(height: 12),
+					Row(
+						crossAxisAlignment: CrossAxisAlignment.start,
+						children: [
+							Expanded(
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										_rowLabel('Tarih', Icons.calendar_month_outlined),
+										const SizedBox(height: 6),
+										_premiumTextField(
+											controller: ongorusmetarihi,
+											hint: 'YYYY-AA-GG',
+											readOnly: true,
+											validator: (v) =>
+													(v == null || v.isEmpty) ? 'Tarih' : null,
+											onTap: () async {
+												final picked = await showDatePicker(
+													context: context,
+													initialDate: DateTime.now(),
+													firstDate: DateTime(1950),
+													lastDate: DateTime(2100),
+												);
+												if (picked != null) {
+													setState(() {
+														ongorusmetarihi.text =
+																DateFormat('yyyy-MM-dd').format(picked);
+													});
+												}
+											},
+										),
+									],
+								),
+							),
+							const SizedBox(width: 10),
+							Expanded(
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										_rowLabel('Saat', Icons.access_time_rounded),
+										const SizedBox(height: 6),
+										_premiumTextField(
+											controller: ongorusmesaati,
+											hint: '--:--',
+											readOnly: true,
+											validator: (v) =>
+													(v == null || v.isEmpty) ? 'Saat' : null,
+											onTap: () => _showModernTimePicker(context),
+										),
+									],
+								),
+							),
+						],
+					),
+					const SizedBox(height: 12),
+					_rowLabel('Ön Görüşme Nedeni', Icons.inventory_2_outlined),
+					const SizedBox(height: 6),
+					_premiumDropdown<OnGorusmeNedeni>(
+						value: selectedongorusmesebep,
+						items: ongorusmeneden
+								.map((e) => DropdownMenuItem(
+											value: e,
+											child: Text(
+												e.getPaketUrunAdi(),
+												overflow: TextOverflow.ellipsis,
+												maxLines: 1,
+											),
+										))
+								.toList(),
+						hint: 'Sebep seç',
+						icon: Icons.inventory_2_outlined,
+						searchController: ongorusmesebepcontroller,
+						searchMatcher: (item, q) => item.getPaketUrunAdi()
+								.toLowerCase()
+								.contains(q.toLowerCase()),
+						onChanged: (v) => setState(() => selectedongorusmesebep = v),
+					),
+					const SizedBox(height: 12),
+					_rowLabel('Referans', Icons.share_outlined),
+					const SizedBox(height: 6),
+					_premiumDropdown<Referans>(
+						value: selectedongorusmereferans,
+						items: ongorusmereferans
+								.map((e) => DropdownMenuItem(value: e, child: Text(e.referans)))
+								.toList(),
+						hint: 'Referans seç',
+						icon: Icons.share_outlined,
+						onChanged: (v) => setState(() => selectedongorusmereferans = v),
+					),
+					const SizedBox(height: 12),
+					_rowLabel('Görüşmeyi Yapan', Icons.person_pin_outlined),
+					const SizedBox(height: 6),
+					_premiumDropdown<Personel>(
+						value: selectedongorusmeyapan,
+						items: ongorusmeyapan
+								.map((e) => DropdownMenuItem(
+											value: e,
+											child: Text(
+												e.personel_adi,
+												overflow: TextOverflow.ellipsis,
+												maxLines: 1,
+											),
+										))
+								.toList(),
+						hint: 'Personel seç',
+						icon: Icons.person_pin_outlined,
+						searchController: ongorusmeyapancontroller,
+						searchMatcher: (item, q) =>
+								item.personel_adi.toLowerCase().contains(q.toLowerCase()),
+						onChanged: (v) => setState(() => selectedongorusmeyapan = v),
+					),
+					const SizedBox(height: 12),
+					_rowLabel('Açıklama', Icons.notes_rounded),
+					const SizedBox(height: 6),
+					_premiumTextField(
+						controller: ongorusmeaciklama,
+						hint: 'Notlar (opsiyonel)',
+						maxLines: 2,
+					),
 				],
+			),
+		);
+	}
+
+	Widget _addMusteriBtn() {
+		final scheme = Theme.of(context).colorScheme;
+		return InkWell(
+			onTap: _openYeniMusteriSheet,
+			borderRadius: BorderRadius.circular(999),
+			child: Container(
+				padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+				decoration: BoxDecoration(
+					gradient: LinearGradient(
+						colors: [scheme.primary, scheme.tertiary],
+						begin: Alignment.topLeft,
+						end: Alignment.bottomRight,
+					),
+					borderRadius: BorderRadius.circular(999),
+					boxShadow: [
+						BoxShadow(
+							color: scheme.primary.withValues(alpha: 0.30),
+							blurRadius: 10,
+							offset: const Offset(0, 3),
+						),
+					],
+				),
+				child: Row(
+					mainAxisSize: MainAxisSize.min,
+					children: [
+						Icon(Icons.person_add_alt_1_rounded,
+								size: 14, color: scheme.onPrimary),
+						const SizedBox(width: 4),
+						Text(
+							'Yeni',
+							style: TextStyle(
+								fontSize: 11,
+								fontWeight: FontWeight.w800,
+								color: scheme.onPrimary,
+							),
+						),
+					],
+				),
 			),
 		);
 	}
@@ -301,17 +440,18 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	Widget _lazyDropdownWrap() {
 		final scheme = Theme.of(context).colorScheme;
 		return Container(
-			height: 48,
+			height: 46,
 			padding: const EdgeInsets.symmetric(horizontal: 10),
 			decoration: BoxDecoration(
 				color: scheme.primary.withValues(alpha: 0.05),
-				borderRadius: BorderRadius.circular(14),
+				borderRadius: BorderRadius.circular(12),
 				border: Border.all(
 					color: scheme.primary.withValues(alpha: 0.18),
 					width: 1.2,
 				),
 			),
 			child: LazyDropdown(
+				key: _lazyDropdownKey,
 				salonId: seciliisletme,
 				selectedItem: selectedMusteri,
 				onChanged: (value) {
@@ -320,8 +460,6 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 						selectedMusteri = value;
 						adsoyad.text = value.name;
 						telefon.text = value.cep_telefon;
-						log('email ' + value.email);
-						email.text = value.email != 'null' ? value.email : '';
 						if (value.cinsiyet == "0") _selectedGender = "kadin";
 						if (value.cinsiyet == "1") _selectedGender = "erkek";
 						if (value.il_id != "null") {
@@ -344,14 +482,14 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		final selected = _selectedGender == value;
 		return Material(
 			color: Colors.transparent,
-			borderRadius: BorderRadius.circular(14),
+			borderRadius: BorderRadius.circular(12),
 			child: InkWell(
 				onTap: () => setState(() => _selectedGender = value),
-				borderRadius: BorderRadius.circular(14),
+				borderRadius: BorderRadius.circular(12),
 				child: AnimatedContainer(
-					duration: const Duration(milliseconds: 220),
+					duration: const Duration(milliseconds: 200),
 					curve: Curves.easeOut,
-					padding: const EdgeInsets.symmetric(vertical: 12),
+					padding: const EdgeInsets.symmetric(vertical: 10),
 					decoration: BoxDecoration(
 						gradient: selected
 								? LinearGradient(
@@ -361,7 +499,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 								)
 								: null,
 						color: selected ? null : scheme.primary.withValues(alpha: 0.05),
-						borderRadius: BorderRadius.circular(14),
+						borderRadius: BorderRadius.circular(12),
 						border: Border.all(
 							color: selected
 									? Colors.transparent
@@ -371,9 +509,9 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 						boxShadow: selected
 								? [
 									BoxShadow(
-										color: scheme.primary.withValues(alpha: 0.30),
-										blurRadius: 14,
-										offset: const Offset(0, 5),
+										color: scheme.primary.withValues(alpha: 0.28),
+										blurRadius: 12,
+										offset: const Offset(0, 4),
 									),
 								]
 								: null,
@@ -381,16 +519,12 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 					child: Row(
 						mainAxisAlignment: MainAxisAlignment.center,
 						children: [
-							Icon(
-								icon,
-								size: 17,
-								color: selected ? Colors.white : scheme.primary,
-							),
+							Icon(icon, size: 16, color: selected ? Colors.white : scheme.primary),
 							const SizedBox(width: 6),
 							Text(
 								label,
 								style: TextStyle(
-									fontSize: 13.5,
+									fontSize: 13,
 									fontWeight: FontWeight.w700,
 									color: selected ? Colors.white : scheme.onSurface,
 								),
@@ -402,164 +536,194 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		);
 	}
 
-	// ───────────────────────────── Detay (referans/sebep/personel) Card
-	Widget _detayCard(BuildContext context) {
-		return PremiumGlassCard(
-			padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					_sectionTitle('Görüşme Detayları', Icons.assignment_outlined),
-					const SizedBox(height: 14),
-					_fieldLabel('Referans'),
-					_premiumDropdown<Referans>(
-						value: selectedongorusmereferans,
-						items: ongorusmereferans
-								.map((e) => DropdownMenuItem(value: e, child: Text(e.referans)))
-								.toList(),
-						hint: 'Referans seç',
-						icon: Icons.share_outlined,
-						onChanged: (v) => setState(() => selectedongorusmereferans = v),
+	Widget _rowLabel(String label, IconData icon, {Widget? trailing}) {
+		final scheme = Theme.of(context).colorScheme;
+		return Row(
+			children: [
+				Icon(icon, size: 14, color: scheme.primary.withValues(alpha: 0.85)),
+				const SizedBox(width: 5),
+				Expanded(
+					child: Text(
+						label,
+						style: TextStyle(
+							fontSize: 12,
+							fontWeight: FontWeight.w700,
+							color: scheme.onSurface.withValues(alpha: 0.72),
+							letterSpacing: 0.1,
+						),
 					),
-					const SizedBox(height: 14),
-					_fieldLabel('Ön Görüşme Nedeni'),
-					_premiumDropdown<OnGorusmeNedeni>(
-						value: selectedongorusmesebep,
-						items: ongorusmeneden
-								.map((e) => DropdownMenuItem(
-											value: e,
-											child: Text(
-												e.getPaketUrunAdi(),
-												overflow: TextOverflow.ellipsis,
-												maxLines: 1,
-											),
-										))
-								.toList(),
-						hint: 'Sebep seç',
-						icon: Icons.inventory_2_outlined,
-						searchController: ongorusmesebepcontroller,
-						searchMatcher: (item, q) => item.getPaketUrunAdi()
-								.toLowerCase()
-								.contains(q.toLowerCase()),
-						onChanged: (v) => setState(() => selectedongorusmesebep = v),
+				),
+				if (trailing != null) trailing,
+			],
+		);
+	}
+
+	Widget _premiumTextField({
+		required TextEditingController controller,
+		required String hint,
+		TextInputType? keyboardType,
+		bool readOnly = false,
+		int? maxLines,
+		VoidCallback? onTap,
+		String? Function(String?)? validator,
+	}) {
+		final scheme = Theme.of(context).colorScheme;
+		return Container(
+			decoration: BoxDecoration(
+				color: scheme.primary.withValues(alpha: 0.05),
+				borderRadius: BorderRadius.circular(12),
+				border: Border.all(
+					color: scheme.primary.withValues(alpha: 0.18),
+					width: 1.2,
+				),
+			),
+			child: TextFormField(
+				controller: controller,
+				keyboardType: keyboardType,
+				readOnly: readOnly,
+				maxLines: maxLines ?? 1,
+				onTap: onTap,
+				validator: validator,
+				style: TextStyle(
+					fontSize: 14,
+					fontWeight: FontWeight.w600,
+					color: scheme.onSurface,
+				),
+				decoration: InputDecoration(
+					hintText: hint,
+					hintStyle: TextStyle(
+						color: scheme.onSurface.withValues(alpha: 0.40),
+						fontSize: 13.5,
+						fontWeight: FontWeight.w500,
 					),
-					const SizedBox(height: 14),
-					_fieldLabel('Görüşmeyi Yapan'),
-					_premiumDropdown<Personel>(
-						value: selectedongorusmeyapan,
-						items: ongorusmeyapan
-								.map((e) => DropdownMenuItem(
-											value: e,
-											child: Text(
-												e.personel_adi,
-												overflow: TextOverflow.ellipsis,
-												maxLines: 1,
-											),
-										))
-								.toList(),
-						hint: 'Personel seç',
-						icon: Icons.person_pin_outlined,
-						searchController: ongorusmeyapancontroller,
-						searchMatcher: (item, q) => item.personel_adi
-								.toLowerCase()
-								.contains(q.toLowerCase()),
-						onChanged: (v) => setState(() => selectedongorusmeyapan = v),
+					border: InputBorder.none,
+					enabledBorder: InputBorder.none,
+					focusedBorder: InputBorder.none,
+					errorStyle: const TextStyle(height: 0, fontSize: 0),
+					contentPadding: EdgeInsets.symmetric(
+						horizontal: 14,
+						vertical: maxLines != null && maxLines > 1 ? 12 : 11,
 					),
-				],
+				),
 			),
 		);
 	}
 
-	// ───────────────────────────── Tarih/Saat Card
-	Widget _zamanCard(BuildContext context) {
-		return PremiumGlassCard(
-			padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					_sectionTitle('Tarih & Saat', Icons.event_available_outlined),
-					const SizedBox(height: 14),
-					Row(
-						crossAxisAlignment: CrossAxisAlignment.start,
-						children: [
-							Expanded(
-								child: Column(
-									crossAxisAlignment: CrossAxisAlignment.start,
-									children: [
-										_fieldLabel('Randevu Tarihi'),
-										_premiumTextField(
-											controller: ongorusmetarihi,
-											hint: 'YYYY-AA-GG',
-											prefix: Icons.calendar_month_outlined,
-											readOnly: true,
-											validator: (v) =>
-													(v == null || v.isEmpty) ? 'Tarih seçiniz' : null,
-											onTap: () async {
-												final picked = await showDatePicker(
-													context: context,
-													initialDate: DateTime.now(),
-													firstDate: DateTime(1950),
-													lastDate: DateTime(2100),
-												);
-												if (picked != null) {
-													setState(() {
-														ongorusmetarihi.text =
-																DateFormat('yyyy-MM-dd').format(picked);
-													});
-												}
-											},
-										),
-									],
+	Widget _premiumDropdown<T>({
+		required T? value,
+		required List<DropdownMenuItem<T>> items,
+		required String hint,
+		required IconData icon,
+		required ValueChanged<T?> onChanged,
+		TextEditingController? searchController,
+		bool Function(T, String)? searchMatcher,
+	}) {
+		final scheme = Theme.of(context).colorScheme;
+		return Container(
+			height: 46,
+			decoration: BoxDecoration(
+				color: scheme.primary.withValues(alpha: 0.05),
+				borderRadius: BorderRadius.circular(12),
+				border: Border.all(
+					color: scheme.primary.withValues(alpha: 0.18),
+					width: 1.2,
+				),
+			),
+			padding: const EdgeInsets.symmetric(horizontal: 12),
+			child: DropdownButtonHideUnderline(
+				child: DropdownButton2<T>(
+					isExpanded: true,
+					hint: Text(
+						hint,
+						style: TextStyle(
+							fontSize: 13.5,
+							color: scheme.onSurface.withValues(alpha: 0.45),
+							fontWeight: FontWeight.w500,
+						),
+					),
+					items: items,
+					value: value,
+					onChanged: onChanged,
+					iconStyleData: IconStyleData(
+						icon: Icon(Icons.keyboard_arrow_down_rounded,
+								color: scheme.primary, size: 22),
+					),
+					style: TextStyle(
+						fontSize: 14,
+						fontWeight: FontWeight.w600,
+						color: scheme.onSurface,
+					),
+					buttonStyleData: const ButtonStyleData(
+						padding: EdgeInsets.zero,
+						height: 44,
+					),
+					dropdownStyleData: DropdownStyleData(
+						maxHeight: 280,
+						decoration: BoxDecoration(
+							color: Colors.white,
+							borderRadius: BorderRadius.circular(16),
+							boxShadow: [
+								BoxShadow(
+									color: scheme.primary.withValues(alpha: 0.16),
+									blurRadius: 22,
+									offset: const Offset(0, 8),
 								),
-							),
-							const SizedBox(width: 12),
-							Expanded(
-								child: Column(
-									crossAxisAlignment: CrossAxisAlignment.start,
-									children: [
-										_fieldLabel('Randevu Saati'),
-										_premiumTextField(
-											controller: ongorusmesaati,
-											hint: '--:--',
-											prefix: Icons.access_time_rounded,
-											readOnly: true,
-											validator: (v) =>
-													(v == null || v.isEmpty) ? 'Saat seçiniz' : null,
-											onTap: () async {
-												await _showModernTimePicker(context);
-											},
+							],
+						),
+						offset: const Offset(0, -4),
+					),
+					menuItemStyleData: const MenuItemStyleData(
+						height: 44,
+						padding: EdgeInsets.symmetric(horizontal: 14),
+					),
+					dropdownSearchData: searchController == null
+							? null
+							: DropdownSearchData(
+								searchController: searchController,
+								searchInnerWidgetHeight: 50,
+								searchInnerWidget: Container(
+									height: 50,
+									padding: const EdgeInsets.only(
+											top: 8, bottom: 4, right: 8, left: 8),
+									child: TextFormField(
+										expands: true,
+										maxLines: null,
+										controller: searchController,
+										decoration: InputDecoration(
+											isDense: true,
+											prefixIcon: Icon(Icons.search_rounded,
+													color: scheme.primary, size: 18),
+											contentPadding: const EdgeInsets.symmetric(
+													horizontal: 10, vertical: 8),
+											hintText: 'Ara…',
+											hintStyle: const TextStyle(fontSize: 12),
+											border: OutlineInputBorder(
+												borderRadius: BorderRadius.circular(10),
+												borderSide: BorderSide(
+														color:
+																scheme.primary.withValues(alpha: 0.20)),
+											),
+											enabledBorder: OutlineInputBorder(
+												borderRadius: BorderRadius.circular(10),
+												borderSide: BorderSide(
+														color:
+																scheme.primary.withValues(alpha: 0.20)),
+											),
 										),
-									],
+									),
 								),
+								searchMatchFn: (item, q) =>
+										searchMatcher!(item.value as T, q),
 							),
-						],
-					),
-				],
+					onMenuStateChange: (isOpen) {
+						if (!isOpen) searchController?.clear();
+					},
+				),
 			),
 		);
 	}
 
-	// ───────────────────────────── Açıklama Card
-	Widget _aciklamaCard(BuildContext context) {
-		return PremiumGlassCard(
-			padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					_sectionTitle('Açıklama', Icons.notes_rounded),
-					const SizedBox(height: 14),
-					_premiumTextField(
-						controller: ongorusmeaciklama,
-						hint: 'Görüşmeye dair notlarınız…',
-						prefix: null,
-						maxLines: 3,
-					),
-				],
-			),
-		);
-	}
-
-	// ───────────────────────────── Bottom Save Bar
+	// ───────────────────────────── Bottom Bar
 	Widget _bottomBar(BuildContext context) {
 		final scheme = Theme.of(context).colorScheme;
 		return SafeArea(
@@ -659,13 +823,15 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		final paketurun = selectedongorusmesebep?.getPaketUrunAdi() ?? "";
 		if (paketurun.contains("Paket")) paketid = selectedongorusmesebep?.getId() ?? "";
 		if (paketurun.contains("Ürün")) urunid = selectedongorusmesebep?.getId() ?? "";
-		if (paketurun.contains('IsletmeHizmet')) hizmetid = selectedongorusmesebep?.getId() ?? '';
+		if (paketurun.contains('IsletmeHizmet')) {
+			hizmetid = selectedongorusmesebep?.getId() ?? '';
+		}
 		widget.ongorusmedatasource.onGorusmeEkleGuncelle(
 			"",
 			selectedMusteri?.id ?? "",
 			adsoyad.text,
 			telefon.text,
-			email.text,
+			"", // email kaldirildi
 			_selectedGender,
 			context,
 			seciliisletme,
@@ -683,234 +849,424 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		);
 	}
 
-	// ───────────────────────────── Premium UI helpers
-	Widget _sectionTitle(String title, IconData icon) {
+	// ───────────────────────────── Quick Müşteri Ekle (bottom sheet)
+	void _openYeniMusteriSheet() {
 		final scheme = Theme.of(context).colorScheme;
-		return Row(
-			children: [
-				Container(
-					width: 32,
-					height: 32,
-					decoration: BoxDecoration(
-						color: scheme.primary.withValues(alpha: 0.12),
-						shape: BoxShape.circle,
+		final TextEditingController qAd = TextEditingController(text: adsoyad.text);
+		final TextEditingController qTel = TextEditingController(text: telefon.text);
+		String qGender = _selectedGender;
+		bool kaydediliyor = false;
+
+		showModalBottomSheet(
+			context: context,
+			backgroundColor: Colors.transparent,
+			isScrollControlled: true,
+			builder: (ctx) {
+				return Padding(
+					padding: EdgeInsets.only(
+						bottom: MediaQuery.of(ctx).viewInsets.bottom,
 					),
-					child: Icon(icon, size: 17, color: scheme.primary),
+					child: StatefulBuilder(
+						builder: (ctx, setSheet) {
+							return Container(
+								margin: const EdgeInsets.all(12),
+								padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+								decoration: BoxDecoration(
+									color: Colors.white,
+									borderRadius: BorderRadius.circular(24),
+									boxShadow: [
+										BoxShadow(
+											color: scheme.primary.withValues(alpha: 0.20),
+											blurRadius: 28,
+											offset: const Offset(0, 10),
+										),
+									],
+								),
+								child: Column(
+									mainAxisSize: MainAxisSize.min,
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										Center(
+											child: Container(
+												width: 38,
+												height: 4,
+												decoration: BoxDecoration(
+													color: scheme.onSurface.withValues(alpha: 0.18),
+													borderRadius: BorderRadius.circular(999),
+												),
+											),
+										),
+										const SizedBox(height: 14),
+										Row(
+											children: [
+												Container(
+													width: 38,
+													height: 38,
+													decoration: BoxDecoration(
+														gradient: LinearGradient(
+															colors: [scheme.primary, scheme.tertiary],
+															begin: Alignment.topLeft,
+															end: Alignment.bottomRight,
+														),
+														shape: BoxShape.circle,
+													),
+													child: Icon(Icons.person_add_alt_1_rounded,
+															color: scheme.onPrimary, size: 20),
+												),
+												const SizedBox(width: 10),
+												Expanded(
+													child: Column(
+														crossAxisAlignment: CrossAxisAlignment.start,
+														children: [
+															Text(
+																'Hızlı Müşteri Ekle',
+																style: TextStyle(
+																	fontSize: 16,
+																	fontWeight: FontWeight.w800,
+																	color: scheme.onSurface,
+																),
+															),
+															Text(
+																'Sadece ad ve telefon yeterli.',
+																style: TextStyle(
+																	fontSize: 11.5,
+																	fontWeight: FontWeight.w500,
+																	color: scheme.onSurface
+																			.withValues(alpha: 0.55),
+																),
+															),
+														],
+													),
+												),
+											],
+										),
+										const SizedBox(height: 16),
+										_sheetField('Ad Soyad', qAd, 'Ad ve soyad'),
+										const SizedBox(height: 10),
+										_sheetField('Telefon', qTel, '5xx xxx xx xx',
+												kbType: TextInputType.phone),
+										const SizedBox(height: 12),
+										Row(
+											children: [
+												Expanded(
+													child: _sheetGender('kadin', 'Kadın',
+															Icons.female_rounded, qGender, (v) {
+														setSheet(() => qGender = v);
+													}),
+												),
+												const SizedBox(width: 10),
+												Expanded(
+													child: _sheetGender('erkek', 'Erkek',
+															Icons.male_rounded, qGender, (v) {
+														setSheet(() => qGender = v);
+													}),
+												),
+											],
+										),
+										const SizedBox(height: 16),
+										Row(
+											children: [
+												Expanded(
+													child: TextButton(
+														onPressed: kaydediliyor
+																? null
+																: () => Navigator.pop(ctx),
+														style: TextButton.styleFrom(
+															padding: const EdgeInsets.symmetric(vertical: 13),
+															shape: RoundedRectangleBorder(
+																borderRadius: BorderRadius.circular(12),
+															),
+														),
+														child: Text(
+															'Vazgeç',
+															style: TextStyle(
+																fontSize: 14,
+																fontWeight: FontWeight.w700,
+																color:
+																		scheme.onSurface.withValues(alpha: 0.65),
+															),
+														),
+													),
+												),
+												const SizedBox(width: 8),
+												Expanded(
+													flex: 2,
+													child: Material(
+														color: Colors.transparent,
+														borderRadius: BorderRadius.circular(12),
+														child: InkWell(
+															onTap: kaydediliyor
+																	? null
+																	: () async {
+																		if (qAd.text.trim().isEmpty ||
+																				qTel.text.trim().isEmpty) {
+																			ScaffoldMessenger.of(ctx).showSnackBar(
+																				const SnackBar(
+																					content: Text(
+																							'Ad ve telefon zorunlu.'),
+																				),
+																			);
+																			return;
+																		}
+																		setSheet(() => kaydediliyor = true);
+																		final musteri =
+																				await _hizliMusteriEkle(
+																			qAd.text.trim(),
+																			qTel.text.trim(),
+																			qGender,
+																			ctx,
+																		);
+																		if (musteri != null && mounted) {
+																			setState(() {
+																				selectedMusteri = musteri;
+																				adsoyad.text = musteri.name;
+																				telefon.text = musteri.cep_telefon;
+																				if (qGender.isNotEmpty) {
+																					_selectedGender = qGender;
+																				}
+																			});
+																			Navigator.pop(ctx);
+																			ScaffoldMessenger.of(context)
+																					.showSnackBar(
+																				const SnackBar(
+																					content: Text(
+																							'✓ Müşteri eklendi ve seçildi.'),
+																					duration:
+																							Duration(seconds: 2),
+																				),
+																			);
+																		} else {
+																			setSheet(() => kaydediliyor = false);
+																		}
+																	},
+															borderRadius: BorderRadius.circular(12),
+															child: Container(
+																padding: const EdgeInsets.symmetric(vertical: 13),
+																decoration: BoxDecoration(
+																	gradient: LinearGradient(
+																		colors: [scheme.primary, scheme.tertiary],
+																		begin: Alignment.topLeft,
+																		end: Alignment.bottomRight,
+																	),
+																	borderRadius: BorderRadius.circular(12),
+																),
+																child: Row(
+																	mainAxisAlignment: MainAxisAlignment.center,
+																	children: [
+																		if (kaydediliyor)
+																			SizedBox(
+																				width: 16,
+																				height: 16,
+																				child: CircularProgressIndicator(
+																					strokeWidth: 2,
+																					color: scheme.onPrimary,
+																				),
+																			)
+																		else
+																			Icon(Icons.check_rounded,
+																					size: 18,
+																					color: scheme.onPrimary),
+																		const SizedBox(width: 6),
+																		Text(
+																			kaydediliyor ? 'Kaydediliyor…' : 'Ekle',
+																			style: TextStyle(
+																				color: scheme.onPrimary,
+																				fontSize: 14,
+																				fontWeight: FontWeight.w800,
+																			),
+																		),
+																	],
+																),
+															),
+														),
+													),
+												),
+											],
+										),
+									],
+								),
+							);
+						},
+					),
+				);
+			},
+		);
+	}
+
+	Widget _sheetField(String label, TextEditingController controller, String hint,
+			{TextInputType? kbType}) {
+		final scheme = Theme.of(context).colorScheme;
+		return Column(
+			crossAxisAlignment: CrossAxisAlignment.start,
+			children: [
+				Padding(
+					padding: const EdgeInsets.only(left: 2, bottom: 4),
+					child: Text(
+						label,
+						style: TextStyle(
+							fontSize: 11.5,
+							fontWeight: FontWeight.w700,
+							color: scheme.onSurface.withValues(alpha: 0.72),
+						),
+					),
 				),
-				const SizedBox(width: 10),
-				Text(
-					title,
-					style: TextStyle(
-						fontSize: 15,
-						fontWeight: FontWeight.w800,
-						letterSpacing: -0.2,
-						color: scheme.onSurface,
+				Container(
+					decoration: BoxDecoration(
+						color: scheme.primary.withValues(alpha: 0.05),
+						borderRadius: BorderRadius.circular(12),
+						border: Border.all(
+							color: scheme.primary.withValues(alpha: 0.18),
+							width: 1.2,
+						),
+					),
+					child: TextField(
+						controller: controller,
+						keyboardType: kbType,
+						style: TextStyle(
+							fontSize: 14,
+							fontWeight: FontWeight.w600,
+							color: scheme.onSurface,
+						),
+						decoration: InputDecoration(
+							hintText: hint,
+							hintStyle: TextStyle(
+								color: scheme.onSurface.withValues(alpha: 0.40),
+								fontSize: 13.5,
+							),
+							border: InputBorder.none,
+							enabledBorder: InputBorder.none,
+							focusedBorder: InputBorder.none,
+							contentPadding: const EdgeInsets.symmetric(
+									horizontal: 14, vertical: 11),
+						),
 					),
 				),
 			],
 		);
 	}
 
-	Widget _fieldLabel(String label) {
+	Widget _sheetGender(String value, String label, IconData icon, String current,
+			ValueChanged<String> onTap) {
 		final scheme = Theme.of(context).colorScheme;
-		return Padding(
-			padding: const EdgeInsets.only(left: 2, bottom: 6),
-			child: Text(
-				label,
-				style: TextStyle(
-					fontSize: 12,
-					fontWeight: FontWeight.w700,
-					color: scheme.onSurface.withValues(alpha: 0.70),
-					letterSpacing: 0.1,
-				),
-			),
-		);
-	}
-
-	Widget _premiumTextField({
-		required TextEditingController controller,
-		required String hint,
-		IconData? prefix,
-		TextInputType? keyboardType,
-		bool readOnly = false,
-		int? maxLines,
-		VoidCallback? onTap,
-		String? Function(String?)? validator,
-	}) {
-		final scheme = Theme.of(context).colorScheme;
-		return Container(
-			decoration: BoxDecoration(
-				color: scheme.primary.withValues(alpha: 0.05),
-				borderRadius: BorderRadius.circular(14),
-				border: Border.all(
-					color: scheme.primary.withValues(alpha: 0.18),
-					width: 1.2,
-				),
-			),
-			child: TextFormField(
-				controller: controller,
-				keyboardType: keyboardType,
-				readOnly: readOnly,
-				maxLines: maxLines ?? 1,
-				onTap: onTap,
-				validator: validator,
-				style: TextStyle(
-					fontSize: 14,
-					fontWeight: FontWeight.w600,
-					color: scheme.onSurface,
-				),
-				decoration: InputDecoration(
-					prefixIcon: prefix == null
-							? null
-							: Icon(prefix, color: scheme.primary, size: 19),
-					hintText: hint,
-					hintStyle: TextStyle(
-						color: scheme.onSurface.withValues(alpha: 0.40),
-						fontSize: 13.5,
-						fontWeight: FontWeight.w500,
-					),
-					border: InputBorder.none,
-					enabledBorder: InputBorder.none,
-					focusedBorder: InputBorder.none,
-					contentPadding: EdgeInsets.symmetric(
-						horizontal: prefix == null ? 14 : 4,
-						vertical: maxLines != null && maxLines > 1 ? 14 : 12,
-					),
-				),
-			),
-		);
-	}
-
-	Widget _premiumDropdown<T>({
-		required T? value,
-		required List<DropdownMenuItem<T>> items,
-		required String hint,
-		required IconData icon,
-		required ValueChanged<T?> onChanged,
-		TextEditingController? searchController,
-		bool Function(T, String)? searchMatcher,
-	}) {
-		final scheme = Theme.of(context).colorScheme;
-		return Container(
-			height: 48,
-			decoration: BoxDecoration(
-				color: scheme.primary.withValues(alpha: 0.05),
-				borderRadius: BorderRadius.circular(14),
-				border: Border.all(
-					color: scheme.primary.withValues(alpha: 0.18),
-					width: 1.2,
-				),
-			),
-			padding: const EdgeInsets.symmetric(horizontal: 12),
-			child: Row(
-				children: [
-					Icon(icon, size: 18, color: scheme.primary),
-					const SizedBox(width: 8),
-					Expanded(
-						child: DropdownButtonHideUnderline(
-							child: DropdownButton2<T>(
-								isExpanded: true,
-								hint: Text(
-									hint,
-									style: TextStyle(
-										fontSize: 13.5,
-										color: scheme.onSurface.withValues(alpha: 0.45),
-										fontWeight: FontWeight.w500,
-									),
-								),
-								items: items,
-								value: value,
-								onChanged: onChanged,
-								iconStyleData: IconStyleData(
-									icon: Icon(Icons.keyboard_arrow_down_rounded,
-											color: scheme.primary, size: 22),
-								),
-								style: TextStyle(
-									fontSize: 14,
-									fontWeight: FontWeight.w600,
-									color: scheme.onSurface,
-								),
-								buttonStyleData: const ButtonStyleData(
-									padding: EdgeInsets.zero,
-									height: 46,
-								),
-								dropdownStyleData: DropdownStyleData(
-									maxHeight: 280,
-									decoration: BoxDecoration(
-										color: Colors.white,
-										borderRadius: BorderRadius.circular(16),
-										boxShadow: [
-											BoxShadow(
-												color: scheme.primary.withValues(alpha: 0.16),
-												blurRadius: 22,
-												offset: const Offset(0, 8),
-											),
-										],
-									),
-									offset: const Offset(0, -4),
-								),
-								menuItemStyleData: const MenuItemStyleData(
-									height: 44,
-									padding: EdgeInsets.symmetric(horizontal: 14),
-								),
-								dropdownSearchData: searchController == null
-										? null
-										: DropdownSearchData(
-											searchController: searchController,
-											searchInnerWidgetHeight: 50,
-											searchInnerWidget: Container(
-												height: 50,
-												padding: const EdgeInsets.only(
-														top: 8, bottom: 4, right: 8, left: 8),
-												child: TextFormField(
-													expands: true,
-													maxLines: null,
-													controller: searchController,
-													decoration: InputDecoration(
-														isDense: true,
-														prefixIcon: Icon(Icons.search_rounded,
-																color: scheme.primary, size: 18),
-														contentPadding: const EdgeInsets.symmetric(
-																horizontal: 10, vertical: 8),
-														hintText: 'Ara…',
-														hintStyle: const TextStyle(fontSize: 12),
-														border: OutlineInputBorder(
-															borderRadius: BorderRadius.circular(10),
-															borderSide: BorderSide(
-																	color: scheme.primary
-																			.withValues(alpha: 0.20)),
-														),
-														enabledBorder: OutlineInputBorder(
-															borderRadius: BorderRadius.circular(10),
-															borderSide: BorderSide(
-																	color: scheme.primary
-																			.withValues(alpha: 0.20)),
-														),
-													),
-												),
-											),
-											searchMatchFn: (item, q) =>
-													searchMatcher!(item.value as T, q),
-										),
-								onMenuStateChange: (isOpen) {
-									if (!isOpen) searchController?.clear();
-								},
-							),
+		final selected = current == value;
+		return Material(
+			color: Colors.transparent,
+			borderRadius: BorderRadius.circular(12),
+			child: InkWell(
+				onTap: () => onTap(value),
+				borderRadius: BorderRadius.circular(12),
+				child: AnimatedContainer(
+					duration: const Duration(milliseconds: 200),
+					padding: const EdgeInsets.symmetric(vertical: 10),
+					decoration: BoxDecoration(
+						gradient: selected
+								? LinearGradient(
+									colors: [scheme.primary, scheme.tertiary],
+									begin: Alignment.topLeft,
+									end: Alignment.bottomRight,
+								)
+								: null,
+						color: selected ? null : scheme.primary.withValues(alpha: 0.05),
+						borderRadius: BorderRadius.circular(12),
+						border: Border.all(
+							color: selected
+									? Colors.transparent
+									: scheme.primary.withValues(alpha: 0.18),
+							width: 1.2,
 						),
 					),
-				],
+					child: Row(
+						mainAxisAlignment: MainAxisAlignment.center,
+						children: [
+							Icon(icon, size: 15, color: selected ? Colors.white : scheme.primary),
+							const SizedBox(width: 5),
+							Text(
+								label,
+								style: TextStyle(
+									fontSize: 12.5,
+									fontWeight: FontWeight.w700,
+									color: selected ? Colors.white : scheme.onSurface,
+								),
+							),
+						],
+					),
+				),
 			),
 		);
 	}
 
-	// ───────────────────────────── Modern time picker (orijinalden korunmuş)
+	Future<MusteriDanisan?> _hizliMusteriEkle(
+		String ad,
+		String tel,
+		String cinsiyet,
+		BuildContext ctx,
+	) async {
+		final cinsiyetCode =
+				cinsiyet == 'kadin' ? '0' : (cinsiyet == 'erkek' ? '1' : '');
+		showProgressLoading(ctx);
+		try {
+			final response = await http.post(
+				Uri.parse(
+					'https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/$seciliisletme',
+				),
+				headers: {'Content-Type': 'application/json'},
+				body: jsonEncode({
+					'ad_soyad': ad,
+					'telefon': tel,
+					'email': '',
+					'dogum_tarihi': '',
+					'cinsiyet': cinsiyetCode,
+					'musteri_tipi': '',
+					'ozel_notlar': '',
+				}),
+			);
+			Navigator.of(ctx, rootNavigator: true).pop();
+
+			if (response.statusCode != 200 && response.statusCode != 201) {
+				ScaffoldMessenger.of(ctx).showSnackBar(
+					SnackBar(content: Text('Hata: ${response.statusCode}')),
+				);
+				return null;
+			}
+			if (response.body.trim().isEmpty) {
+				ScaffoldMessenger.of(ctx).showSnackBar(
+					const SnackBar(content: Text('Sunucudan boş yanıt geldi.')),
+				);
+				return null;
+			}
+			final decoded = json.decode(response.body);
+			if (decoded is Map &&
+					decoded.containsKey('status') &&
+					decoded['status'] == 'warning') {
+				final mesaj = decoded['mesaj']?.toString() ?? 'Bu müşteri zaten kayıtlı';
+				ScaffoldMessenger.of(ctx).showSnackBar(
+					SnackBar(
+						content: Text(mesaj),
+						backgroundColor: Colors.orange,
+					),
+				);
+				return null;
+			}
+			return MusteriDanisan.fromJson(decoded as Map<String, dynamic>);
+		} catch (e, st) {
+			try {
+				Navigator.of(ctx, rootNavigator: true).pop();
+			} catch (_) {}
+			log('hizli musteri ekle hata: $e\n$st');
+			ScaffoldMessenger.of(ctx).showSnackBar(
+				SnackBar(content: Text('Müşteri eklenemedi: $e')),
+			);
+			return null;
+		}
+	}
+
+	// ───────────────────────────── Modern time picker
 	Future<void> _showModernTimePicker(BuildContext context) async {
-		TimeOfDay initialTime = _selectedTime;
 		final result = await showModalBottomSheet(
 			context: context,
 			backgroundColor: Colors.transparent,
 			isScrollControlled: true,
-			builder: (context) => _buildModernTimePicker(initialTime),
+			builder: (context) => _buildModernTimePicker(_selectedTime),
 		);
 		if (result == null) return;
 		if (result is TimeOfDay) {
@@ -976,7 +1332,8 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 										TextButton(
 											onPressed: () {
 												Navigator.of(context).pop(
-													TimeOfDay(hour: selectedHour, minute: selectedMinute),
+													TimeOfDay(
+															hour: selectedHour, minute: selectedMinute),
 												);
 											},
 											child: Text(
@@ -992,7 +1349,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 								),
 							),
 							Container(
-								margin: const EdgeInsets.symmetric(vertical: 16),
+								margin: const EdgeInsets.symmetric(vertical: 14),
 								padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
 								decoration: BoxDecoration(
 									gradient: LinearGradient(
@@ -1008,7 +1365,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 								child: Text(
 									'${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}',
 									style: TextStyle(
-										fontSize: 44,
+										fontSize: 42,
 										fontWeight: FontWeight.w800,
 										letterSpacing: -1,
 										color: scheme.primary,
@@ -1054,8 +1411,8 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 												diameterRatio: 1.5,
 												physics: const FixedExtentScrollPhysics(),
 												onSelectedItemChanged: (index) {
-													setStateSheet(
-															() => selectedMinute = _getMinuteFromIndex(index));
+													setStateSheet(() =>
+															selectedMinute = _getMinuteFromIndex(index));
 												},
 												children: List.generate(4, (index) {
 													final minute = _getMinuteFromIndex(index);
