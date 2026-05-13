@@ -25,12 +25,15 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
   List<Depo> _depolar = [];
   List<Tedarikci> _tedarikciler = [];
   List<Urun> _urunler = [];
+  List<Map<String, dynamic>> _hizmetler = [];
+  List<Map<String, dynamic>> _receteler = [];
+  String? _seciliHizmetId;
   bool _yukleniyor = true;
 
   @override
   void initState() {
     super.initState();
-    _tabCtl = TabController(length: 4, vsync: this);
+    _tabCtl = TabController(length: 5, vsync: this);
     _yukle();
   }
 
@@ -48,15 +51,30 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
         StokApi.depoListesi(widget.salonId),
         StokApi.tedarikciListesi(widget.salonId),
         StokApi.urunListesi(widget.salonId),
+        StokApi.hizmetListesi(widget.salonId),
       ]);
       _kategoriler  = (results[0] as List).cast<UrunKategorisi>();
       _depolar      = (results[1] as List).cast<Depo>();
       _tedarikciler = (results[2] as List).cast<Tedarikci>();
       _urunler      = (results[3] as List).cast<Urun>();
+      _hizmetler    = (results[4] as List).cast<Map<String, dynamic>>();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
     if (mounted) setState(() => _yukleniyor = false);
+  }
+
+  Future<void> _receteleriYukle() async {
+    if (_seciliHizmetId == null) {
+      setState(() => _receteler = []);
+      return;
+    }
+    try {
+      final list = await StokApi.receteListesi(widget.salonId, hizmetId: _seciliHizmetId, hizmetTipi: 'islem');
+      if (mounted) setState(() => _receteler = list);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    }
   }
 
   @override
@@ -79,6 +97,7 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
             Tab(text: 'Depolar'),
             Tab(text: 'Tedarikçiler'),
             Tab(text: 'Transfer'),
+            Tab(text: 'Sarf Reçeteleri'),
           ],
         ),
       ),
@@ -91,9 +110,158 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
                 _depoTab(),
                 _tedarikciTab(),
                 _transferTab(),
+                _receteTab(),
               ],
             ),
     );
+  }
+
+  // ============================================================
+  // SARF REÇETELERİ
+  // ============================================================
+
+  Widget _receteTab() {
+    if (_hizmetler.isEmpty) {
+      return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Sistem hizmeti bulunamadı', textAlign: TextAlign.center)));
+    }
+    return Column(
+      children: [
+        // Bilgi banner
+        Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: const Color(0xFFF3E8FA), borderRadius: BorderRadius.circular(10)),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: _mor, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Bir hizmeti seç ve hangi sarf malzemelerinden ne kadar tükettiğini gir. Hizmet adisyona eklendiğinde stoktan otomatik düşer.',
+                  style: TextStyle(color: _mor, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Hizmet seçimi
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _dropdown<String>('Hizmet', _seciliHizmetId,
+              _hizmetler.map((h) => DropdownMenuItem<String>(value: h['id']?.toString(), child: Text(h['hizmet_adi']?.toString() ?? '—'))).toList(),
+              (v) async { setState(() => _seciliHizmetId = v); await _receteleriYukle(); }),
+        ),
+        const SizedBox(height: 10),
+
+        // Reçete listesi
+        Expanded(
+          child: _seciliHizmetId == null
+              ? const Center(child: Text('Önce bir hizmet seç', style: TextStyle(color: Colors.black45)))
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    ..._receteler.map((r) {
+                      final urunAdi = r['urun'] is Map ? (r['urun']['urun_adi']?.toString() ?? '—') : '—';
+                      final birim = r['urun'] is Map ? (r['urun']['birim']?.toString() ?? 'adet') : '';
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(color: Color(0xFFFCE4EC), shape: BoxShape.circle),
+                              child: const Icon(Icons.local_florist_outlined, color: Color(0xFFAD1457), size: 18),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(urunAdi, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  Text('Her hizmette: ${r['miktar']} $birim', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: _kirmizi, size: 20),
+                              onPressed: () async {
+                                if (await _onay('Reçeteden çıkarılsın mı?')) {
+                                  await StokApi.receteSil(r['id'].toString());
+                                  _receteleriYukle();
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _receteEkle,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Reçeteye Ürün Ekle'),
+                      style: OutlinedButton.styleFrom(foregroundColor: _mor, side: const BorderSide(color: _mor), padding: const EdgeInsets.symmetric(vertical: 12)),
+                    ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _receteEkle() async {
+    if (_seciliHizmetId == null) return;
+    String? secilenUrunId;
+    final miktarCtl = TextEditingController(text: '1');
+    // Sadece sarf veya karma ürünleri öner — ama hepsi de seçilebilsin
+    final secenekler = _urunler.where((u) => u.tip == 'sarf' || u.tip == 'karma').toList();
+    final tum = secenekler.isEmpty ? _urunler : secenekler;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+        return AlertDialog(
+          title: const Text('Reçeteye Ürün Ekle'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: secilenUrunId,
+                  isExpanded: true,
+                  items: tum.map((u) => DropdownMenuItem<String>(value: u.id, child: Text('${u.urun_adi} (${u.birim})'))).toList(),
+                  onChanged: (v) => setSt(() => secilenUrunId = v),
+                  decoration: const InputDecoration(labelText: 'Ürün'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: miktarCtl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Hizmet başına miktar'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true),  child: const Text('Ekle')),
+          ],
+        );
+      }),
+    );
+    if (ok == true && secilenUrunId != null) {
+      final miktar = double.tryParse(miktarCtl.text.replaceAll(',', '.')) ?? 0;
+      if (miktar <= 0) return;
+      await StokApi.receteKaydet(widget.salonId, {
+        'hizmet_id': _seciliHizmetId,
+        'hizmet_tipi': 'islem',
+        'urun_id': secilenUrunId,
+        'miktar': miktar,
+      });
+      _receteleriYukle();
+    }
   }
 
   // ============================================================

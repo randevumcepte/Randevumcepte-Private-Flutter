@@ -208,4 +208,48 @@ class StokApi {
     final r = await _post('/hizli-satis/$salonId', data);
     return Map<String, dynamic>.from(r ?? {});
   }
+
+  // ============================================================
+  // SARF REÇETELERİ (Faz 6)
+  // ============================================================
+
+  static Future<List<Map<String, dynamic>>> receteListesi(String salonId, {String? hizmetId, String? hizmetTipi}) async {
+    final body = <String, dynamic>{
+      if (hizmetId != null) 'hizmet_id': hizmetId,
+      if (hizmetTipi != null) 'hizmet_tipi': hizmetTipi,
+    };
+    // GET kullanılıyor olsa da body için POST yapılır
+    final r = await http.get(
+      Uri.parse('$_base/receteler/$salonId' + (body.isEmpty ? '' : '?' + body.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value.toString())}').join('&'))),
+      headers: _headers(),
+    );
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception('Recete listesi: ${r.statusCode}');
+    }
+    final data = jsonDecode(r.body) as List<dynamic>? ?? [];
+    return data.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  static Future<void> receteKaydet(String salonId, Map<String, dynamic> data) async {
+    await _post('/recete-kaydet/$salonId', data);
+  }
+
+  static Future<void> receteSil(String id) async {
+    await _post('/recete-sil', {'id': id});
+  }
+
+  // ============================================================
+  // HİZMETLER (ApiController üzerinden — Sarf reçeteleri için gerekli)
+  // ============================================================
+
+  static Future<List<Map<String, dynamic>>> hizmetListesi(String salonId) async {
+    final r = await http.get(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/hizmetler/$salonId'),
+      headers: _headers(),
+    );
+    if (r.statusCode < 200 || r.statusCode >= 300) return [];
+    final data = jsonDecode(r.body);
+    if (data is List) return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    return [];
+  }
 }
