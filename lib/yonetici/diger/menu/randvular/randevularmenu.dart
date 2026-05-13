@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -629,29 +631,30 @@ class _RandevularMenuState extends State<RandevularMenu> {
         tint: const Color(0xFF16A34A),
       ));
     }
-    if (r.durum != "2" && r.durum != "3") {
-      if (r.tahsilat_eklendi != "1" && widget.kullanicirolu != 5) {
-        items.add(_menuEntry(
-          'randevuiptalet',
-          'İptal Et',
-          Icons.cancel_outlined,
-          tint: const Color(0xFFDC2626),
-        ));
-      }
-      if (r.durum != "0" && widget.kullanicirolu != 5) {
-        items.add(_menuEntry(
-          'randevuyageldi',
-          'Geldi',
-          Icons.event_available_rounded,
-          tint: const Color(0xFF16A34A),
-        ));
-        items.add(_menuEntry(
-          'randevuyagelmedi',
-          'Gelmedi',
-          Icons.event_busy_rounded,
-          tint: const Color(0xFFDC2626),
-        ));
-      }
+    if (r.durum != "2" &&
+        r.durum != "3" &&
+        r.tahsilat_eklendi != "1" &&
+        widget.kullanicirolu != 5) {
+      items.add(_menuEntry(
+        'randevuiptalet',
+        'İptal Et',
+        Icons.cancel_outlined,
+        tint: const Color(0xFFDC2626),
+      ));
+    }
+    if (r.durum != "0" && widget.kullanicirolu != 5) {
+      items.add(_menuEntry(
+        'randevuyageldi',
+        'Geldi',
+        Icons.event_available_rounded,
+        tint: const Color(0xFF16A34A),
+      ));
+      items.add(_menuEntry(
+        'randevuyagelmedi',
+        'Gelmedi',
+        Icons.event_busy_rounded,
+        tint: const Color(0xFFDC2626),
+      ));
     }
     return items;
   }
@@ -710,15 +713,22 @@ class _RandevularMenuState extends State<RandevularMenu> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       final usertype = prefs.getString('user_type') ?? '';
       if (!mounted) return;
-      _optimisticRemove(r);
-      randevuiptalet(r.id, context, usertype);
+      final yeniDurum = usertype == '0' ? '3' : '2';
+      _optimisticUpdate(r, durum: yeniDurum);
+      _iptalEtSilent(r.id, yeniDurum);
     }
   }
 
-  void _optimisticRemove(Randevu r) {
-    setState(() {
-      _randevuDataGridSource.randevu.removeWhere((x) => x.id == r.id);
-    });
+  Future<void> _iptalEtSilent(String randevuid, String durum) async {
+    try {
+      await http.post(
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/randevuiptalet'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'randevuid': randevuid, 'durum': durum}),
+      );
+    } catch (_) {
+      // Optimistic kaldi; hata olsa bile UI tutarli, bir sonraki refresh duzeltir.
+    }
   }
 
   void _optimisticUpdate(Randevu r, {String? durum, String? geldimi}) {
