@@ -5,6 +5,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/secilipersonel.dart';
+import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -753,6 +754,7 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                       child: TextFormField(
                         controller: fiyat,
                         keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [TurkishLiraInputFormatter()],
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade800,
@@ -766,45 +768,9 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                           ),
                         ),
                         onChanged: (value) {
-                          // Önceki karakteri sakla
-                          if (value.isNotEmpty) {
-                            // Virgülü noktaya çevir ve sayısal kontrol yap
-                            String cleanedValue = value.replaceAll(',', '.');
-
-                            // Son karakteri kontrol et
-                            String lastChar = value.substring(value.length - 1);
-
-                            // Eğer son karakter sayı değilse ve virgül/nokta değilse, kaldır
-                            if (!RegExp(r'[0-9.,]').hasMatch(lastChar)) {
-                              // Geçersiz karakteri kaldır
-                              value = value.substring(0, value.length - 1);
-                              fiyat.text = value;
-                              fiyat.selection = TextSelection.collapsed(offset: value.length);
-                              return;
-                            }
-
-                            // Birden fazla ondalık ayracı kontrol et
-                            int decimalCount = value.replaceAll(RegExp(r'[^.,]'), '').length;
-                            if (decimalCount > 1) {
-                              // Fazla ondalık ayraçları kaldır
-                              value = value.substring(0, value.length - 1);
-                              fiyat.text = value;
-                              fiyat.selection = TextSelection.collapsed(offset: value.length);
-                              return;
-                            }
-
-                            // Geçici olarak formatlamayı kaldır, kullanıcı yazarken rahat etsin
-                            // Sadece temizleme işlemleri yap
-
-                            setState(() {
-                              fiyat.text = value;
-                              // Kürsörü en sona taşı
-                              fiyat.selection = TextSelection.collapsed(offset: value.length);
-                            });
-                          }
+                          _fiyatManuelDegistirildi = true;
                         },
                         onTap: () {
-                          // Tıkladığında tüm metni seç
                           Future.delayed(Duration.zero, () {
                             fiyat.selection = TextSelection(
                               baseOffset: 0,
@@ -869,12 +835,12 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                       return;
                     }
 
-                    // Fiyat ve süre null kontrolü
-                    String fiyatDegeri = fiyat.text.replaceAll(',', '.');
-                    double? fiyatDouble = double.tryParse(fiyatDegeri) ?? 0;
+                    // Fiyat ve süre null kontrolü — TL formatından backend formatına çevir
+                    String fiyatBackend = tlToBackend(fiyat.text);
+                    double fiyatDouble = double.tryParse(fiyatBackend) ?? 0;
 
                     String sureDegeri = sure_dk.text;
-                    int? sureInt = int.tryParse(sureDegeri) ?? 0;
+                    int sureInt = int.tryParse(sureDegeri) ?? 0;
 
                     final AdisyonHizmet adisyonhizmet = AdisyonHizmet(
                       id: "",

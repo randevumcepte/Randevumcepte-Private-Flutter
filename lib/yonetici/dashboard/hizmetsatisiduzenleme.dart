@@ -4,6 +4,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -60,7 +61,7 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
       islem_tarihi.text = widget.mevcuthizmet.islem_tarihi;
       selectedpersonel = personel.firstWhere((element) => element.id.toString() == widget.mevcuthizmet.personel_id.toString());
       sure_dk.text = widget.mevcuthizmet.sure;
-      fiyat.text = widget.mevcuthizmet.fiyat;
+      fiyat.text = backendToTl(widget.mevcuthizmet.fiyat);
       selectedhizmet = hizmet.firstWhere((element) => element.hizmet_id == widget.mevcuthizmet.hizmet_id);
 
       isloading = false;
@@ -355,7 +356,7 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
                       setState(() {
                         selectedhizmet = value;
                         sure_dk.text = selectedhizmet?.sure ?? "";
-                        fiyat.text = selectedhizmet?.fiyat ?? "";
+                        fiyat.text = backendToTl(selectedhizmet?.fiyat ?? "");
                       });
                     },
                     buttonStyleData: const ButtonStyleData(
@@ -467,8 +468,8 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
                         padding: const EdgeInsets.only(left: 20.0,right: 20),
                         child: TextField(
                           controller: fiyat,
-                          keyboardType: TextInputType.phone,
-                          onSubmitted: (text)=>print(fiyat.text),
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [TurkishLiraInputFormatter()],
                           decoration: InputDecoration(
                             enabled:true,
                             focusColor:Color(0xFF6A1B9A) ,
@@ -496,7 +497,10 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
               children: [
                 ElevatedButton(onPressed: () async{
 
-                  final AdisyonHizmet adisyonhizmet = AdisyonHizmet(id:widget.mevcuthizmet.id, adisyon_id: widget.mevcuthizmet.adisyon_id, hizmet_id: selectedhizmet?.hizmet_id??"", islem_tarihi: islem_tarihi.text, islem_saati: islem_saati.text, sure: sure_dk.text, fiyat: fiyat.text, geldi: "1", personel_id: selectedpersonel?.id ?? "", cihaz_id: "", oda_id: "", dogrulama_kodu: "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "",hizmet: selectedhizmet?.hizmet??"",personel: selectedpersonel?? "");
+                  final String fiyatBackend = tlToBackend(fiyat.text);
+                  final double fiyatDouble = double.tryParse(fiyatBackend) ?? 0;
+                  final String fiyatGonderim = fiyatDouble.toStringAsFixed(2).replaceAll('.', ',');
+                  final AdisyonHizmet adisyonhizmet = AdisyonHizmet(id:widget.mevcuthizmet.id, adisyon_id: widget.mevcuthizmet.adisyon_id, hizmet_id: selectedhizmet?.hizmet_id??"", islem_tarihi: islem_tarihi.text, islem_saati: islem_saati.text, sure: sure_dk.text, fiyat: fiyatGonderim, geldi: "1", personel_id: selectedpersonel?.id ?? "", cihaz_id: "", oda_id: "", dogrulama_kodu: "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "",hizmet: selectedhizmet?.hizmet??"",personel: selectedpersonel?? "");
                   if(widget.senetlisatis){
                     AdisyonHizmet eklenenhizmet = await adisyonhizmetekle(adisyonhizmet,widget.musteriid ,context,seciliisletme!);
                     Navigator.pop(context, eklenenhizmet);
