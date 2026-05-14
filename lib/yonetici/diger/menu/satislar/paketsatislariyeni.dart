@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/lazyload.dart';
@@ -1457,6 +1461,8 @@ class _PaketSatislariState extends State<PaketSatislari> {
     final List<Paket> selectedData = [];
     final List<TextEditingController> paketSeansController = [];
     final List<TextEditingController> paketFiyatController = [];
+    String odemeYontemiId = '1';
+    bool kaydediliyor = false;
 
     for (int i = 0;
         i < _paketDataGridSource.selectedRows.value.length;
@@ -1773,6 +1779,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                               controller:
                                                   paketSeansController[index],
                                               keyboardType: TextInputType.number,
+                                              onChanged: () => setStateSB(() {}),
                                             ),
                                           ),
                                           const SizedBox(width: 10),
@@ -1785,6 +1792,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                               keyboardType: TextInputType.number,
                                               formatter:
                                                   TurkishLiraInputFormatter(),
+                                              onChanged: () => setStateSB(() {}),
                                             ),
                                           ),
                                         ],
@@ -1793,92 +1801,185 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                   ),
                                 );
                               }),
+                              const SizedBox(height: 18),
+                              _sectionTitle(scheme, 'Ödeme Yöntemi',
+                                  Icons.payments_rounded),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _odemeYontemiPill(
+                                      scheme,
+                                      value: '1',
+                                      label: 'Nakit',
+                                      icon: Icons.payments_rounded,
+                                      selected: odemeYontemiId,
+                                      onSelect: (v) => setStateSB(
+                                          () => odemeYontemiId = v),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _odemeYontemiPill(
+                                      scheme,
+                                      value: '2',
+                                      label: 'Kart',
+                                      icon: Icons.credit_card_rounded,
+                                      selected: odemeYontemiId,
+                                      onSelect: (v) => setStateSB(
+                                          () => odemeYontemiId = v),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _odemeYontemiPill(
+                                      scheme,
+                                      value: '3',
+                                      label: 'Havale',
+                                      icon: Icons.account_balance_rounded,
+                                      selected: odemeYontemiId,
+                                      onSelect: (v) => setStateSB(
+                                          () => odemeYontemiId = v),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              _toplamOzet(scheme, paketFiyatController),
                             ],
                           ),
                         ),
                         SafeArea(
                           top: false,
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                            child: Row(
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                            child: Column(
                               children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.of(ctx).pop(),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 14),
-                                      decoration: BoxDecoration(
-                                        color: scheme.outline
-                                            .withValues(alpha: 0.10),
-                                        borderRadius:
-                                            BorderRadius.circular(14),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'Vazgeç',
-                                          style: TextStyle(
-                                            color: scheme.onSurface
-                                                .withValues(alpha: 0.7),
-                                            fontWeight: FontWeight.w700,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: kaydediliyor
+                                            ? null
+                                            : () => Navigator.of(ctx).pop(),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 14),
+                                          decoration: BoxDecoration(
+                                            color: scheme.outline
+                                                .withValues(alpha: 0.10),
+                                            borderRadius:
+                                                BorderRadius.circular(14),
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  flex: 2,
-                                  child: GestureDetector(
-                                    onTap: () => _submitSatis(
-                                      ctx,
-                                      selectedData,
-                                      paketSeansController,
-                                      paketFiyatController,
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 14),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            scheme.primary,
-                                            scheme.tertiary
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: scheme.primary
-                                                .withValues(alpha: 0.30),
-                                            blurRadius: 14,
-                                            offset: const Offset(0, 5),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.payments_rounded,
-                                            color: scheme.onPrimary,
-                                            size: 18,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Tahsilata Git',
-                                            style: TextStyle(
-                                              color: scheme.onPrimary,
-                                              fontWeight: FontWeight.w800,
+                                          child: Center(
+                                            child: Text(
+                                              'Vazgeç',
+                                              style: TextStyle(
+                                                color: scheme.onSurface
+                                                    .withValues(alpha: 0.7),
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                           ),
-                                        ],
+                                        ),
                                       ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      flex: 2,
+                                      child: GestureDetector(
+                                        onTap: kaydediliyor
+                                            ? null
+                                            : () => _hizliSatVeTahsil(
+                                                  ctx,
+                                                  setStateSB,
+                                                  selectedData,
+                                                  paketSeansController,
+                                                  paketFiyatController,
+                                                  odemeYontemiId,
+                                                  (v) => kaydediliyor = v,
+                                                ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 14),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                scheme.primary,
+                                                scheme.tertiary,
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: scheme.primary
+                                                    .withValues(alpha: 0.30),
+                                                blurRadius: 14,
+                                                offset: const Offset(0, 5),
+                                              ),
+                                            ],
+                                          ),
+                                          child: kaydediliyor
+                                              ? SizedBox(
+                                                  height: 22,
+                                                  child: Center(
+                                                    child: SizedBox(
+                                                      width: 22,
+                                                      height: 22,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        color: scheme.onPrimary,
+                                                        strokeWidth: 2.5,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                )
+                                              : Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.flash_on_rounded,
+                                                      color: scheme.onPrimary,
+                                                      size: 18,
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      'Sat ve Tahsil Et',
+                                                      style: TextStyle(
+                                                        color: scheme.onPrimary,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                TextButton(
+                                  onPressed: kaydediliyor
+                                      ? null
+                                      : () => _submitSatis(
+                                            ctx,
+                                            selectedData,
+                                            paketSeansController,
+                                            paketFiyatController,
+                                          ),
+                                  child: Text(
+                                    'Detaylı tahsilata git →',
+                                    style: TextStyle(
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.55),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
@@ -1922,6 +2023,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
     required TextEditingController controller,
     required TextInputType keyboardType,
     TurkishLiraInputFormatter? formatter,
+    VoidCallback? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1947,6 +2049,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
             controller: controller,
             keyboardType: keyboardType,
             inputFormatters: formatter != null ? [formatter] : null,
+            onChanged: onChanged == null ? null : (_) => onChanged(),
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             decoration: const InputDecoration(
               isDense: true,
@@ -1959,6 +2062,339 @@ class _PaketSatislariState extends State<PaketSatislari> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _odemeYontemiPill(
+    ColorScheme scheme, {
+    required String value,
+    required String label,
+    required IconData icon,
+    required String selected,
+    required ValueChanged<String> onSelect,
+  }) {
+    final isSelected = selected == value;
+    return GestureDetector(
+      onTap: () => onSelect(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [scheme.primary, scheme.tertiary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : scheme.outline.withValues(alpha: 0.22),
+            width: 1.4,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.28),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected
+                  ? scheme.onPrimary
+                  : scheme.onSurface.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: isSelected
+                      ? scheme.onPrimary
+                      : scheme.onSurface.withValues(alpha: 0.75),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _toplamOzet(
+    ColorScheme scheme,
+    List<TextEditingController> paketFiyatController,
+  ) {
+    double toplamBackend = 0;
+    for (final c in paketFiyatController) {
+      toplamBackend += double.tryParse(tlToBackend(c.text)) ?? 0;
+    }
+    final toplamTl =
+        toplamBackend == 0 ? '0,00' : backendToTl(toplamBackend.toString());
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [scheme.primary, scheme.tertiary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.30),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.22),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.account_balance_wallet_rounded,
+              color: scheme.onPrimary,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tahsil Edilecek',
+                  style: TextStyle(
+                    color: scheme.onPrimary.withValues(alpha: 0.85),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '₺',
+                        style: TextStyle(
+                          color: scheme.onPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        toplamTl,
+                        style: TextStyle(
+                          color: scheme.onPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          height: 1.0,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _hizliSatVeTahsil(
+    BuildContext sheetCtx,
+    StateSetter setStateSB,
+    List<Paket> selectedData,
+    List<TextEditingController> paketSeansController,
+    List<TextEditingController> paketFiyatController,
+    String odemeYontemiId,
+    void Function(bool) setKaydediliyor,
+  ) async {
+    if (selectedmusteri == null || selectedpaketsatici == null) {
+      _showUyari(sheetCtx,
+          'Satış için müşteri ve satıcı seçimini yapmanız gerekmektedir!');
+      return;
+    }
+    double toplamBackend = 0;
+    for (final c in paketFiyatController) {
+      toplamBackend += double.tryParse(tlToBackend(c.text)) ?? 0;
+    }
+    if (toplamBackend <= 0) {
+      _showUyari(sheetCtx, 'Toplam tutar 0\'dan büyük olmalıdır.');
+      return;
+    }
+
+    setStateSB(() => setKaydediliyor(true));
+
+    String? olusanAdisyonId;
+    final List<String> paketIdler = [];
+    final List<AdisyonPaket> created = [];
+
+    try {
+      for (int i = 0; i < selectedData.length; i++) {
+        final element = selectedData[i];
+        final seansSayisi = paketSeansController[i].text.trim();
+        final fiyatBackend = tlToBackend(paketFiyatController[i].text);
+        final AdisyonPaket paket = AdisyonPaket(
+          id: '',
+          adisyon_id: olusanAdisyonId ?? '',
+          paket_id: element.id,
+          baslangic_tarihi: '',
+          seans_araligi: '',
+          fiyat: fiyatBackend,
+          personel_id: selectedpaketsatici!.id,
+          taksitli_tahsilat_id: '',
+          senet_id: '',
+          indirim_tutari: '',
+          hediye: '',
+          seans_baslangic_saati: '',
+        );
+        final eklenen = await adisyonpaketekle(
+          paket,
+          selectedmusteri?.id ?? '',
+          context,
+          seciliisletme!,
+          '',
+          false,
+          '',
+          seansSayisi: seansSayisi,
+        );
+        olusanAdisyonId = eklenen.adisyon_id;
+        paketIdler.add(eklenen.id);
+        created.add(eklenen);
+      }
+
+      final toplamTl = backendToTl(toplamBackend.toString());
+      final prefs = await SharedPreferences.getInstance();
+      final user = jsonDecode(prefs.getString('user')!);
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      final tahsilatBody = <String, dynamic>{
+        'ad_soyad': selectedmusteri?.id ?? '',
+        'sube': seciliisletme!,
+        'adisyon_id': olusanAdisyonId ?? '',
+        'vade_baslangic_tarihi': today,
+        'taksit_tutar': '0',
+        'vade': '1',
+        'adisyon_hizmetleri': <dynamic>[],
+        'adisyon_paketleri': created.map((e) => e.toJson()).toList(),
+        'adisyon_urunleri': <dynamic>[],
+        'senet_vadeleri': <dynamic>[],
+        'taksit_vadeleri': <dynamic>[],
+        'olusturan': user['id'],
+        'musteri_indirimi': '0',
+        'indirim_tutari': '0',
+        'adisyon_hizmet_id': <String>[],
+        'adisyon_urun_id': <String>[],
+        'adisyon_paket_id': paketIdler,
+        'odeme_yontemi': odemeYontemiId,
+        'indirimli_toplam_tahsilat_tutari': toplamTl,
+        'tahsilat_tarihi': today,
+        'tahsilat_notlari': '',
+        'senet_vade_id': <String>[],
+        'taksit_vade_id': <String>[],
+      };
+
+      final response = await http.post(
+        Uri.parse(
+            'https://apptest.randevumcepte.com.tr/api/v1/tahsilatekle'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(tahsilatBody),
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode != 200) {
+        setStateSB(() => setKaydediliyor(false));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Tahsilat eklenirken hata: ${response.statusCode}'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+        return;
+      }
+
+      Navigator.of(sheetCtx).pop();
+      if (!mounted) return;
+      _paketDataGridSource.hepsiniSec(false);
+      _paketDataGridSource.search(_controller.text);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF15803D),
+          duration: const Duration(seconds: 3),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Satış tamamlandı · ₺$toplamTl tahsil edildi',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      log('hızlı tahsil hatası: $e');
+      if (!mounted) return;
+      setStateSB(() => setKaydediliyor(false));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bir hata oluştu: $e'),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+    }
+  }
+
+  void _showUyari(BuildContext ctx, String mesaj) {
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18)),
+        title: const Text('UYARI',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(mesaj),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('TAMAM'),
+          ),
+        ],
+      ),
     );
   }
 
