@@ -20,6 +20,7 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
   static const Color _morSoft = Color(0xFFF3E8FA);
   static const Color _kirmizi = Color(0xFFE53935);
   static const Color _yesil = Color(0xFF43A047);
+  static const Color _sari = Color(0xFFF6A609);
 
   late TabController _tabCtl;
 
@@ -391,79 +392,151 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
         ),
       );
     }
+    // Profesyonel POS hesabı — Mindbody/Phorest/Boulevard standardı
+    double toplamMaliyet = 0;
+    int eksikFiyat = 0;
+    int yapilabilirHizmet = 99999; // En dar boğaz malzemenin verdiği limit
+    for (final r in _receteler) {
+      final m = r['urun'] is Map ? Map<String, dynamic>.from(r['urun']) : <String, dynamic>{};
+      final miktar = double.tryParse(r['miktar']?.toString() ?? '0') ?? 0;
+      final alis = double.tryParse(m['alis_fiyati']?.toString() ?? '0') ?? 0;
+      final stok = double.tryParse(m['stok_adedi']?.toString() ?? '0') ?? 0;
+      if (alis > 0) {
+        toplamMaliyet += miktar * alis;
+      } else {
+        eksikFiyat++;
+      }
+      if (miktar > 0) {
+        final yapabilir = (stok / miktar).floor();
+        if (yapabilir < yapilabilirHizmet) yapilabilirHizmet = yapabilir;
+      }
+    }
+    if (_receteler.isEmpty) yapilabilirHizmet = 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // === MALİYET KARNESİ (Boulevard / Phorest tarzı) ===
+        _maliyetKarnesi(toplamMaliyet, eksikFiyat, yapilabilirHizmet),
+        const SizedBox(height: 14),
+
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Text(
-            'BU HİZMETE BAĞLI ${_receteler.length} MALZEME',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: Colors.black.withValues(alpha: 0.5)),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            children: [
+              Text(
+                '${_receteler.length} MALZEME',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: Colors.black.withValues(alpha: 0.5)),
+              ),
+              const Spacer(),
+              if (eksikFiyat > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: _kirmizi.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                  child: Text('$eksikFiyat malzeme fiyatsız', style: const TextStyle(color: _kirmizi, fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
+            ],
           ),
         ),
+        const SizedBox(height: 6),
         ..._receteler.map((r) {
-          final urunAdi = r['urun'] is Map ? (r['urun']['urun_adi']?.toString() ?? '—') : '—';
-          final birim = r['urun'] is Map ? (r['urun']['birim']?.toString() ?? 'adet') : '';
-          final tip = r['urun'] is Map ? (r['urun']['tip']?.toString() ?? 'sarf') : 'sarf';
+          final m = r['urun'] is Map ? Map<String, dynamic>.from(r['urun']) : <String, dynamic>{};
+          final urunAdi = m['urun_adi']?.toString() ?? '—';
+          final birim = m['birim']?.toString() ?? 'adet';
+          final tip = m['tip']?.toString() ?? 'sarf';
           final miktar = double.tryParse(r['miktar']?.toString() ?? '0') ?? 0;
+          final alis = double.tryParse(m['alis_fiyati']?.toString() ?? '0') ?? 0;
+          final stok = double.tryParse(m['stok_adedi']?.toString() ?? '0') ?? 0;
+          final maliyet = miktar * alis;
           final rid = r['id'].toString();
+          final yetersizStok = stok < miktar;
+          final fiyatYok = alis <= 0;
+
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+              border: Border.all(color: fiyatYok ? _kirmizi.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05)),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    color: tip == 'karma' ? _morSoft : const Color(0xFFFCE4EC),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    tip == 'karma' ? Icons.swap_horiz : Icons.local_florist_outlined,
-                    color: tip == 'karma' ? _mor : const Color(0xFFAD1457),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(urunAdi, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                      const SizedBox(height: 4),
-                      Row(
+                Row(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: tip == 'karma' ? _morSoft : const Color(0xFFFCE4EC),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        tip == 'karma' ? Icons.swap_horiz : Icons.local_florist_outlined,
+                        color: tip == 'karma' ? _mor : const Color(0xFFAD1457),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(6)),
-                            child: Text(
-                              'Her hizmette ${_miktarFmt(miktar)} $birim',
-                              style: const TextStyle(color: _mor, fontWeight: FontWeight.w700, fontSize: 11),
-                            ),
+                          Text(urunAdi, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(6)),
+                                child: Text(
+                                  '${_miktarFmt(miktar)} $birim',
+                                  style: const TextStyle(color: _mor, fontWeight: FontWeight.w700, fontSize: 11),
+                                ),
+                              ),
+                              if (yetersizStok) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(color: _kirmizi.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                  child: Text('STOK YETERSİZ', style: const TextStyle(color: _kirmizi, fontWeight: FontWeight.w800, fontSize: 9)),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: _mor),
-                  tooltip: 'Miktarı düzenle',
-                  onPressed: () => _receteMiktarDuzenle(r),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: _kirmizi),
-                  tooltip: 'Çıkar',
-                  onPressed: () async {
-                    if (await _onay('"$urunAdi" reçeteden çıkarılsın mı?')) {
-                      await StokApi.receteSil(rid);
-                      _receteleriYukle();
-                    }
-                  },
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (fiyatYok)
+                          GestureDetector(
+                            onTap: () => _receteMiktarDuzenle(r),
+                            child: const Text('Fiyat gir →', style: TextStyle(color: _kirmizi, fontSize: 11, fontWeight: FontWeight.w700)),
+                          )
+                        else
+                          Text('₺${maliyet.toStringAsFixed(2)}', style: const TextStyle(color: _mor, fontWeight: FontWeight.w800, fontSize: 15)),
+                        if (!fiyatYok)
+                          Text('${miktar.toStringAsFixed(miktar == miktar.roundToDouble() ? 0 : 1)} × ₺${alis.toStringAsFixed(2)}', style: const TextStyle(color: Colors.black54, fontSize: 10)),
+                      ],
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.black54),
+                      onSelected: (v) async {
+                        if (v == 'edit') {
+                          _receteMiktarDuzenle(r);
+                        } else if (v == 'del') {
+                          if (await _onay('"$urunAdi" reçeteden çıkarılsın mı?')) {
+                            await StokApi.receteSil(rid);
+                            _receteleriYukle();
+                          }
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, color: _mor, size: 18), SizedBox(width: 8), Text('Miktar/Fiyat Düzenle')])),
+                        PopupMenuItem(value: 'del',  child: Row(children: [Icon(Icons.delete_outline, color: _kirmizi, size: 18), SizedBox(width: 8), Text('Çıkar')])),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -482,6 +555,139 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
             textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           ),
         ),
+      ],
+    );
+  }
+
+  /// Profesyonel maliyet karnesi — toplam malzeme maliyeti + kâr/marj + stok yeterlilik.
+  ///
+  /// Mindbody / Phorest / Boulevard standardı:
+  /// 1. Toplam Maliyet (büyük): tüm malzemelerin (miktar × alış) toplamı
+  /// 2. Eğer hizmet fiyatı tanımlıysa: kâr ve marj % gösterimi
+  /// 3. Stok yeterlilik: "Mevcut stokla X hizmet daha yapılabilir"
+  Widget _maliyetKarnesi(double toplamMaliyet, int eksikFiyat, int yapilabilirHizmet) {
+    // Hizmet satış fiyatını _hizmetler'den al (varsa)
+    double hizmetFiyati = 0;
+    if (_seciliHizmetId != null) {
+      final h = _hizmetler.firstWhere(
+        (x) => x['id']?.toString() == _seciliHizmetId,
+        orElse: () => <String, dynamic>{},
+      );
+      hizmetFiyati = double.tryParse(h['fiyat']?.toString() ?? h['baslangic_fiyat']?.toString() ?? '0') ?? 0;
+    }
+    final kar = hizmetFiyati - toplamMaliyet;
+    final marj = (toplamMaliyet > 0 && hizmetFiyati > 0) ? (kar / hizmetFiyati) * 100 : 0;
+    final karPozitif = kar >= 0;
+    final stokRenk = yapilabilirHizmet > 10 ? _yesil : (yapilabilirHizmet > 0 ? _sari : _kirmizi);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [_mor, Color(0xFF8E24AA)]),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // === Üst: Toplam maliyet (büyük) ===
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.calculate_outlined, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('MALZEME MALİYETİ', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w700, fontSize: 10, letterSpacing: 0.5)),
+                    const SizedBox(height: 2),
+                    Text(
+                      '₺${toplamMaliyet.toStringAsFixed(2)}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26),
+                    ),
+                    if (eksikFiyat > 0)
+                      Text('+ $eksikFiyat malzeme fiyatsız (dahil değil)', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // === Orta: Kâr / Marj (hizmet fiyatı varsa) ===
+          if (hizmetFiyati > 0) ...[
+            const SizedBox(height: 14),
+            const Divider(color: Colors.white24, height: 1),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _karneAlt(
+                    'HİZMET FİYATI',
+                    '₺${hizmetFiyati.toStringAsFixed(2)}',
+                    Colors.white,
+                  ),
+                ),
+                Expanded(
+                  child: _karneAlt(
+                    karPozitif ? 'BRÜT KÂR' : 'ZARAR',
+                    '${karPozitif ? '' : '-'}₺${kar.abs().toStringAsFixed(2)}',
+                    karPozitif ? const Color(0xFF80FFC8) : const Color(0xFFFFB4B4),
+                  ),
+                ),
+                Expanded(
+                  child: _karneAlt(
+                    'MARJ',
+                    '%${marj.toStringAsFixed(0)}',
+                    marj >= 50 ? const Color(0xFF80FFC8) : (marj >= 0 ? const Color(0xFFFFE082) : const Color(0xFFFFB4B4)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          // === Alt: Stok yeterlilik ===
+          if (_receteler.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(color: stokRenk, shape: BoxShape.circle, boxShadow: [BoxShadow(color: stokRenk.withValues(alpha: 0.5), blurRadius: 6)]),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        children: [
+                          const TextSpan(text: 'Mevcut stokla '),
+                          TextSpan(text: '$yapilabilirHizmet hizmet', style: const TextStyle(fontWeight: FontWeight.w800)),
+                          const TextSpan(text: ' daha yapılabilir'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _karneAlt(String etiket, String deger, Color deger_renk) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(etiket, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+        const SizedBox(height: 2),
+        Text(deger, style: TextStyle(color: deger_renk, fontWeight: FontWeight.w800, fontSize: 16)),
       ],
     );
   }
@@ -630,6 +836,9 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     final hizliSecimler = BirimHelper.hizliSecim(birim);
     double miktar = mevcutMiktar ?? BirimHelper.varsayilanBaslangic(birim);
     final miktarCtl = TextEditingController(text: BirimHelper.sayi(miktar, birim));
+    // Alış fiyatı — ürünün mevcut alış fiyatını al; kullanıcı buradan değiştirebilir
+    double alisFiyati = urun.alisFiyatiSayisal;
+    final alisCtl = TextEditingController(text: alisFiyati == 0 ? '' : alisFiyati.toString());
 
     final ok = await showModalBottomSheet<bool>(
       context: context,
@@ -775,7 +984,87 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
                                 ))
                             .toList(),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 22),
+
+                      // === Birim alış fiyatı + Canlı maliyet (PROFESYONEL POS) ===
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: alisFiyati <= 0 ? _kirmizi.withValues(alpha: 0.06) : const Color(0xFFF0FAF3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: alisFiyati <= 0 ? _kirmizi.withValues(alpha: 0.3) : _yesil.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(alisFiyati <= 0 ? Icons.warning_amber_rounded : Icons.payments_outlined, color: alisFiyati <= 0 ? _kirmizi : _yesil, size: 18),
+                                const SizedBox(width: 6),
+                                Text(
+                                  alisFiyati <= 0 ? 'ALIŞ FİYATI TANIMLANMAMIŞ' : 'BİRİM ALIŞ FİYATI',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: alisFiyati <= 0 ? _kirmizi : _yesil),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: alisCtl,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: InputDecoration(
+                                      prefixText: '₺ ',
+                                      prefixStyle: const TextStyle(fontWeight: FontWeight.w800, color: _mor),
+                                      suffixText: ' / $birim',
+                                      suffixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54),
+                                      hintText: '0.00',
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                                    ),
+                                    onChanged: (v) {
+                                      setSt(() => alisFiyati = double.tryParse(v.replaceAll(',', '.')) ?? 0);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (alisFiyati <= 0)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Maliyet hesaplaması için fiyat gir. Bu fiyat ürün ayarlarına da kaydedilecek.',
+                                  style: TextStyle(fontSize: 11, color: Colors.black.withValues(alpha: 0.6)),
+                                ),
+                              ),
+                            // Canlı maliyet preview
+                            if (alisFiyati > 0 && miktar > 0) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.functions, color: _yesil, size: 18),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${BirimHelper.formatla(miktar, birim)} × ₺${alisFiyati.toStringAsFixed(2)}',
+                                        style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                    Text('= ₺${(miktar * alisFiyati).toStringAsFixed(2)}', style: const TextStyle(color: _yesil, fontWeight: FontWeight.w800, fontSize: 15)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 22),
 
                       // === Aksiyon butonları ===
                       Row(
@@ -827,13 +1116,37 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     );
 
     if (ok == true && miktar > 0) {
+      // Eğer alış fiyatı bottom sheet'te değiştirildiyse (veya ilk kez girildiyse),
+      // ürünün alış fiyatını güncelle — maliyet hesabı tutarlı kalsın.
+      final yeniAlis = double.tryParse(alisCtl.text.replaceAll(',', '.')) ?? 0;
+      if (yeniAlis > 0 && (yeniAlis - urun.alisFiyatiSayisal).abs() > 0.001) {
+        await StokApi.urunKaydet(widget.salonId, {
+          'id': urun.id,
+          'urun_adi': urun.urun_adi,
+          'barkod': urun.barkod,
+          'sku': urun.sku,
+          'fiyat': urun.fiyat,
+          'alis_fiyati': yeniAlis,
+          'kdv_orani': urun.kdv_orani,
+          'birim': urun.birim,
+          'tip': urun.tip,
+          'kategori_id': urun.kategori_id,
+          'tedarikci_id': urun.tedarikci_id,
+          'stok_adedi': urun.stok_adedi,
+          'dusuk_stok_siniri': urun.dusuk_stok_siniri,
+          'kritik_stok_siniri': urun.kritik_stok_siniri,
+          'aciklama': urun.aciklama,
+          'kullanici_tipi': 'isletme_yonetim',
+        });
+      }
       await StokApi.receteKaydet(widget.salonId, {
         'hizmet_id': _seciliHizmetId,
         'hizmet_tipi': 'islem',
         'urun_id': urun.id,
         'miktar': miktar,
       });
-      _receteleriYukle();
+      // Hem reçete listesini hem ürün cache'ini yenile (alış fiyatı değişmiş olabilir)
+      await _yukle();
     }
   }
 
