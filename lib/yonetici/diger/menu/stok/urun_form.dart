@@ -71,6 +71,9 @@ class _UrunFormState extends State<UrunForm> {
     } else if (widget.barkodOnDoldur != null) {
       _barkodCtl.text = widget.barkodOnDoldur!;
     }
+    // Alış/satış değiştiğinde canlı kâr göstergesi için rebuild tetikle
+    _alisCtl.addListener(() => setState(() {}));
+    _fiyatCtl.addListener(() => setState(() {}));
   }
 
   @override
@@ -82,9 +85,22 @@ class _UrunFormState extends State<UrunForm> {
   }
 
   Future<void> _kaydet() async {
-    if (_adCtl.text.trim().isEmpty || _fiyatCtl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ürün adı ve satış fiyatı zorunlu')));
+    if (_adCtl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ürün adı zorunlu')));
       return;
+    }
+    if (_alisCtl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Alış fiyatı zorunlu — maliyet hesabı için gerekli')));
+      return;
+    }
+    // Satış fiyatı sadece satılan tiplerde zorunlu
+    if (_tip != 'sarf' && _fiyatCtl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Satış fiyatı zorunlu (bu ürün satılıyor)')));
+      return;
+    }
+    // Sarf ürünlerde satış fiyatı = alış fiyatı (gelir hesabına yansımaz, sadece muhasebe için)
+    if (_tip == 'sarf' && _fiyatCtl.text.trim().isEmpty) {
+      _fiyatCtl.text = _alisCtl.text;
     }
     setState(() => _kaydediliyor = true);
     try {
@@ -158,15 +174,29 @@ class _UrunFormState extends State<UrunForm> {
                   ],
                   (v) => setState(() => _tedarikciId = v)),
             ]),
-            _bolum('Fiyatlar', [
-              Row(children: [
-                Expanded(child: _alan('Alış (₺)', _alisCtl, sayisal: true)),
-                const SizedBox(width: 10),
-                Expanded(child: _alan('Satış (₺) *', _fiyatCtl, sayisal: true)),
-                const SizedBox(width: 10),
-                Expanded(child: _alan('KDV %', _kdvCtl, sayisal: true)),
-              ]),
-            ]),
+            _bolum(
+              _tip == 'sarf' ? 'Maliyet (Alış)' : 'Fiyatlar',
+              [
+                // Alış her zaman zorunlu — maliyet için
+                Row(children: [
+                  Expanded(
+                    flex: _tip == 'sarf' ? 2 : 1,
+                    child: _alan('Alış Fiyatı (₺) *', _alisCtl, sayisal: true),
+                  ),
+                  if (_tip != 'sarf') ...[
+                    const SizedBox(width: 10),
+                    Expanded(child: _alan('Satış (₺) *', _fiyatCtl, sayisal: true)),
+                  ],
+                  const SizedBox(width: 10),
+                  Expanded(child: _alan('KDV %', _kdvCtl, sayisal: true)),
+                ]),
+                const SizedBox(height: 10),
+                // Tip'e göre bilgilendirme bandı
+                _fiyatBilgilendirmeBandi(),
+                // Karma/Satış ürünleri için anlık kâr göstergesi
+                if (_tip != 'sarf') _karPreview(),
+              ],
+            ),
             _bolum('Stok', [
               Row(children: [
                 Expanded(child: _dropdown<String>('Birim', _birim, _birimItems(), (v) => setState(() => _birim = v ?? 'adet'))),
@@ -220,6 +250,91 @@ class _UrunFormState extends State<UrunForm> {
   // ============================================================
   // WIDGET YARDIMCILARI
   // ============================================================
+
+  /// Tip'e göre kullanıcıya açıklayıcı bilgilendirme bandı.
+  Widget _fiyatBilgilendirmeBandi() {
+    String mesaj;
+    IconData ikon;
+    Color renk;
+    switch (_tip) {
+      case 'sarf':
+        mesaj = 'Sarf ürünleri müşteriye satılmaz, hizmette tüketilir. Sadece alış fiyatı maliyet olarak yansır.';
+        ikon = Icons.science_outlined;
+        renk = const Color(0xFFAD1457);
+        break;
+      case 'karma':
+        mesaj = 'Hem satışa hem sarfa konabilir. Satılınca satış fiyatından, sarf edilince alış fiyatından düşülür.';
+        ikon = Icons.swap_horiz;
+        renk = _mor;
+        break;
+      default:
+        mesaj = 'Müşteriye satış için. Alış fiyatının 2-3 katı tipik kâr marjıdır.';
+        ikon = Icons.point_of_sale_outlined;
+        renk = const Color(0xFF1565C0);
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: renk.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: renk.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(ikon, color: renk, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text(mesaj, style: TextStyle(color: renk, fontSize: 12, fontWeight: FontWeight.w600, height: 1.4))),
+        ],
+      ),
+    );
+  }
+
+  /// Canlı kâr/marj göstergesi — alış+satış girildiğinde gösterilir.
+  Widget _karPreview() {
+    final alis = double.tryParse(_alisCtl.text.replaceAll(',', '.')) ?? 0;
+    final satis = double.tryParse(_fiyatCtl.text.replaceAll(',', '.')) ?? 0;
+    if (alis <= 0 || satis <= 0) return const SizedBox.shrink();
+    final kar = satis - alis;
+    final marj = (kar / satis) * 100;
+    final yesil = const Color(0xFF43A047);
+    final kirmizi = const Color(0xFFE53935);
+    final pozitif = kar >= 0;
+    final marjRenk = marj >= 50 ? yesil : (marj >= 20 ? const Color(0xFFF6A609) : kirmizi);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: pozitif ? [yesil, const Color(0xFF66BB6A)] : [kirmizi, const Color(0xFFEF5350)]),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: (pozitif ? yesil : kirmizi).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Row(
+          children: [
+            Icon(pozitif ? Icons.trending_up : Icons.trending_down, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('BİRİM BAŞINA KÂR', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                  const SizedBox(height: 2),
+                  Text('₺${kar.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Text('%${marj.toStringAsFixed(0)}', style: TextStyle(color: marjRenk, fontWeight: FontWeight.w800, fontSize: 16)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _bolum(String baslik, List<Widget> cocuklar) {
     return Container(

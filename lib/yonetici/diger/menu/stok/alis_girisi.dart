@@ -11,6 +11,9 @@ class _AlisKalemi {
   Urun? urun;
   double miktar;
   double birimAlisFiyati;
+  /// Bu parti için yeni satış fiyatı — null ise ürünün mevcut satış fiyatı değişmez.
+  /// UI'dan setter ile atanır (constructor'da verilmez).
+  double? yeniSatisFiyati;
   _AlisKalemi({this.urun, this.miktar = 1, this.birimAlisFiyati = 0});
 }
 
@@ -77,6 +80,31 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
     }
     setState(() => _gondermeli = true);
     try {
+      // 1) Parti satış fiyatı override edilenler için önce ürünü güncelle
+      for (final k in dolu) {
+        if (k.yeniSatisFiyati != null && k.yeniSatisFiyati! > 0 &&
+            (k.yeniSatisFiyati! - k.urun!.fiyatSayisal).abs() > 0.001) {
+          await StokApi.urunKaydet(widget.salonId, {
+            'id': k.urun!.id,
+            'urun_adi': k.urun!.urun_adi,
+            'barkod': k.urun!.barkod,
+            'sku': k.urun!.sku,
+            'fiyat': k.yeniSatisFiyati,
+            'alis_fiyati': k.birimAlisFiyati,
+            'kdv_orani': k.urun!.kdv_orani,
+            'birim': k.urun!.birim,
+            'tip': k.urun!.tip,
+            'kategori_id': k.urun!.kategori_id,
+            'tedarikci_id': _tedarikciId ?? k.urun!.tedarikci_id,
+            'stok_adedi': k.urun!.stok_adedi,
+            'dusuk_stok_siniri': k.urun!.dusuk_stok_siniri,
+            'kritik_stok_siniri': k.urun!.kritik_stok_siniri,
+            'aciklama': k.urun!.aciklama,
+            'kullanici_tipi': 'isletme_yonetim',
+          });
+        }
+      }
+      // 2) Alış girişini yap (stok hareketi olarak depoya işlenir)
       final r = await StokApi.alisGirisi(widget.salonId, {
         'tedarikci_id': _tedarikciId ?? '',
         'depo_id': _depoId ?? '',
@@ -90,7 +118,11 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
       });
       if (!mounted) return;
       if (r['status'] == 'ok') {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Alış kaydedildi (${r['kalem_sayisi']} kalem)'), backgroundColor: _yesil));
+        final fiyatGuncel = dolu.where((k) => k.yeniSatisFiyati != null && k.yeniSatisFiyati! > 0).length;
+        final msg = fiyatGuncel > 0
+            ? 'Alış kaydedildi (${r['kalem_sayisi']} kalem) — $fiyatGuncel ürünün satış fiyatı güncellendi'
+            : 'Alış kaydedildi (${r['kalem_sayisi']} kalem)';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: _yesil));
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['mesaj']?.toString() ?? 'Hata'), backgroundColor: _kirmizi));
@@ -220,6 +252,77 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
                               ),
                               Text('₺${(k.miktar * k.birimAlisFiyati).toStringAsFixed(2)}', style: const TextStyle(color: _mor, fontWeight: FontWeight.w800)),
                             ],
+                          ),
+                        ),
+                      // Satış fiyatı override — sadece satılan tipler için
+                      if (k.urun != null && (k.urun!.tip == 'satis' || k.urun!.tip == 'karma'))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3E8FA),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.sell_outlined, color: _mor, size: 14),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Mevcut satış: ₺${k.urun!.fiyat} / ${k.urun!.birim}',
+                                      style: const TextStyle(color: _mor, fontSize: 11, fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  initialValue: k.yeniSatisFiyati == null ? '' : k.yeniSatisFiyati.toString(),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  style: const TextStyle(fontSize: 13),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    labelText: 'Yeni satış fiyatı (opsiyonel)',
+                                    labelStyle: const TextStyle(fontSize: 11),
+                                    helperText: 'Bu parti için satış fiyatı değişiyorsa girin — boş bırakırsanız aynı kalır',
+                                    helperStyle: const TextStyle(fontSize: 10),
+                                    prefixText: '₺ ',
+                                    suffixText: ' / ${k.urun!.birim}',
+                                    suffixStyle: const TextStyle(fontSize: 10),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                  ),
+                                  onChanged: (v) {
+                                    final n = double.tryParse(v.replaceAll(',', '.'));
+                                    setState(() => k.yeniSatisFiyati = (n != null && n > 0) ? n : null);
+                                  },
+                                ),
+                                // Yeni satış girilmişse kâr preview
+                                if (k.yeniSatisFiyati != null && k.yeniSatisFiyati! > 0 && k.birimAlisFiyati > 0) ...[
+                                  const SizedBox(height: 6),
+                                  Builder(builder: (_) {
+                                    final kar = k.yeniSatisFiyati! - k.birimAlisFiyati;
+                                    final marj = (kar / k.yeniSatisFiyati!) * 100;
+                                    final pozitif = kar >= 0;
+                                    final renk = pozitif ? const Color(0xFF43A047) : const Color(0xFFE53935);
+                                    return Row(
+                                      children: [
+                                        Icon(pozitif ? Icons.trending_up : Icons.trending_down, color: renk, size: 14),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Birim kâr: ₺${kar.toStringAsFixed(2)} (%${marj.toStringAsFixed(0)})',
+                                          style: TextStyle(color: renk, fontSize: 11, fontWeight: FontWeight.w800),
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
                     ],
