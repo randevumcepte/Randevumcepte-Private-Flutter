@@ -165,7 +165,15 @@
               }
             }
           }
-          kapaliSayi = jsonResponse['satisSayisi']?.toString() ?? '0';
+          // Backend her iki sayi da dondurur; tab degismesine gerek kalmadan ikisi de guncellenir
+          if (jsonResponse['acik_sayisi'] != null) {
+            acikSayi = jsonResponse['acik_sayisi'].toString();
+          }
+          if (jsonResponse['kapali_sayisi'] != null) {
+            kapaliSayi = jsonResponse['kapali_sayisi'].toString();
+          } else {
+            kapaliSayi = jsonResponse['satisSayisi']?.toString() ?? '0';
+          }
           _totalPages = jsonResponse['last_page'] ?? 1;
           _isLoadingMore = false;
         });
@@ -229,7 +237,15 @@
             }
           }
           _totalPagesAcik = jsonResponse['last_page'] ?? 1;
-          acikSayi = jsonResponse['satisSayisi']?.toString() ?? '0';
+          // Backend her iki sayi da dondurur; tab degismesine gerek kalmadan ikisi de guncellenir
+          if (jsonResponse['acik_sayisi'] != null) {
+            acikSayi = jsonResponse['acik_sayisi'].toString();
+          } else {
+            acikSayi = jsonResponse['satisSayisi']?.toString() ?? '0';
+          }
+          if (jsonResponse['kapali_sayisi'] != null) {
+            kapaliSayi = jsonResponse['kapali_sayisi'].toString();
+          }
           _isLoadingAcikMore = false;
         });
       } catch (e) {
@@ -537,11 +553,33 @@
                         padding: EdgeInsets.only(left: 24, right: 12),
                         child: Row(
                           children: [
+                            Icon(Icons.event_outlined,
+                                size: 11, color: Colors.grey.shade500),
+                            SizedBox(width: 3),
                             Text(
                               adisyon.acilis_tarihi,
                               style: TextStyle(
                                   fontSize: 12, color: Colors.grey.shade600),
                             ),
+                            if (adisyon.son_tahsilat_tarihi.isNotEmpty &&
+                                adisyon.son_tahsilat_tarihi !=
+                                    adisyon.acilis_tarihi) ...[
+                              Text('  ·  ',
+                                  style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 12)),
+                              Icon(Icons.payments_outlined,
+                                  size: 11,
+                                  color: Colors.green.shade500),
+                              SizedBox(width: 3),
+                              Text(
+                                adisyon.son_tahsilat_tarihi,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            ],
                             if (personel.isNotEmpty) ...[
                               Text('  ·  ',
                                   style: TextStyle(
@@ -866,40 +904,40 @@
         bool isNowClosed = kalan <= 0;
 
         setState(() {
-          // Önce her iki listeden de kaldır
           _acikAdisyonlar.removeWhere((item) => item.id == oldAdisyon.id);
           _kapaliAdisyonlar.removeWhere((item) => item.id == oldAdisyon.id);
 
-          // Yeni durumuna göre ekle
           if (isNowClosed) {
-            _kapaliAdisyonlar.add(updatedAdisyon);
-            // Sayıları güncelle
+            // Yeni kapanan adisyon en yeni tarihli oldugu icin liste basina ekle
+            _kapaliAdisyonlar.insert(0, updatedAdisyon);
             if (acikSayi != null && acikSayi!.isNotEmpty) {
               int currentAcik = int.tryParse(acikSayi!) ?? 0;
               if (currentAcik > 0) {
                 acikSayi = (currentAcik - 1).toString();
               }
             }
-            if (kapaliSayi != null && kapaliSayi!.isNotEmpty) {
-              int currentKapali = int.tryParse(kapaliSayi!) ?? 0;
-              kapaliSayi = (currentKapali + 1).toString();
-            }
+            int currentKapali = int.tryParse(kapaliSayi ?? '0') ?? 0;
+            kapaliSayi = (currentKapali + 1).toString();
           } else {
-            _acikAdisyonlar.add(updatedAdisyon);
+            // Hala acik: degisen tutarlarla guncelle, en uste tasi
+            _acikAdisyonlar.insert(0, updatedAdisyon);
           }
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Tahsilat işlemi tamamlandı'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tahsilat islemi tamamlandi'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
 
       } catch (e) {
-        // Hata durumunda tüm listeyi yenile
-        await fetchAdisyonlar(resetPage: true);
         await fetchAcikAdisyonlar(resetPage: true);
+        if (_kapaliFetched) {
+          await fetchAdisyonlar(resetPage: true);
+        }
       }
     }
     Widget _buildFilterBottomSheet() {
@@ -1436,7 +1474,7 @@
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
-                                  !_isLoading ? '${acikSayi}' : '',
+                                  _isLoading ? '' : (acikSayi ?? '0'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -1477,7 +1515,7 @@
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
-                                  !_isLoading ? '${kapaliSayi}' : '',
+                                  _isLoading ? '' : (kapaliSayi ?? '0'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,

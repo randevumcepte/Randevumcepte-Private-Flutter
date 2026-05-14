@@ -174,6 +174,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
 
   void _selectScreen(int index) {
     setState(() {
+      _isPageBuilt[index] = true;
       _selectedTab = index;
     });
   }
@@ -875,7 +876,20 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
           final scheme = Theme.of(context).colorScheme;
           return Scaffold(
         resizeToAvoidBottomInset: false,
-        body: _pages[_selectedTab],
+        body: Stack(
+          children: List.generate(_pages.length, (i) {
+            if (!_isPageBuilt[i] && _selectedTab != i) {
+              return const SizedBox.shrink();
+            }
+            return Offstage(
+              offstage: _selectedTab != i,
+              child: TickerMode(
+                enabled: _selectedTab == i,
+                child: _pages[i],
+              ),
+            );
+          }),
+        ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: GestureDetector(
           onTap: () {

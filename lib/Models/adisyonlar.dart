@@ -31,7 +31,8 @@
     required this.kalan_tutar,
     required this.kalan_tutar_numeric,
     required this.indirim_tutari_toplam_numeric,
-    required this.icerikKisaltilmis
+    required this.icerikKisaltilmis,
+    this.son_tahsilat_tarihi = '',
 
 
   });
@@ -65,6 +66,7 @@
   final String indirim_tutari_toplam_numeric;
   final String user_id;
   final String icerikKisaltilmis;
+  final String son_tahsilat_tarihi;
 
 
 
@@ -100,6 +102,7 @@
         indirim_tutari_toplam_numeric:json["indirim_tutari_toplam_numeric"].toString(),
       hizmet_veren:json["hizmet_veren"].toString(),
       user_id : json["user_id"].toString(),
+      son_tahsilat_tarihi: json["son_tahsilat_tarihi"]?.toString() ?? '',
 
 
     );
