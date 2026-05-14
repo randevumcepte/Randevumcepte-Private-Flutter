@@ -75,8 +75,10 @@ class _HomeState extends State<DashBoard> {
   String _perfPeriod = 'aylik';
 
   // Periyot bazlı API yanıt cache'i — anahtar 'gunluk', 'haftalik' vb.
-  // Backend endpoint canlı değilse boş kalır, UI mock fallback'e düşer.
   final Map<String, Map<String, dynamic>> _karsCache = {};
+
+  // Yüklenme durumu: hangi periyotlar için API hâlâ cevap bekliyor
+  final Set<String> _loadingPeriods = {};
 
   void _updateNotificationCount() {
     _refreshDashboardData();
@@ -249,6 +251,8 @@ class _HomeState extends State<DashBoard> {
                 _topPerformersCard(context),
                 const SizedBox(height: 12),
                 _hourlyDensityCard(context),
+                const SizedBox(height: 12),
+                _emptySlotOpportunitiesCard(context),
                 if (widget.kullanici.yetkili_olunan_isletmeler.length > 1) ...[
                   const SizedBox(height: 12),
                   _branchPerformanceCard(context),
@@ -1126,15 +1130,22 @@ class _HomeState extends State<DashBoard> {
     );
   }
 
-  // Backend'den karşılaştırma verisi yükle (cache + graceful fallback)
+  // Backend'den karşılaştırma verisi yükle (cache + loading state)
   Future<void> _loadKarsilastirma(String period) async {
     if (seciliisletme == null || seciliisletme!.isEmpty) return;
     if (_karsCache.containsKey(period)) return;
+    if (_loadingPeriods.contains(period)) return; // zaten yükleniyor
+    if (mounted) setState(() => _loadingPeriods.add(period));
     final data = await dashboardKarsilastirma(seciliisletme!, period);
-    if (data != null && mounted) {
-      setState(() => _karsCache[period] = data);
-    }
+    if (!mounted) return;
+    setState(() {
+      _loadingPeriods.remove(period);
+      if (data != null) _karsCache[period] = data;
+    });
   }
+
+  bool get _isLoadingCurrentPeriod => _loadingPeriods.contains(_perfPeriod);
+  bool get _hasRealDataCurrentPeriod => _karsCache.containsKey(_perfPeriod);
 
   void _onPeriodChange(String period) {
     setState(() => _perfPeriod = period);
@@ -1161,7 +1172,22 @@ class _HomeState extends State<DashBoard> {
             : series,
       };
     }
-    return _mockComparisonData();
+    // Gerçek veri yoksa boş döndür — UI loading veya empty state gösterir.
+    // (Mock fallback kaldırıldı — kullanıcı fake rakam görmesin)
+    final periodLabels = {
+      'gunluk': ['Bugün', 'Geçen Aynı Gün'],
+      'haftalik': ['Bu Hafta', 'Geçen Hafta'],
+      'aylik': ['Bu Ay', 'Geçen Ay'],
+      'yillik': ['Bu Yıl', 'Geçen Yıl'],
+    };
+    final labels = periodLabels[_perfPeriod] ?? ['', ''];
+    return {
+      'currentLabel': labels[0],
+      'previousLabel': labels[1],
+      'current': 0.0,
+      'previous': 0.0,
+      'series': <double>[0, 0, 0, 0, 0, 0, 0],
+    };
   }
 
   // Mock karşılaştırma — backend hazır değilse fallback
@@ -1222,6 +1248,11 @@ class _HomeState extends State<DashBoard> {
     final current = data['current'] as double;
     final prev = data['previous'] as double;
     final series = (data['series'] as List).cast<double>();
+    // 3 durum: yüklenir / gerçek veri / boş (gerçek 0)
+    final isLoading = _isLoadingCurrentPeriod && !_hasRealDataCurrentPeriod;
+    final isEmpty = !isLoading && _hasRealDataCurrentPeriod &&
+        current == 0 && prev == 0 &&
+        !series.any((v) => v > 0);
     final delta = prev > 0 ? ((current - prev) / prev * 100) : 0.0;
     final isUp = delta >= 0;
     final deltaColor = isUp ? ext.successColor : scheme.error;
@@ -1280,106 +1311,160 @@ class _HomeState extends State<DashBoard> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: deltaColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
+                  if (!isEmpty && !isLoading)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: deltaColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isUp
+                                ? Icons.trending_up_rounded
+                                : Icons.trending_down_rounded,
+                            color: deltaColor,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${isUp ? '+' : ''}${delta.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: deltaColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (isLoading)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Column(
                       children: [
-                        Icon(
-                          isUp
-                              ? Icons.trending_up_rounded
-                              : Icons.trending_down_rounded,
-                          color: deltaColor,
-                          size: 14,
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation(scheme.primary),
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 8),
                         Text(
-                          '${isUp ? '+' : ''}${delta.toStringAsFixed(1)}%',
+                          'Yükleniyor...',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: deltaColor,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface.withValues(alpha: 0.50),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
+                )
+              else if (isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Şu An',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: scheme.onSurface.withValues(alpha: 0.55),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.3,
-                          ),
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 32,
+                          color: scheme.onSurface.withValues(alpha: 0.30),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 8),
                         Text(
-                          '${_formatAmount(current)} ₺',
+                          'Bu ${data['currentLabel']?.toString().toLowerCase() ?? 'period'} için işlem yok',
                           style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: scheme.onSurface,
-                            letterSpacing: -0.4,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    width: 1,
-                    height: 36,
-                    color: scheme.onSurface.withValues(alpha: 0.08),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Önceki',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: scheme.onSurface.withValues(alpha: 0.55),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.3,
+                )
+              else ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Şu An',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: scheme.onSurface.withValues(alpha: 0.55),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${_formatAmount(prev)} ₺',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurface.withValues(alpha: 0.65),
-                            letterSpacing: -0.4,
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_formatAmount(current)} ₺',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurface,
+                              letterSpacing: -0.4,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 56,
-                child: _miniBars(series, deltaColor),
-              ),
+                    Container(
+                      width: 1,
+                      height: 36,
+                      color: scheme.onSurface.withValues(alpha: 0.08),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Önceki',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: scheme.onSurface.withValues(alpha: 0.55),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_formatAmount(prev)} ₺',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface.withValues(alpha: 0.65),
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 56,
+                  child: _miniBars(series, deltaColor),
+                ),
+              ],
             ],
           ),
         ),
@@ -1425,7 +1510,7 @@ class _HomeState extends State<DashBoard> {
     );
   }
 
-  // Top performers — backend gerçek veri varsa kullan, yoksa mock
+  // Top performers — gerçek API verisi, yoksa "veri yok" rows
   Widget _topPerformersCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
@@ -1433,29 +1518,33 @@ class _HomeState extends State<DashBoard> {
     final topP = real?['topPersonel'] as Map?;
     final topH = real?['topHizmet'] as Map?;
     final topU = real?['topUrun'] as Map?;
+    final isLoading = _isLoadingCurrentPeriod && !_hasRealDataCurrentPeriod;
     final List<Map<String, dynamic>> rows = [
       {
         'icon': Icons.person_rounded,
         'category': 'En İyi Personel',
-        'name': topP?['name']?.toString() ?? 'Ayşe Yılmaz',
+        'name': topP?['name']?.toString() ?? '—',
         'value': topP != null
             ? '₺ ${_formatAmount((topP['value'] as num? ?? 0).toDouble())}'
-            : '₺ 12.450',
+            : 'Veri yok',
         'tint': scheme.primary,
+        'isEmpty': topP == null,
       },
       {
         'icon': Icons.spa_rounded,
         'category': 'En Çok Satan Hizmet',
-        'name': topH?['name']?.toString() ?? 'Saç Bakımı',
-        'value': topH != null ? '${topH['count']} satış' : '47 satış',
+        'name': topH?['name']?.toString() ?? '—',
+        'value': topH != null ? '${topH['count']} satış' : 'Veri yok',
         'tint': ext.successColor,
+        'isEmpty': topH == null,
       },
       {
         'icon': Icons.shopping_bag_rounded,
         'category': 'En Çok Satan Ürün',
-        'name': topU?['name']?.toString() ?? 'Şampuan Premium',
-        'value': topU != null ? '${topU['count']} adet' : '23 adet',
+        'name': topU?['name']?.toString() ?? '—',
+        'value': topU != null ? '${topU['count']} adet' : 'Veri yok',
         'tint': ext.warningColor,
+        'isEmpty': topU == null,
       },
     ];
 
@@ -1497,6 +1586,34 @@ class _HomeState extends State<DashBoard> {
                   ],
                 ),
               ),
+              if (isLoading)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor:
+                                AlwaysStoppedAnimation(scheme.primary),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Yükleniyor...',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: scheme.onSurface.withValues(alpha: 0.50),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
               for (int i = 0; i < rows.length; i++) ...[
                 if (i > 0)
                   Divider(
@@ -1512,13 +1629,15 @@ class _HomeState extends State<DashBoard> {
                         height: 32,
                         decoration: BoxDecoration(
                           color: (rows[i]['tint'] as Color)
-                              .withValues(alpha: 0.14),
+                              .withValues(alpha: (rows[i]['isEmpty'] as bool) ? 0.06 : 0.14),
                           borderRadius: BorderRadius.circular(9),
                         ),
                         child: Icon(
                           rows[i]['icon'] as IconData,
                           size: 16,
-                          color: rows[i]['tint'] as Color,
+                          color: (rows[i]['isEmpty'] as bool)
+                              ? (rows[i]['tint'] as Color).withValues(alpha: 0.40)
+                              : rows[i]['tint'] as Color,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -1542,7 +1661,9 @@ class _HomeState extends State<DashBoard> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: scheme.onSurface,
+                                color: (rows[i]['isEmpty'] as bool)
+                                    ? scheme.onSurface.withValues(alpha: 0.40)
+                                    : scheme.onSurface,
                                 letterSpacing: -0.2,
                               ),
                               maxLines: 1,
@@ -1557,7 +1678,9 @@ class _HomeState extends State<DashBoard> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: rows[i]['tint'] as Color,
+                          color: (rows[i]['isEmpty'] as bool)
+                              ? scheme.onSurface.withValues(alpha: 0.40)
+                              : rows[i]['tint'] as Color,
                           letterSpacing: -0.1,
                         ),
                       ),
@@ -1572,21 +1695,66 @@ class _HomeState extends State<DashBoard> {
     );
   }
 
-  // Saat bazlı yoğunluk — 24 saatlik bar grafiği (backend hazırsa gerçek)
+  // Saat bazlı yoğunluk — salon çalışma saatlerine göre bar grafiği
+  // Renkler: prime=kırmızı (yoğun), busy=primary, low=primary açık, empty=yeşil (boşluk fırsatı)
   Widget _hourlyDensityCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final real = _karsCache[_perfPeriod];
-    final realHourly = (real?['hourlyDensity'] as List?)
-        ?.map((n) => (n as num).toDouble())
-        .toList();
-    final hours = realHourly ??
-        <double>[
-          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05,
-          0.45, 0.85, 0.72, 0.55, 0.62, 0.88, 0.70, 0.55, 0.62, 0.78,
-          0.95, 1.00, 0.85, 0.50, 0.10,
-        ];
-    final maxIdx = hours.indexWhere((v) => v == hours.reduce((a, b) => a > b ? a : b));
-    final peakHour = '$maxIdx:00';
+    final analysis = real?['hourlyAnalysis'] as Map?;
+
+    // Yeni format varsa onu, yoksa eski 24 saatlik fallback
+    final List<Map<String, dynamic>> hourEntries;
+    final int workStart;
+    final int workEnd;
+    final int? peakHour;
+    final bool hasData;
+
+    if (analysis != null && analysis['hours'] is List) {
+      final hs = (analysis['hours'] as List).cast<Map>();
+      hourEntries = hs.map((m) => m.cast<String, dynamic>()).toList();
+      workStart = (analysis['workStart'] as num?)?.toInt() ?? 9;
+      workEnd = (analysis['workEnd'] as num?)?.toInt() ?? 20;
+      peakHour = (analysis['peakHour'] as num?)?.toInt();
+      hasData = (analysis['hasData'] as bool?) ?? true;
+    } else {
+      // Fallback — eski hourlyDensity ya da mock
+      final realHourly = (real?['hourlyDensity'] as List?)
+          ?.map((n) => (n as num).toDouble())
+          .toList();
+      final hours = realHourly ??
+          <double>[
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05,
+            0.45, 0.85, 0.72, 0.55, 0.62, 0.88, 0.70, 0.55, 0.62, 0.78,
+            0.95, 1.00, 0.85, 0.50, 0.10,
+          ];
+      // 9-21 aralığına kırp (varsayılan çalışma)
+      workStart = 9;
+      workEnd = (hours.length < 22) ? hours.length : 22;
+      final maxIdx = hours.indexWhere(
+          (v) => v == hours.reduce((a, b) => a > b ? a : b));
+      peakHour = maxIdx;
+      hasData = realHourly != null;
+      hourEntries = [
+        for (int h = workStart; h < workEnd; h++)
+          {
+            'hour': h,
+            'count': 0,
+            'density': h < hours.length ? hours[h] : 0.0,
+            'level': () {
+              final v = h < hours.length ? hours[h] : 0.0;
+              if (v >= 0.70) return 'prime';
+              if (v >= 0.40) return 'busy';
+              if (v >= 0.15) return 'low';
+              return 'empty';
+            }(),
+          }
+      ];
+    }
+
+    final empty = hourEntries.isEmpty;
+    final peakLabel = peakHour != null && hasData
+        ? '${peakHour.toString().padLeft(2, '0')}:00'
+        : '—';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1631,7 +1799,7 @@ class _HomeState extends State<DashBoard> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      'Pik: $peakHour',
+                      'Pik: $peakLabel',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -1641,74 +1809,555 @@ class _HomeState extends State<DashBoard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 70,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: List.generate(hours.length, (i) {
-                    final v = hours[i];
-                    final isPeak = i == maxIdx;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1),
-                        child: FractionallySizedBox(
-                          heightFactor: v.clamp(0.04, 1.0),
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: isPeak
-                                    ? [
-                                        scheme.primary,
-                                        scheme.primary
-                                            .withValues(alpha: 0.65),
-                                      ]
-                                    : v > 0.6
-                                        ? [
-                                            scheme.primary
-                                                .withValues(alpha: 0.70),
-                                            scheme.primary
-                                                .withValues(alpha: 0.40),
-                                          ]
-                                        : [
-                                            scheme.primary
-                                                .withValues(alpha: 0.40),
-                                            scheme.primary
-                                                .withValues(alpha: 0.18),
-                                          ],
-                              ),
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(3)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+              const SizedBox(height: 4),
+              Text(
+                '${workStart.toString().padLeft(2, '0')}:00 – ${workEnd.toString().padLeft(2, '0')}:00 çalışma saatleri',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: scheme.onSurface.withValues(alpha: 0.50),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (final label in ['00', '06', '12', '18', '23'])
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: scheme.onSurface.withValues(alpha: 0.45),
-                        fontWeight: FontWeight.w600,
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 76,
+                child: empty
+                    ? Center(
+                        child: Text(
+                          'Bu dönemde randevu yok',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: scheme.onSurface.withValues(alpha: 0.45),
+                          ),
+                        ),
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: List.generate(hourEntries.length, (i) {
+                          final e = hourEntries[i];
+                          final v = (e['density'] as num).toDouble();
+                          final level = e['level'] as String? ?? 'empty';
+                          final colors = _hourlyBarColors(scheme, level);
+                          return Expanded(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 1.5),
+                              child: FractionallySizedBox(
+                                heightFactor: v.clamp(0.06, 1.0),
+                                alignment: Alignment.bottomCenter,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: colors,
+                                    ),
+                                    borderRadius:
+                                        const BorderRadius.vertical(
+                                            top: Radius.circular(4)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
                       ),
-                    ),
+              ),
+              const SizedBox(height: 6),
+              if (!empty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: _hourlyAxisLabels(workStart, workEnd)
+                      .map((label) => Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: scheme.onSurface.withValues(alpha: 0.45),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ))
+                      .toList(),
+                ),
+              const SizedBox(height: 10),
+              // Legend
+              Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                children: [
+                  _hourlyLegendDot(scheme, 'prime', 'Yoğun'),
+                  _hourlyLegendDot(scheme, 'busy', 'Orta'),
+                  _hourlyLegendDot(scheme, 'low', 'Düşük'),
+                  _hourlyLegendDot(scheme, 'empty', 'Boş'),
                 ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // Saat bar rengi — yoğunluk seviyesine göre
+  List<Color> _hourlyBarColors(ColorScheme scheme, String level) {
+    switch (level) {
+      case 'prime':
+        return const [Color(0xFFEF4444), Color(0xFFF87171)]; // kırmızı
+      case 'busy':
+        return [
+          scheme.primary,
+          scheme.primary.withValues(alpha: 0.65),
+        ];
+      case 'low':
+        return [
+          scheme.primary.withValues(alpha: 0.45),
+          scheme.primary.withValues(alpha: 0.22),
+        ];
+      case 'empty':
+      default:
+        return const [Color(0xFF22C55E), Color(0xFF86EFAC)]; // yeşil
+    }
+  }
+
+  Widget _hourlyLegendDot(ColorScheme scheme, String level, String label) {
+    final colors = _hourlyBarColors(scheme, level);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: colors.first,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurface.withValues(alpha: 0.65),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // X-ekseni için 4-5 etiket üret (workStart, ara noktalar, workEnd)
+  List<String> _hourlyAxisLabels(int start, int end) {
+    final span = end - start;
+    if (span <= 1) return ['$start:00'];
+    if (span <= 4) {
+      return [
+        for (int h = start; h <= end; h++) h.toString().padLeft(2, '0')
+      ];
+    }
+    final mid1 = start + (span / 3).round();
+    final mid2 = start + (2 * span / 3).round();
+    return [
+      start.toString().padLeft(2, '0'),
+      mid1.toString().padLeft(2, '0'),
+      mid2.toString().padLeft(2, '0'),
+      end.toString().padLeft(2, '0'),
+    ];
+  }
+
+  // Boşluk Fırsatları — indirim kampanyası önerisi kartı
+  Widget _emptySlotOpportunitiesCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final real = _karsCache[_perfPeriod];
+    final analysis = real?['hourlyAnalysis'] as Map?;
+    if (analysis == null) return const SizedBox.shrink();
+    final gapsList = analysis['gaps'] as List?;
+    if (gapsList == null || gapsList.isEmpty) return const SizedBox.shrink();
+
+    final gaps = gapsList.cast<Map>().map((m) => m.cast<String, dynamic>()).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.lightbulb_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Boşluk Doldurma Önerisi',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          'Boş saatleri indirim kampanyasıyla doldurun',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              for (int i = 0; i < gaps.length; i++) ...[
+                _gapOpportunityTile(context, gaps[i]),
+                if (i < gaps.length - 1) const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _gapOpportunityTile(BuildContext context, Map<String, dynamic> gap) {
+    final scheme = Theme.of(context).colorScheme;
+    final key = gap['key'] as String? ?? 'morning';
+    final label = gap['label'] as String? ?? 'Saatler';
+    final start = (gap['start'] as num?)?.toInt() ?? 0;
+    final end = (gap['end'] as num?)?.toInt() ?? 0;
+    final avg = ((gap['avgDensity'] as num?)?.toDouble() ?? 0) * 100;
+    final disc = (gap['suggestedDiscount'] as num?)?.toInt() ?? 0;
+    final severity = gap['severity'] as String? ?? '';
+
+    IconData icon;
+    List<Color> grad;
+    switch (key) {
+      case 'morning':
+        icon = Icons.wb_twilight_rounded;
+        grad = const [Color(0xFFFDE68A), Color(0xFFFCD34D)];
+        break;
+      case 'afternoon':
+        icon = Icons.wb_sunny_rounded;
+        grad = const [Color(0xFFFED7AA), Color(0xFFFB923C)];
+        break;
+      case 'evening':
+      default:
+        icon = Icons.nightlight_round;
+        grad = const [Color(0xFFDDD6FE), Color(0xFF8B5CF6)];
+        break;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: scheme.outline.withValues(alpha: 0.12),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: grad),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$label  •  ${start.toString().padLeft(2, '0')}:00-${end.toString().padLeft(2, '0')}:00',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Ortalama doluluk: %${avg.toStringAsFixed(0)}  •  $severity',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '%$disc indirim',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showGapDetailDialog(context, gap),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: scheme.primary,
+                    side: BorderSide(
+                      color: scheme.primary.withValues(alpha: 0.30),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.info_outline_rounded, size: 14),
+                  label: const Text(
+                    'Detay',
+                    style: TextStyle(
+                        fontSize: 11.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _showGapDetailDialog(context, gap),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.campaign_rounded, size: 14),
+                  label: const Text(
+                    'Kampanya Hazırla',
+                    style: TextStyle(
+                        fontSize: 11.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showGapDetailDialog(BuildContext context, Map<String, dynamic> gap) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = gap['label'] as String? ?? 'Saatler';
+    final start = (gap['start'] as num?)?.toInt() ?? 0;
+    final end = (gap['end'] as num?)?.toInt() ?? 0;
+    final avg = ((gap['avgDensity'] as num?)?.toDouble() ?? 0) * 100;
+    final disc = (gap['suggestedDiscount'] as num?)?.toInt() ?? 0;
+    final msg = gap['message'] as String? ?? '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.lightbulb_rounded,
+                        size: 20, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '$label Boşluk Önerisi',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _dialogInfoRow(
+                context,
+                Icons.schedule_rounded,
+                'Saat aralığı',
+                '${start.toString().padLeft(2, '0')}:00 – ${end.toString().padLeft(2, '0')}:00',
+              ),
+              const SizedBox(height: 10),
+              _dialogInfoRow(
+                context,
+                Icons.show_chart_rounded,
+                'Ortalama doluluk',
+                '%${avg.toStringAsFixed(0)}',
+              ),
+              const SizedBox(height: 10),
+              _dialogInfoRow(
+                context,
+                Icons.local_offer_rounded,
+                'Önerilen indirim',
+                '%$disc',
+                valueColor: const Color(0xFF16A34A),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  msg,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: scheme.onSurface.withValues(alpha: 0.75),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Kapat'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                '$label saatleri için %$disc indirimli kampanya yakında!'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: scheme.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Kampanya Hazırla'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dialogInfoRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: scheme.onSurface.withValues(alpha: 0.55)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface.withValues(alpha: 0.65),
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w800,
+            color: valueColor ?? scheme.onSurface,
+          ),
+        ),
+      ],
     );
   }
 
