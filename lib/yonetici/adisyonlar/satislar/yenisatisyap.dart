@@ -1538,6 +1538,359 @@ class _SatisEkraniState extends State<SatisEkrani> {
     );
   }
 
+  // Hızlı Tahsilat Bottom Sheet — yeni satıştan direkt tahsilat
+  Future<void> _acHizliTahsilatBottomSheet() async {
+    if (secilimusteridanisan == null) {
+      _showUyariDialog('Devam etmek için önce müşteri seçiniz.');
+      return;
+    }
+    if (adisyonkalemleri.isEmpty) {
+      _showUyariDialog('Tahsilat için önce hizmet, ürün veya paket ekleyiniz.');
+      return;
+    }
+
+    final double toplamTahsilat = tlyirakamacevir(tahsilat_tutari.text);
+    final TextEditingController tutarCtrl = TextEditingController(text: tryformat.format(toplamTahsilat));
+    OdemeTuru secilenYontem = odemeyontem.first; // Default Nakit
+    bool taksitMode = false;
+    final TextEditingController taksitSayisiCtrl = TextEditingController(text: '2');
+    final TextEditingController taksitTarihCtrl = TextEditingController(text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext sheetCtx) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+          child: StatefulBuilder(
+            builder: (BuildContext sbCtx, StateSetter setSheet) {
+              final double tahsilEdilen = tlyirakamacevir(tutarCtrl.text);
+              final double kalan = (toplamTahsilat - tahsilEdilen).clamp(0, double.infinity);
+              final bool tamTahsilat = kalan <= 0.005;
+
+              Widget yontemChip(OdemeTuru y, IconData ico) {
+                final bool sel = secilenYontem.id == y.id;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setSheet(() => secilenYontem = y),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: sel ? _primaryColor : _surfaceColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: sel ? _primaryColor : _borderColor, width: 1.4),
+                        boxShadow: sel ? [
+                          BoxShadow(color: _primaryColor.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3)),
+                        ] : null,
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(ico, color: sel ? Colors.white : _textLightColor, size: 22),
+                          const SizedBox(height: 6),
+                          Text(y.odeme_turu, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: sel ? Colors.white : _textColor)),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8F9FF),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Drag handle
+                        Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: _borderColor, borderRadius: BorderRadius.circular(2)))),
+                        const SizedBox(height: 14),
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              width: 42, height: 42,
+                              decoration: BoxDecoration(gradient: _primaryGradient, borderRadius: BorderRadius.circular(12)),
+                              child: const Icon(Icons.payments_rounded, color: Colors.white, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Hızlı Tahsilat', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _textColor)),
+                                Text(musteridanisanadi.text, style: TextStyle(fontSize: 12, color: _textLightColor)),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Toplam tutar kartı
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: _primaryGradient,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [BoxShadow(color: _primaryColor.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Toplam Tutar', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 4),
+                              Text('${tryformat.format(toplamTahsilat)} ₺', style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 4),
+                              Text('${adisyonkalemleri.length} kalem', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        // Ödeme yöntemi
+                        Text('Ödeme Yöntemi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _textLightColor, letterSpacing: 0.3)),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            yontemChip(odemeyontem[0], Icons.payments_outlined),
+                            yontemChip(odemeyontem[1], Icons.credit_card_rounded),
+                            yontemChip(odemeyontem[2], Icons.account_balance_rounded),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        // Tahsil edilen tutar
+                        Text('Tahsil Edilen Tutar (₺)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _textLightColor, letterSpacing: 0.3)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: tutarCtrl,
+                          keyboardType: TextInputType.phone,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _textColor),
+                          onChanged: (_) => setSheet(() {}),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            filled: true,
+                            fillColor: _surfaceColor,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _borderColor, width: 1.2), borderRadius: BorderRadius.circular(14)),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _primaryColor, width: 1.6), borderRadius: BorderRadius.circular(14)),
+                            suffixIcon: TextButton(
+                              onPressed: () => setSheet(() => tutarCtrl.text = tryformat.format(toplamTahsilat)),
+                              child: Text('TAMAMI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _primaryColor)),
+                            ),
+                          ),
+                        ),
+                        // Kalan + Taksit toggle (sadece kısmi ödeme varsa görünür)
+                        if (!tamTahsilat) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _warningColor.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _warningColor.withValues(alpha: 0.3), width: 1),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline_rounded, color: _warningColor, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Kalan: ${tryformat.format(kalan)} ₺', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _textColor)),
+                                      Text('Kalan tutar için taksit oluşturulması gerekiyor', style: TextStyle(fontSize: 11, color: _textLightColor)),
+                                    ],
+                                  ),
+                                ),
+                                Switch.adaptive(
+                                  value: taksitMode,
+                                  activeColor: _primaryColor,
+                                  onChanged: (v) => setSheet(() => taksitMode = v),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (taksitMode) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Taksit Sayısı', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textLightColor)),
+                                      const SizedBox(height: 6),
+                                      TextFormField(
+                                        controller: taksitSayisiCtrl,
+                                        keyboardType: TextInputType.number,
+                                        style: TextStyle(fontSize: 14, color: _textColor),
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          filled: true,
+                                          fillColor: _surfaceColor,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _borderColor, width: 1.2), borderRadius: BorderRadius.circular(12)),
+                                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _primaryColor, width: 1.6), borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('İlk Vade Tarihi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textLightColor)),
+                                      const SizedBox(height: 6),
+                                      TextFormField(
+                                        controller: taksitTarihCtrl,
+                                        readOnly: true,
+                                        style: TextStyle(fontSize: 13, color: _textColor),
+                                        onTap: () async {
+                                          DateTime? p = await showDatePicker(
+                                            context: sbCtx,
+                                            initialDate: DateTime.now().add(const Duration(days: 30)),
+                                            firstDate: DateTime.now(),
+                                            lastDate: DateTime(2100),
+                                          );
+                                          if (p != null) {
+                                            setSheet(() => taksitTarihCtrl.text = DateFormat('yyyy-MM-dd').format(p));
+                                          }
+                                        },
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          filled: true,
+                                          fillColor: _surfaceColor,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                          suffixIcon: Icon(Icons.calendar_today_rounded, size: 16, color: _primaryColor),
+                                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _borderColor, width: 1.2), borderRadius: BorderRadius.circular(12)),
+                                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _primaryColor, width: 1.6), borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                        const SizedBox(height: 22),
+                        // Submit button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              if (tahsilEdilen <= 0 && !taksitMode) {
+                                ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                                  SnackBar(content: const Text('Tahsil edilen tutar 0\'dan büyük olmalıdır.'), backgroundColor: _errorColor),
+                                );
+                                return;
+                              }
+                              if (!tamTahsilat && !taksitMode) {
+                                ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                                  SnackBar(content: const Text('Kalan tutar için taksit oluşturmanız veya tamamını tahsil etmeniz gerekir.'), backgroundColor: _errorColor),
+                                );
+                                return;
+                              }
+
+                              // Update main screen controllers to match what we're sending
+                              selectedodemeyontemi = secilenYontem;
+                              odenecek_tutar.text = tutarCtrl.text;
+
+                              if (tamTahsilat) {
+                                // Full payment → tahsilet (kapalı satış)
+                                try {
+                                  await tahsilet(
+                                    context,
+                                    seciliisletme,
+                                    adisyonkalemleri,
+                                    "1",
+                                    taksitTarihCtrl.text,
+                                    "0,00",
+                                    secilimusteridanisan?.id ?? "",
+                                    toplamindirimtutari.text,
+                                    secilenYontem.id,
+                                    tutarCtrl.text,
+                                    tahsilat_tarihi.text,
+                                    "",
+                                    harici_indirim.text,
+                                  );
+                                  if (!mounted) return;
+                                  Navigator.of(sheetCtx).pop();
+                                  Navigator.of(context).pop({'refresh': true});
+                                } catch (e) {
+                                  // tahsilet already shows snackbar on error
+                                }
+                              } else {
+                                // Partial + taksit → taksitekleguncelle (açık satış)
+                                final int? tn = int.tryParse(taksitSayisiCtrl.text.trim());
+                                if (tn == null || tn < 1) {
+                                  ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                                    SnackBar(content: const Text('Taksit sayısı en az 1 olmalıdır.'), backgroundColor: _errorColor),
+                                  );
+                                  return;
+                                }
+                                final int result = await taksitekleguncelle(
+                                  context,
+                                  seciliisletme,
+                                  adisyonkalemleri,
+                                  taksitSayisiCtrl.text,
+                                  taksitTarihCtrl.text,
+                                  tryformat.format(kalan),
+                                  secilimusteridanisan?.id ?? "",
+                                  toplamindirimtutari.text,
+                                  secilenYontem.id,
+                                  tutarCtrl.text,
+                                  tahsilat_tarihi.text,
+                                  "",
+                                  harici_indirim.text,
+                                );
+                                if (!mounted) return;
+                                if (result == 200) {
+                                  Navigator.of(sheetCtx).pop();
+                                  Navigator.of(context).pop({'refresh': true});
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: const Text('Satış kaydedildi ve taksitlendirildi.'), backgroundColor: Color(0xFF2E7D32)),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                                    SnackBar(content: Text('Hata: $result'), backgroundColor: _errorColor),
+                                  );
+                                }
+                              }
+                            },
+                            icon: Icon(tamTahsilat ? Icons.check_circle_rounded : Icons.timeline_rounded, size: 22),
+                            label: Text(
+                              tamTahsilat ? 'TAM TAHSİL ET' : (taksitMode ? 'TAKSİTLİ TAHSİL ET' : 'TAHSİL ET'),
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: tamTahsilat ? const Color(0xFF2E7D32) : _primaryColor,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
@@ -1565,28 +1918,26 @@ class _SatisEkraniState extends State<SatisEkrani> {
         child: ElevatedButton(
           onPressed: adisyonkalemleri.isEmpty
               ? null
-              : () {
-            // AdisyonlarPage'ye git
-            Navigator.pop(context, {'refresh': true});          },
+              : () => _acHizliTahsilatBottomSheet(),
           style: ElevatedButton.styleFrom(
             backgroundColor: adisyonkalemleri.isEmpty
-                ? _textLightColor.withOpacity(0.3)
-                : _primaryColor,
+                ? _textLightColor.withValues(alpha: 0.3)
+                : const Color(0xFF2E7D32),
             foregroundColor: Colors.white,
-            minimumSize: Size(double.infinity, 56),
+            minimumSize: const Size(double.infinity, 56),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
             elevation: 4,
-            shadowColor: _primaryColor.withOpacity(0.3),
+            shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.3),
           ),
-          child: Row(
+          child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.save_rounded, size: 22),
+              Icon(Icons.payments_rounded, size: 22),
               SizedBox(width: 10),
               Text(
-                'KAYDET',
+                'TAHSİL ET',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

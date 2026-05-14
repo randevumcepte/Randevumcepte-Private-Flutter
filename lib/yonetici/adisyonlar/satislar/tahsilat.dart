@@ -584,16 +584,20 @@ class _TahsilatState extends State<TahsilatEkrani> {
     double height = MediaQuery.of(context).size.height;
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: const Color(0xFFF7F5FB),
       //floatingActionButton:  AltYuvarlakYeniEkleMenu(isletme_bilgi: widget.isletmebilgi,),
 
       appBar: AppBar(
-        title:  const Text('Tahsilatlar',style: TextStyle(color: Colors.black),),
-
+        title:  const Text('Tahsilatlar',style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 19),),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon: const Icon(Icons.clear_rounded, color: Color(0xFF1A1A1A)),
           onPressed: () => Navigator.of(context).pop(),
         ),
         toolbarHeight: 60,
+        shape: const Border(bottom: BorderSide(color: Color(0xFFEDE7F2), width: 1)),
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
             Padding(
@@ -604,8 +608,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
               ),
             ),
           IconButton(
-            icon: Icon(Icons.add, color: Colors.black),
-            iconSize: 26,
+            icon: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF6A1B9A)),
+            iconSize: 24,
+            tooltip: 'Yeni müşteri',
             onPressed: ()  async{
               final MusteriDanisan yenimusteridanisan =  await Navigator.push(
                 context,
@@ -642,182 +647,247 @@ class _TahsilatState extends State<TahsilatEkrani> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20,),
+            const SizedBox(height: 16,),
             widget.adisyonId == '' ?
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                    width: width*0.6,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 20.0),
-                          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                        ),
-                        SizedBox(height: 10,),
-                        Container(
-                          alignment: Alignment.center,
-                          margin: EdgeInsets.only(left: 20, right: 20),
-                          height: 50,
-                          width: width*0.6,
-                          child: LazyDropdown(
-                            key: dropdownKey,
-                            salonId: seciliisletme??'',
-                            selectedItem: secilimusteridanisan,
-                            onChanged: (value) {
-                              secilimusteridanisan = value;
-                              loadbar(value!);
-                            },
-                          ),
-                        )
-
-
-                      ],
-                    )),
-                Container(
-                  width: width*0.2,
-                  child:   Column(
-
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-
-                      SizedBox(height: 30,),
-
-                      ElevatedButton(onPressed: () async{
-
-                        final MusteriDanisan yenimusteridanisan =  await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => Yenimusteri(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
-                        );
-                        if(yenimusteridanisan != null)
-                          setState(() {
-                            musteridanisanlar.add(yenimusteridanisan);
-                          });
-                      },
-                        child: Text('Yeni Ekle',style:TextStyle(fontSize: 12)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple[800],
-                          foregroundColor: Colors.white,
-                          minimumSize: Size(100, 30),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-
-
-
-                        ),
-                      ),
-                    ],
-                  ),)
-              ],
-            ) : SizedBox(),
-            SizedBox(height: 10),
-            secilimusteridanisan != null ? Container(
-
-
-              margin: EdgeInsets.only(left:20.0,right:20),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               decoration: BoxDecoration(
-                color: Colors.white, // Set container background color
-                border: Border.all(
-                  color: Color(0XFFE0E0E0),
-                  width: 1.2,
-                ),
-                borderRadius: BorderRadius.circular(20.0),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.15),
-                    spreadRadius: 5,
-                    blurRadius: 7,
-                    offset: Offset(0,3), // changes position of shadow
+                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
                   ),
                 ],
-
               ),
-
-              child:  Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-
-                children:[
-
-                  Text(musteridanisanadi.text, style: TextStyle(color: Colors.black,fontSize: 18,fontWeight: FontWeight.bold),),
-                  Container( padding: EdgeInsets.only(left: 20),
-                    child: ElevatedButton(
-                      onPressed: (){},
-                      child:
-                      Text(aktifsadikpasif.text ,style: TextStyle(fontSize: 15),),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: aktifPasifRenk,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0)
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 7,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF6A1B9A)),
+                              SizedBox(width: 6),
+                              Text('Müşteri',style: TextStyle(fontSize: 14,color: Color(0xFF1A1A1A),fontWeight: FontWeight.w700),),
+                            ],
                           ),
-                          minimumSize: Size(80, 30)
-                      ),
-                    ),),
-
+                          const SizedBox(height: 10,),
+                          Container(
+                            alignment: Alignment.center,
+                            height: 48,
+                            child: LazyDropdown(
+                              key: dropdownKey,
+                              salonId: seciliisletme,
+                              selectedItem: secilimusteridanisan,
+                              onChanged: (value) {
+                                secilimusteridanisan = value;
+                                loadbar(value!);
+                              },
+                            ),
+                          )
+                        ],
+                      )),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 28,),
+                        ElevatedButton.icon(
+                          onPressed: () async{
+                            final MusteriDanisan yenimusteridanisan =  await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Yenimusteri(kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi,isim:"",telefon:"",sadeceekranikapat: true,)),
+                            );
+                            if(yenimusteridanisan != null)
+                              setState(() {
+                                musteridanisanlar.add(yenimusteridanisan);
+                              });
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text('Yeni',style:TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6A1B9A),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+                          ),
+                        ),
+                      ],
+                    ),)
                 ],
-              ) ,
-            ) : SizedBox.shrink(),
-            SizedBox(height: 10,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                SizedBox(width: 10,),
-                ElevatedButton(onPressed: (){
-                  hizmetsatisi(null);
-                },
-                  child: Text('Hizmet Ekle',style: TextStyle(fontSize: 12),),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF9C27B0),
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(90, 30),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-
+              ),
+            ) : const SizedBox(),
+            const SizedBox(height: 12),
+            secilimusteridanisan != null ? Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
+                borderRadius: BorderRadius.circular(18.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                SizedBox(width: 5,),
-                ElevatedButton(onPressed: (){urunsatisi(null);},
-                  child: Text('Ürün Ekle',style:TextStyle(fontSize:12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFEA80FC),
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(95, 30),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children:[
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: (aktifPasifRenk ?? const Color(0xFF6A1B9A)).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(Icons.person_rounded, color: aktifPasifRenk ?? const Color(0xFF6A1B9A), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            musteridanisanadi.text,
+                            style: const TextStyle(color: Color(0xFF1A1A1A),fontSize: 16,fontWeight: FontWeight.w700),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(width: 5,),
-                ElevatedButton(onPressed: (){paketsatisi(null);},
-                  child: Text('Paket Ekle',style:TextStyle(fontSize:12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:  Color(0xFF1976D2),
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(95, 30),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-
-
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (aktifPasifRenk ?? const Color(0xFF6A1B9A)).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: (aktifPasifRenk ?? const Color(0xFF6A1B9A)).withValues(alpha: 0.25), width: 1),
+                    ),
+                    child: Text(
+                      aktifsadikpasif.text,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: aktifPasifRenk ?? const Color(0xFF6A1B9A),
+                      ),
+                    ),
                   ),
-                ),
-                SizedBox(width: 15,),
-
-
-              ],
+                ],
+              ),
+            ) : const SizedBox.shrink(),
+            const SizedBox(height: 14,),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (){ hizmetsatisi(null); },
+                      icon: const Icon(Icons.spa_rounded, size: 16),
+                      label: const Text('Hizmet', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF9C27B0),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
+                        minimumSize: const Size(0, 42),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (){ urunsatisi(null); },
+                      icon: const Icon(Icons.shopping_bag_rounded, size: 16),
+                      label: const Text('Ürün', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEA80FC),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
+                        minimumSize: const Size(0, 42),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (){ paketsatisi(null); },
+                      icon: const Icon(Icons.inventory_2_rounded, size: 16),
+                      label: const Text('Paket', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1976D2),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
+                        minimumSize: const Size(0, 42),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            SizedBox(height: 5,),
+            const SizedBox(height: 12,),
             Container(
-              margin: EdgeInsets.only(left: 10,right: 10),
-              child: SingleChildScrollView(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: SingleChildScrollView(
                 scrollDirection: Axis.vertical,
                 child: Container(
 
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      kalemleryukleniyor ? Center(child: CircularProgressIndicator(),) : ListView.builder(
+                      kalemleryukleniyor ? const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(),)) : (adisyonkalemleri.isEmpty ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.receipt_long_rounded, size: 40, color: const Color(0xFF6A1B9A).withValues(alpha: 0.35)),
+                              const SizedBox(height: 10),
+                              Text('Henüz kalem eklenmedi', style: TextStyle(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 4),
+                              Text('Yukarıdan hizmet, ürün veya paket ekleyin', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ) : ListView.builder(
                           scrollDirection: Axis.vertical,
                           shrinkWrap: true,
-
+                          physics: const NeverScrollableScrollPhysics(),
                           itemCount: adisyonkalemleri.length,
                           itemBuilder: (context,index){
                             final item = adisyonkalemleri[index];
@@ -893,6 +963,14 @@ class _TahsilatState extends State<TahsilatEkrani> {
                               tutar = tryformat.format(double.parse(item.tutar));
                             }
 
+                            IconData typeIcon = Icons.receipt_long_rounded;
+                            Color typeColor = const Color(0xFF6A1B9A);
+                            if (item is AdisyonHizmet) { typeIcon = Icons.spa_rounded; typeColor = const Color(0xFF9C27B0); }
+                            else if (item is AdisyonUrun) { typeIcon = Icons.shopping_bag_rounded; typeColor = const Color(0xFFEA80FC); }
+                            else if (item is AdisyonPaket) { typeIcon = Icons.inventory_2_rounded; typeColor = const Color(0xFF1976D2); }
+                            else if (item is SenetVade) { typeIcon = Icons.description_rounded; typeColor = const Color(0xFFFF7043); }
+                            else if (item is TaksitVade) { typeIcon = Icons.event_note_rounded; typeColor = const Color(0xFF26A69A); }
+
                             return
                               GestureDetector(
                                 onTap: (){
@@ -909,23 +987,23 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                 },
 
                                 child: Dismissible(
-                                    dismissThresholds: {
+                                    dismissThresholds: const {
                                       DismissDirection.startToEnd: 0.5,
                                       DismissDirection.endToStart: 0.5
                                     },
                                     direction: DismissDirection.horizontal,
                                     key: Key(key ),
                                     background: Container(
-                                      color: Colors.green,
+                                      color: const Color(0xFF4CAF50),
                                       alignment: Alignment.centerLeft,
-                                      padding: EdgeInsets.only(left: 20),
-                                      child: Icon(Icons.edit, color: Colors.white),
+                                      padding: const EdgeInsets.only(left: 20),
+                                      child: const Icon(Icons.edit_rounded, color: Colors.white),
                                     ),
                                     secondaryBackground: Container(
-                                      color: Colors.red,
+                                      color: const Color(0xFFE53935),
                                       alignment: Alignment.centerRight,
-                                      padding: EdgeInsets.only(right: 20),
-                                      child: Icon(Icons.delete, color: Colors.white),
+                                      padding: const EdgeInsets.only(right: 20),
+                                      child: const Icon(Icons.delete_rounded, color: Colors.white),
                                     ),
                                     confirmDismiss: ( direction) async {
                                       return await showDialog(
@@ -997,15 +1075,46 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                     },
 
                                     child : Container(
-                                      decoration: BoxDecoration(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
                                         border: Border(
-                                          bottom: BorderSide(color: Colors.grey, width: 1.0),
+                                          bottom: BorderSide(color: Color(0xFFF1ECF6), width: 1.0),
                                         ),
                                       ),
-                                      child:  ListTile(
-                                        title: Text(kalem),
-                                        subtitle: Text(satan),
-                                        trailing: Text(adet + ' Adet\n'+tutar+" ₺", textAlign: TextAlign.right),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 38,
+                                            height: 38,
+                                            decoration: BoxDecoration(
+                                              color: typeColor.withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(11),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Icon(typeIcon, color: typeColor, size: 19),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(kalem, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                                const SizedBox(height: 2),
+                                                Text(satan, style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text('$tutar ₺', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
+                                              const SizedBox(height: 2),
+                                              Text('$adet adet', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     )
                                 ),
@@ -1013,14 +1122,31 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
 
 
-                          }),
+                          })),
 
                     ],
                   ),
                 ),
               ),
+              ),
             ),
-            SizedBox(height: 10,),
+            const SizedBox(height: 12,),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child:
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1029,19 +1155,16 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
 
-
-
-
-
                       Container(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Tarih',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Tarih',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
                         height: 40,
-                        padding: EdgeInsets.only(left:20,right: 20),
+                        padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
+                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
                           controller: tahsilat_tarihi,
                           //editing controller of this TextField
                           decoration: InputDecoration(
@@ -1050,13 +1173,15 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             hoverColor: Color(0xFF6A1B9A) ,
                             hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
                             contentPadding:  EdgeInsets.all(0.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                            OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
+                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                           readOnly: true,
                           //set it true, so that user will not able to edit text
@@ -1084,18 +1209,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           },
                         ),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Birim Tutar(₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Birim Tutar(₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
                         height: 40,
-
-                        padding: EdgeInsets.only(left:20,right: 20),
+                        padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-
+                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
                           keyboardType: TextInputType.phone,
                           enabled: false,
                           controller: birim_tutar,
@@ -1111,28 +1235,32 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             filled: true,
                             fillColor: Colors.white,
                             hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                            OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
+                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
 
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Müşteri İndirimi (%)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Müşteri İndirimi (%)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
                         height:40,
-                        padding: EdgeInsets.only(left:20,right: 20),
+                        padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
+                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
                           enabled: false,
                           keyboardType: TextInputType.phone,
                           controller:musteri_sabit_indirim,
@@ -1144,29 +1272,33 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             focusColor:Color(0xFF6A1B9A) ,
                             hoverColor: Color(0xFF6A1B9A) ,
                             hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                            OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
+                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
 
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('İndirim (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('İndirim (₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
 
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
                         height:40,
-                        padding: EdgeInsets.only(left:20,right: 20),
+                        padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
+                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
 
                           controller: harici_indirim,
                           keyboardType: TextInputType.phone,
@@ -1184,14 +1316,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             focusColor:Color(0xFF6A1B9A) ,
                             hoverColor: Color(0xFF6A1B9A) ,
                             hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                            OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
+                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
@@ -1208,23 +1343,19 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Ödeme Yöntemi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Ödeme Yöntemi',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
-
                         alignment: Alignment.center,
-                        margin: EdgeInsets.only(left:20,right: 20),
+                        margin: const EdgeInsets.only(left:8,right: 8),
                         height: 40,
                         width:double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          border: Border.all(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10), //border corner radius
-
-                          //you can set more BoxShadow() here
-
+                          border: Border.all(color: const Color(0xFFE5DCEC), width: 1.2),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: DropdownButtonHideUnderline(
 
@@ -1311,16 +1442,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             )),
                       ),
 
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Ödenecek Tutar(₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Ödenecek Tutar(₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
                         height: 40,
-                        padding: EdgeInsets.only(left:20,right: 20),
+                        padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
+                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
 
                           controller: odenecek_tutar,
                           keyboardType: TextInputType.phone,
@@ -1338,27 +1470,31 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             fillColor: Colors.white,
                             hoverColor: Color(0xFF6A1B9A) ,
                             hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                            OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
+                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Kalan Alacak Tutarı(₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Kalan Alacak Tutarı(₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 6,),
                       Container(
                         height: 40,
-                        padding: EdgeInsets.only(left:20,right: 20),
+                        padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
+                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
                           enabled: false,
                           keyboardType: TextInputType.phone,
                           controller: kalan_alacak_tutar,
@@ -1375,14 +1511,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             fillColor: Colors.white,
                             hoverColor: Color(0xFF6A1B9A) ,
                             hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
+                            OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
+                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
+                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
@@ -1394,257 +1533,358 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
               ],
             ),
-            SizedBox(height: 10,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            ),
+            const SizedBox(height: 14,),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton(onPressed: (){
-                  alacaklarigoster(context);
-
-                },
-                  child: Text('Alacaklar'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(110, 30),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: (){
+                      alacaklarigoster(context);
+                    },
+                    icon: const Icon(Icons.account_balance_wallet_rounded, size: 16),
+                    label: const Text('Alacaklar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                      minimumSize: const Size(0, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+                    ),
                   ),
                 ),
-                ElevatedButton(
-
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                  icon: const Icon(Icons.timeline_rounded, size: 16),
+                  label: const Text('Taksit Yap', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   onPressed: (){
-                    if(kalan_alacak_tutar.text=="" || kalan_alacak_tutar.text=="0,00")
+                    if(secilimusteridanisan == null){
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                          title: const Text('UYARI'),
+                          content: const Text('Devam etmek için önce müşteri seçiniz veya ekleyiniz.'),
+                          actions: [TextButton(child: const Text('Kapat'), onPressed: () => Navigator.of(context).pop())],
+                        ),
+                      );
+                      return;
+                    }
+                    if(adisyonkalemleri.isEmpty){
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                          title: const Text('UYARI'),
+                          content: const Text('Taksit yapmak için önce hizmet, ürün veya paket eklemelisiniz.'),
+                          actions: [TextButton(child: const Text('Kapat'), onPressed: () => Navigator.of(context).pop())],
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Modal açılırken kalan ödeme tutarı = tahsilat tutarı (indirimler düşüldükten sonra)
+                    final double toplamTahsilat = tlyirakamacevir(tahsilat_tutari.text);
+                    taksit_toplam_tutar.text = tryformat.format(toplamTahsilat);
+                    final TextEditingController onOdemeTutariCtrl = TextEditingController(text: '0,00');
+                    OdemeTuru? secilenOnOdemeTuru;
                     {
                       showDialog(
                         context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('UYARI'),
-                            content: Text('Taksit yapmadan önce lütfen kalan alacak tutarının belirli olması ve ödenecek tutarın indirimler dahil toplam tahsilat tutarından daha az olması gereklidir. Eğer kısmi ödeme yapılmadan tüm tutar üzerinden taksit yapılacaksa ödenecek tutarı 0 giriniz.'),
-                            actions: <Widget>[
-                              TextButton(
-                                child: Text('Kapat'),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                            ],
+                        builder: (BuildContext dialogContext) {
+                          return StatefulBuilder(
+                            builder: (BuildContext sbContext, StateSetter setStateDialog) {
+                              return AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                                contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                                title: Row(
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF6A1B9A).withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.timeline_rounded, size: 18, color: Color(0xFF6A1B9A)),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Expanded(
+                                      child: Text('Yeni Taksitli Tahsilat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
+                                    ),
+                                  ],
+                                ),
+                                content: SizedBox(
+                                  width: MediaQuery.of(dialogContext).size.width * 0.92,
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        // Ön Ödeme Tutarı
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                          child: Text('Ön Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                        ),
+                                        SizedBox(
+                                          height: 42,
+                                          child: TextFormField(
+                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            controller: onOdemeTutariCtrl,
+                                            keyboardType: TextInputType.phone,
+                                            onChanged: (value) {
+                                              final double on = tlyirakamacevir(value);
+                                              final double kalan = (toplamTahsilat - on).clamp(0, double.infinity);
+                                              setStateDialog(() {
+                                                taksit_toplam_tutar.text = tryformat.format(kalan);
+                                              });
+                                            },
+                                            decoration: InputDecoration(
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        // Ön Ödeme Türü
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                          child: Text('Ön Ödeme Türü',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                        ),
+                                        Container(
+                                          height: 44,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            border: Border.all(color: const Color(0xFFE5DCEC), width: 1.2),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: DropdownButtonHideUnderline(
+                                            child: DropdownButton<OdemeTuru>(
+                                              isExpanded: true,
+                                              hint: const Text('Seçiniz..', style: TextStyle(fontSize: 14)),
+                                              value: secilenOnOdemeTuru,
+                                              items: odemeyontem.map((item) => DropdownMenuItem(
+                                                value: item,
+                                                child: Text(item.odeme_turu, style: const TextStyle(fontSize: 14)),
+                                              )).toList(),
+                                              onChanged: (value) {
+                                                setStateDialog(() {
+                                                  secilenOnOdemeTuru = value;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        // Kalan Ödeme Tutarı (auto)
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                          child: Text('Kalan Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                        ),
+                                        SizedBox(
+                                          height: 42,
+                                          child: TextFormField(
+                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            enabled: false,
+                                            controller: taksit_toplam_tutar,
+                                            decoration: InputDecoration(
+                                              filled: true,
+                                              fillColor: const Color(0xFFF7F5FB),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                              disabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        // Tarih
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                          child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                        ),
+                                        SizedBox(
+                                          height: 42,
+                                          child: TextFormField(
+                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            controller: ilk_taksit_vade_tarihi,
+                                            readOnly: true,
+                                            decoration: InputDecoration(
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF6A1B9A)),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                            ),
+                                            onTap: () async {
+                                              DateTime? pickedDate = await showDatePicker(
+                                                  context: sbContext,
+                                                  initialDate: DateTime.now(),
+                                                  firstDate: DateTime(1950),
+                                                  lastDate: DateTime(2100));
+                                              if (pickedDate != null) {
+                                                String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+                                                setStateDialog(() {
+                                                  ilk_taksit_vade_tarihi.text = formattedDate;
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        // Taksit Sayısı
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                          child: Text('Taksit Sayısı (Ay)',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                        ),
+                                        SizedBox(
+                                          height: 42,
+                                          child: TextFormField(
+                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            keyboardType: TextInputType.phone,
+                                            controller: taksit_sayisi,
+                                            decoration: InputDecoration(
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                actions: <Widget>[
+                                  TextButton(
+                                    child: const Text('KAPAT', style: TextStyle(color: Color(0xFF777777), fontWeight: FontWeight.w600)),
+                                    onPressed: () {
+                                      Navigator.of(dialogContext).pop();
+                                    },
+                                  ),
+                                  ElevatedButton.icon(
+                                    icon: const Icon(Icons.check_rounded, size: 18),
+                                    label: const Text('KAYDET', style: TextStyle(fontWeight: FontWeight.w700)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF6A1B9A),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    onPressed: () async {
+                                      // Validasyon: taksit sayısı > 0, kalan > 0, tarih var
+                                      String hata = "";
+                                      final int? taksitN = int.tryParse(taksit_sayisi.text.trim());
+                                      if (taksitN == null || taksitN < 1) {
+                                        hata = "Taksit sayısı en az 1 olmalıdır.";
+                                      }
+                                      final double kalanT = tlyirakamacevir(taksit_toplam_tutar.text);
+                                      final double onOdeme = tlyirakamacevir(onOdemeTutariCtrl.text);
+                                      if (kalanT <= 0) {
+                                        hata = "Kalan ödeme tutarı sıfırdan büyük olmalıdır.";
+                                      }
+                                      if (ilk_taksit_vade_tarihi.text.isEmpty) {
+                                        hata = "Ödeme başlangıç tarihi seçiniz.";
+                                      }
+                                      if (onOdeme > 0 && secilenOnOdemeTuru == null) {
+                                        hata = "Ön ödeme girdiyseniz ödeme türü seçmelisiniz.";
+                                      }
+                                      if (hata.isNotEmpty) {
+                                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                          SnackBar(content: Text(hata), backgroundColor: const Color(0xFFE53935)),
+                                        );
+                                        return;
+                                      }
+
+                                      // Ön ödeme türü: girilmemişse seçili main screen ödeme yöntemi, o da yoksa Nakit (id:1)
+                                      String odemeYontemiId = secilenOnOdemeTuru?.id ?? (selectedodemeyontemi?.id ?? "1");
+                                      String onOdemeText = tryformat.format(onOdeme);
+
+                                      int taksitResult = await taksitekleguncelle(
+                                        context,
+                                        seciliisletme,
+                                        adisyonkalemleri,
+                                        taksit_sayisi.text,
+                                        ilk_taksit_vade_tarihi.text,
+                                        taksit_toplam_tutar.text,
+                                        secilimusteridanisan?.id ?? "",
+                                        toplamindirimtutari.text,
+                                        odemeYontemiId,
+                                        onOdemeText,
+                                        tahsilat_tarihi.text,
+                                        "",
+                                        harici_indirim.text,
+                                      );
+                                      if (taksitResult == 200) {
+                                        Navigator.of(dialogContext).pop();
+                                        Navigator.of(context).pop();
+                                        Navigator.of(context).pop();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Taksitlendirme başarıyla kaydedildi'), backgroundColor: Color(0xFF2E7D32)),
+                                        );
+                                        initialize();
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Taksitlendirme işlenirken bir hata oluştu. Hata kodu : $taksitResult'), backgroundColor: const Color(0xFFE53935)),
+                                        );
+                                      }
+                                      setState(() {
+                                        adisyonkalemleri.clear();
+                                        taksitvadeleri.clear();
+                                        senetvadeleri.clear();
+                                        alacaklarigetir();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         },
                       );
                     }
-                    else
-                    {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('Yeni Taksitli Tahsilat'),
-                            content:
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Container(
-
-                                  child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                                ),
-                                SizedBox(height: 10,),
-                                Container(
-                                  height: 40,
-                                  padding: EdgeInsets.only(left:20,right: 20),
-                                  child: TextFormField(
-                                    controller: ilk_taksit_vade_tarihi,
-                                    //editing controller of this TextField
-                                    decoration: InputDecoration(
-
-                                      focusColor:Color(0xFF6A1B9A) ,
-                                      hoverColor: Color(0xFF6A1B9A) ,
-                                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                                      contentPadding:  EdgeInsets.all(0.0),
-                                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                                      border:
-                                      OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                                      ),
-                                    ),
-                                    readOnly: true,
-                                    //set it true, so that user will not able to edit text
-
-                                    onTap: () async {
-                                      DateTime? pickedDate = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(1950),
-                                          //DateTime.now() - not to allow to choose before today.
-                                          lastDate: DateTime(2100));
-
-                                      if (pickedDate != null) {
-                                        print(
-                                            pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
-                                        String formattedDate =
-                                        DateFormat('yyyy-MM-dd').format(pickedDate);
-                                        print(
-                                            formattedDate); //formatted date output using intl package =>  2021-03-16
-                                        setState(() {
-                                          ilk_taksit_vade_tarihi.text =
-                                              formattedDate; //set output date to TextField value.
-                                        });
-                                      } else {}
-                                    },
-                                  ),
-                                ),
-                                SizedBox(height: 10,),
-                                Container(
-
-                                  child: Text('Taksit Sayısı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                                ),
-                                SizedBox(height: 10,),
-                                Container(
-                                  height: 40,
-                                  padding: EdgeInsets.only(left:20,right: 20),
-                                  child: TextFormField(
-
-                                    keyboardType: TextInputType.phone,
-                                    controller: taksit_sayisi,
-                                    onSaved: (value) {
-                                      taksit_sayisi.text = value!;
-                                    },
-
-
-
-                                    decoration: InputDecoration(
-                                      filled: true,
-
-                                      focusColor:Color(0xFF6A1B9A) ,
-                                      fillColor: Colors.white,
-                                      hoverColor: Color(0xFF6A1B9A) ,
-                                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                                      contentPadding:  EdgeInsets.all(15.0),
-                                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                                      border:
-                                      OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 10,),
-                                Container(
-
-                                  child: Text('Toplam Tutar (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                                ),
-                                SizedBox(height: 10,),
-                                Container(
-                                  height: 40,
-                                  padding: EdgeInsets.only(left:20,right: 20),
-                                  child: TextFormField(
-                                    enabled: false,
-                                    keyboardType: TextInputType.phone,
-                                    controller: taksit_toplam_tutar,
-                                    onSaved: (value) {
-                                      taksit_toplam_tutar.text = value!;
-                                    },
-
-
-
-                                    decoration: InputDecoration(
-                                      filled: true,
-
-                                      focusColor:Color(0xFF6A1B9A) ,
-                                      fillColor: Colors.white,
-                                      hoverColor: Color(0xFF6A1B9A) ,
-                                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                                      contentPadding:  EdgeInsets.all(15.0),
-                                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                                      border:
-                                      OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            actions: <Widget>[
-                              TextButton(
-                                child: Text('KAYDET'),
-                                onPressed: () async {
-
-
-                                  int taksitResult = await taksitekleguncelle(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
-                                  if (taksitResult == 200) {
-
-
-                                    Navigator.of(context).pop();
-                                    Navigator.of(context).pop();
-                                    Navigator.of(context).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Taksitlendirme başarıyla kaydedildi'),
-                                      ),
-                                    );
-                                    initialize();
-
-
-                                  } else {
-
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Taksitlendirme işlenirken bir hata oluştu. Hata kodu : '+taksitResult.toString()),
-                                      ),
-                                    );
-
-                                  }
-                                  setState(() {
-                                    adisyonkalemleri.clear();
-                                    taksitvadeleri.clear();
-                                    senetvadeleri.clear();
-                                    alacaklarigetir();
-                                  });
-
-
-
-                                },
-                              ),
-                              TextButton(
-                                child: Text('KAPAT'),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    }
-
                   },
-                  child: Text('Taksit Yap'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple[800],
+                    backgroundColor: const Color(0xFF6A1B9A),
                     foregroundColor: Colors.white,
-                    minimumSize: Size(110, 30),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                    minimumSize: const Size(0, 44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
                   ),
+                ),
                 ),
               ],
+              ),
             ),
 
 
 
-            SizedBox(height: 10,),
-            Row(
+            const SizedBox(height: 14,),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton(
+                Expanded(
+                  child: ElevatedButton(
                   onPressed: (){
                     bool formisvalid = true;
                     String warningtext = "Tahsilatı kaydetmeden önce aşağıdaki hataları düzeltmeniz gerekmektedir!";
@@ -1698,20 +1938,27 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                   },
                   child: Row(
-                    children: [
-                      Icon(Icons.money_sharp),
-                      Text(' Tahsil Et'),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.payments_rounded, size: 18),
+                      SizedBox(width: 8),
+                      Text('TAHSİL ET', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                     ],
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF2E7D32),
                     foregroundColor: Colors.white,
-                    minimumSize: Size(90, 30),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                    minimumSize: const Size(0, 52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
                   ),
                 ),
+                ),
               ],
-            )
+              ),
+            ),
+            const SizedBox(height: 20,),
           ],
         ),
       ),
@@ -1757,50 +2004,51 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             children: [
                               // TabBar container
                               Container(
-
+                                margin: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3EBF7),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                                 child: TabBar(
                                   isScrollable: false,
-                                  indicatorSize: TabBarIndicatorSize.label,
-                                  labelColor: Colors.purple,
-                                  unselectedLabelColor: Colors.purple[800],
-                                  labelPadding: EdgeInsets.only(left: 10, right: 10),
+                                  indicatorSize: TabBarIndicatorSize.tab,
+                                  labelColor: Colors.white,
+                                  unselectedLabelColor: const Color(0xFF6A1B9A),
+                                  labelPadding: EdgeInsets.zero,
+                                  dividerColor: Colors.transparent,
                                   indicator: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(25),
-                                    color: Colors.transparent,
-                                    border: Border.all(
-                                      color: Colors.purple[800]!,
-                                      width: 1.5,
-                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: const Color(0xFF6A1B9A),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF6A1B9A).withValues(alpha: 0.25),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
                                   ),
-                                  tabs: [
+                                  tabs: const [
                                     Tab(
-                                      child: Container(
-                                        width: 130,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(4.0),
-                                          child: Center(
-                                            child: Text(
-                                              "Taksitler",
-                                              style: TextStyle(
-                                                  fontSize: 15, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ),
+                                      height: 38,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.event_note_rounded, size: 16),
+                                          SizedBox(width: 6),
+                                          Text("Taksitler", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                        ],
                                       ),
                                     ),
                                     Tab(
-                                      child: Container(
-                                        width: 150,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(4.0),
-                                          child: Center(
-                                            child: Text(
-                                              "Senetler",
-                                              style: TextStyle(
-                                                  fontSize: 15, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ),
+                                      height: 38,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.description_rounded, size: 16),
+                                          SizedBox(width: 6),
+                                          Text("Senetler", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -1840,40 +2088,41 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                                     double.parse(item2.tutar));
                                               }
 
-                                              return GestureDetector(
-                                                onTap: () {
-
-                                                },
-
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    border: Border(
-                                                      bottom: BorderSide(
-                                                          color: Colors.grey, width: 1.0),
-                                                    ),
-                                                  ),
-                                                  child: ListTile(
-                                                    leading: Checkbox(
-                                                      value: isCheckedList[index],
-                                                      onChanged: (bool? value) {
-                                                        setState(() {
-                                                          isCheckedList[index] = value!;
-                                                          if(value)
-                                                            ++secilialacaktaksit;
-                                                          else
-                                                            --secilialacaktaksit;
-                                                        });
-                                                      },
-                                                    ),
-                                                    title: Text(kalem2),
-                                                    subtitle: Text(satan2),
-                                                    trailing: Text(
-                                                      adet2 + ' Adet\n' + tutar2 + " ₺",
-                                                      textAlign: TextAlign.right,
-                                                    ),
+                                              return Container(
+                                                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: isCheckedList[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.06) : Colors.white,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: isCheckedList[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.4) : const Color(0xFFEDE7F2),
+                                                    width: 1.2,
                                                   ),
                                                 ),
-
+                                                child: ListTile(
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                  leading: Checkbox(
+                                                    activeColor: const Color(0xFF6A1B9A),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                    value: isCheckedList[index],
+                                                    onChanged: (bool? value) {
+                                                      setState(() {
+                                                        isCheckedList[index] = value!;
+                                                        if(value) {
+                                                          ++secilialacaktaksit;
+                                                        } else {
+                                                          --secilialacaktaksit;
+                                                        }
+                                                      });
+                                                    },
+                                                  ),
+                                                  title: Text(kalem2, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                                                  subtitle: Text(satan2, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                                  trailing: Text(
+                                                    '$tutar2 ₺\n$adet2 adet',
+                                                    textAlign: TextAlign.right,
+                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+                                                  ),
+                                                ),
                                               );
                                             },
                                           ),
@@ -1909,38 +2158,41 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                                     double.parse(item2.tutar));
                                               }
 
-                                              return GestureDetector(
-                                                onTap: () {},
-
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    border: Border(
-                                                      bottom: BorderSide(
-                                                          color: Colors.grey, width: 1.0),
-                                                    ),
-                                                  ),
-                                                  child: ListTile(
-                                                    leading: Checkbox(
-                                                      value: isCheckedList2[index],
-                                                      onChanged: (bool? value) {
-                                                        setState(() {
-                                                          isCheckedList2[index] = value!;
-                                                          if(value)
-                                                            ++secilialacaksenet;
-                                                          else
-                                                            --secilialacaksenet;
-                                                        });
-                                                      },
-                                                    ),
-                                                    title: Text(kalem2),
-                                                    subtitle: Text(satan2),
-                                                    trailing: Text(
-                                                      adet2 + ' Adet\n' + tutar2 + " ₺",
-                                                      textAlign: TextAlign.right,
-                                                    ),
+                                              return Container(
+                                                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: isCheckedList2[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.06) : Colors.white,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: isCheckedList2[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.4) : const Color(0xFFEDE7F2),
+                                                    width: 1.2,
                                                   ),
                                                 ),
-
+                                                child: ListTile(
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                  leading: Checkbox(
+                                                    activeColor: const Color(0xFF6A1B9A),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                    value: isCheckedList2[index],
+                                                    onChanged: (bool? value) {
+                                                      setState(() {
+                                                        isCheckedList2[index] = value!;
+                                                        if(value) {
+                                                          ++secilialacaksenet;
+                                                        } else {
+                                                          --secilialacaksenet;
+                                                        }
+                                                      });
+                                                    },
+                                                  ),
+                                                  title: Text(kalem2, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                                                  subtitle: Text(satan2, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                                  trailing: Text(
+                                                    '$tutar2 ₺\n$adet2 adet',
+                                                    textAlign: TextAlign.right,
+                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+                                                  ),
+                                                ),
                                               );
                                             },
                                           ),
@@ -1950,35 +2202,44 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                   ],
                                 ),
                               ),
-                              // Spacer to push the button to the bottom
-                              SizedBox(height: 10), // Add some space above the button
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom( backgroundColor: Colors.green,  foregroundColor: Colors.white,),
-                                //
-                                onPressed: () {
-
-                                  if(secilialacaksenet + secilialacaktaksit != 0){
-                                    // Sondan başa doğru iterasyon — index kayması olmaz
-                                    for (int i = isCheckedList.length - 1; i >= 0; i--) {
-                                      if (isCheckedList[i]) {
-                                        adisyonkalemleri.add(taksitvadeleri[i]);
-                                        taksitvadeleri.removeAt(i);
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF2E7D32),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
+                                    icon: const Icon(Icons.arrow_circle_right_rounded, size: 18),
+                                    label: const Text("Seçilileri Tahsilata Aktar", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                    onPressed: () {
+                                      if(secilialacaksenet + secilialacaktaksit != 0){
+                                        // Sondan başa doğru iterasyon — index kayması olmaz
+                                        for (int i = isCheckedList.length - 1; i >= 0; i--) {
+                                          if (isCheckedList[i]) {
+                                            adisyonkalemleri.add(taksitvadeleri[i]);
+                                            taksitvadeleri.removeAt(i);
+                                          }
+                                        }
+                                        for (int i = isCheckedList2.length - 1; i >= 0; i--) {
+                                          if (isCheckedList2[i]) {
+                                            adisyonkalemleri.add(senetvadeleri[i]);
+                                            senetvadeleri.removeAt(i);
+                                          }
+                                        }
+                                        tutar_hesapla(false);
+                                        Navigator.of(context).pop();
                                       }
-                                    }
-                                    for (int i = isCheckedList2.length - 1; i >= 0; i--) {
-                                      if (isCheckedList2[i]) {
-                                        adisyonkalemleri.add(senetvadeleri[i]);
-                                        senetvadeleri.removeAt(i);
-                                      }
-                                    }
-                                    tutar_hesapla(false);
-                                    Navigator.of(context).pop();
-
-                                  }
-
-                                },
-                                child: Text("Seçilileri Tahsilata Aktar"),
+                                    },
+                                  ),
+                                ),
                               ),
+                              const SizedBox(height: 8),
                             ],
                           ),
                         ),
