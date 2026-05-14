@@ -232,6 +232,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         .toList();
     if (yeniDilimler.isEmpty) return;
     // Sadece gerçekten değişiklik varsa state'i güncelle
+    // (color field'ı diff'e dahil değil — Flutter otomatik atıyor)
     final farkVar = yeniDilimler.length != _dilimler.length ||
         yeniDilimler.asMap().entries.any((e) {
           final eski = e.key < _dilimler.length ? _dilimler[e.key] : null;
@@ -239,13 +240,18 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
           return eski['name'] != e.value['name'] ||
               eski['probability'] != e.value['probability'] ||
               eski['tip'] != e.value['tip'] ||
-              eski['deger'] != e.value['deger'] ||
-              eski['color'] != e.value['color'];
+              eski['deger'] != e.value['deger'];
         });
     if (!farkVar) return;
     setState(() {
       _carkAktif = (r['sistem']?['aktifmi'] as num?)?.toInt() ?? _carkAktif;
       _dilimler = yeniDilimler;
+      // Stabil _uid ve otomatik renk
+      for (final d in _dilimler) {
+        d['_uid'] = d['_uid'] ?? _yeniUid();
+      }
+      _renkleriOtomatikAta();
+      _kazananGarantile();
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -275,18 +281,22 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
       for (final d in _dilimler) {
         d['_uid'] = d['_uid'] ?? _yeniUid();
       }
+      // Renkleri otomatik ata (index sırasına göre) — web ile aynı davranış
+      _renkleriOtomatikAta();
+      // Hiç kazanan yoksa ilk dilim kazanan olsun
+      _kazananGarantile();
       _sistemLoading = false;
       _dilimDirty = false;
     });
   }
 
   List<Map<String, dynamic>> _ornekDilimler() => [
-        {'name': '%10 İndirim', 'probability': 100, 'color': '#6c5ce7', 'tip': 'hizmet_indirimi', 'deger': 10, 'kupon_mu': 1},
-        {'name': 'Tekrar Dene', 'probability': 0, 'color': '#a29bfe', 'tip': 'tekrar_dene', 'deger': null, 'kupon_mu': 0},
-        {'name': '50 Puan', 'probability': 0, 'color': '#fd79a8', 'tip': 'puan', 'deger': 50, 'kupon_mu': 0},
-        {'name': 'Boş', 'probability': 0, 'color': '#fdcb6e', 'tip': 'bos', 'deger': null, 'kupon_mu': 0},
-        {'name': '%5 İndirim', 'probability': 0, 'color': '#00b894', 'tip': 'hizmet_indirimi', 'deger': 5, 'kupon_mu': 1},
-        {'name': 'Boş', 'probability': 0, 'color': '#e17055', 'tip': 'bos', 'deger': null, 'kupon_mu': 0},
+        {'name': '100 Puan', 'probability': 100, 'color': _renkler[0], 'tip': 'puan', 'deger': 100, 'kupon_mu': 0},
+        {'name': '%20 Hizmet', 'probability': 0, 'color': _renkler[1], 'tip': 'hizmet_indirimi', 'deger': 20, 'kupon_mu': 1},
+        {'name': '%10 Ürün', 'probability': 0, 'color': _renkler[2], 'tip': 'urun_indirimi', 'deger': 10, 'kupon_mu': 1},
+        {'name': '50 Puan', 'probability': 0, 'color': _renkler[3], 'tip': 'puan', 'deger': 50, 'kupon_mu': 0},
+        {'name': 'Tekrar Dene', 'probability': 0, 'color': _renkler[4], 'tip': 'tekrar_dene', 'deger': null, 'kupon_mu': 0},
+        {'name': 'Boş', 'probability': 0, 'color': _renkler[5], 'tip': 'bos', 'deger': null, 'kupon_mu': 0},
       ];
 
   Future<void> _yukleKazananlar() async {
@@ -383,10 +393,10 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   Widget _carkTab(ColorScheme scheme) {
     if (_sistemLoading) return Center(child: CircularProgressIndicator());
 
-    final toplam = _dilimler.fold<int>(0, (s, d) => s + ((d['probability'] as num?)?.toInt() ?? 0));
     final kazanan = _dilimler.where((d) => ((d['probability'] as num?)?.toInt() ?? 0) == 100).length;
     final yeterli = _dilimler.length >= 6;
-    final valid = toplam == 100 && kazanan == 1 && yeterli;
+    final maksOk = _dilimler.length <= 12;
+    final valid = kazanan == 1 && yeterli && maksOk;
 
     return ListView(
       controller: _carkScroll,
@@ -500,10 +510,10 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                   Expanded(
                     child: Text(
                       valid
-                          ? 'Hazır: ${_dilimler.length} dilim, toplam %100, 1 kazanan'
+                          ? 'Hazır: ${_dilimler.length} dilim · 1 kazanan seçildi'
                           : 'Eksik: ${!yeterli ? "En az 6 dilim olmalı (şu an ${_dilimler.length}). " : ""}'
-                              '${kazanan != 1 ? "Tam 1 dilim 100 olmalı (şu an $kazanan). " : ""}'
-                              '${toplam != 100 ? "Toplam %100 olmalı (şu an $toplam)." : ""}',
+                              '${!maksOk ? "En fazla 12 dilim olabilir (şu an ${_dilimler.length}). " : ""}'
+                              '${kazanan != 1 ? "Tam 1 kazanan dilim seçilmeli (şu an $kazanan)." : ""}',
                       style: TextStyle(fontSize: 12, color: valid ? Colors.green.shade700 : Colors.orange.shade700, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -514,14 +524,14 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         ),
         SizedBox(height: 12),
 
-        // Hızlı yardım butonu — otomatik 100% düzelt
-        if (!valid)
+        // Hızlı yardım butonu — eksik dilim doldur + ilk dilimi kazanan yap
+        if (!valid && (!yeterli || kazanan != 1))
           Container(
             margin: EdgeInsets.only(bottom: 12),
             child: OutlinedButton.icon(
               onPressed: _otomatikDuzelt,
               icon: Icon(Icons.auto_fix_high),
-              label: Text('Olasılıkları Otomatik Düzelt (1 kazanan = %100)'),
+              label: Text(!yeterli ? 'Eksik Dilimleri Tamamla (6\'ya getir)' : 'İlk Dilimi Kazanan Yap'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: scheme.primary,
                 side: BorderSide(color: scheme.primary),
@@ -574,9 +584,12 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
             dilim: e.value,
             onSil: () => setState(() {
               _dilimler.removeAt(e.key);
+              _renkleriOtomatikAta();
+              _kazananGarantile();
               _dilimDirty = true;
             }),
             onDegisti: () => setState(() => _dilimDirty = true),
+            onKazan: () => _kazananYap(e.key),
           );
         }),
 
@@ -595,6 +608,25 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
             disabledBackgroundColor: Colors.grey.shade400,
           ),
         ),
+        SizedBox(height: 10),
+
+        // Müşterilere duyuru push'u
+        OutlinedButton.icon(
+          onPressed: (_carkAktif == 1 && !_dilimDirty) ? _duyuruGonderBottomSheet : null,
+          icon: Icon(Icons.campaign_outlined),
+          label: Text(
+            _dilimDirty
+                ? 'Önce çarkı kaydedin'
+                : (_carkAktif == 1 ? 'Müşterilere Duyuru Gönder' : 'Çark pasif — duyuru gönderilemez'),
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.teal.shade700,
+            side: BorderSide(color: Colors.teal.shade400, width: 1.5),
+            padding: EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
       ],
     );
   }
@@ -604,13 +636,17 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
       // Yeni dilimi en BAŞA ekle ki kullanıcı hemen görsün
       _dilimler.insert(0, {
         '_uid': _yeniUid(),
-        'name': 'Dilim ${_dilimler.length + 1}',
+        'name': 'Ödül ${_dilimler.length + 1}',
         'probability': 0,
-        'color': _renkler[_dilimler.length % _renkler.length],
+        'color': _renkler[0], // _renkleriOtomatikAta() index'e göre yeniden atayacak
         'tip': 'bos',
         'deger': null,
         'kupon_mu': 0,
       });
+      // Tüm renkleri index'e göre yeniden ata (insert sonrası kaymalar için)
+      _renkleriOtomatikAta();
+      // Eğer önceki kazanan yer değiştirdiyse (index 0 oldu), kazanan'ı koru
+      _kazananGarantile();
       _dilimDirty = true;
     });
     HapticFeedback.lightImpact();
@@ -627,7 +663,42 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     });
   }
 
-  static const _renkler = ['#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#00b894', '#e17055', '#74b9ff', '#55efc4'];
+  // Web tarafıyla birebir aynı renk paleti (carkifelek.blade.php COLORS)
+  static const _renkler = [
+    '#FF6B6B', '#FF8E53', '#FFC107', '#51CF66', '#339AF0',
+    '#CC5DE8', '#F06595', '#74C0FC', '#63E6BE', '#FFD43B',
+    '#FF922B', '#20C997', '#4DABF7', '#DA77F2', '#F783AC',
+    '#E64980', '#7950F2', '#4C6EF5', '#228BE6', '#099268',
+  ];
+
+  /// Tüm dilim renklerini index'e göre paletten otomatik ata.
+  void _renkleriOtomatikAta() {
+    for (var i = 0; i < _dilimler.length; i++) {
+      _dilimler[i]['color'] = _renkler[i % _renkler.length];
+    }
+  }
+
+  /// Hiç kazanan yoksa ilk dilimi kazanan yap (web ile aynı davranış).
+  void _kazananGarantile() {
+    if (_dilimler.isEmpty) return;
+    final varMi = _dilimler.any((d) => ((d['probability'] as num?)?.toInt() ?? 0) == 100);
+    if (!varMi) {
+      for (var i = 0; i < _dilimler.length; i++) {
+        _dilimler[i]['probability'] = i == 0 ? 100 : 0;
+      }
+    }
+  }
+
+  /// Verilen index'i tek kazanan yap. Diğerleri 0.
+  void _kazananYap(int index) {
+    setState(() {
+      for (var i = 0; i < _dilimler.length; i++) {
+        _dilimler[i]['probability'] = i == index ? 100 : 0;
+      }
+      _dilimDirty = true;
+    });
+    HapticFeedback.selectionClick();
+  }
 
   void _otomatikDuzelt() {
     setState(() {
@@ -636,15 +707,17 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         while (_dilimler.length < 6) {
           _dilimler.add({
             '_uid': _yeniUid(),
-            'name': 'Dilim ${_dilimler.length + 1}',
+            'name': 'Ödül ${_dilimler.length + 1}',
             'probability': 0,
-            'color': _renkler[_dilimler.length % _renkler.length],
+            'color': _renkler[0], // _renkleriOtomatikAta yeniden atayacak
             'tip': 'bos',
             'deger': null,
             'kupon_mu': 0,
           });
         }
       }
+      // Renkleri index'e göre yeniden ata
+      _renkleriOtomatikAta();
       // İlk dilim kazanan, diğerleri 0
       for (var i = 0; i < _dilimler.length; i++) {
         _dilimler[i]['probability'] = i == 0 ? 100 : 0;
@@ -780,6 +853,246 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r?['mesaj'] ?? 'Kayıt hatası'), backgroundColor: Colors.red));
     }
+  }
+
+  // ============ DUYURU BOTTOM SHEET ============
+
+  void _duyuruGonderBottomSheet() {
+    final baslikCtrl = TextEditingController();
+    final mesajCtrl = TextEditingController(
+      text: 'Çark-ı Felek\'i çevir, sürpriz ödülü kap! Bugün şansını dene 🎁',
+    );
+    bool gonderiliyor = false;
+    Map<String, dynamic>? sonuc;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (sheetCtx, setSt) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(10)),
+                          child: Icon(Icons.campaign, color: Colors.teal.shade700, size: 22),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Çark Duyurusu', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+                              Text(
+                                'Uygulaması yüklü tüm müşterilerinize push gönderilir',
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+
+                    // Sonuç gösterildi mi?
+                    if (sonuc != null) ...[
+                      _duyuruSonucKart(sonuc!),
+                      SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(sheetCtx),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text('Kapat', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: baslikCtrl,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          labelText: 'Başlık (boş bırakırsanız salon adı kullanılır)',
+                          hintText: '🎡 Bugün şansını dene!',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          isDense: true,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      TextField(
+                        controller: mesajCtrl,
+                        textCapitalization: TextCapitalization.sentences,
+                        maxLines: 3,
+                        maxLength: 200,
+                        decoration: InputDecoration(
+                          labelText: 'Mesaj',
+                          helperText: '{ad} ve {salon_adi} yerlerine müşteri adı ve salon adı yazılır',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: gonderiliyor
+                              ? null
+                              : () async {
+                                  setSt(() => gonderiliyor = true);
+                                  final r = await carkAdminBildirimGonder(
+                                    _salonId,
+                                    baslik: baslikCtrl.text,
+                                    mesaj: mesajCtrl.text,
+                                  );
+                                  if (!sheetCtx.mounted) return;
+                                  setSt(() {
+                                    sonuc = r ?? {'basarili': false, 'mesaj': 'Bağlantı hatası'};
+                                    gonderiliyor = false;
+                                  });
+                                },
+                          icon: gonderiliyor
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : Icon(Icons.send),
+                          label: Text(
+                            gonderiliyor ? 'Gönderiliyor...' : 'Bildirimi Gönder',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            disabledBackgroundColor: Colors.teal.shade200,
+                          ),
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 4),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      baslikCtrl.dispose();
+      mesajCtrl.dispose();
+    });
+  }
+
+  Widget _duyuruSonucKart(Map<String, dynamic> r) {
+    final basarili = r['basarili'] == true;
+    final gonderildi = (r['gonderildi'] as num?)?.toInt() ?? 0;
+    final hata = (r['hata'] as num?)?.toInt() ?? 0;
+    final hedef = (r['hedef'] as num?)?.toInt() ?? 0;
+    final mesaj = r['mesaj']?.toString();
+
+    if (!basarili) {
+      return Container(
+        padding: EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade700),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                mesaj ?? 'Gönderim başarısız',
+                style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green.shade700),
+              SizedBox(width: 8),
+              Text(
+                gonderildi > 0 ? 'Bildirim gönderildi' : 'Hedef kitle boş',
+                style: TextStyle(color: Colors.green.shade800, fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _duyuruIstatistik('Hedef', '$hedef', Colors.blue.shade700)),
+              SizedBox(width: 6),
+              Expanded(child: _duyuruIstatistik('Gönderildi', '$gonderildi', Colors.green.shade700)),
+              SizedBox(width: 6),
+              Expanded(child: _duyuruIstatistik('Hata', '$hata', Colors.orange.shade700)),
+            ],
+          ),
+          if (mesaj != null && mesaj.isNotEmpty) ...[
+            SizedBox(height: 8),
+            Text(mesaj, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _duyuruIstatistik(String label, String value, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: color)),
+          Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
   }
 
   // ============ KAZANANLAR TAB ============
@@ -1062,7 +1375,8 @@ class _DilimSatiri extends StatefulWidget {
   final Map<String, dynamic> dilim;
   final VoidCallback onSil;
   final VoidCallback onDegisti;
-  const _DilimSatiri({Key? key, required this.index, required this.dilim, required this.onSil, required this.onDegisti}) : super(key: key);
+  final VoidCallback onKazan;
+  const _DilimSatiri({Key? key, required this.index, required this.dilim, required this.onSil, required this.onDegisti, required this.onKazan}) : super(key: key);
 
   @override
   State<_DilimSatiri> createState() => _DilimSatiriState();
@@ -1071,23 +1385,18 @@ class _DilimSatiri extends StatefulWidget {
 class _DilimSatiriState extends State<_DilimSatiri> {
   late TextEditingController _nameCtrl;
   late TextEditingController _degerCtrl;
-  late TextEditingController _probCtrl;
-
-  static const _renkler = ['#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#00b894', '#e17055', '#74b9ff', '#55efc4'];
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.dilim['name']?.toString() ?? '');
     _degerCtrl = TextEditingController(text: widget.dilim['deger']?.toString() ?? '');
-    _probCtrl = TextEditingController(text: '${widget.dilim['probability'] ?? 0}');
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _degerCtrl.dispose();
-    _probCtrl.dispose();
     super.dispose();
   }
 
@@ -1123,22 +1432,53 @@ class _DilimSatiriState extends State<_DilimSatiri> {
               Container(width: 22, height: 22, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
               SizedBox(width: 8),
               Text('Dilim ${widget.index + 1}', style: TextStyle(fontWeight: FontWeight.w800)),
-              if (kazanan) ...[
-                SizedBox(width: 6),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(8)),
+              Spacer(),
+              // Kazan / ★ Kazanan butonu (web ile aynı)
+              GestureDetector(
+                onTap: kazanan ? null : widget.onKazan,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    gradient: kazanan
+                        ? LinearGradient(
+                            colors: [Colors.amber.shade600, Colors.orange.shade700],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: kazanan ? null : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: kazanan
+                        ? null
+                        : Border.all(color: Colors.green.shade400.withValues(alpha: 0.6), width: 1.5),
+                    boxShadow: kazanan
+                        ? [BoxShadow(color: Colors.amber.withValues(alpha: 0.35), blurRadius: 8, offset: Offset(0, 2))]
+                        : null,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.emoji_events, color: Colors.amber.shade700, size: 12),
-                      SizedBox(width: 2),
-                      Text('KAZANAN', style: TextStyle(color: Colors.amber.shade800, fontWeight: FontWeight.w800, fontSize: 10)),
+                      Icon(
+                        kazanan ? Icons.emoji_events : Icons.flag_outlined,
+                        size: 14,
+                        color: kazanan ? Colors.white : Colors.green.shade700,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        kazanan ? 'Kazanan' : 'Kazan',
+                        style: TextStyle(
+                          color: kazanan ? Colors.white : Colors.green.shade700,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-              Spacer(),
+              ),
+              SizedBox(width: 4),
               IconButton(
                 icon: Icon(Icons.delete_outline, color: Colors.red, size: 20),
                 onPressed: widget.onSil,
@@ -1198,49 +1538,6 @@ class _DilimSatiriState extends State<_DilimSatiri> {
                     widget.onDegisti();
                   },
                   decoration: InputDecoration(labelText: 'Değer', border: OutlineInputBorder(), isDense: true),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _probCtrl,
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) {
-                    widget.dilim['probability'] = int.tryParse(v) ?? 0;
-                    setState(() {});
-                    widget.onDegisti();
-                  },
-                  decoration: InputDecoration(labelText: 'Olasılık', border: OutlineInputBorder(), isDense: true, suffixText: '%'),
-                ),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: _renkler.map((c) {
-                    final selected = (widget.dilim['color']?.toString() ?? '').toLowerCase() == c.toLowerCase();
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => widget.dilim['color'] = c);
-                        widget.onDegisti();
-                      },
-                      child: Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: _hexToColor(c),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: selected ? Colors.black : Colors.transparent, width: 2),
-                        ),
-                      ),
-                    );
-                  }).toList(),
                 ),
               ),
             ],

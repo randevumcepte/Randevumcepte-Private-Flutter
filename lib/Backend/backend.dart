@@ -695,6 +695,40 @@ Future<Map<String, dynamic>?> dashboardKarsilastirma(
   return null;
 }
 
+/// Dashboard saat bosluk onerisinden gercek kampanya olusturur.
+/// kampanyalar tablosuna 7 gun gecerli kayit ekler.
+/// Donus: {status: success|duplicate|error, message: ..., kampanya_id: ...}
+Future<Map<String, dynamic>?> saatBosluguKampanyaOlustur({
+  required String salonId,
+  required String gapKey,
+  required String gapLabel,
+  required int startHour,
+  required int endHour,
+  required int discount,
+}) async {
+  try {
+    final response = await http
+        .post(
+          Uri.parse(
+              'https://apptest.randevumcepte.com.tr/api/v1/saatBosluguKampanyaOlustur/$salonId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'gapKey': gapKey,
+            'gapLabel': gapLabel,
+            'startHour': startHour,
+            'endHour': endHour,
+            'discount': discount,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    final body = json.decode(response.body);
+    if (body is Map<String, dynamic>) return body;
+  } catch (e) {
+    log('saatBosluguKampanyaOlustur hata: $e');
+  }
+  return null;
+}
+
 /// Anket ozeti: toplam gonderim/cevap, response rate, ort NPS/CSAT,
 /// promoter/passive/detractor sayilari, son 7 gun cevap trend serisi.
 Future<Map<String, dynamic>?> anketOzet(String salonId, {int gun = 30}) async {
@@ -3613,6 +3647,220 @@ Future<dynamic>personelprimhesapla(BuildContext context, String personelid,Strin
     debugPrint(response.body);
   }
 }
+
+// Ay/yil filtreli prim hesaplama (personeldetay sayfasi icin).
+// Donus: hizmet/urun/paket toplam+hakedis (string + numeric), adisyon listesi.
+Future<Map<String, dynamic>?> personelPrimHesaplaAyYil({
+  required String personelid,
+  required String salonid,
+  required String ay,   // "01".."12"
+  required String yil,  // "2026"
+}) async {
+  final formData = {
+    'sube': salonid,
+    'personel_id': personelid,
+    'ay': ay,
+    'yil': yil,
+  };
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelPrimHesaplaAyYil'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  debugPrint('personelPrimHesaplaAyYil failed: ${response.statusCode} ${response.body}');
+  return null;
+}
+
+// Personeli arsivle (soft delete): listeden gizler, gecmis veriler korunur.
+Future<bool> personelArsivle(String personelid, String salonid) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelArsivle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'personelid': personelid, 'sube': salonid}),
+  );
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data is Map && data['sonuc'] == 'ok';
+  }
+  debugPrint('personelArsivle failed: ${response.statusCode}');
+  return false;
+}
+
+// Aktif personeller arasinda sirayi 1 kaydir. delta: -1 yukari, +1 asagi.
+Future<bool> personelSiralamaKaydir(String personelid, String salonid, int delta) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelSiralamaKaydir'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'personelid': personelid, 'sube': salonid, 'delta': delta}),
+  );
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data is Map && data['sonuc'] == 'ok';
+  }
+  debugPrint('personelSiralamaKaydir failed: ${response.statusCode}');
+  return false;
+}
+
+// takvimde_gorunsun toggle. Donus: yeni deger (0/1) veya null.
+Future<int?> personelTakvimdeGorunsunToggle(String personelid, String salonid) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelTakvimdeGorunsunToggle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'personelid': personelid, 'sube': salonid}),
+  );
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    if (data is Map && data['sonuc'] == 'ok') {
+      return (data['takvimde_gorunsun'] as num?)?.toInt();
+    }
+  }
+  debugPrint('personelTakvimdeGorunsunToggle failed: ${response.statusCode}');
+  return null;
+}
+
+// Mobilden aktif/pasif yap + sifre gonder icin context-bagimsiz wrapperlar
+// (sfdatatable.dart icindeki versiyonlar SnackBar gosteriyor, biz cagiran yere brakacagiz).
+Future<bool> personelAktifYap(String personelid) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelaktifyap'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'personelid': personelid}),
+  );
+  return response.statusCode == 200;
+}
+
+Future<bool> personelPasifYap(String personelid) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelpasifyap'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'personelid': personelid}),
+  );
+  return response.statusCode == 200;
+}
+
+Future<bool> personelSifreGonder(String personelid) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelsifregonder'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'personelid': personelid}),
+  );
+  return response.statusCode == 200;
+}
+
+// === Prim & Maas odemeleri (web prim_hakedis_panel.blade.php API'lerinin Flutter karsiligi) ===
+
+// Maas/Prim/Avans odemesi ekle. Otomatik kasa/masraf kaydi backend tarafinda olusur.
+// odeme_tipi: 'maas' | 'prim' | 'diger'
+// donem: 'YYYY-MM'
+Future<Map<String, dynamic>> primOde({
+  required String salonid,
+  required String personelid,
+  required String donem,
+  required double tutar,
+  required String odemeTipi,
+  String? odemeTarihi,    // 'YYYY-MM-DD' (default: bugun)
+  String? odemeYontemi,   // serbest text (Nakit / Kart / Havale ...)
+  String? aciklama,
+}) async {
+  final body = {
+    'sube': salonid,
+    'personel_id': personelid,
+    'donem': donem,
+    'tutar': tutar.toStringAsFixed(2),
+    'odeme_tipi': odemeTipi,
+    if (odemeTarihi != null) 'odeme_tarihi': odemeTarihi,
+    if (odemeYontemi != null) 'odeme_yontemi': odemeYontemi,
+    if (aciklama != null) 'aciklama': aciklama,
+  };
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primOde'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(body),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  return {'basarili': false, 'mesaj': 'HTTP ${response.statusCode}'};
+}
+
+// Donem icindeki tum odemeler + bonus/kesinti hareketleri + toplamlar.
+Future<Map<String, dynamic>?> primOdemeListesi({
+  required String salonid,
+  required String personelid,
+  required String donem, // 'YYYY-MM'
+}) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primOdemeListesi'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'sube': salonid,
+      'personel_id': personelid,
+      'donem': donem,
+    }),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  debugPrint('primOdemeListesi failed: ${response.statusCode}');
+  return null;
+}
+
+Future<bool> primOdemeSil({required String salonid, required int odemeId}) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primOdemeSil'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'sube': salonid, 'id': odemeId}),
+  );
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data is Map && data['basarili'] == true;
+  }
+  return false;
+}
+
+// Bonus / Kesinti ekle. tip: 'bonus' | 'kesinti'
+Future<Map<String, dynamic>> primHareketEkle({
+  required String salonid,
+  required String personelid,
+  required String tip,
+  required double tutar,
+  String? tarih,
+  String? aciklama,
+}) async {
+  final body = {
+    'sube': salonid,
+    'personel_id': personelid,
+    'tip': tip,
+    'tutar': tutar.toStringAsFixed(2),
+    if (tarih != null) 'tarih': tarih,
+    if (aciklama != null) 'aciklama': aciklama,
+  };
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primHareketEkle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(body),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  return {'basarili': false, 'mesaj': 'HTTP ${response.statusCode}'};
+}
+
+Future<bool> primHareketSil({required String salonid, required int hareketId}) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primHareketSil'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'sube': salonid, 'id': hareketId}),
+  );
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data is Map && data['basarili'] == true;
+  }
+  return false;
+}
 Future<MusteriDanisan> kullanicibilgimusteri(String userid) async {
   final response = await http.get(
       Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kullaniciBilgiGetir/'+userid.toString())
@@ -4810,6 +5058,32 @@ Future<bool> carkAdminAktifToggle(String salonId, bool aktif) async {
     log('carkAdminAktifToggle: $e');
   }
   return false;
+}
+
+/// Salondaki uygulaması yüklü müşterilere çark duyuru push'u gönderir.
+/// Dönüş: {basarili, gonderildi, hata, hedef} veya null (bağlantı hatası).
+Future<Map<String, dynamic>?> carkAdminBildirimGonder(
+  String salonId, {
+  String? baslik,
+  String? mesaj,
+}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/bildirim-gonder/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({
+        if (baslik != null && baslik.trim().isNotEmpty) 'baslik': baslik.trim(),
+        if (mesaj != null && mesaj.trim().isNotEmpty) 'mesaj': mesaj.trim(),
+      }),
+    ).timeout(const Duration(seconds: 60));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+    return {'basarili': false, 'mesaj': 'HTTP ${res.statusCode}'};
+  } catch (e) {
+    log('carkAdminBildirimGonder: $e');
+  }
+  return null;
 }
 
 Future<Map<String, dynamic>?> carkAdminKazananlar(String salonId, {String filtre = 'tumu'}) async {
