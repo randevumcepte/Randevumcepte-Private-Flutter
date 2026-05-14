@@ -729,6 +729,29 @@ Future<Map<String, dynamic>?> saatBosluguKampanyaOlustur({
   return null;
 }
 
+/// Dashboard saat bosluk kampanyasini iptal eder (soft-deactivate).
+/// Donus: {status: success|error, message: ...}
+Future<Map<String, dynamic>?> saatBosluguKampanyaIptal({
+  required String salonId,
+  required int kampanyaId,
+}) async {
+  try {
+    final response = await http
+        .post(
+          Uri.parse(
+              'https://apptest.randevumcepte.com.tr/api/v1/saatBosluguKampanyaIptal/$salonId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'kampanyaId': kampanyaId}),
+        )
+        .timeout(const Duration(seconds: 15));
+    final body = json.decode(response.body);
+    if (body is Map<String, dynamic>) return body;
+  } catch (e) {
+    log('saatBosluguKampanyaIptal hata: $e');
+  }
+  return null;
+}
+
 /// Anket ozeti: toplam gonderim/cevap, response rate, ort NPS/CSAT,
 /// promoter/passive/detractor sayilari, son 7 gun cevap trend serisi.
 Future<Map<String, dynamic>?> anketOzet(String salonId, {int gun = 30}) async {

@@ -2428,23 +2428,147 @@ class _HomeState extends State<DashBoard> {
                 ),
                 const SizedBox(height: 16),
                 if (isActive)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: loading
+                              ? null
+                              : () async {
+                                  final salonId = seciliisletme;
+                                  final kampanyaId =
+                                      (active['id'] as num?)?.toInt();
+                                  if (salonId == null ||
+                                      salonId.isEmpty ||
+                                      kampanyaId == null) {
+                                    return;
+                                  }
+                                  final ok = await showDialog<bool>(
+                                    context: ctx,
+                                    builder: (cc) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16)),
+                                      title: const Text(
+                                        'Kampanyayı iptal et',
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800),
+                                      ),
+                                      content: Text(
+                                        '$label saatleri için aktif kampanyayı durdurmak istediğinize emin misiniz? Bu işlem geri alınamaz.',
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(cc, false),
+                                          child: const Text('Vazgeç'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(cc, true),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFFEF4444),
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                          ),
+                                          child: const Text('İptal Et'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (ok != true) return;
+
+                                  setLocal(() => loading = true);
+                                  final res =
+                                      await saatBosluguKampanyaIptal(
+                                    salonId: salonId,
+                                    kampanyaId: kampanyaId,
+                                  );
+                                  if (!mounted) return;
+                                  Navigator.of(ctx).pop();
+
+                                  final status = res?['status'] as String?;
+                                  if (status == 'success') {
+                                    _refreshKarsilastirma(_perfPeriod);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        backgroundColor:
+                                            const Color(0xFF16A34A),
+                                        behavior: SnackBarBehavior.floating,
+                                        content: Text(
+                                          '$label kampanyası iptal edildi',
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        backgroundColor:
+                                            const Color(0xFFEF4444),
+                                        behavior: SnackBarBehavior.floating,
+                                        content: Text(
+                                          res?['message'] as String? ??
+                                              'Kampanya iptal edilemedi',
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF4444),
+                            side: const BorderSide(
+                                color: Color(0xFFEF4444), width: 1.2),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: loading
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                        Color(0xFFEF4444)),
+                                  ),
+                                )
+                              : const Icon(Icons.cancel_outlined, size: 16),
+                          label: const Text(
+                            'Kampanyayı İptal Et',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                        ),
                       ),
-                      child: const Text(
-                        'Tamam',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: loading
+                              ? null
+                              : () => Navigator.of(ctx).pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF16A34A),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text(
+                            'Tamam',
+                            style: TextStyle(
+                                fontSize: 12.5, fontWeight: FontWeight.w700),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   )
                 else
                   Row(
