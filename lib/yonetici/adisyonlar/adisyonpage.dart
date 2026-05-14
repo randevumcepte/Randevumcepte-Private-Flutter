@@ -80,6 +80,12 @@
 
     bool _kapaliFetched = false;
 
+    // Badge'lerde 'null' stringinin gozukmemesi icin defansif normalizasyon
+    String _badgeText(String? value) {
+      if (value == null || value.isEmpty || value == 'null') return '0';
+      return value;
+    }
+
     @override
     void initState() {
       super.initState();
@@ -106,12 +112,23 @@
     Future<void> initialize() async {
       seciliisletme = await secilisalonid();
 
+      // Acik tabi onceleyerek await et: kullanici hizli render gorur
       await fetchAcikAdisyonlar();
 
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
+
+      // Kapali tabi arkaplanda yukle: badge sayisi anlik populate olur,
+      // kullanici Kapali tab'a tikladiginda da veri zaten hazirdir.
+      if (!_kapaliFetched) {
+        _kapaliFetched = true;
+        // Hata olursa flagi geri al ki tab tikinda tekrar denensin
+        fetchAdisyonlar().catchError((_) {
+          _kapaliFetched = false;
+        });
+      }
     }
 
     Future<void> fetchAdisyonlar({bool resetPage = true}) async {
@@ -1474,7 +1491,7 @@
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
-                                  _isLoading ? '' : (acikSayi ?? '0'),
+                                  _isLoading ? '' : _badgeText(acikSayi),
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -1515,7 +1532,7 @@
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
-                                  _isLoading ? '' : (kapaliSayi ?? '0'),
+                                  _isLoading ? '' : _badgeText(kapaliSayi),
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
