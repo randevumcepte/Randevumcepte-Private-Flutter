@@ -962,43 +962,61 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
   Future<void> _kategoriDuzenle(UrunKategorisi? k) async {
     final adCtl = TextEditingController(text: k?.ad ?? '');
     Color secilenRenk = _hexToColor(k?.renk ?? '') ?? _mor;
-    final tamam = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
-        return AlertDialog(
-          title: Text(k == null ? 'Yeni Kategori' : 'Kategori Düzenle'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: adCtl, decoration: const InputDecoration(labelText: 'Ad')),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: _hazirRenkler.map((r) {
-                  final secili = r.value == secilenRenk.value;
-                  return InkWell(
-                    onTap: () => setSt(() => secilenRenk = r),
-                    child: Container(
-                      width: 28, height: 28,
-                      decoration: BoxDecoration(color: r, shape: BoxShape.circle, border: Border.all(color: secili ? Colors.black : Colors.transparent, width: 2)),
+    final yeni = k == null;
+
+    final ok = await _premiumDuzenleBottomSheet(
+      baslik: yeni ? 'Yeni Kategori' : 'Kategori Düzenle',
+      altBaslik: yeni ? 'Ürünleri gruplamak için kategori oluştur' : k.ad,
+      ikon: Icons.local_offer_outlined,
+      kaydetEtiket: yeni ? 'Kategori Ekle' : 'Değişiklikleri Kaydet',
+      zorunluAlanKontrol: () => adCtl.text.trim().isEmpty ? 'Kategori adı zorunludur' : null,
+      bolumler: [
+        _BolumKayit('Kategori Bilgileri', Icons.label_important_outline, [
+          _AlanKayit('Kategori Adı', adCtl, zorunlu: true, ipucu: 'örn. Şampuanlar, Boyalar...'),
+        ]),
+        _BolumKayit(
+          'Renk Seç',
+          Icons.palette_outlined,
+          const [],
+          ekstra: StatefulBuilder(builder: (ctx, setSt) {
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _hazirRenkler.map((r) {
+                final secili = r.toARGB32() == secilenRenk.toARGB32();
+                return InkWell(
+                  onTap: () => setSt(() => secilenRenk = r),
+                  borderRadius: BorderRadius.circular(40),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: r,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: secili ? Colors.white : Colors.transparent, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: secili ? r.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.08),
+                          blurRadius: secili ? 10 : 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true),  child: const Text('Kaydet')),
-          ],
-        );
-      }),
+                    child: secili ? const Icon(Icons.check, color: Colors.white, size: 22) : null,
+                  ),
+                );
+              }).toList(),
+            );
+          }),
+        ),
+      ],
     );
-    if (tamam == true) {
+
+    if (ok == true) {
       await StokApi.kategoriKaydet(widget.salonId, {
         if (k != null) 'id': k.id,
         'ad': adCtl.text.trim(),
-        'renk': '#${secilenRenk.value.toRadixString(16).substring(2)}',
+        'renk': '#${secilenRenk.toARGB32().toRadixString(16).substring(2)}',
       });
       _yukle();
     }
@@ -1047,39 +1065,47 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     final adCtl = TextEditingController(text: d?.depo_adi ?? '');
     final aciklamaCtl = TextEditingController(text: d?.aciklama ?? '');
     bool varsayilan = d?.varsayilan ?? false;
-    final tamam = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
-        return AlertDialog(
-          title: Text(d == null ? 'Yeni Depo' : 'Depo Düzenle'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: adCtl, decoration: const InputDecoration(labelText: 'Depo Adı')),
-              const SizedBox(height: 8),
-              TextField(controller: aciklamaCtl, decoration: const InputDecoration(labelText: 'Açıklama')),
-              const SizedBox(height: 8),
-              SwitchListTile(
+    final yeni = d == null;
+
+    final ok = await _premiumDuzenleBottomSheet(
+      baslik: yeni ? 'Yeni Depo' : 'Depo Düzenle',
+      altBaslik: yeni ? 'Stoku tutacağın fiziksel lokasyon' : d.depo_adi,
+      ikon: Icons.warehouse_outlined,
+      kaydetEtiket: yeni ? 'Depo Ekle' : 'Değişiklikleri Kaydet',
+      zorunluAlanKontrol: () => adCtl.text.trim().isEmpty ? 'Depo adı zorunludur' : null,
+      bolumler: [
+        _BolumKayit('Depo Bilgileri', Icons.info_outline, [
+          _AlanKayit('Depo Adı', adCtl, zorunlu: true, ipucu: 'örn. Ana Depo, Salon Rafı'),
+          _AlanKayit('Açıklama', aciklamaCtl, satir: 2, ipucu: 'Konum, açıklama vb. (opsiyonel)'),
+        ]),
+        _BolumKayit(
+          'Ayarlar',
+          Icons.tune,
+          const [],
+          ekstra: StatefulBuilder(builder: (ctx, setSt) {
+            return Container(
+              decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: SwitchListTile(
                 value: varsayilan,
-                title: const Text('Varsayılan depo'),
+                title: const Text('Varsayılan depo', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                subtitle: const Text('Yeni ürünler bu depoda kaydedilir', style: TextStyle(fontSize: 11)),
                 onChanged: (v) => setSt(() => varsayilan = v),
                 contentPadding: EdgeInsets.zero,
-                activeColor: _mor,
+                activeThumbColor: _mor,
+                dense: true,
               ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true),  child: const Text('Kaydet')),
-          ],
-        );
-      }),
+            );
+          }),
+        ),
+      ],
     );
-    if (tamam == true) {
+
+    if (ok == true) {
       await StokApi.depoKaydet(widget.salonId, {
         if (d != null) 'id': d.id,
         'depo_adi': adCtl.text.trim(),
-        'aciklama': aciklamaCtl.text,
+        'aciklama': aciklamaCtl.text.trim(),
         'varsayilan': varsayilan ? 1 : 0,
       });
       _yukle();
@@ -1126,39 +1152,230 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     final vergiCtl = TextEditingController(text: t?.vergi_no ?? '');
     final emailCtl = TextEditingController(text: t?.email ?? '');
     final adresCtl = TextEditingController(text: t?.adres ?? '');
-    final tamam = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t == null ? 'Yeni Tedarikçi' : 'Tedarikçi Düzenle'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: adCtl, decoration: const InputDecoration(labelText: 'Ad')),
-              TextField(controller: telCtl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Telefon')),
-              TextField(controller: vergiCtl, decoration: const InputDecoration(labelText: 'Vergi No')),
-              TextField(controller: emailCtl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-posta')),
-              TextField(controller: adresCtl, maxLines: 2, decoration: const InputDecoration(labelText: 'Adres')),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true),  child: const Text('Kaydet')),
-        ],
-      ),
+    final yeni = t == null;
+
+    final ok = await _premiumDuzenleBottomSheet(
+      baslik: yeni ? 'Yeni Tedarikçi' : 'Tedarikçi Düzenle',
+      altBaslik: yeni ? 'Bilgileri eksiksiz girmen tavsiye edilir' : t.ad,
+      ikon: Icons.local_shipping_outlined,
+      bolumler: [
+        _BolumKayit('Temel Bilgiler', Icons.business_outlined, [
+          _AlanKayit('Tedarikçi Adı', adCtl, zorunlu: true, ipucu: 'örn. ABC Kozmetik'),
+        ]),
+        _BolumKayit('İletişim', Icons.contact_mail_outlined, [
+          _AlanKayit('Telefon', telCtl, klavye: TextInputType.phone, ipucu: '0532 123 45 67'),
+          _AlanKayit('E-posta', emailCtl, klavye: TextInputType.emailAddress, ipucu: 'siparis@firma.com'),
+        ]),
+        _BolumKayit('Resmi Bilgiler', Icons.receipt_long_outlined, [
+          _AlanKayit('Vergi No', vergiCtl, klavye: TextInputType.number, ipucu: '10 haneli'),
+          _AlanKayit('Adres', adresCtl, satir: 3, ipucu: 'Tam adres'),
+        ]),
+      ],
+      kaydetEtiket: yeni ? 'Tedarikçi Ekle' : 'Değişiklikleri Kaydet',
+      zorunluAlanKontrol: () {
+        if (adCtl.text.trim().isEmpty) return 'Tedarikçi adı zorunludur';
+        return null;
+      },
     );
-    if (tamam == true) {
+
+    if (ok == true) {
       await StokApi.tedarikciKaydet(widget.salonId, {
         if (t != null) 'id': t.id,
         'ad': adCtl.text.trim(),
-        'telefon': telCtl.text,
-        'vergi_no': vergiCtl.text,
-        'email': emailCtl.text,
-        'adres': adresCtl.text,
+        'telefon': telCtl.text.trim(),
+        'vergi_no': vergiCtl.text.trim(),
+        'email': emailCtl.text.trim(),
+        'adres': adresCtl.text.trim(),
       });
       _yukle();
     }
+  }
+
+  // ============================================================
+  // ORTAK PREMIUM DÜZENLEME BOTTOM SHEET
+  // ============================================================
+  // Kategori, depo, tedarikçi gibi 'düzenle/ekle' diyaloglarının
+  // tutarlı modern görünümü için ortak helper.
+
+  Future<bool?> _premiumDuzenleBottomSheet({
+    required String baslik,
+    String? altBaslik,
+    required IconData ikon,
+    required List<_BolumKayit> bolumler,
+    required String kaydetEtiket,
+    String? Function()? zorunluAlanKontrol,
+  }) {
+    String? hata;
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.85,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (_, scrollCtl) => Container(
+              decoration: const BoxDecoration(color: Color(0xFFF7F7FB), borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+              child: Column(
+                children: [
+                  // === Header ===
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 18),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(colors: [_mor, Color(0xFF8E24AA)]),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(width: 38, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(12)),
+                              child: Icon(ikon, color: Colors.white, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(baslik, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
+                                  if (altBaslik != null && altBaslik.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(altBaslik, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(ctx, false)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // === Hata bandı ===
+                  if (hata != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      color: _kirmizi.withValues(alpha: 0.1),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: _kirmizi, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(hata!, style: const TextStyle(color: _kirmizi, fontWeight: FontWeight.w600, fontSize: 13))),
+                        ],
+                      ),
+                    ),
+                  // === Form alanları (bölümler) ===
+                  Expanded(
+                    child: ListView(
+                      controller: scrollCtl,
+                      padding: const EdgeInsets.all(16),
+                      children: bolumler.map((b) => _bolumKarti(b)).toList(),
+                    ),
+                  ),
+                  // === Footer ===
+                  Container(
+                    decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, -2))]),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), side: const BorderSide(color: Colors.black26), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            child: const Text('Vazgeç', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              if (zorunluAlanKontrol != null) {
+                                final h = zorunluAlanKontrol();
+                                if (h != null) {
+                                  setSt(() => hata = h);
+                                  return;
+                                }
+                              }
+                              Navigator.pop(ctx, true);
+                            },
+                            icon: const Icon(Icons.check),
+                            label: Text(kaydetEtiket),
+                            style: ElevatedButton.styleFrom(backgroundColor: _mor, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), textStyle: const TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _bolumKarti(_BolumKayit b) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(b.ikon, color: _mor, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                b.baslik.toUpperCase(),
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: _mor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...b.alanlar.expand((a) sync* {
+            yield _alanKart(a);
+            yield const SizedBox(height: 10);
+          }),
+          if (b.ekstra != null) b.ekstra!,
+        ],
+      ),
+    );
+  }
+
+  Widget _alanKart(_AlanKayit a) {
+    return TextField(
+      controller: a.ctl,
+      keyboardType: a.klavye ?? TextInputType.text,
+      maxLines: a.satir,
+      decoration: InputDecoration(
+        labelText: a.zorunlu ? '${a.label} *' : a.label,
+        labelStyle: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w600, fontSize: 13),
+        hintText: a.ipucu,
+        hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.3), fontSize: 13),
+        filled: true,
+        fillColor: const Color(0xFFFAFAFC),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _mor, width: 1.5)),
+      ),
+    );
   }
 
   // ============================================================
@@ -1322,4 +1539,32 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     Color(0xFFEF6C00), Color(0xFFC62828), Color(0xFF00838F),
     Color(0xFF558B2F), Color(0xFFAD1457), Color(0xFF5D4037),
   ];
+}
+
+/// Premium düzenleme bottom sheet'i için form bölümü tanımı.
+class _BolumKayit {
+  final String baslik;
+  final IconData ikon;
+  final List<_AlanKayit> alanlar;
+  /// Standart form alanlarının altına eklenecek özel widget (renk seçici, switch vb.).
+  final Widget? ekstra;
+  const _BolumKayit(this.baslik, this.ikon, this.alanlar, {this.ekstra});
+}
+
+/// Premium düzenleme bottom sheet'i için tek bir input alanı.
+class _AlanKayit {
+  final String label;
+  final TextEditingController ctl;
+  final bool zorunlu;
+  final String? ipucu;
+  final TextInputType? klavye;
+  final int satir;
+  const _AlanKayit(
+    this.label,
+    this.ctl, {
+    this.zorunlu = false,
+    this.ipucu,
+    this.klavye,
+    this.satir = 1,
+  });
 }
