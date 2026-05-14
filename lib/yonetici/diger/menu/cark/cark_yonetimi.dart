@@ -1040,36 +1040,108 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
       );
     }
 
+    // 3 farklı durum: tam başarı / kısmi başarı / hiç gitmedi
+    final tamBasari = gonderildi > 0 && hata == 0;
+    final kismi = gonderildi > 0 && hata > 0;
+    final hicGitmedi = gonderildi == 0 && hedef > 0;
+    final hedefYok = hedef == 0;
+
+    Color renkBg, renkBorder, renkIkonBg, renkBaslik;
+    IconData ikon;
+    String baslikText;
+
+    if (tamBasari) {
+      renkBg = Colors.green.shade50;
+      renkBorder = Colors.green.shade200;
+      renkBaslik = Colors.green.shade800;
+      renkIkonBg = Colors.green.shade700;
+      ikon = Icons.check_circle;
+      baslikText = 'Bildirim gönderildi ($gonderildi cihaz)';
+    } else if (kismi) {
+      renkBg = Colors.amber.shade50;
+      renkBorder = Colors.amber.shade300;
+      renkBaslik = Colors.amber.shade900;
+      renkIkonBg = Colors.amber.shade700;
+      ikon = Icons.info_outline;
+      baslikText = 'Kısmen gönderildi ($gonderildi/${gonderildi + hata})';
+    } else if (hicGitmedi) {
+      renkBg = Colors.red.shade50;
+      renkBorder = Colors.red.shade200;
+      renkBaslik = Colors.red.shade800;
+      renkIkonBg = Colors.red.shade700;
+      ikon = Icons.error_outline;
+      baslikText = 'Hiçbir cihaza ulaşılamadı';
+    } else if (hedefYok) {
+      renkBg = Colors.grey.shade100;
+      renkBorder = Colors.grey.shade300;
+      renkBaslik = Colors.grey.shade800;
+      renkIkonBg = Colors.grey.shade600;
+      ikon = Icons.inbox_outlined;
+      baslikText = 'Uygulaması yüklü müşteri yok';
+    } else {
+      renkBg = Colors.green.shade50;
+      renkBorder = Colors.green.shade200;
+      renkBaslik = Colors.green.shade800;
+      renkIkonBg = Colors.green.shade700;
+      ikon = Icons.check_circle;
+      baslikText = 'Sonuç';
+    }
+
     return Container(
       padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: renkBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade200),
+        border: Border.all(color: renkBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green.shade700),
+              Icon(ikon, color: renkIkonBg),
               SizedBox(width: 8),
-              Text(
-                gonderildi > 0 ? 'Bildirim gönderildi' : 'Hedef kitle boş',
-                style: TextStyle(color: Colors.green.shade800, fontWeight: FontWeight.w800, fontSize: 15),
+              Expanded(
+                child: Text(
+                  baslikText,
+                  style: TextStyle(color: renkBaslik, fontWeight: FontWeight.w800, fontSize: 15),
+                ),
               ),
             ],
           ),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _duyuruIstatistik('Hedef', '$hedef', Colors.blue.shade700)),
-              SizedBox(width: 6),
-              Expanded(child: _duyuruIstatistik('Gönderildi', '$gonderildi', Colors.green.shade700)),
-              SizedBox(width: 6),
-              Expanded(child: _duyuruIstatistik('Hata', '$hata', Colors.orange.shade700)),
-            ],
-          ),
+          if (hedef > 0) ...[
+            SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: _duyuruIstatistik('Müşteri', '$hedef', Colors.blue.shade700)),
+                SizedBox(width: 6),
+                Expanded(child: _duyuruIstatistik('Gönderildi', '$gonderildi', Colors.green.shade700)),
+                SizedBox(width: 6),
+                Expanded(child: _duyuruIstatistik('Hata', '$hata', Colors.orange.shade700)),
+              ],
+            ),
+          ],
+          if (hicGitmedi) ...[
+            SizedBox(height: 10),
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Olası sebepler:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.red.shade800)),
+                  SizedBox(height: 4),
+                  Text('• Müşteriler uygulamayı silmiş ve token\'lar artık geçersiz', style: TextStyle(fontSize: 11, color: Colors.grey.shade800)),
+                  Text('• Firebase yapılandırması sunucu tarafında eksik', style: TextStyle(fontSize: 11, color: Colors.grey.shade800)),
+                  Text('• Geliştirici Laravel log\'unu kontrol etmeli', style: TextStyle(fontSize: 11, color: Colors.grey.shade800)),
+                ],
+              ),
+            ),
+          ],
           if (mesaj != null && mesaj.isNotEmpty) ...[
             SizedBox(height: 8),
             Text(mesaj, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
