@@ -78,25 +78,37 @@
     String? _currentlyExpandedId; // Sadece bir adisyonun açık olması için
 
 
+    bool _kapaliFetched = false;
+
     @override
     void initState() {
       super.initState();
       _tabController = TabController(length: 2, vsync: this);
+      _tabController.addListener(_onTabChanged);
       initialize();
     }
 
     @override
     void dispose() {
+      _tabController.removeListener(_onTabChanged);
       _tabController.dispose();
       super.dispose();
+    }
+
+    void _onTabChanged() {
+      if (_tabController.indexIsChanging) return;
+      if (_tabController.index == 1 && !_kapaliFetched && seciliisletme != null) {
+        _kapaliFetched = true;
+        fetchAdisyonlar();
+      }
     }
 
     Future<void> initialize() async {
       seciliisletme = await secilisalonid();
 
-      await fetchAdisyonlar();
       await fetchAcikAdisyonlar();
 
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -459,565 +471,365 @@
       );
     }
     Widget _buildAdisyonCard(Adisyon adisyon, bool isOpenTab) {
-      bool isExpanded = _currentlyExpandedId == adisyon.id;
-      bool isKapali = adisyon.kalan_tutar == "0" || adisyon.kalan_tutar == "0,00";
-      double toplam = double.tryParse(adisyon.toplam_numeric) ?? 0;
-      double odenen = double.tryParse(adisyon.odenen_numeric) ?? 0;
-      double kalan = double.tryParse(adisyon.kalan_tutar_numeric) ?? 0;
-
-      bool isFullPaid = kalan <= 0;
-      bool isPartialPaid = odenen > 0 && kalan > 0;
-
-      String personel = "";
-      if (adisyon.hizmet_veren.isNotEmpty && adisyon.hizmet_veren != "null") {
-        personel = adisyon.hizmet_veren;
-      }
+      final bool isExpanded = _currentlyExpandedId == adisyon.id;
+      final double toplam = double.tryParse(adisyon.toplam_numeric) ?? 0;
+      final double odenen = double.tryParse(adisyon.odenen_numeric) ?? 0;
+      final double kalan = double.tryParse(adisyon.kalan_tutar_numeric) ?? 0;
+      final bool isFullPaid = kalan <= 0;
+      final double progress = toplam > 0 ? (odenen / toplam).clamp(0.0, 1.0) : 0.0;
+      final Color statusColor =
+          isFullPaid ? Colors.green.shade600 : Colors.orange.shade600;
+      final String personel =
+          (adisyon.hizmet_veren.isNotEmpty && adisyon.hizmet_veren != "null")
+              ? adisyon.hizmet_veren
+              : '';
 
       return Container(
-        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: Stack(
-          children: [
-            // Ana kart içeriği
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.grey.shade200, width: 1),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => _toggleExpand(adisyon.id),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+        margin: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _toggleExpand(adisyon.id),
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(12, 10, 4, 10),
+                  child: Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(Icons.person_outline, size: 18, color: Colors.purple.shade700),
-                                        SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            adisyon.musteri,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 16,
-                                              color: Colors.grey.shade800,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey.shade600),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          adisyon.acilis_tarihi,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                          Icon(Icons.person_outline,
+                              size: 18, color: Colors.purple.shade400),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              adisyon.musteri,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                color: Colors.grey.shade800,
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  if (personel.isNotEmpty) ...[
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.purple.shade50,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.purple.shade100),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.person_outline,
-                                            size: 14,
-                                            color: Colors.purple.shade700,
-                                          ),
-                                          SizedBox(width: 6),
-                                          ConstrainedBox(
-                                            constraints: BoxConstraints(maxWidth: 100),
-                                            child: Text(
-                                              personel,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.purple.shade800,
-                                                fontSize: 13,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                  ] else ...[
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade100,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.grey.shade200),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.person_off_outlined,
-                                            size: 14,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                          SizedBox(width: 6),
-                                          Text(
-                                            "Personel Yok",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.grey.shade600,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                  ],
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "Toplam: ₺${toplam.toStringAsFixed(2).replaceAll('.', ',')}",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.grey.shade800,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 12),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: kalan > 0 ? Colors.orange.shade50 : Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: kalan > 0 ? Colors.orange.shade100 : Colors.green.shade100,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  kalan > 0 ? Icons.pending_outlined : Icons.check_circle_outline,
-                                  size: 16,
-                                  color: kalan > 0 ? Colors.orange.shade600 : Colors.green.shade600,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  kalan > 0
-                                      ? "Kalan: ₺${kalan.toStringAsFixed(2).replaceAll('.', ',')}"
-                                      : "Tam Ödendi",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: kalan > 0 ? Colors.orange.shade700 : Colors.green.shade700,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
-                          if (!isKapali) ...[
-                            SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange.shade50,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.orange.shade100),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.pending, size: 16, color: Colors.orange.shade600),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          "Devam Ediyor",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.orange.shade700,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  flex: 2,
-                                  child: Container(
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: Colors.purple.shade50,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.purple.shade100),
-                                    ),
-                                    child: PopupMenuButton<String>(
-                                      onSelected: (value) {
-                                        switch (value) {
-                                          case 'hizmet':
-                                            hizmetsatisiEkle(context, adisyon);
-                                            break;
-                                          case 'urun':
-                                            urunsatisiEkle(context, adisyon);
-                                            break;
-                                          case 'paket':
-                                            paketsatisiEkle(context, adisyon);
-                                            break;
-                                        }
-                                      },
-                                      itemBuilder: (BuildContext context) => [
-                                        PopupMenuItem<String>(
-                                          value: 'hizmet',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.spa_outlined, size: 20, color: Colors.purple.shade700),
-                                              SizedBox(width: 8),
-                                              Text('Hizmet Ekle'),
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem<String>(
-                                          value: 'urun',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.shopping_bag_outlined, size: 20, color: Colors.purple.shade700),
-                                              SizedBox(width: 8),
-                                              Text('Ürün Ekle'),
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem<String>(
-                                          value: 'paket',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.inventory_2_outlined, size: 20, color: Colors.purple.shade700),
-                                              SizedBox(width: 8),
-                                              Text('Paket Ekle'),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                      offset: Offset(0, -130),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Center(
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.add, size: 18, color: Colors.purple.shade700),
-                                            SizedBox(width: 6),
-                                            Text(
-                                              'Ekle',
-                                              style: TextStyle(
-                                                color: Colors.purple.shade700,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                            Icon(Icons.arrow_drop_down, size: 18, color: Colors.purple.shade700),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          SizedBox(width: 8),
+                          Text(
+                            '₺${toplam.toStringAsFixed(2).replaceAll('.', ',')}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade800,
                             ),
-                          ] else ...[
-                            SizedBox(height: 16),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.green.shade100),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "Tamamlandı",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.green.shade700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
+                          _buildKebabMenu(adisyon, isOpenTab),
                         ],
                       ),
-                    ),
-                    if (isExpanded) ...[
-                      Divider(height: 1, color: Colors.grey.shade200),
+                      SizedBox(height: 2),
                       Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        padding: EdgeInsets.only(left: 24, right: 12),
+                        child: Row(
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(Icons.receipt_long_outlined, size: 18, color: Colors.purple.shade700),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Satış Detayları",
+                            Text(
+                              adisyon.acilis_tarihi,
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                            if (personel.isNotEmpty) ...[
+                              Text('  ·  ',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                    color: Colors.grey.shade800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 12),
-                            _buildMinimalistSalesContent(adisyon.icerikKisaltilmis),
-                            SizedBox(height: 20),
-                            Row(
-                              children: [
-                                Icon(Icons.analytics_outlined, size: 18, color: Colors.purple.shade700),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Ödeme Detayları",
+                                      color: Colors.grey.shade400,
+                                      fontSize: 12)),
+                              Flexible(
+                                child: Text(
+                                  personel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                    color: Colors.grey.shade800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            Row(
-                              children: [
-                                _buildSummaryCard(
-                                  icon: Icons.attach_money_outlined,
-                                  title: "Toplam",
-                                  amount: toplam,
-                                  color: Colors.blueGrey,
-                                  iconColor: Colors.blueGrey,
-                                ),
-                                SizedBox(width: 8),
-                                _buildSummaryCard(
-                                  icon: Icons.check_circle_outline,
-                                  title: "Ödenen",
-                                  amount: odenen,
-                                  color: Colors.green,
-                                  iconColor: Colors.green,
-                                  isPaid: true,
-                                ),
-                                SizedBox(width: 8),
-                                _buildSummaryCard(
-                                  icon: Icons.pending_outlined,
-                                  title: "Kalan",
-                                  amount: kalan,
-                                  color: kalan > 0 ? Colors.orange : Colors.green,
-                                  iconColor: kalan > 0 ? Colors.orange : Colors.green,
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Ödeme Durumu",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                LinearProgressIndicator(
-                                  value: toplam > 0 ? odenen / toplam : 0,
-                                  backgroundColor: Colors.grey.shade200,
-                                  color: isFullPaid
-                                      ? Colors.green
-                                      : isPartialPaid
-                                      ? Colors.orange
-                                      : Colors.red,
-                                  minHeight: 6,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      "${((toplam > 0 ? odenen / toplam : 0) * 100).toStringAsFixed(0)}%",
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: isFullPaid
-                                            ? Colors.green.shade700
-                                            : isPartialPaid
-                                            ? Colors.orange.shade700
-                                            : Colors.red.shade700,
-                                      ),
-                                    ),
-                                    Text(
-                                      isFullPaid
-                                          ? "💯 TAM ÖDENDİ"
-                                          : isPartialPaid
-                                          ? "💰 KISMİ ÖDENDİ"
-                                          : "⏳ BEKLİYOR",
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isFullPaid
-                                            ? Colors.green.shade700
-                                            : isPartialPaid
-                                            ? Colors.orange.shade700
-                                            : Colors.red.shade700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            if (!isKapali ) ...[
-                              SizedBox(height: 20),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => TahsilatEkrani(
-                                        kullanicirolu: widget.kullanicirolu,
-                                        isletmebilgi: widget.isletmebilgi,
-                                        musteridanisanid: adisyon.user_id,
-                                        adisyonId: adisyon.id,
-                                      ),
-                                    ),
-                                  ).then((_) async {
-                                    // resetPage: false ile yenile - liste sıfırlanmaz
-                                    await _refreshAdisyonAfterPayment(adisyon, isOpenTab);
-                                  });
-                                },
-                                icon: Icon(Icons.payment_outlined, size: 18),
-                                label: Text("TAHSİLAT YAP"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.purple.shade700,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: Size(double.infinity, 44),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 0,
-                                  shadowColor: Colors.transparent,
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600),
                                 ),
                               ),
                             ],
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 6,
+                                  backgroundColor: Colors.grey.shade200,
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(statusColor),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              isFullPaid
+                                  ? 'Tamamlandı'
+                                  : 'Kalan ₺${kalan.toStringAsFixed(2).replaceAll('.', ',')}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: statusColor,
+                              ),
+                            ),
+                            SizedBox(width: 4),
+                            Icon(
+                              isExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 22,
+                              color: Colors.grey.shade400,
+                            ),
                           ],
                         ),
                       ),
                     ],
-                    Container(
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: isExpanded ? Colors.grey.shade50 : Colors.transparent,
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(16),
-                          bottomRight: Radius.circular(16),
-                        ),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                          color: Colors.grey.shade500,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // SİLME BUTONU - Sağ üst köşede küçük çarpı
-
-              Positioned(
-                top: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: () => _deleteAdisyon(adisyon, isOpenTab),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.close,
-                      size: 16,
-                      color: Colors.white,
-                    ),
                   ),
                 ),
+                if (isExpanded) ...[
+                  Container(height: 1, color: Colors.grey.shade100),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(12, 10, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCompactSalesContent(adisyon.icerikKisaltilmis),
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildMiniStat(
+                                'Toplam', toplam, Colors.grey.shade700),
+                            _buildMiniStat(
+                                'Ödenen', odenen, Colors.green.shade700),
+                            _buildMiniStat(
+                                'Kalan',
+                                kalan,
+                                kalan > 0
+                                    ? Colors.orange.shade700
+                                    : Colors.green.shade700),
+                          ],
+                        ),
+                        if (!isFullPaid) ...[
+                          SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 38,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TahsilatEkrani(
+                                      kullanicirolu: widget.kullanicirolu,
+                                      isletmebilgi: widget.isletmebilgi,
+                                      musteridanisanid: adisyon.user_id,
+                                      adisyonId: adisyon.id,
+                                    ),
+                                  ),
+                                ).then((_) async {
+                                  await _refreshAdisyonAfterPayment(
+                                      adisyon, isOpenTab);
+                                });
+                              },
+                              icon: Icon(Icons.payment_outlined, size: 16),
+                              label: Text('Tahsilat Yap',
+                                  style: TextStyle(fontSize: 13)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple.shade700,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget _buildKebabMenu(Adisyon adisyon, bool isOpenTab) {
+      final bool isKapali = adisyon.kalan_tutar == "0" ||
+          adisyon.kalan_tutar == "0,00";
+      return SizedBox(
+        width: 32,
+        height: 32,
+        child: PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert,
+              size: 20, color: Colors.grey.shade500),
+          padding: EdgeInsets.zero,
+          splashRadius: 18,
+          tooltip: '',
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+          onSelected: (value) {
+            switch (value) {
+              case 'hizmet':
+                hizmetsatisiEkle(context, adisyon);
+                break;
+              case 'urun':
+                urunsatisiEkle(context, adisyon);
+                break;
+              case 'paket':
+                paketsatisiEkle(context, adisyon);
+                break;
+              case 'sil':
+                _deleteAdisyon(adisyon, isOpenTab);
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            if (!isKapali) ...[
+              PopupMenuItem(
+                value: 'hizmet',
+                child: Row(children: [
+                  Icon(Icons.spa_outlined,
+                      size: 18, color: Colors.purple.shade700),
+                  SizedBox(width: 10),
+                  Text('Hizmet Ekle'),
+                ]),
               ),
+              PopupMenuItem(
+                value: 'urun',
+                child: Row(children: [
+                  Icon(Icons.shopping_bag_outlined,
+                      size: 18, color: Colors.purple.shade700),
+                  SizedBox(width: 10),
+                  Text('Ürün Ekle'),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'paket',
+                child: Row(children: [
+                  Icon(Icons.inventory_2_outlined,
+                      size: 18, color: Colors.purple.shade700),
+                  SizedBox(width: 10),
+                  Text('Paket Ekle'),
+                ]),
+              ),
+              PopupMenuDivider(),
+            ],
+            PopupMenuItem(
+              value: 'sil',
+              child: Row(children: [
+                Icon(Icons.delete_outline,
+                    size: 18, color: Colors.red.shade600),
+                SizedBox(width: 10),
+                Text('Sil',
+                    style: TextStyle(color: Colors.red.shade700)),
+              ]),
+            ),
           ],
         ),
+      );
+    }
+
+    Widget _buildMiniStat(String label, double amount, Color color) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w500)),
+          SizedBox(height: 2),
+          Text(
+            '₺${amount.toStringAsFixed(2).replaceAll('.', ',')}',
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      );
+    }
+
+    Widget _buildCompactSalesContent(String content) {
+      if (content.isEmpty) return SizedBox.shrink();
+      final lines = content
+          .split('\n')
+          .where((l) => l.trim().isNotEmpty)
+          .toList();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: lines.map((line) {
+          Color dotColor;
+          if (line.contains('(H)'))
+            dotColor = Colors.blue.shade400;
+          else if (line.contains('(Ü)'))
+            dotColor = Colors.green.shade400;
+          else if (line.contains('(P)'))
+            dotColor = Colors.purple.shade400;
+          else
+            dotColor = Colors.grey.shade400;
+
+          final parts =
+              line.split('  ').where((p) => p.trim().isNotEmpty).toList();
+          final name = parts.isNotEmpty
+              ? parts[0]
+                  .replaceAll('(H)', '')
+                  .replaceAll('(Ü)', '')
+                  .replaceAll('(P)', '')
+                  .trim()
+              : '';
+          final fiyat = (parts.length > 2 && parts[2].contains('₺'))
+              ? parts[2]
+              : '';
+
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                      color: dotColor, shape: BoxShape.circle),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13, color: Colors.grey.shade800)),
+                ),
+                if (fiyat.isNotEmpty)
+                  Text(fiyat,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade800)),
+              ],
+            ),
+          );
+        }).toList(),
       );
     }
     Future<void> _refreshAdisyonAfterPayment(Adisyon oldAdisyon, bool wasInOpenTab) async {
@@ -1090,202 +902,6 @@
         await fetchAcikAdisyonlar(resetPage: true);
       }
     }
-    Widget _buildMinimalistSalesContent(String content) {
-      if (content.isEmpty) return SizedBox.shrink();
-
-      List<String> lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Her satış öğesi için minimalist kart
-          Column(
-            children: lines.map((line) {
-              // Satış türüne göre renk
-              Color typeColor;
-              String typeIcon;
-
-              if (line.contains('(H)')) {
-                typeColor = Colors.blue.shade700;
-                typeIcon = '🎯';
-              } else if (line.contains('(Ü)')) {
-                typeColor = Colors.green.shade700;
-                typeIcon = '📦';
-              } else if (line.contains('(P)')) {
-                typeColor = Colors.purple.shade700;
-                typeIcon = '📦';
-              } else {
-                typeColor = Colors.grey.shade700;
-                typeIcon = '📋';
-              }
-
-              List<String> parts = line.split('  ').where((p) => p.trim().isNotEmpty).toList();
-
-              return Container(
-                margin: EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Üst satır - Tür ve fiyat
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Tür ve ürün adı
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: typeColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        typeIcon,
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        parts.isNotEmpty ?
-                                        parts[0].replaceAll('(H)', '').replaceAll('(Ü)', '').replaceAll('(P)', '').trim() : '',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.grey.shade800,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                // Personel bilgisi
-                                if (parts.length > 1 && parts[1].trim().isNotEmpty && parts[1] != 'null')
-                                  Padding(
-                                    padding: EdgeInsets.only(top: 6, left: 30),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.person_outline, size: 14, color: Colors.grey.shade500),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          parts[1].trim(),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-
-                          // Fiyat
-                          if (parts.length > 2 && parts[2].contains('₺'))
-                            Container(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                parts[2],
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      );
-    }
-    Widget _buildSummaryCard({
-      required IconData icon,
-      required String title,
-      required double amount,
-      required Color color,
-      required Color iconColor,
-      bool isPaid = false,
-    }) {
-      return Expanded(
-        child: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(icon, size: 16, color: iconColor),
-                  ),
-                  Spacer(),
-                  if (isPaid)
-                    Icon(Icons.verified, size: 16, color: Colors.green),
-                ],
-              ),
-              SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                "₺${amount.toStringAsFixed(2).replaceAll('.', ',')}",
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     Widget _buildFilterBottomSheet() {
       return StatefulBuilder(
         builder: (context, setStateSB) {
@@ -1992,90 +1608,61 @@
     }
 
     Widget _buildAdisyonListView(List<Adisyon> adisyonlar, bool isOpenTab) {
-      if (adisyonlar.isEmpty) {
+      final bool tabLoading = isOpenTab ? _isLoadingAcikMore : _isLoadingMore;
+      final bool hasMore = isOpenTab
+          ? (_currentPageAcik < _totalPagesAcik)
+          : (_currentPage < _totalPages);
+
+      if (adisyonlar.isEmpty && !tabLoading) {
         return _buildEmptyState(isOpenTab);
       }
 
       return NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
-          if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
-              !_isLoadingMore &&
-              _currentPage < _totalPages) {
-            _loadMoreData();
-
+          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200 &&
+              !tabLoading &&
+              hasMore) {
+            if (isOpenTab) {
+              _loadMoreAcikData();
+            } else {
+              _loadMoreData();
+            }
             return true;
           }
-          if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
-              !_isLoadingAcikMore &&
-              _currentPageAcik < _totalPagesAcik) {
-            _loadMoreAcikData();
-
-            return true;
-          }
-
           return false;
         },
-        child: Column(
-          children: [
-            // Liste
-            Expanded(
-              child: RefreshIndicator(
-                color: Colors.purple.shade700,
-                backgroundColor: Colors.white,
-                onRefresh: () async {
-                  await fetchAdisyonlar();
-                  await fetchAcikAdisyonlar();
-                },
-                child: ListView.builder(
-                  physics: AlwaysScrollableScrollPhysics(),
-                  itemCount: adisyonlar.length + (_isLoadingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == adisyonlar.length) {
-                      return Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.purple.shade700,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      );
-                    }
-                    return _buildAdisyonCard(adisyonlar[index], isOpenTab);
-                  },
-                ),
-              ),
-            ),
-
-            // Daha fazla yükleme uyarısı - Soft mor
-            if (_currentPage < _totalPages && !_isLoadingMore)
-              Container(
-                padding: EdgeInsets.all(16),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.purple.shade100),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.arrow_downward, size: 16, color: Colors.purple.shade600),
-                      SizedBox(width: 8),
-                      Text(
-                        'Daha fazla yüklemek için kaydırın',
-                        style: TextStyle(
-                          color: Colors.purple.shade700,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+        child: RefreshIndicator(
+          color: Colors.purple.shade700,
+          backgroundColor: Colors.white,
+          onRefresh: () async {
+            if (isOpenTab) {
+              await fetchAcikAdisyonlar();
+            } else {
+              await fetchAdisyonlar();
+            }
+          },
+          child: ListView.builder(
+            physics: AlwaysScrollableScrollPhysics(),
+            itemCount: adisyonlar.length + (tabLoading ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == adisyonlar.length) {
+                return Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        color: Colors.purple.shade700,
+                        strokeWidth: 2,
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-          ],
+                );
+              }
+              return _buildAdisyonCard(adisyonlar[index], isOpenTab);
+            },
+          ),
         ),
       );
     }
