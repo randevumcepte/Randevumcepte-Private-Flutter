@@ -58,7 +58,7 @@ class _KayitOlState extends State<KayitOl> {
                 margin: const EdgeInsets.only(top: 80),
                 child:
                   Image.asset(
-                    'images/yasemintuzun.png',
+                    'images/randevumcepte.png',
                     width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
                     height: 100,
                     fit: BoxFit.contain,
@@ -283,15 +283,15 @@ class _KayitOlState extends State<KayitOl> {
         'name':adsoyad,
         'sms_baslik' : '',
         'sms_apikey' : '',
-        'salonidler' : '361',
+        'salonidler' : '20',
         'sms_username':'',
         'sms_secret':'',
-        'isletmeadi': 'Yasemin Tüzün Güzellik Merkezi',
+        'isletmeadi': 'RandevumCepte',
         'appBundle': appBundle
       };
 
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/yenimusteridanisankaydi'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/yenimusteridanisankaydi'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       ).timeout(const Duration(seconds: 25));

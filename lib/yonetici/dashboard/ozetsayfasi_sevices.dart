@@ -10,7 +10,7 @@ class OzetSayfasi_Service{
 class IsletmePuani_Service{
 
   Future<double> getPoint() async{
-    const String url="https://app.randevumcepte.com.tr/api/v1/isletmepuani/114/";
+    const String url="https://apptest.randevumcepte.com.tr/api/v1/isletmepuani/114/";
     final response= await http.get(Uri.parse(url));
     final jsonresponse = response.body;
 

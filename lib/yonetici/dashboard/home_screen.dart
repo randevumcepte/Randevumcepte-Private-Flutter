@@ -2202,6 +2202,7 @@ class _HomeState extends State<DashBoard> {
 
   void _showGapDetailDialog(BuildContext context, Map<String, dynamic> gap) {
     final scheme = Theme.of(context).colorScheme;
+    final key = gap['key'] as String? ?? 'morning';
     final label = gap['label'] as String? ?? 'Saatler';
     final start = (gap['start'] as num?)?.toInt() ?? 0;
     final end = (gap['end'] as num?)?.toInt() ?? 0;
@@ -2209,118 +2210,182 @@ class _HomeState extends State<DashBoard> {
     final disc = (gap['suggestedDiscount'] as num?)?.toInt() ?? 0;
     final msg = gap['message'] as String? ?? '';
 
+    bool loading = false;
+
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+      barrierDismissible: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => Dialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      borderRadius: BorderRadius.circular(10),
+                      child: const Icon(Icons.lightbulb_rounded,
+                          size: 20, color: Colors.white),
                     ),
-                    child: const Icon(Icons.lightbulb_rounded,
-                        size: 20, color: Colors.white),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '$label Boşluk Önerisi',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurface,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '$label Boşluk Önerisi',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurface,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _dialogInfoRow(
-                context,
-                Icons.schedule_rounded,
-                'Saat aralığı',
-                '${start.toString().padLeft(2, '0')}:00 – ${end.toString().padLeft(2, '0')}:00',
-              ),
-              const SizedBox(height: 10),
-              _dialogInfoRow(
-                context,
-                Icons.show_chart_rounded,
-                'Ortalama doluluk',
-                '%${avg.toStringAsFixed(0)}',
-              ),
-              const SizedBox(height: 10),
-              _dialogInfoRow(
-                context,
-                Icons.local_offer_rounded,
-                'Önerilen indirim',
-                '%$disc',
-                valueColor: const Color(0xFF16A34A),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
+                  ],
                 ),
-                child: Text(
-                  msg,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.4,
-                    color: scheme.onSurface.withValues(alpha: 0.75),
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 16),
+                _dialogInfoRow(
+                  context,
+                  Icons.schedule_rounded,
+                  'Saat aralığı',
+                  '${start.toString().padLeft(2, '0')}:00 – ${end.toString().padLeft(2, '0')}:00',
+                ),
+                const SizedBox(height: 10),
+                _dialogInfoRow(
+                  context,
+                  Icons.show_chart_rounded,
+                  'Ortalama doluluk',
+                  '%${avg.toStringAsFixed(0)}',
+                ),
+                const SizedBox(height: 10),
+                _dialogInfoRow(
+                  context,
+                  Icons.local_offer_rounded,
+                  'Önerilen indirim',
+                  '%$disc',
+                  valueColor: const Color(0xFF16A34A),
+                ),
+                const SizedBox(height: 10),
+                _dialogInfoRow(
+                  context,
+                  Icons.event_rounded,
+                  'Geçerlilik',
+                  '7 gün',
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    msg,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: scheme.onSurface.withValues(alpha: 0.75),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Kapat'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '$label saatleri için %$disc indirimli kampanya yakında!'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: loading ? null : () => Navigator.pop(ctx),
+                        child: const Text('Kapat'),
                       ),
-                      child: const Text('Kampanya Hazırla'),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: loading
+                            ? null
+                            : () async {
+                                final salonId = seciliisletme;
+                                if (salonId == null || salonId.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Salon seçili değil')),
+                                  );
+                                  return;
+                                }
+                                setLocal(() => loading = true);
+                                final res = await saatBosluguKampanyaOlustur(
+                                  salonId: salonId,
+                                  gapKey: key,
+                                  gapLabel: label,
+                                  startHour: start,
+                                  endHour: end,
+                                  discount: disc,
+                                );
+                                if (!mounted) return;
+                                Navigator.of(ctx).pop();
+
+                                final status = res?['status'] as String?;
+                                final apiMsg = res?['message'] as String?;
+                                Color bg;
+                                String text;
+                                if (status == 'success') {
+                                  bg = const Color(0xFF16A34A);
+                                  text = apiMsg ??
+                                      '$label için %$disc indirimli kampanya oluşturuldu';
+                                } else if (status == 'duplicate') {
+                                  bg = const Color(0xFFF59E0B);
+                                  text = apiMsg ??
+                                      '$label için aktif kampanya zaten var';
+                                } else {
+                                  bg = const Color(0xFFEF4444);
+                                  text = apiMsg ??
+                                      'Kampanya oluşturulamadı, lütfen tekrar deneyin';
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: bg,
+                                    behavior: SnackBarBehavior.floating,
+                                    content: Text(
+                                      text,
+                                      style: const TextStyle(
+                                          color: Colors.white),
+                                    ),
+                                  ),
+                                );
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scheme.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: loading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(
+                                      Colors.white),
+                                ),
+                              )
+                            : const Text('Kampanya Hazırla'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

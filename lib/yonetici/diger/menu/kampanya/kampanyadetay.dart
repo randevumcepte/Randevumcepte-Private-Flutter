@@ -245,7 +245,7 @@ class _KampanyaDetayState extends State<KampanyaDetay>{
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/kampanyatekrarsmsgonder'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kampanyatekrarsmsgonder'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),

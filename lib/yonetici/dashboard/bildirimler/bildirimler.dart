@@ -56,7 +56,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
     Map<String, dynamic> formData = {
       'bildirim_id': notificationId,
     };
-    final url = 'https://app.randevumcepte.com.tr/api/v1/bildirimguncelle';
+    final url = 'https://apptest.randevumcepte.com.tr/api/v1/bildirimguncelle';
     final response = await http.post(
       Uri.parse(url),
       body: jsonEncode(formData),
@@ -91,7 +91,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
       throw Exception('Personel ID bulunamadı');
     }
 
-    final url = 'https://app.randevumcepte.com.tr/api/v1/bildirimgetir/$salonid/${personelid.toString()}';
+    final url = 'https://apptest.randevumcepte.com.tr/api/v1/bildirimgetir/$salonid/${personelid.toString()}';
 
     final response = await http.get(Uri.parse(url));
 
@@ -206,7 +206,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                         String url='';
                         print(bildirimData.arsiv['uzanti']);
                         print(url);
-                        await downloadPdf("https://app.randevumcepte.com.tr/"+bildirimData.arsiv['uzanti'], 'appointment_${bildirimData.id}', context);
+                        await downloadPdf("https://apptest.randevumcepte.com.tr/"+bildirimData.arsiv['uzanti'], 'appointment_${bildirimData.id}', context);
                       }
                     },
                     child: Padding(
@@ -217,7 +217,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                           Image.network(
                             width: 40,
                             height: 40,
-                            'https://app.randevumcepte.com.tr${bildirimData.avatar}',
+                            'https://apptest.randevumcepte.com.tr${bildirimData.avatar}',
                             loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
                               if (loadingProgress == null) {
                                 return child;

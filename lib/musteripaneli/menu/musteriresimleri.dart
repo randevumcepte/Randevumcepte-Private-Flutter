@@ -32,7 +32,7 @@ class _ImageGalleryState extends State<ImageGallery> {
       final userId = widget.md.id; // Get user_id from md model
 
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriresimleri'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteriresimleri'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -103,7 +103,7 @@ class _ImageGalleryState extends State<ImageGallery> {
             title: Text(folderName),
             children: images.map((image) {
               String imageUrl =
-                  'https://app.randevumcepte.com.tr/$image';
+                  'https://apptest.randevumcepte.com.tr/$image';
 
 
 

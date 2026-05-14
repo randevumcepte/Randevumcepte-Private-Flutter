@@ -40,10 +40,10 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
   RandevuAraligi? selectedrandevuaraligi;
   TextEditingController randevuaraligicontroller = TextEditingController();
   final List<TakvimAyari> takvimayari = [
-   TakvimAyari(id: '1', takvim:  'Personele Göre',),
-   TakvimAyari(id: '0', takvim:  'Hizmet Kategorisine Göre',),
-   TakvimAyari(id: '2', takvim:  'Cihaza Göre',),
-   TakvimAyari(id: '3', takvim:  'Sınıfa Göre',),
+   TakvimAyari(id: '1', takvim:  'Personele',),
+   TakvimAyari(id: '0', takvim:  'Hizmet Kategorisine',),
+   TakvimAyari(id: '2', takvim:  'Cihaza',),
+   TakvimAyari(id: '3', takvim:  'Sınıfa',),
 
   ];
 
@@ -319,7 +319,7 @@ Future<void> submitForm(String randevu,String takvim,String salonid,context)asyn
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuayarguncelle'),
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/randevuayarguncelle'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),

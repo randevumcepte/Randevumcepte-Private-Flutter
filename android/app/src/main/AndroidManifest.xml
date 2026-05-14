@@ -21,7 +21,7 @@
         android:maxSdkVersion="29" />
 
     <application
-        android:label="Yasemin Tüzün Güzellik Merkezi"
+        android:label="RandevumCepte"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:largeHeap="true">

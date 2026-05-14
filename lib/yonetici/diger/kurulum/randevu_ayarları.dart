@@ -16,7 +16,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
     "90 dakika","120 dakika"];
   String? _selectedAralik;
 
-  final List<String> _kategori=["Hizmete göre","Personele göre"];
+  final List<String> _kategori=["Hizmete","Personele"];
   String? _selectedKategori;
 
   bool light = false;

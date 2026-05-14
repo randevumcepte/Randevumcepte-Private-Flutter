@@ -1,29 +1,42 @@
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeller.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/hesapturu.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'personelcalismasaatleri.dart';
 import 'personelmolasaatleri.dart';
-import '../personeller/oglen_arasi.dart';
 
+// Modern soft tasarimli "Personel Düzenle" sayfasi. PersonelEkle ile birebir
+// tutarlilik icin ayni tema/yapi kullanildi. PersonelDataSource.personelekleguncelle()
+// cagrisi 51 parametre ile aynen calistirilarak backend uyumu korundu.
 class PersonelDuzenle extends StatefulWidget {
   final Personel per;
   final dynamic isletmebilgi;
   final PersonelDataSource personeldata;
-  const PersonelDuzenle({Key? key, required this.per,required this.isletmebilgi, required this.personeldata}) : super(key: key);
+  const PersonelDuzenle({super.key, required this.per, required this.isletmebilgi, required this.personeldata});
 
   @override
-  _PersonelDuzenleState createState() => _PersonelDuzenleState();
+  State<PersonelDuzenle> createState() => _PersonelDuzenleState();
 }
 
 class _PersonelDuzenleState extends State<PersonelDuzenle> {
-  TextEditingController personelid=TextEditingController();
+  // === Tema sabitleri (PersonelEkle ile birebir) ===
+  static const _p1 = Color(0xFF5C008E);
+  static const _p2 = Color(0xFF7B2FB8);
+  static const _p3 = Color(0xFF9D5DC8);
+  static const _border = Color(0xFFECE6F2);
+  static const _text = Color(0xFF2D1B3F);
+  static const _muted = Color(0xFF8A8295);
+  static const _grad = LinearGradient(
+    colors: [_p1, _p2, _p3],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // === Form alanlari ===
+  TextEditingController personelid = TextEditingController();
   TextEditingController personeladi = TextEditingController();
   TextEditingController sabitmaas = TextEditingController();
   TextEditingController hizmetprim = TextEditingController();
@@ -31,11 +44,15 @@ class _PersonelDuzenleState extends State<PersonelDuzenle> {
   TextEditingController paketprim = TextEditingController();
   TextEditingController telefon = TextEditingController();
   TextEditingController unvan = TextEditingController();
+  final TextEditingController hesapturuscontroller = TextEditingController();
+
   final phoneMask = MaskTextInputFormatter(
     mask: '0### ### ## ##',
-    filter: { "#": RegExp(r'[0-9]') },
+    filter: {"#": RegExp(r'[0-9]')},
   );
+
   String selectedcinsiyet = '';
+
   final List<HesapTuru> hesapturu = [
     HesapTuru(id: "1", hesapturu: "Hesap Sahibi"),
     HesapTuru(id: "2", hesapturu: "Süpervizör"),
@@ -43,1187 +60,769 @@ class _PersonelDuzenleState extends State<PersonelDuzenle> {
     HesapTuru(id: "4", hesapturu: "Sekreter"),
     HesapTuru(id: "5", hesapturu: "Personel"),
     HesapTuru(id: "7", hesapturu: "Sanat Yönetmeni"),
-    HesapTuru(id: "8", hesapturu: "Sosyal Medya Uzmanı")
+    HesapTuru(id: "8", hesapturu: "Sosyal Medya Uzmanı"),
   ];
-
   HesapTuru? selectedhesapturu;
-  final TextEditingController hesapturuscontroller = TextEditingController();
   late String seciliisletme;
 
-  // Çalışma saatleri kontrolleri
-  TextEditingController baslangicsaati1 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati2 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati3 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati4 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati5 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati6 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati7 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati1 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati2 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati3 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati4 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati5 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati6 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati7 = TextEditingController(text:"00:00");
+  // Calisma saatleri (1-7: Pzt..Paz)
+  final List<TextEditingController> calBas = List.generate(7, (_) => TextEditingController(text: "00:00"));
+  final List<TextEditingController> calBit = List.generate(7, (_) => TextEditingController(text: "00:00"));
+  final List<bool> calAcik = List.filled(7, false);
 
-  // Mola saatleri kontrolleri
-  TextEditingController baslangicsaati8 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati9 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati10 = TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati11= TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati12= TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati13= TextEditingController(text:"00:00");
-  TextEditingController baslangicsaati14= TextEditingController(text:"00:00");
-  TextEditingController bitissaati8 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati9 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati10 = TextEditingController(text:"00:00");
-  TextEditingController bitissaati11= TextEditingController(text:"00:00");
-  TextEditingController bitissaati12= TextEditingController(text:"00:00");
-  TextEditingController bitissaati13= TextEditingController(text:"00:00");
-  TextEditingController bitissaati14= TextEditingController(text:"00:00");
+  // Mola saatleri (1-7: Pzt..Paz)
+  final List<TextEditingController> molaBas = List.generate(7, (_) => TextEditingController(text: "00:00"));
+  final List<TextEditingController> molaBit = List.generate(7, (_) => TextEditingController(text: "00:00"));
+  final List<bool?> molaAcik = List.filled(7, null);
 
   TimeOfDay _selectedTime = TimeOfDay.now();
-
-  // Çalışma saatleri checkbox'ları
-  bool isChecked1=false;
-  bool isChecked2=false;
-  bool isChecked3=false;
-  bool isChecked4=false;
-  bool isChecked5=false;
-  bool isChecked6=false;
-  bool isChecked7=false;
-
-  // Mola saatleri checkbox'ları
-  bool? isChecked8;
-  bool? isChecked9;
-  bool? isChecked10;
-  bool? isChecked11;
-  bool? isChecked12;
-  bool? isChecked13;
-  bool? isChecked14;
-
   final formKey = GlobalKey<FormState>();
-  late Map<String,dynamic> calismasaatleri;
+  bool _yukleniyor = true;
 
-  void _fetchData() async {
-    seciliisletme = (await secilisalonid())!;
-    personelid=TextEditingController(text:widget.per.id);
-    final List<PersonelCalismaSaatleri> settings = await fetchPersonelHoursSettings(personelid.text);
-    final List<PersonelMolaSaatleri> settings2 = await fetchPersonelBreakHoursSettings(personelid.text);
-    debugPrint('Fetched Settingssssssssss: $settings');
-    setState(() {
-      for (final setting in settings) {
-        final isChecked = setting.calisiyor !=0;
-        final startTime = setting.baslangic;
-        final endTime = setting.bitis;
-        debugPrint('Day: ${setting.haftaninGunu}, Start Time: $startTime, End Time: $endTime,Calisiyor: ${setting.calisiyor}, IsChecked: $isChecked');
+  static const _gunler = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
-        switch (setting.haftaninGunu) {
-          case 1:
-            isChecked1 = isChecked;
-            baslangicsaati1.text =  setting.baslangic;
-            bitissaati1.text = endTime;
-            break;
-          case 2:
-            isChecked2 = isChecked;
-            baslangicsaati2.text = startTime;
-            bitissaati2.text = endTime;
-            break;
-          case 3:
-            isChecked3 = isChecked;
-            baslangicsaati3.text = startTime;
-            bitissaati3.text = endTime;
-            break;
-          case 4:
-            isChecked4 = isChecked;
-            baslangicsaati4.text = startTime;
-            bitissaati4.text = endTime;
-            break;
-          case 5:
-            isChecked5 = isChecked;
-            baslangicsaati5.text = startTime;
-            bitissaati5.text = endTime;
-            break;
-          case 6:
-            isChecked6 = isChecked;
-            baslangicsaati6.text = startTime;
-            bitissaati6.text = endTime;
-            break;
-          case 7:
-            isChecked7 = isChecked;
-            baslangicsaati7.text = startTime;
-            bitissaati7.text = endTime;
-            break;
-        }
-      }
-      for (final setting in settings2) {
-        final isChecked = setting.mola_var!=0;
-        final startTime = setting.baslangic;
-        final endTime = setting.bitis;
-        debugPrint('Day: ${setting.haftaninGunu}, Start Time: $startTime, End Time: $endTime');
-
-        switch (setting.haftaninGunu) {
-          case 1:
-            isChecked8 = isChecked;
-            baslangicsaati8.text =  setting.baslangic;
-            bitissaati8.text = endTime;
-            break;
-          case 2:
-            isChecked9 = isChecked;
-            baslangicsaati9.text = startTime;
-            bitissaati9.text = endTime;
-            break;
-          case 3:
-            isChecked10 = isChecked;
-            baslangicsaati10.text = startTime;
-            bitissaati10.text = endTime;
-            break;
-          case 4:
-            isChecked11 = isChecked;
-            baslangicsaati11.text = startTime;
-            bitissaati11.text = endTime;
-            break;
-          case 5:
-            isChecked12 = isChecked;
-            baslangicsaati12.text = startTime;
-            bitissaati12.text = endTime;
-            break;
-          case 6:
-            isChecked13 = isChecked;
-            baslangicsaati13.text = startTime;
-            bitissaati13.text = endTime;
-            break;
-          case 7:
-            isChecked14 = isChecked;
-            baslangicsaati14.text = startTime;
-            bitissaati14.text = endTime;
-            break;
-        }
-      }
-
-      if (widget.per.cinsiyet == '0') {
-        selectedcinsiyet = 'kadin';
-      } else if (widget.per.cinsiyet == '1') {
-        selectedcinsiyet = 'erkek';
-      }
-
-      personeladi=TextEditingController(text:widget.per.personel_adi!= 'null' ? widget.per.personel_adi : '');
-      sabitmaas=TextEditingController(text:widget.per.maas!= 'null' ? widget.per.maas : '');
-      hizmetprim=TextEditingController(text:widget.per.hizmet_prim_yuzde!= 'null' ? widget.per.hizmet_prim_yuzde : '');
-      urunprim =TextEditingController(text:widget.per.urun_prim_yuzde!= 'null' ? widget.per.urun_prim_yuzde : '');
-      paketprim=TextEditingController(text:widget.per.paket_prim_yuzde!= 'null' ? widget.per.paket_prim_yuzde : '');
-      final rawTel = widget.per.cep_telefon != 'null' && widget.per.cep_telefon != null
-          ? widget.per.cep_telefon!.replaceAll(RegExp(r'\D'), '')
-          : '';
-      String formattedTel = '0';
-      if (rawTel.length > 0) {
-        final onlu = rawTel.startsWith('0') ? rawTel : '0' + rawTel;
-        formattedTel = phoneMask.maskText(onlu);
-      }
-      telefon = TextEditingController(text: formattedTel);
-      unvan =TextEditingController(text:widget.per.unvan!= 'null' ? widget.per.unvan : '');
-      selectedhesapturu = hesapturu.firstWhere(
-            (item) => item.id == widget.per.hesap_turu,
-        orElse: () => hesapturu.first,
-      );
-    });
-  }
-
+  @override
   void initState() {
     super.initState();
     _fetchData();
   }
 
-  // YENİ: Dakika indeksini gerçek dakika değerine dönüştürme
-  int _getMinuteFromIndex(int index) {
-    switch (index) {
-      case 0: return 0;   // 00
-      case 1: return 15;  // 15
-      case 2: return 30;  // 30
-      case 3: return 45;  // 45
-      default: return 0;
+  @override
+  void dispose() {
+    for (final c in [personelid, personeladi, sabitmaas, hizmetprim, urunprim, paketprim, telefon, unvan, hesapturuscontroller]) {
+      c.dispose();
     }
+    for (final c in calBas) {
+      c.dispose();
+    }
+    for (final c in calBit) {
+      c.dispose();
+    }
+    for (final c in molaBas) {
+      c.dispose();
+    }
+    for (final c in molaBit) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
-  // YENİ: Mevcut dakikayı en yakın çeyrek saate yuvarlama
-  int _getNearestQuarterMinute(int minute) {
-    if (minute < 8) return 0;
-    if (minute < 23) return 15;
-    if (minute < 38) return 30;
-    if (minute < 53) return 45;
-    return 0; // 53-59 arası için 00 (saat artar)
+  Future<void> _fetchData() async {
+    final salonId = await secilisalonid();
+    if (!mounted) return;
+    seciliisletme = salonId ?? '';
+    personelid.text = widget.per.id;
+
+    final List<PersonelCalismaSaatleri> settings = await fetchPersonelHoursSettings(widget.per.id);
+    final List<PersonelMolaSaatleri> settings2 = await fetchPersonelBreakHoursSettings(widget.per.id);
+    if (!mounted) return;
+
+    for (final s in settings) {
+      final i = s.haftaninGunu - 1;
+      if (i < 0 || i > 6) continue;
+      calAcik[i] = s.calisiyor != 0;
+      calBas[i].text = s.baslangic;
+      calBit[i].text = s.bitis;
+    }
+    for (final s in settings2) {
+      final i = s.haftaninGunu - 1;
+      if (i < 0 || i > 6) continue;
+      molaAcik[i] = s.mola_var != 0;
+      molaBas[i].text = s.baslangic;
+      molaBit[i].text = s.bitis;
+    }
+
+    // Cinsiyet — PersonelEkle ile uyumlu: '0' / '1' string
+    selectedcinsiyet = (widget.per.cinsiyet == '0' || widget.per.cinsiyet == '1') ? widget.per.cinsiyet : '';
+
+    personeladi.text = widget.per.personel_adi != 'null' ? widget.per.personel_adi : '';
+    sabitmaas.text = widget.per.maas != 'null' ? widget.per.maas : '';
+    hizmetprim.text = widget.per.hizmet_prim_yuzde != 'null' ? widget.per.hizmet_prim_yuzde : '';
+    urunprim.text = widget.per.urun_prim_yuzde != 'null' ? widget.per.urun_prim_yuzde : '';
+    paketprim.text = widget.per.paket_prim_yuzde != 'null' ? widget.per.paket_prim_yuzde : '';
+
+    final rawTel = (widget.per.cep_telefon != 'null')
+        ? widget.per.cep_telefon.replaceAll(RegExp(r'\D'), '')
+        : '';
+    String formattedTel = '0';
+    if (rawTel.isNotEmpty) {
+      final onlu = rawTel.startsWith('0') ? rawTel : '0$rawTel';
+      formattedTel = phoneMask.maskText(onlu);
+    }
+    telefon.text = formattedTel;
+    unvan.text = widget.per.unvan != 'null' ? widget.per.unvan : '';
+    selectedhesapturu = hesapturu.firstWhere(
+      (item) => item.id == widget.per.hesap_turu,
+      orElse: () => hesapturu.firstWhere((i) => i.id == '5', orElse: () => hesapturu.first),
+    );
+
+    setState(() => _yukleniyor = false);
   }
 
-  // GÜNCELLENDİ: Modern saat seçim fonksiyonu - DAKİKALAR 00-15-30-45 OLARAK GÜNCELLENDİ
+  // === Modern saat secici ===
   Future<void> _showModernTimePicker(BuildContext context, TextEditingController controller) async {
     TimeOfDay initialTime = _selectedTime;
-
     if (controller.text.isNotEmpty) {
       try {
-        List<String> timeParts = controller.text.split(':');
-        if (timeParts.length == 2) {
-          int hour = int.parse(timeParts[0]);
-          int minute = int.parse(timeParts[1]);
-          initialTime = TimeOfDay(hour: hour, minute: minute);
+        final parts = controller.text.split(':');
+        if (parts.length == 2) {
+          initialTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         }
-      } catch (e) {
-        // Hata durumunda mevcut zamanı kullan
-      }
+      } catch (_) {}
     }
-
-    bool valid = false;
-
-    while (!valid) {
-      final result = await showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.transparent,
-        isScrollControlled: true,
-        builder: (context) => _buildModernTimePicker(initialTime),
-      );
-
-      if (result == null) return;
-
-      if (result is TimeOfDay) {
-        setState(() {
-          _selectedTime = result;
-          controller.text = '${result.hour.toString().padLeft(2, '0')}:${result.minute.toString().padLeft(2, '0')}';
-        });
-        valid = true;
-      }
+    final result = await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _buildModernTimePicker(initialTime),
+    );
+    if (result is TimeOfDay) {
+      setState(() {
+        _selectedTime = result;
+        controller.text = '${result.hour.toString().padLeft(2, '0')}:${result.minute.toString().padLeft(2, '0')}';
+      });
     }
   }
 
-  // GÜNCELLENDİ: Modern saat seçim widget'ı - DAKİKALAR 00-15-30-45 OLARAK GÜNCELLENDİ
   Widget _buildModernTimePicker(TimeOfDay initialTime) {
     int selectedHour = initialTime.hour;
     int selectedMinute = _getNearestQuarterMinute(initialTime.minute);
-
     return StatefulBuilder(
-      builder: (context, setState) {
-        return GestureDetector(
-          onTap: () {},
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.6,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
+      builder: (ctx, setSt) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.6,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[200]!))),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text('İptal', style: TextStyle(color: Colors.grey[600], fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                  const Text('Saat Seç', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _text)),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(TimeOfDay(hour: selectedHour, minute: selectedMinute)),
+                    child: const Text('Tamam', style: TextStyle(color: _p1, fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              children: [
-                // Başlık ve butonlar
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey[200]!),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text(
-                          'İptal',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'Saat Seç',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          final selectedTime = TimeOfDay(hour: selectedHour, minute: selectedMinute);
-                          Navigator.of(context).pop(selectedTime);
-                        },
-                        child: Text(
-                          'Tamam',
-                          style: TextStyle(
-                            color: Color(0xFF6A1B9A),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Büyük saat gösterimi
-                Container(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}',
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.w300,
-                      color: Color(0xFF6A1B9A),
-                    ),
-                  ),
-                ),
-
-                // Saat ve dakika seçiciler
-                Expanded(
-                  child: Row(
-                    children: [
-                      // Saat seçici
-                      Expanded(
-                        child: ListWheelScrollView(
-                          itemExtent: 50,
-                          perspective: 0.005,
-                          diameterRatio: 1.5,
-                          physics: FixedExtentScrollPhysics(),
-                          onSelectedItemChanged: (index) {
-                            setState(() {
-                              selectedHour = index;
-                            });
-                          },
-                          children: List.generate(24, (hour) {
-                            final isSelected = hour == selectedHour;
-                            return Container(
-                              alignment: Alignment.center,
-                              child: Text(
-                                hour.toString().padLeft(2, '0'),
-                                style: TextStyle(
-                                  fontSize: isSelected ? 22 : 18,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                  color: isSelected ? Color(0xFF6A1B9A) : Colors.grey[600],
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-
-                      // GÜNCELLENDİ: Dakika seçici - SADECE 00-15-30-45
-                      Expanded(
-                        child: ListWheelScrollView(
-                          itemExtent: 50,
-                          perspective: 0.005,
-                          diameterRatio: 1.5,
-                          physics: FixedExtentScrollPhysics(),
-                          onSelectedItemChanged: (index) {
-                            setState(() {
-                              selectedMinute = _getMinuteFromIndex(index);
-                            });
-                          },
-                          children: List.generate(4, (index) {
-                            final minute = _getMinuteFromIndex(index);
-                            final isSelected = minute == selectedMinute;
-                            return Container(
-                              alignment: Alignment.center,
-                              child: Text(
-                                minute.toString().padLeft(2, '0'),
-                                style: TextStyle(
-                                  fontSize: isSelected ? 22 : 18,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                  color: isSelected ? Color(0xFF6A1B9A) : Colors.grey[600],
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}',
+                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w300, color: _p1),
+              ),
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Ortak saat TextField widget'ı
-  Widget _buildTimeField(TextEditingController controller, String hintText) {
-    return Container(
-      height: 40,
-      padding: EdgeInsets.only(left: 10, right: 10),
-      child: TextFormField(
-        controller: controller,
-        onSaved: (value) {
-          controller.text = value!;
-        },
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Bu alan zorunludur!';
-          }
-          return null;
-        },
-        readOnly: true,
-        onTap: () async {
-          await _showModernTimePicker(context, controller);
-        },
-        decoration: InputDecoration(
-          suffixIcon: Icon(Icons.access_time, size: 15, color: Color(0xFF6A1B9A)),
-          focusColor: Color(0xFF6A1B9A),
-          hoverColor: Color(0xFF6A1B9A),
-          hintText: hintText,
-          hintStyle: TextStyle(color: Color(0xFF6A1B9A)),
-          contentPadding: EdgeInsets.all(5.0),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-            borderRadius: BorderRadius.circular(10.0),
-          ),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ListWheelScrollView(
+                      itemExtent: 50,
+                      perspective: 0.005,
+                      diameterRatio: 1.5,
+                      physics: const FixedExtentScrollPhysics(),
+                      controller: FixedExtentScrollController(initialItem: selectedHour),
+                      onSelectedItemChanged: (i) => setSt(() => selectedHour = i),
+                      children: List.generate(24, (hour) {
+                        final sel = hour == selectedHour;
+                        return Container(
+                          alignment: Alignment.center,
+                          child: Text(
+                            hour.toString().padLeft(2, '0'),
+                            style: TextStyle(
+                              fontSize: sel ? 22 : 18,
+                              fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+                              color: sel ? _p1 : Colors.grey[600],
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListWheelScrollView(
+                      itemExtent: 50,
+                      perspective: 0.005,
+                      diameterRatio: 1.5,
+                      physics: const FixedExtentScrollPhysics(),
+                      controller: FixedExtentScrollController(initialItem: _getIndexFromMinute(selectedMinute)),
+                      onSelectedItemChanged: (i) => setSt(() => selectedMinute = _getMinuteFromIndex(i)),
+                      children: List.generate(4, (i) {
+                        final m = _getMinuteFromIndex(i);
+                        final sel = m == selectedMinute;
+                        return Container(
+                          alignment: Alignment.center,
+                          child: Text(
+                            m.toString().padLeft(2, '0'),
+                            style: TextStyle(
+                              fontSize: sel ? 22 : 18,
+                              fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+                              color: sel ? _p1 : Colors.grey[600],
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Gün satırı widget'ı - Çalışma Saatleri
-  Widget _buildWorkingDayRow({
-    required String dayName,
-    required bool isChecked,
-    required Function(bool?) onChanged,
-    required TextEditingController startController,
-    required TextEditingController endController,
-  }) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Checkbox(
-                    value: isChecked,
-                    onChanged: onChanged,
-                  ),
-                  Text(dayName),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _buildTimeField(startController, 'Başlangıç'),
-            ),
-            Expanded(
-              child: _buildTimeField(endController, 'Bitiş'),
-            ),
-          ],
-        ),
-        const Divider(
-          height: 2.0,
-          thickness: 1,
-        ),
-      ],
+  int _getNearestQuarterMinute(int minute) {
+    if (minute < 8) return 0;
+    if (minute < 23) return 15;
+    if (minute < 38) return 30;
+    if (minute < 53) return 45;
+    return 0;
+  }
+
+  int _getMinuteFromIndex(int i) => [0, 15, 30, 45][i % 4];
+  int _getIndexFromMinute(int m) => [0, 15, 30, 45].indexOf(m).clamp(0, 3);
+
+  void _kaydet() {
+    widget.personeldata.personelekleguncelle(
+      personelid.text,
+      personeladi.text,
+      unvan.text,
+      telefon.text,
+      selectedhesapturu?.id ?? "",
+      selectedcinsiyet,
+      sabitmaas.text,
+      hizmetprim.text,
+      urunprim.text,
+      paketprim.text,
+      seciliisletme,
+      calAcik[0], calAcik[1], calAcik[2], calAcik[3], calAcik[4], calAcik[5], calAcik[6],
+      calBas[0].text, calBas[1].text, calBas[2].text, calBas[3].text, calBas[4].text, calBas[5].text, calBas[6].text,
+      calBit[0].text, calBit[1].text, calBit[2].text, calBit[3].text, calBit[4].text, calBit[5].text, calBit[6].text,
+      molaAcik[0], molaAcik[1], molaAcik[2], molaAcik[3], molaAcik[4], molaAcik[5], molaAcik[6],
+      molaBas[0].text, molaBas[1].text, molaBas[2].text, molaBas[3].text, molaBas[4].text, molaBas[5].text, molaBas[6].text,
+      molaBit[0].text, molaBit[1].text, molaBit[2].text, molaBit[3].text, molaBit[4].text, molaBit[5].text, molaBit[6].text,
+      context,
     );
   }
 
-  // Gün satırı widget'ı - Mola Saatleri
-  Widget _buildBreakDayRow({
-    required String dayName,
-    required bool? isChecked,
-    required Function(bool?) onChanged,
-    required TextEditingController startController,
-    required TextEditingController endController,
-  }) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Checkbox(
-                    value: isChecked ?? false,
-                    onChanged: onChanged,
-                  ),
-                  Text(dayName),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _buildTimeField(startController, 'Başlangıç'),
-            ),
-            Expanded(
-              child: _buildTimeField(endController, 'Bitiş'),
-            ),
-          ],
-        ),
-        const Divider(
-          height: 2.0,
-          thickness: 1,
-        ),
-      ],
-    );
-  }
-
+  // === BUILD ===
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        resizeToAvoidBottomInset: false,
+        backgroundColor: const Color(0xFFFBF9FD),
         appBar: AppBar(
           backgroundColor: Colors.white,
-          toolbarHeight: 60,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Text("Personel Düzenle",style: TextStyle(color: Colors.black)),
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          iconTheme: const IconThemeData(color: _text),
+          title: const Text('Personel Düzenle', style: TextStyle(color: _text, fontWeight: FontWeight.w600)),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              child: _kaydetBtn(compact: true),
+            ),
+          ],
         ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(8),
-            child: Form(
-              key: formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 10),
-
-                  // Personel Adı
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Personel Adı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    height: 40,
-                    child: TextFormField(
-                      keyboardType: TextInputType.text,
-                      controller: personeladi,
-                      onSaved: (value) {
-                        personeladi.text = value!;
-                      },
-                      decoration: InputDecoration(
-                        focusColor:Color(0xFF6A1B9A),
-                        hoverColor: Color(0xFF6A1B9A),
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                        contentPadding:  EdgeInsets.all(15.0),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                            borderRadius: BorderRadius.circular(10.0)
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Cinsiyet
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ListTile(
-                          leading: Radio<String>(
-                            value: 'kadin',
-                            groupValue: selectedcinsiyet,
-                            activeColor: Colors.purple[800],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedcinsiyet = value!;
-                              });
-                            },
-                          ),
-                          title: const Text('Kadın'),
-                        ),
-                      ),
-                      Expanded(
-                        child: ListTile(
-                          leading: Radio<String>(
-                            value: 'erkek',
-                            groupValue: selectedcinsiyet,
-                            activeColor: Colors.purple[800],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedcinsiyet = value!;
-                              });
-                            },
-                          ),
-                          title: const Text('Erkek'),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Cep telefonu
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Cep telefonu',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    height: 40,
-                    child: TextFormField(
-                      inputFormatters: [phoneMask],
-                      keyboardType: TextInputType.phone,
-                      controller: telefon,
-                      onSaved: (value) {
-                        telefon.text = value!;
-                      },
-                      onTap: () {
-                        if (telefon.text.length < 2) {
-                          telefon.text = "0";
-                        }
-                        telefon.selection = TextSelection.fromPosition(
-                          TextPosition(offset: telefon.text.length),
-                        );
-                      },
-                      onChanged: (value) {
-                        if (!value.startsWith("0")) {
-                          telefon.text = "0";
-                          telefon.selection = TextSelection.fromPosition(
-                            TextPosition(offset: telefon.text.length),
-                          );
-                        }
-                      },
-                      enabled:true,
-                      decoration: InputDecoration(
-                        focusColor:Color(0xFF6A1B9A),
-                        hoverColor: Color(0xFF6A1B9A),
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                        contentPadding:  EdgeInsets.all(15.0),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                            borderRadius: BorderRadius.circular(10.0)
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Unvan
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Unvan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    height: 40,
-                    child: TextFormField(
-                      keyboardType: TextInputType.text,
-                      controller: unvan,
-                      onSaved: (value) {
-                        unvan.text = value!;
-                      },
-                      enabled:true,
-                      decoration: InputDecoration(
-                        focusColor:Color(0xFF6A1B9A),
-                        hoverColor: Color(0xFF6A1B9A),
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                        contentPadding:  EdgeInsets.all(15.0),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                            borderRadius: BorderRadius.circular(10.0)
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Hesap Türü
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Hesap Türü',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 10.0),
-                  Container(
-                    alignment: Alignment.center,
-                    height: 40,
-                    width:double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Color(0xFF6A1B9A)),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                        child: DropdownButton2<HesapTuru>(
-                          isExpanded: true,
-                          items: hesapturu
-                              .map((item) => DropdownMenuItem(
-                            value: item,
-                            child: Text(
-                              item.hesapturu,
-                              style: const TextStyle(fontSize: 14),
+        body: _yukleniyor
+            ? const Center(child: CircularProgressIndicator(color: _p1))
+            : SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _hero(),
+                        const SizedBox(height: 14),
+                        _section(
+                          icon: Icons.person_outline,
+                          title: 'Temel Bilgiler',
+                          children: [
+                            _label('Personel Adı'),
+                            _modernField(controller: personeladi, hint: 'Adı Soyadı'),
+                            const SizedBox(height: 12),
+                            _label('Cinsiyet'),
+                            _cinsiyetSec(),
+                            const SizedBox(height: 12),
+                            _label('Cep Telefonu'),
+                            _modernField(
+                              controller: telefon,
+                              hint: '0XXX XXX XX XX',
+                              keyboard: TextInputType.phone,
+                              formatters: [phoneMask],
+                              onTap: () {
+                                if (telefon.text.length < 2) telefon.text = "0";
+                                telefon.selection = TextSelection.fromPosition(TextPosition(offset: telefon.text.length));
+                              },
+                              onChanged: (v) {
+                                if (!v.startsWith("0")) {
+                                  telefon.text = "0";
+                                  telefon.selection = TextSelection.fromPosition(TextPosition(offset: telefon.text.length));
+                                }
+                              },
                             ),
-                          ))
-                              .toList(),
-                          value: selectedhesapturu,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedhesapturu = value;
-                            });
-                          },
-                          buttonStyleData: const ButtonStyleData(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            height: 50,
-                            width: 400,
-                          ),
-                          dropdownStyleData: const DropdownStyleData(maxHeight: 200),
-                          menuItemStyleData: const MenuItemStyleData(height: 40),
-                          onMenuStateChange: (isOpen) {
-                            if (!isOpen) {
-                              hesapturuscontroller.clear();
-                            }
-                          },
-                        )
+                            const SizedBox(height: 12),
+                            _label('Unvan'),
+                            _modernField(controller: unvan, hint: 'Berber, Kuaför, Estetisyen...'),
+                            const SizedBox(height: 12),
+                            _label('Hesap Türü'),
+                            _hesapTuruDropdown(),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _section(
+                          icon: Icons.attach_money,
+                          title: 'Maaş & Prim Hak Edişi',
+                          accent: const Color(0xFF10B981),
+                          children: [
+                            _label('Sabit Maaş (₺)'),
+                            _modernField(controller: sabitmaas, hint: '0', keyboard: TextInputType.number),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Hizmet Primi (%)'),
+                                      _modernField(controller: hizmetprim, hint: '0', keyboard: TextInputType.number),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Ürün Primi (%)'),
+                                      _modernField(controller: urunprim, hint: '0', keyboard: TextInputType.number),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _label('Paket Primi (%)'),
+                            _modernField(controller: paketprim, hint: '0', keyboard: TextInputType.number),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _section(
+                          icon: Icons.access_time_rounded,
+                          title: 'Çalışma Saatleri',
+                          accent: const Color(0xFF3B82F6),
+                          children: [
+                            for (var i = 0; i < 7; i++)
+                              _gunSatiri(
+                                gun: _gunler[i],
+                                acik: calAcik[i],
+                                onToggle: (v) => setState(() => calAcik[i] = v ?? false),
+                                basCtrl: calBas[i],
+                                bitCtrl: calBit[i],
+                                accent: const Color(0xFF3B82F6),
+                                sonGun: i == 6,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _section(
+                          icon: Icons.free_breakfast_outlined,
+                          title: 'Mola Saatleri',
+                          accent: const Color(0xFFF59E0B),
+                          children: [
+                            for (var i = 0; i < 7; i++)
+                              _gunSatiri(
+                                gun: _gunler[i],
+                                acik: molaAcik[i] ?? false,
+                                onToggle: (v) => setState(() => molaAcik[i] = v),
+                                basCtrl: molaBas[i],
+                                bitCtrl: molaBit[i],
+                                accent: const Color(0xFFF59E0B),
+                                sonGun: i == 6,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        _kaydetBtn(compact: false),
+                      ],
                     ),
                   ),
-
-                  SizedBox(height: 10),
-
-                  // Sabit Maaş
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Sabit Maaş',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    height: 40,
-                    child: TextFormField(
-                      keyboardType: TextInputType.number,
-                      controller: sabitmaas,
-                      onSaved: (value) {
-                        sabitmaas.text = value!;
-                      },
-                      enabled:true,
-                      decoration: InputDecoration(
-                        focusColor:Color(0xFF6A1B9A),
-                        hoverColor: Color(0xFF6A1B9A),
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                        contentPadding:  EdgeInsets.all(15.0),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                            borderRadius: BorderRadius.circular(10.0)
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Hizmet Primi
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Hizmet Primi Hak Edişi (%)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    height: 40,
-                    child: TextFormField(
-                      keyboardType: TextInputType.number,
-                      controller: hizmetprim,
-                      onSaved: (value) {
-                        hizmetprim.text = value!;
-                      },
-                      enabled:true,
-                      decoration: InputDecoration(
-                        focusColor:Color(0xFF6A1B9A),
-                        hoverColor: Color(0xFF6A1B9A),
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                        contentPadding:  EdgeInsets.all(15.0),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                            borderRadius: BorderRadius.circular(10.0)
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Ürün Primi
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Ürün Primi Hak Edişi (%)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    height: 40,
-                    child: TextFormField(
-                      keyboardType: TextInputType.number,
-                      controller: urunprim,
-                      onSaved: (value) {
-                        urunprim.text = value!;
-                      },
-                      enabled:true,
-                      decoration: InputDecoration(
-                        focusColor:Color(0xFF6A1B9A),
-                        hoverColor: Color(0xFF6A1B9A),
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                        contentPadding:  EdgeInsets.all(15.0),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                            borderRadius: BorderRadius.circular(10.0)
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Paket Primi
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Paket Primi Hak Edişi (%)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    height: 40,
-                    child: TextFormField(
-                      keyboardType: TextInputType.number,
-                      controller: paketprim,
-                      onSaved: (value) {
-                        paketprim.text = value!;
-                      },
-                      enabled:true,
-                      decoration: InputDecoration(
-                        focusColor:Color(0xFF6A1B9A),
-                        hoverColor: Color(0xFF6A1B9A),
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                        contentPadding:  EdgeInsets.all(15.0),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                            borderRadius: BorderRadius.circular(10.0)
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 20),
-
-                  // ÇALIŞMA SAATLERİ BÖLÜMÜ
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Çalışma Saatleri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  const Divider(),
-
-                  // Pazartesi
-                  _buildWorkingDayRow(
-                    dayName: 'Pazartesi',
-                    isChecked: isChecked1,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked1 = value!;
-                      });
-                    },
-                    startController: baslangicsaati1,
-                    endController: bitissaati1,
-                  ),
-
-                  // Salı
-                  _buildWorkingDayRow(
-                    dayName: 'Salı',
-                    isChecked: isChecked2,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked2 = value!;
-                      });
-                    },
-                    startController: baslangicsaati2,
-                    endController: bitissaati2,
-                  ),
-
-                  // Çarşamba
-                  _buildWorkingDayRow(
-                    dayName: 'Çarşamba',
-                    isChecked: isChecked3,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked3 = value!;
-                      });
-                    },
-                    startController: baslangicsaati3,
-                    endController: bitissaati3,
-                  ),
-
-                  // Perşembe
-                  _buildWorkingDayRow(
-                    dayName: 'Perşembe',
-                    isChecked: isChecked4,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked4 = value!;
-                      });
-                    },
-                    startController: baslangicsaati4,
-                    endController: bitissaati4,
-                  ),
-
-                  // Cuma
-                  _buildWorkingDayRow(
-                    dayName: 'Cuma',
-                    isChecked: isChecked5,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked5 = value!;
-                      });
-                    },
-                    startController: baslangicsaati5,
-                    endController: bitissaati5,
-                  ),
-
-                  // Cumartesi
-                  _buildWorkingDayRow(
-                    dayName: 'Cumartesi',
-                    isChecked: isChecked6,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked6 = value!;
-                      });
-                    },
-                    startController: baslangicsaati6,
-                    endController: bitissaati6,
-                  ),
-
-                  // Pazar
-                  _buildWorkingDayRow(
-                    dayName: 'Pazar',
-                    isChecked: isChecked7,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked7 = value ?? false;
-                      });
-                    },
-                    startController: baslangicsaati7,
-                    endController: bitissaati7,
-                  ),
-
-                  // PERSONEL MOLA SAATLERİ BÖLÜMÜ
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Personel Mola Saatleri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold)),
-                  ),
-                  const Divider(),
-
-                  // Pazartesi Mola
-                  _buildBreakDayRow(
-                    dayName: 'Pazartesi',
-                    isChecked: isChecked8,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked8 = value;
-                      });
-                    },
-                    startController: baslangicsaati8,
-                    endController: bitissaati8,
-                  ),
-
-                  // Salı Mola
-                  _buildBreakDayRow(
-                    dayName: 'Salı',
-                    isChecked: isChecked9,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked9 = value;
-                      });
-                    },
-                    startController: baslangicsaati9,
-                    endController: bitissaati9,
-                  ),
-
-                  // Çarşamba Mola
-                  _buildBreakDayRow(
-                    dayName: 'Çarşamba',
-                    isChecked: isChecked10,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked10 = value;
-                      });
-                    },
-                    startController: baslangicsaati10,
-                    endController: bitissaati10,
-                  ),
-
-                  // Perşembe Mola
-                  _buildBreakDayRow(
-                    dayName: 'Perşembe',
-                    isChecked: isChecked11,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked11 = value;
-                      });
-                    },
-                    startController: baslangicsaati11,
-                    endController: bitissaati11,
-                  ),
-
-                  // Cuma Mola
-                  _buildBreakDayRow(
-                    dayName: 'Cuma',
-                    isChecked: isChecked12,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked12 = value;
-                      });
-                    },
-                    startController: baslangicsaati12,
-                    endController: bitissaati12,
-                  ),
-
-                  // Cumartesi Mola
-                  _buildBreakDayRow(
-                    dayName: 'Cumartesi',
-                    isChecked: isChecked13,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked13 = value;
-                      });
-                    },
-                    startController: baslangicsaati13,
-                    endController: bitissaati13,
-                  ),
-
-                  // Pazar Mola
-                  _buildBreakDayRow(
-                    dayName: 'Pazar',
-                    isChecked: isChecked14,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isChecked14 = value ?? false;
-                      });
-                    },
-                    startController: baslangicsaati14,
-                    endController: bitissaati14,
-                  ),
-
-                  const Divider(height: 2.0, thickness: 1),
-
-                  SizedBox(height: 20),
-
-                  // Kaydet Butonu
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: (){
-                          widget.personeldata.personelekleguncelle(
-                            personelid.text,
-                            personeladi.text,
-                            unvan.text,
-                            telefon.text,
-                            selectedhesapturu?.id ?? "",
-                            selectedcinsiyet,
-                            sabitmaas.text,
-                            hizmetprim.text,
-                            urunprim.text,
-                            paketprim.text,
-                            seciliisletme,
-                            isChecked1,
-                            isChecked2,
-                            isChecked3,
-                            isChecked4,
-                            isChecked5,
-                            isChecked6,
-                            isChecked7,
-                            baslangicsaati1.text,
-                            baslangicsaati2.text,
-                            baslangicsaati3.text,
-                            baslangicsaati4.text,
-                            baslangicsaati5.text,
-                            baslangicsaati6.text,
-                            baslangicsaati7.text,
-                            bitissaati1.text,
-                            bitissaati2.text,
-                            bitissaati3.text,
-                            bitissaati4.text,
-                            bitissaati5.text,
-                            bitissaati6.text,
-                            bitissaati7.text,
-                            isChecked8,
-                            isChecked9,
-                            isChecked10,
-                            isChecked11,
-                            isChecked12,
-                            isChecked13,
-                            isChecked14,
-                            baslangicsaati8.text,
-                            baslangicsaati9.text,
-                            baslangicsaati10.text,
-                            baslangicsaati11.text,
-                            baslangicsaati12.text,
-                            baslangicsaati13.text,
-                            baslangicsaati14.text,
-                            bitissaati8.text,
-                            bitissaati9.text,
-                            bitissaati10.text,
-                            bitissaati11.text,
-                            bitissaati12.text,
-                            bitissaati13.text,
-                            bitissaati14.text,
-                            context,
-                          );
-                        },
-                        child: Text('Kaydet'),
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size(90, 40)
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom))
-                ],
+                ),
               ),
+      ),
+    );
+  }
+
+  // === Hero ===
+  Widget _hero() {
+    final initial = widget.per.personel_adi.trim().isEmpty
+        ? '?'
+        : widget.per.personel_adi.trim().substring(0, 1).toUpperCase();
+    return Container(
+      decoration: BoxDecoration(
+        gradient: _grad,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: _p1.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Text(initial,
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.per.personel_adi.isEmpty ? 'Personel' : widget.per.personel_adi,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                const Text('Bilgileri ve prim oranlarını güncelle',
+                    style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // === Section ===
+  Widget _section({
+    required IconData icon,
+    required String title,
+    required List<Widget> children,
+    Color accent = _p2,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+        boxShadow: [BoxShadow(color: _p1.withValues(alpha: 0.04), blurRadius: 8)],
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: accent, size: 17),
+              ),
+              const SizedBox(width: 10),
+              Text(title, style: const TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 14.5)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _label(String s) => Padding(
+        padding: const EdgeInsets.only(bottom: 6, left: 2),
+        child: Text(s,
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            )),
+      );
+
+  Widget _modernField({
+    required TextEditingController controller,
+    String? hint,
+    TextInputType keyboard = TextInputType.text,
+    List<MaskTextInputFormatter>? formatters,
+    VoidCallback? onTap,
+    ValueChanged<String>? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboard,
+      inputFormatters: formatters,
+      onTap: onTap,
+      onChanged: onChanged,
+      style: const TextStyle(color: _text, fontSize: 14),
+      cursorColor: _p1,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFFB8AEC7), fontSize: 13.5),
+        filled: true,
+        fillColor: const Color(0xFFFCFAFE),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: _border),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: _p2, width: 1.6),
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  Widget _cinsiyetSec() {
+    return Row(
+      children: [
+        Expanded(child: _cinsiyetBtn('Kadın', '0', Icons.female_rounded)),
+        const SizedBox(width: 8),
+        Expanded(child: _cinsiyetBtn('Erkek', '1', Icons.male_rounded)),
+      ],
+    );
+  }
+
+  Widget _cinsiyetBtn(String label, String value, IconData icon) {
+    final sel = selectedcinsiyet == value;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => setState(() => selectedcinsiyet = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          gradient: sel ? _grad : null,
+          color: sel ? null : const Color(0xFFFCFAFE),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sel ? Colors.transparent : _border),
+          boxShadow: sel
+              ? [BoxShadow(color: _p1.withValues(alpha: 0.22), blurRadius: 10, offset: const Offset(0, 4))]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: sel ? Colors.white : _muted, size: 18),
+            const SizedBox(width: 6),
+            Text(label,
+                style: TextStyle(
+                  color: sel ? Colors.white : _text,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _hesapTuruDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFAFE),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton2<HesapTuru>(
+          isExpanded: true,
+          hint: const Text('Hesap Türü seçiniz', style: TextStyle(color: Color(0xFFB8AEC7), fontSize: 13.5)),
+          items: hesapturu
+              .map((item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(item.hesapturu,
+                        style: const TextStyle(fontSize: 14, color: _text, fontWeight: FontWeight.w500)),
+                  ))
+              .toList(),
+          value: selectedhesapturu,
+          onChanged: (value) => setState(() => selectedhesapturu = value),
+          buttonStyleData: const ButtonStyleData(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            height: 52,
+          ),
+          iconStyleData: const IconStyleData(
+            icon: Icon(Icons.keyboard_arrow_down_rounded, color: _p1, size: 22),
+          ),
+          dropdownStyleData: DropdownStyleData(
+            maxHeight: 240,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              boxShadow: [BoxShadow(color: _p1.withValues(alpha: 0.12), blurRadius: 14)],
+            ),
+          ),
+          menuItemStyleData: const MenuItemStyleData(height: 44),
+          onMenuStateChange: (open) {
+            if (!open) hesapturuscontroller.clear();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _gunSatiri({
+    required String gun,
+    required bool acik,
+    required ValueChanged<bool?> onToggle,
+    required TextEditingController basCtrl,
+    required TextEditingController bitCtrl,
+    required Color accent,
+    bool sonGun = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: sonGun ? 0 : 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: acik ? accent.withValues(alpha: 0.06) : const Color(0xFFFCFAFE),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: acik ? accent.withValues(alpha: 0.3) : _border),
+        ),
+        padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 44, height: 26,
+              child: Transform.scale(
+                scale: 0.85,
+                child: Switch(
+                  value: acik,
+                  onChanged: onToggle,
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: accent,
+                  inactiveThumbColor: Colors.white,
+                  inactiveTrackColor: const Color(0xFFD1D5DB),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 78,
+              child: Text(
+                gun,
+                style: TextStyle(
+                  color: acik ? _text : _muted,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            Expanded(child: _saatAlani(basCtrl, accent, acik)),
+            const SizedBox(width: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Icon(Icons.arrow_forward, size: 14, color: acik ? accent : _muted),
+            ),
+            const SizedBox(width: 6),
+            Expanded(child: _saatAlani(bitCtrl, accent, acik)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _saatAlani(TextEditingController ctrl, Color accent, bool aktif) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: aktif ? () => _showModernTimePicker(context, ctrl) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: aktif ? accent.withValues(alpha: 0.4) : _border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.access_time, color: aktif ? accent : _muted, size: 13),
+            const SizedBox(width: 5),
+            Text(
+              ctrl.text.isEmpty ? '00:00' : ctrl.text,
+              style: TextStyle(
+                color: aktif ? _text : _muted,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _kaydetBtn({required bool compact}) {
+    if (compact) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: _kaydet,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: _grad,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check, color: Colors.white, size: 16),
+                SizedBox(width: 4),
+                Text('Kaydet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        gradient: _grad,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: _p1.withValues(alpha: 0.3), blurRadius: 14, offset: const Offset(0, 6))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: _kaydet,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.save_outlined, color: Colors.white, size: 19),
+                SizedBox(width: 8),
+                Text('Değişiklikleri Kaydet',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15.5)),
+              ],
             ),
           ),
         ),

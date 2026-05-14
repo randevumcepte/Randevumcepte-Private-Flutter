@@ -56,7 +56,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
     Map<String, dynamic> formData = {
       'bildirim_id': notificationId,
     };
-    final url = 'https://app.randevumcepte.com.tr/api/v1/bildirimguncelle';
+    final url = 'https://apptest.randevumcepte.com.tr/api/v1/bildirimguncelle';
     final response = await http.post(
       Uri.parse(url),
       body: jsonEncode(formData),
@@ -70,10 +70,10 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
   }
 
   Future<List<SistemBildirimleri>> fetchData(String salonid) async {
-    final url = 'https://app.randevumcepte.com.tr/api/v1/bildirimgetirmusteri';
+    final url = 'https://apptest.randevumcepte.com.tr/api/v1/bildirimgetirmusteri';
 
     Map<String, dynamic> formData = {
-      'sube': '361',
+      'sube': '20',
       'user_id': widget.md.id.toString(),
     };
 
@@ -224,7 +224,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                         print(bildirimData.arsiv['uzanti']);
                         print(url);
                         await downloadPdf(
-                            "https://app.randevumcepte.com.tr/" + bildirimData.arsiv['uzanti'],
+                            "https://apptest.randevumcepte.com.tr/" + bildirimData.arsiv['uzanti'],
                             'appointment_${bildirimData.id}',
                             context
                         );
@@ -240,7 +240,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                             width: 40,
                             height: 40,
                             child: Image.network(
-                              'https://app.randevumcepte.com.tr${bildirimData.avatar}',
+                              'https://apptest.randevumcepte.com.tr${bildirimData.avatar}',
                               loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
                                 if (loadingProgress == null) {
                                   return child;

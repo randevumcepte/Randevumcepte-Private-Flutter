@@ -59,7 +59,7 @@ TextEditingController ceptelefon = TextEditingController();
                 margin: const EdgeInsets.only(top: 80),
                 child:
                   Image.asset(
-                    'images/yasemintuzun.png',
+                    'images/randevumcepte.png',
                     width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
                     height: 100,
                     fit: BoxFit.contain,
@@ -272,16 +272,16 @@ TextEditingController ceptelefon = TextEditingController();
       'cep_telefon':tel,
       'sms_baslik' : '',
       'sms_apikey' : '',
-      'salonidler' : '361',
+      'salonidler' : '20',
       'sms_username':'',
       'sms_secret':'',
-      'isletmeadi': 'Yasemin Tüzün Güzellik Merkezi',
+      'isletmeadi': 'RandevumCepte',
       'appBundle': appBundle
       // Add other form fields
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/sifregonder'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/sifregonder'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),

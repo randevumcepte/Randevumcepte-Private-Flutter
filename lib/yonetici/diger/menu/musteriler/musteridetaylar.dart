@@ -55,7 +55,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	Future<List<Map<String, dynamic>>> _fetchRandevular() async {
 		try {
 			final res = await http.get(
-				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-randevulari/${widget.md.id}'),
+				Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteri-randevulari/${widget.md.id}'),
 			);
 			if (res.statusCode == 200) {
 				final data = jsonDecode(res.body);
@@ -1091,6 +1091,8 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 															),
 														),
 													],
+
+
 												)
 											else ...[
 												Row(

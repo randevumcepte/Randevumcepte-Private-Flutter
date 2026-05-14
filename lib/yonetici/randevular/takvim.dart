@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:ui' as ui;
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -65,49 +66,34 @@ class TakvimState extends State<Takvim> {
   TextEditingController takvimTuruText = TextEditingController();
 
   final List<TakvimTuru> takvimTuru = [
-    TakvimTuru(id: '1', takvim_turu: 'Personele Göre'),
-    TakvimTuru(id: '0', takvim_turu: 'Hizmete Göre'),
-    TakvimTuru(id: '2', takvim_turu: 'Cihaza Göre'),
-    TakvimTuru(id: '3', takvim_turu: 'Odaya Göre'),
+    TakvimTuru(id: '1', takvim_turu: 'Personele'),
+    TakvimTuru(id: '0', takvim_turu: 'Hizmete'),
+    TakvimTuru(id: '2', takvim_turu: 'Cihaza'),
+    TakvimTuru(id: '3', takvim_turu: 'Odaya'),
   ];
 
   List<Appointment> updatedAppointments = [];
   List<CalendarResource> resources = [];
 
-  final ScrollController _topHorizontalController = ScrollController();
-  final ScrollController _gridHorizontalController = ScrollController();
+  ScrollController _topHorizontalController = ScrollController();
+  ScrollController _gridHorizontalController = ScrollController();
 
-  final ScrollController _leftVerticalController = ScrollController();
-  final ScrollController _gridVerticalController = ScrollController();
+  ScrollController _leftVerticalController = ScrollController();
+  ScrollController _gridVerticalController = ScrollController();
   final double _hourHeight = 120.0;
   final double _quarterHeight = 15.0; // 15 dakika = 15px (60/4)
+  double _personelGenisligi = 150.0; // _buildCustomCalendar içinde güncellenir
   bool _isSyncingHorizontal = false;
   bool _isSyncingVertical = false;
+  bool _firstLoad = true; // İlk yüklemede scroll'u doğru offset'ten başlatmak için
   @override
 
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
 
-    // YATAY SENKRON - grid horizontal -> top horizontal
-    _gridHorizontalController.addListener(() {
-      if (_isSyncingHorizontal) return;
-      _isSyncingHorizontal = true;
-      if (_topHorizontalController.hasClients) {
-        _topHorizontalController.jumpTo(_gridHorizontalController.offset);
-      }
-      _isSyncingHorizontal = false;
-    });
-
-    // YATAY SENKRON - top horizontal -> grid horizontal
-    _topHorizontalController.addListener(() {
-      if (_isSyncingHorizontal) return;
-      _isSyncingHorizontal = true;
-      if (_gridHorizontalController.hasClients) {
-        _gridHorizontalController.jumpTo(_topHorizontalController.offset);
-      }
-      _isSyncingHorizontal = false;
-    });
+    _bindHorizontalSyncListeners();
+    _bindVerticalSyncListeners();
 
     _timer = Timer.periodic(Duration(minutes: 1), (timer) {
       if (mounted) {
@@ -115,26 +101,6 @@ class TakvimState extends State<Takvim> {
           _currentTime = DateTime.now();
         });
       }
-    });
-
-    // DİKEY SENKRON - grid vertical -> left vertical
-    _gridVerticalController.addListener(() {
-      if (_isSyncingVertical) return;
-      _isSyncingVertical = true;
-      if (_leftVerticalController.hasClients) {
-        _leftVerticalController.jumpTo(_gridVerticalController.offset);
-      }
-      _isSyncingVertical = false;
-    });
-
-    // DİKEY SENKRON - left vertical -> grid vertical
-    _leftVerticalController.addListener(() {
-      if (_isSyncingVertical) return;
-      _isSyncingVertical = true;
-      if (_gridVerticalController.hasClients) {
-        _gridVerticalController.jumpTo(_leftVerticalController.offset);
-      }
-      _isSyncingVertical = false;
     });
 
     selectedTakvimTuru = takvimTuru.firstWhere(
@@ -148,6 +114,66 @@ class TakvimState extends State<Takvim> {
     );
   }
 
+  void _bindHorizontalSyncListeners() {
+    _gridHorizontalController.addListener(() {
+      if (_isSyncingHorizontal) return;
+      _isSyncingHorizontal = true;
+      if (_topHorizontalController.hasClients) {
+        _topHorizontalController.jumpTo(_gridHorizontalController.offset);
+      }
+      _isSyncingHorizontal = false;
+    });
+    _topHorizontalController.addListener(() {
+      if (_isSyncingHorizontal) return;
+      _isSyncingHorizontal = true;
+      if (_gridHorizontalController.hasClients) {
+        _gridHorizontalController.jumpTo(_topHorizontalController.offset);
+      }
+      _isSyncingHorizontal = false;
+    });
+  }
+
+  void _bindVerticalSyncListeners() {
+    _gridVerticalController.addListener(() {
+      if (_isSyncingVertical) return;
+      _isSyncingVertical = true;
+      if (_leftVerticalController.hasClients) {
+        _leftVerticalController.jumpTo(_gridVerticalController.offset);
+      }
+      _isSyncingVertical = false;
+    });
+    _leftVerticalController.addListener(() {
+      if (_isSyncingVertical) return;
+      _isSyncingVertical = true;
+      if (_gridVerticalController.hasClients) {
+        _gridVerticalController.jumpTo(_leftVerticalController.offset);
+      }
+      _isSyncingVertical = false;
+    });
+  }
+
+  // İlk yüklemede şu anki saate kaymak için başlangıç offset'i hesapla
+  double _calculateInitialScrollOffset() {
+    if (_selectedDate.year != _currentTime.year ||
+        _selectedDate.month != _currentTime.month ||
+        _selectedDate.day != _currentTime.day) {
+      return 0;
+    }
+    final now = DateTime.now();
+    final startParts = baslangicSaati.split(':');
+    final startHour = int.parse(startParts[0]);
+    final startMinute = int.parse(startParts[1]);
+    final startTotalMinutes = startHour * 60 + startMinute;
+    final currentTotalMinutes = now.hour * 60 + now.minute;
+    int minutesFromStart = currentTotalMinutes - startTotalMinutes;
+    if (minutesFromStart < 0) return 0;
+    final slotHeight = _hourHeight / 4;
+    final minuteHeight = _hourHeight / 60;
+    double pos = minutesFromStart * minuteHeight - (slotHeight * 3);
+    if (pos < 0) pos = 0;
+    return pos;
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -158,53 +184,7 @@ class TakvimState extends State<Takvim> {
      _gridVerticalController.dispose();
     super.dispose();
   }
-  // initState'e ekle veya getUpdatedAppointments sonrasında çağır
-  void _scrollToCurrentTime() {
-    // Eğer bugünün takvimi açıksa
-    if (_selectedDate.year == _currentTime.year &&
-        _selectedDate.month == _currentTime.month &&
-        _selectedDate.day == _currentTime.day) {
 
-      // Şu anki saati al
-      final now = DateTime.now();
-      final currentHour = now.hour;
-      final currentMinute = now.minute;
-
-      // Başlangıç saatini al
-      final startParts = baslangicSaati.split(':');
-      final startHour = int.parse(startParts[0]);
-      final startMinute = int.parse(startParts[1]);
-      final startTotalMinutes = startHour * 60 + startMinute;
-
-      // Şu anki toplam dakika
-      final currentTotalMinutes = currentHour * 60 + currentMinute;
-
-      // Başlangıçtan itibaren geçen dakika
-      int minutesFromStart = currentTotalMinutes - startTotalMinutes;
-      if (minutesFromStart < 0) minutesFromStart = 0;
-
-      // 15 dakikalık slot yüksekliği
-      final slotHeight = _hourHeight / 4; // 30px
-      final minuteHeight = _hourHeight / 60; // 2px
-
-      // Scroll edilecek pozisyon (piksel cinsinden)
-      double scrollPosition = minutesFromStart * minuteHeight;
-
-      // Scroll yap (biraz gecikmeyle, widget build olduktan sonra)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_gridVerticalController.hasClients) {
-          // Ortalamak için 3 slot yukarıdan başlat (isteğe bağlı)
-          scrollPosition = scrollPosition - (slotHeight * 3);
-          if (scrollPosition < 0) scrollPosition = 0;
-
-          _gridVerticalController.jumpTo(scrollPosition);
-
-          // Dikey scroll controller'ı da senkronize et
-          _leftVerticalController.jumpTo(scrollPosition);
-        }
-      });
-    }
-  }
   // getUpdatedAppointments fonksiyonunu güncelleyin:
   Future<void> getUpdatedAppointments(
       String tarih1,
@@ -267,9 +247,21 @@ class TakvimState extends State<Takvim> {
         displayName: item['name'],
         id: item['id'],
         color: Color(int.parse(item['bgcolor'].toString().replaceFirst('0x', ''), radix: 16)),
-        image: NetworkImage('https://app.randevumcepte.com.tr' + (item["avatar"] != null ? item['avatar'] : '/public/isletmeyonetim_assets/img/avatar.png')),
+        image: NetworkImage('https://apptest.randevumcepte.com.tr' + (item["avatar"] != null ? item['avatar'] : '/public/isletmeyonetim_assets/img/avatar.png')),
       );
     }).toList();
+
+    // İlk yüklemede dikey controller'ları initialScrollOffset ile yenile
+    // → ilk frame'de zaten doğru pozisyonda olur, "yukarıdan aşağıya inme" animasyonu yaşanmaz.
+    if (_firstLoad) {
+      final initialOffset = _calculateInitialScrollOffset();
+      _gridVerticalController.dispose();
+      _leftVerticalController.dispose();
+      _gridVerticalController = ScrollController(initialScrollOffset: initialOffset);
+      _leftVerticalController = ScrollController(initialScrollOffset: initialOffset);
+      _bindVerticalSyncListeners();
+      _firstLoad = false;
+    }
 
     setState(() {
       personelliste = personeller.map((json) => Personel.fromJson(json)).toList();
@@ -288,21 +280,18 @@ class TakvimState extends State<Takvim> {
       isloading = false;
     });
 
-    // Scroll pozisyonlarını geri yükle
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_gridVerticalController.hasClients && _savedVerticalScrollPosition > 0) {
-        _gridVerticalController.jumpTo(_savedVerticalScrollPosition);
-        _leftVerticalController.jumpTo(_savedVerticalScrollPosition);
-      }
-      if (_gridHorizontalController.hasClients && _savedHorizontalScrollPosition > 0) {
-        _gridHorizontalController.jumpTo(_savedHorizontalScrollPosition);
-        _topHorizontalController.jumpTo(_savedHorizontalScrollPosition);
-      }
-    });
-
-    // Eğer ilk yüklenme ise ve bugünün takvimi ise scroll to current time
-    if (!yukleniyor && _savedVerticalScrollPosition == 0) {
-      _scrollToCurrentTime();
+    // Sonraki yüklemelerde scroll pozisyonlarını geri yükle (tarih değişimi vs.)
+    if (_savedVerticalScrollPosition > 0 || _savedHorizontalScrollPosition > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_gridVerticalController.hasClients && _savedVerticalScrollPosition > 0) {
+          _gridVerticalController.jumpTo(_savedVerticalScrollPosition);
+          _leftVerticalController.jumpTo(_savedVerticalScrollPosition);
+        }
+        if (_gridHorizontalController.hasClients && _savedHorizontalScrollPosition > 0) {
+          _gridHorizontalController.jumpTo(_savedHorizontalScrollPosition);
+          _topHorizontalController.jumpTo(_savedHorizontalScrollPosition);
+        }
+      });
     }
   }
 
@@ -520,9 +509,17 @@ class TakvimState extends State<Takvim> {
         if (personelGenisligi < minPersonelWidth) {
           personelGenisligi = minPersonelWidth;
         }
+        // Class member'ı güncelle (drag/resize hesaplamaları için)
+        _personelGenisligi = personelGenisligi;
 
         final totalWidth = saatColumnWidth + (personelGenisligi * resources.length);
         final bool needsHorizontalScroll = totalWidth > constraints.maxWidth;
+
+        // Başlangıç saati bilgilerini bir kez parse et
+        final startParts = baslangicSaati.split(':');
+        final startHour = int.parse(startParts[0]);
+        final startMinute = int.parse(startParts[1]);
+        final startTotalMinutes = startHour * 60 + startMinute;
 
         return Column(
           children: [
@@ -550,7 +547,6 @@ class TakvimState extends State<Takvim> {
                     child: Listener(
                       onPointerSignal: (signal) {
                         if (signal is PointerScrollEvent) {
-                          // Yatay scroll'u yakala ve grid controller'ı hareket ettir
                           final deltaX = signal.scrollDelta.dx;
                           if (_gridHorizontalController.hasClients && deltaX != 0) {
                             _gridHorizontalController.jumpTo(
@@ -568,63 +564,64 @@ class TakvimState extends State<Takvim> {
                         child: SizedBox(
                           width: totalWidth - saatColumnWidth,
                           child: Row(
-                            children: resources.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final resource = entry.value;
-                              return Container(
-                                width: personelGenisligi,
-                                height: 70,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    right: BorderSide(color: Colors.grey.shade400),
-                                    bottom: BorderSide(color: Colors.grey.shade400),
+                            children: List.generate(resources.length, (index) {
+                              final resource = resources[index];
+                              return RepaintBoundary(
+                                child: Container(
+                                  width: personelGenisligi,
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      right: BorderSide(color: Colors.grey.shade400),
+                                      bottom: BorderSide(color: Colors.grey.shade400),
+                                    ),
+                                    color: index % 2 == 0 ? Colors.grey[50] : Colors.white,
                                   ),
-                                  color: index % 2 == 0 ? Colors.grey[50] : Colors.white,
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: resource.color ?? Colors.grey.shade400,
-                                          width: 2.0,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: resource.color ?? Colors.grey.shade400,
+                                            width: 2.0,
+                                          ),
+                                        ),
+                                        child: CircleAvatar(
+                                          radius: 16,
+                                          backgroundImage: resource.image,
+                                          backgroundColor: Colors.grey[200],
+                                          child: resource.image == null
+                                              ? Text(
+                                            resource.displayName.isNotEmpty
+                                                ? resource.displayName[0].toUpperCase()
+                                                : '?',
+                                            style: TextStyle(
+                                              color: resource.color ?? Colors.grey[700],
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          )
+                                              : null,
                                         ),
                                       ),
-                                      child: CircleAvatar(
-                                        radius: 16,
-                                        backgroundImage: resource.image,
-                                        backgroundColor: Colors.grey[200],
-                                        child: resource.image == null
-                                            ? Text(
-                                          resource.displayName.isNotEmpty
-                                              ? resource.displayName[0].toUpperCase()
-                                              : '?',
-                                          style: TextStyle(
-                                            color: resource.color ?? Colors.grey[700],
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        resource.displayName,
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        )
-                                            : null,
+                                            fontSize: 11
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      resource.displayName,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ),
                         ),
                       ),
@@ -638,14 +635,13 @@ class TakvimState extends State<Takvim> {
             Expanded(
               child: Row(
                 children: [
-                  // SAATLER - Dikey scroll için Listener
+                  // SAATLER - CustomPaint ile çiz (performans için)
                   Container(
                     width: saatColumnWidth,
                     color: Colors.grey[50],
                     child: Listener(
                       onPointerSignal: (signal) {
                         if (signal is PointerScrollEvent) {
-                          // Dikey scroll'u yakala ve grid controller'ı hareket ettir
                           final deltaY = signal.scrollDelta.dy;
                           if (_gridVerticalController.hasClients && deltaY != 0) {
                             _gridVerticalController.jumpTo(
@@ -654,36 +650,19 @@ class TakvimState extends State<Takvim> {
                           }
                         }
                       },
-                      child: ListView.builder(
+                      child: SingleChildScrollView(
                         controller: _leftVerticalController,
-                        itemCount: totalSlots,
-                        itemBuilder: (context, index) {
-                          final slotIndex = index;
-                          final startParts = baslangicSaati.split(':');
-                          final startHour = int.parse(startParts[0]);
-                          final startMinute = int.parse(startParts[1]);
-                          final totalMinutes = (startHour * 60 + startMinute) + (slotIndex * 15);
-                          final hour = totalMinutes ~/ 60;
-                          final minute = totalMinutes % 60;
-                          final timeString = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-
-                          return Container(
-                            height: _hourHeight / 4,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey.shade300),
-                                right: BorderSide(color: Colors.grey.shade400),
-                              ),
+                        physics: const ClampingScrollPhysics(),
+                        child: RepaintBoundary(
+                          child: CustomPaint(
+                            size: Size(saatColumnWidth, toplamYukseklik),
+                            painter: _SaatColumnPainter(
+                              totalSlots: totalSlots,
+                              slotHeight: slotHeight,
+                              startTotalMinutes: startTotalMinutes,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 2, left: 4),
-                              child: Text(
-                                timeString,
-                                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                              ),
-                            ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -693,52 +672,44 @@ class TakvimState extends State<Takvim> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.vertical,
                       controller: _gridVerticalController,
+                      physics: const ClampingScrollPhysics(),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         controller: _gridHorizontalController,
                         physics: needsHorizontalScroll
-                            ? const AlwaysScrollableScrollPhysics()
+                            ? const ClampingScrollPhysics()
                             : const NeverScrollableScrollPhysics(),
                         child: SizedBox(
                           width: personelGenisligi * resources.length,
+                          height: toplamYukseklik,
                           child: Row(
-                            children: resources.map((resource) {
-                              return Container(
+                            children: List.generate(resources.length, (resIndex) {
+                              final resource = resources[resIndex];
+                              return SizedBox(
                                 width: personelGenisligi,
                                 height: toplamYukseklik,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    right: BorderSide(color: Colors.grey.shade300),
-                                  ),
-                                ),
                                 child: Stack(
                                   clipBehavior: Clip.hardEdge,
                                   children: [
-                                    ...List.generate(totalSlots + 1, (i) {
-                                      return Positioned(
-                                        top: i * slotHeight,
-                                        left: 0,
-                                        right: 0,
-                                        child: Container(
-                                          height: 1,
-                                          color: Colors.grey.shade300,
+                                    // Grid çizgileri - CustomPaint ile (List.generate Container yerine)
+                                    Positioned.fill(
+                                      child: RepaintBoundary(
+                                        child: CustomPaint(
+                                          painter: _GridLinesPainter(
+                                            totalSlots: totalSlots,
+                                            slotHeight: slotHeight,
+                                          ),
                                         ),
-                                      );
-                                    }),
-                                    if (_selectedDate.year == _currentTime.year &&
-                                        _selectedDate.month == _currentTime.month &&
-                                        _selectedDate.day == _currentTime.day)
-                                      _buildTimeline(resource, baslangicDouble, saatSayisi, personelGenisligi),
+                                      ),
+                                    ),
+                                    // Boş slot tap detector
                                     Positioned.fill(
                                       child: GestureDetector(
+                                        behavior: HitTestBehavior.translucent,
                                         onTapUp: (details) {
                                           final position = details.localPosition;
                                           final slotIndex = (position.dy / slotHeight).floor();
                                           if (slotIndex >= 0 && slotIndex < totalSlots) {
-                                            final startParts = baslangicSaati.split(':');
-                                            final startHour = int.parse(startParts[0]);
-                                            final startMinute = int.parse(startParts[1]);
-                                            final startTotalMinutes = startHour * 60 + startMinute;
                                             final selectedTotalMinutes = startTotalMinutes + (slotIndex * 15);
                                             final selectedHour = selectedTotalMinutes ~/ 60;
                                             final selectedMinute = selectedTotalMinutes % 60;
@@ -752,18 +723,24 @@ class TakvimState extends State<Takvim> {
                                             _randevuEkle(secilenTarih, resource.id.toString());
                                           }
                                         },
-                                        child: Container(color: Colors.transparent),
                                       ),
                                     ),
+                                    // Şu anki saat çizgisi
+                                    if (_selectedDate.year == _currentTime.year &&
+                                        _selectedDate.month == _currentTime.month &&
+                                        _selectedDate.day == _currentTime.day)
+                                      _buildTimeline(resource, baslangicDouble, saatSayisi, personelGenisligi),
+                                    // Randevular
                                     ..._buildAppointmentsForResource(
                                       resource,
                                       saatSayisi,
                                       baslangicDouble,
+                                      personelGenisligi,
                                     ),
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ),
                         ),
                       ),
@@ -819,7 +796,7 @@ class TakvimState extends State<Takvim> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withOpacity(0.5),
+            color: Colors.red.withValues(alpha: 0.5),
             blurRadius: 4,
             spreadRadius: 1,
           ),
@@ -858,138 +835,15 @@ class TakvimState extends State<Takvim> {
     );
   }
 
-  // Belirli bir 15 dk'lık slottaki randevuları getir - BASİT VE DOĞRU
-  List<Widget> _getAppointmentsInSlot(
-      CalendarResource resource,
-      int slotIndex,
-      double baslangicDouble, // Bu parametreyi kullanmayacağız!
-      ) {
-    // Bu slotun GERÇEK saatini hesapla (09:00, 09:15, 09:30 gibi)
-    // Başlangıç saati 09:00 ise:
-    // slot 0 = 09:00, slot 1 = 09:15, slot 2 = 09:30, slot 3 = 09:45, slot 4 = 10:00, ...
-
-    // Başlangıç saatini parse et
-    final baslangicParsed = DateFormat.Hm().parse(baslangicSaati);
-    final baslangicDakika = baslangicParsed.hour * 60 + baslangicParsed.minute;
-
-    // Bu slotun başlangıç dakikası
-    final slotBaslangicDakika = baslangicDakika + (slotIndex * 15);
-    final slotSaat = slotBaslangicDakika ~/ 60;
-    final slotDakika = slotBaslangicDakika % 60;
-
-    // Bu slotun bitiş dakikası
-    final slotBitisDakika = slotBaslangicDakika + 15;
-
-    print('Slot $slotIndex: ${slotSaat.toString().padLeft(2, '0')}:${slotDakika.toString().padLeft(2, '0')} - ${(slotBitisDakika ~/ 60).toString().padLeft(2, '0')}:${(slotBitisDakika % 60).toString().padLeft(2, '0')}');
-
-    return updatedAppointments.where((app) {
-      // Resource kontrolü
-      if (app.resourceIds == null || !app.resourceIds!.contains(resource.id)) return false;
-
-      // Tarih kontrolü
-      if (app.startTime.year != _selectedDate.year ||
-          app.startTime.month != _selectedDate.month ||
-          app.startTime.day != _selectedDate.day) return false;
-
-      // Randevunun başlangıç ve bitiş dakikaları
-      final appBaslangicDakika = app.startTime.hour * 60 + app.startTime.minute;
-      final appBitisDakika = app.endTime.hour * 60 + app.endTime.minute;
-
-      // Randevu bu slotu kesiyor mu?
-      return (appBaslangicDakika < slotBitisDakika) && (appBitisDakika > slotBaslangicDakika);
-    }).map((appointment) {
-      // Randevunun başlangıç ve bitiş dakikaları
-      final appBaslangicDakika = appointment.startTime.toLocal().hour * 60 + appointment.startTime.toLocal().minute;
-      final appBitisDakika = appointment.endTime.hour * 60 + appointment.endTime.minute;
-
-      // Bu slotun başlangıç dakikası
-      final slotBaslangicDakika = baslangicDakika + (slotIndex * 15);
-
-      // Randevunun bu slot içindeki başlangıç pozisyonu (0-15px)
-      double topOffset = 0;
-      if (appBaslangicDakika > slotBaslangicDakika) {
-        topOffset = ((appBaslangicDakika - slotBaslangicDakika) / 15) * _quarterHeight;
-      }
-
-      // Randevunun bu slot içindeki yüksekliği
-      double height = _quarterHeight - topOffset;
-
-      // Randevu slot bitmeden bitiyorsa
-      if (appBitisDakika < slotBaslangicDakika + 15) {
-        height = ((appBitisDakika - slotBaslangicDakika) / 15) * _quarterHeight - topOffset;
-      }
-
-      // Çok küçük dilimleri gösterme
-      if (height <= 2) return const SizedBox.shrink();
-
-      // Aynı slottaki diğer randevular
-      final ayniSlotRandevular = updatedAppointments.where((a) {
-        if (a.resourceIds == null || !a.resourceIds!.contains(resource.id)) return false;
-        if (a.startTime.year != _selectedDate.year ||
-            a.startTime.month != _selectedDate.month ||
-            a.startTime.day != _selectedDate.day) return false;
-
-        final aBaslangicDakika = a.startTime.hour * 60 + a.startTime.minute;
-        final aBitisDakika = a.endTime.hour * 60 + a.endTime.minute;
-
-        return (aBaslangicDakika < slotBaslangicDakika + 15) && (aBitisDakika > slotBaslangicDakika);
-      }).toList();
-
-      final int index = ayniSlotRandevular.indexOf(appointment);
-      final int toplamSayi = ayniSlotRandevular.length;
-
-      // Genişlik hesapla
-      double left = 0;
-      double right = 0;
-
-      if (toplamSayi > 1) {
-        final double slotGenislik = (196.0 / toplamSayi).floorToDouble();
-        left = index * slotGenislik;
-        right = 196.0 - (left + slotGenislik);
-      }
-
-      return Positioned(
-        top: topOffset,
-        left: left,
-        right: right,
-        height: height,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 1),
-          decoration: BoxDecoration(
-            color: appointment.color.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(2),
-            border: Border.all(color: appointment.color, width: 1),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(1.0),
-            child: Text(
-              appointment.subject,
-              style: const TextStyle(color: Colors.white, fontSize: 8),
-              maxLines: 1,
-              overflow: TextOverflow.visible,
-            ),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-
-
-  // ÇOK BASİT YAKLAŞIM - Randevuları doğrudan saatlerine göre yerleştir
-
-  // SÜRÜKLE-BIRAK ÖZELLİKLİ RANDEVULAR - DÜZELTİLMİŞ
-
-  List<Widget> _buildAppointmentsForResource(
+List<Widget> _buildAppointmentsForResource(
       CalendarResource resource,
       int saatSayisi,
       double baslangicDouble,
+      double personelGenisligi,
       ) {
     List<Widget> appointments = [];
 
-    // 🔥 STRING "08:00" → DATETIME ÇEVİR
     final parts = baslangicSaati.split(':');
-
     final dayStart = DateTime(
       _selectedDate.year,
       _selectedDate.month,
@@ -998,27 +852,25 @@ class TakvimState extends State<Takvim> {
       int.parse(parts[1]),
     );
 
-    // 1 dakika = kaç pixel
     final minuteHeight = _hourHeight / 60;
+    final slotHeight = _hourHeight / 4; // 15 dk = 30px
 
-    for (var appointment in updatedAppointments) {
-      // Resource kontrolü
-      if (appointment.resourceIds == null ||
-          !appointment.resourceIds!.contains(resource.id)) continue;
+    // Bu resource'a ait randevuları önceden filtrele (overlap hesabı için)
+    final resourceAppointments = updatedAppointments.where((a) {
+      if (a.resourceIds == null || !a.resourceIds!.contains(resource.id)) return false;
+      final st = a.startTime.toLocal();
+      return st.year == _selectedDate.year &&
+          st.month == _selectedDate.month &&
+          st.day == _selectedDate.day;
+    }).toList();
 
-      // Tarih kontrolü
-      if (appointment.startTime.toLocal().year != _selectedDate.year ||
-          appointment.startTime.toLocal().month != _selectedDate.month ||
-          appointment.startTime.toLocal().day != _selectedDate.day) continue;
-
-      // 🔥 DOĞRU ZAMAN HESABI (DateTime farkı)
+    for (var appointment in resourceAppointments) {
       final startDiff = appointment.startTime.toLocal().difference(dayStart).inMinutes;
       final endDiff = appointment.endTime.toLocal().difference(dayStart).inMinutes;
 
       double startOffset = startDiff * minuteHeight;
       double height = (endDiff - startDiff) * minuteHeight;
 
-      // Sınırları kontrol et
       if (startOffset < 0) {
         height += startOffset;
         startOffset = 0;
@@ -1029,83 +881,49 @@ class TakvimState extends State<Takvim> {
       }
 
       if (height <= 0) continue;
-
-      // Minimum yükseklik
       height = height.floorToDouble();
-      log('randevu ' + appointment.location.toString());
 
-      // 🔥 OVERLAP HESABI
-      final sameHourAppointments = updatedAppointments.where((a) {
-        if (a.resourceIds == null ||
-            !a.resourceIds!.contains(resource.id)) return false;
-
-        if (a.startTime.year != _selectedDate.year ||
-            a.startTime.month != _selectedDate.month ||
-            a.startTime.day != _selectedDate.day) return false;
-
-        final aStart = a.startTime.difference(dayStart).inMinutes;
-        final aEnd = a.endTime.difference(dayStart).inMinutes;
-
+      // OVERLAP HESABI - sadece resource'un kendi randevularına bak
+      final sameHourAppointments = resourceAppointments.where((a) {
+        final aStart = a.startTime.toLocal().difference(dayStart).inMinutes;
+        final aEnd = a.endTime.toLocal().difference(dayStart).inMinutes;
         return (aStart < endDiff) && (aEnd > startDiff);
       }).toList();
 
       int index = sameHourAppointments.indexOf(appointment);
       int total = sameHourAppointments.length;
 
-      // 🔥 HARD CODE FIX
-      double containerWidth = 150.0; // personelGenisligi ile aynı olmalı
       double left = 2;
       double right = 2;
 
       if (total > 1) {
-        double slotGenislik = (containerWidth - 4) / total;
+        double slotGenislik = (personelGenisligi - 4) / total;
         left = 2 + (index * slotGenislik);
         right = 2 + ((total - 1 - index) * slotGenislik);
       }
 
-      // Renk
       Color appointmentColor = appointment.color;
+      final cardWidth = personelGenisligi - left - right;
 
       appointments.add(
         Positioned(
           top: startOffset,
           left: left,
           right: right,
-          height: height,
-          child: Draggable<Appointment>(
-            data: appointment,
-            feedback: _buildDraggingFeedback(
-              appointment,
-              appointmentColor,
-              height,
-              containerWidth - left - right,
-            ),
-            childWhenDragging: const SizedBox.shrink(),
-            onDragEnd: (details) {
-              _onDragCompleted(details, appointment, resource.id.toString());
-            },
-            child: GestureDetector(
+          // height intentionally omitted → child intrinsic height kullanır,
+          // resize sırasında Container yüksekliği değişince Positioned takip eder
+          child: RepaintBoundary(
+            child: _AppointmentCard(
+              key: ValueKey('appt_${appointment.id}_${appointment.startTime.millisecondsSinceEpoch}'),
+              appointment: appointment,
+              color: appointmentColor,
+              height: height,
+              width: cardWidth,
+              slotHeight: slotHeight,
               onTap: () => _appointmentDetayGoster(appointment),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: appointmentColor.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: appointmentColor, width: 1),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: Text(
-                    DateFormat.Hm().format(appointment.startTime.toLocal()) +
-                        '-' +
-                        DateFormat.Hm().format(appointment.endTime.toLocal()) +
-                        " " +
-                        appointment.subject,
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
-                    maxLines: height <= 40 ? 2:null,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
+              buildFeedback: (h) => _buildDraggingFeedback(appointment, appointmentColor, h, cardWidth),
+              onDragEnd: (details) => _onDragCompleted(details, appointment, resource.id.toString()),
+              onResizeEnd: (newDurationMinutes) => _onResizeEnd(appointment, newDurationMinutes, resource.id.toString()),
             ),
           ),
         ),
@@ -1114,84 +932,7 @@ class TakvimState extends State<Takvim> {
 
     return appointments;
   }
-  // Randevu içeriğini oluşturan yardımcı metod
-  Widget _buildAppointmentContent(
-      Appointment appointment,
-      Color color,
-      double height,
-      double width,
-      ) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(2.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              DateFormat.Hm().format(appointment.startTime.toLocal()) +
-                  '-' +
-                  DateFormat.Hm().format(appointment.endTime.toLocal()) +
-                  " " +
-                  appointment.subject,
-              maxLines: height <= 40 ? 2 : null,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 8,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-// Sürükleme bittiğinde çalışacak fonksiyon
-  void _onDragEnd(DraggableDetails details, Appointment appointment, String oldResourceId) {
-    if (details.wasAccepted) return; // Zaten kabul edildiyse işlem yapma
-
-    final renderBox = context.findRenderObject() as RenderBox;
-    final localPosition = renderBox.globalToLocal(details.offset);
-
-    // Hangi personel sütununa bırakıldığını bul
-    final double personelGenisligi = 200.0;
-    int newResourceIndex = (localPosition.dx / personelGenisligi).floor();
-
-    // Geçerli aralıkta mı kontrol et
-    if (newResourceIndex < 0 || newResourceIndex >= resources.length) return;
-
-    final newResource = resources[newResourceIndex];
-
-    // Hangi dakikaya bırakıldığını hesapla
-    final parts = baslangicSaati.split(':');
-    final dayStart = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-    );
-
-    final minuteHeight = _hourHeight / 60;
-    final minutesFromStart = (localPosition.dy / minuteHeight).round();
-
-    final newStartTime = dayStart.add(Duration(minutes: minutesFromStart));
-    final duration = appointment.endTime.difference(appointment.startTime.toLocal());
-    final newEndTime = newStartTime.add(duration);
-
-    // Randevuyu güncelle
-    _surukleBirakTamamla(appointment, newStartTime, newEndTime, newResource.id.toString());
-  }
-
-
-  // _onDragCompleted metodunu TAMAMEN DEĞİŞTİR
+  // _onDragCompleted metodu
   void _onDragCompleted(DraggableDetails details, Appointment appointment, String oldResourceId) {
     if (details.offset == Offset.zero) return;
 
@@ -1204,7 +945,7 @@ class TakvimState extends State<Takvim> {
     final scrollX = _gridHorizontalController.hasClients ? _gridHorizontalController.offset : 0.0;
 
     // Personel sütunu bul (scroll pozisyonunu da hesaba kat)
-    const double personelWidth = 150.0;
+    final double personelWidth = _personelGenisligi;
     const double saatColumnWidth = 60.0;
 
     // Gerçek X pozisyonu (scroll + local)
@@ -1381,7 +1122,7 @@ class TakvimState extends State<Takvim> {
       if(randevudurum != null && randevudurum.isNotEmpty)
         randevuHizmetId = randevudurum[4];
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/surukleBirakRandevuGuncelle'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/surukleBirakRandevuGuncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'randevuHizmetId':randevuHizmetId,
@@ -1425,8 +1166,6 @@ class TakvimState extends State<Takvim> {
   }
 
 // Sürükleme sırasında gösterilecek widget
-  //   BOYUTU SABİT
-  //  İYİLEŞTİRİLMİŞ
   Widget _buildDraggingFeedback(Appointment appointment, Color color, double height, double width) {
     return Material(
       color: Colors.transparent,
@@ -1434,42 +1173,95 @@ class TakvimState extends State<Takvim> {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color, width: 2),
+          color: color.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(2, 2),
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(2, 4),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(2.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                DateFormat.Hm().format(appointment.startTime.toLocal()) +
-                    "-" +
-                    DateFormat.Hm().format(appointment.endTime.toLocal()) +
-                    " " +
-                    appointment.subject,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 8,
-
-                ),
-                maxLines: height<=40 ? 2 : null,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+          padding: const EdgeInsets.all(4.0),
+          child: Text(
+            DateFormat.Hm().format(appointment.startTime.toLocal()) +
+                "-" +
+                DateFormat.Hm().format(appointment.endTime.toLocal()) +
+                " " +
+                appointment.subject,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: height <= 40 ? 2 : null,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),
     );
+  }
+
+  // Resize sonu: yeni süre dakikası API'ye gönderilir
+  Future<void> _onResizeEnd(Appointment appointment, int newDurationMinutes, String resourceId) async {
+    final oldDuration = appointment.endTime.difference(appointment.startTime).inMinutes;
+    if (newDurationMinutes == oldDuration) return;
+    if (newDurationMinutes < 15) newDurationMinutes = 15;
+
+    final newEndTime = appointment.startTime.add(Duration(minutes: newDurationMinutes));
+    final oldEndTime = appointment.endTime.toLocal();
+
+    // Onay dialog'u
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Randevu Süresi Değişikliği', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Randevu süresini güncellemek istediğinize emin misiniz?'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('⏱  Eski Süre: $oldDuration dk (${DateFormat.Hm().format(appointment.startTime.toLocal())} - ${DateFormat.Hm().format(oldEndTime)})'),
+                  const SizedBox(height: 6),
+                  Text('⏱  Yeni Süre: $newDurationMinutes dk (${DateFormat.Hm().format(appointment.startTime.toLocal())} - ${DateFormat.Hm().format(newEndTime)})'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('İptal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+            child: const Text('Güncelle'),
+          ),
+        ],
+      ),
+    );
+
+    if (onay == true) {
+      await _surukleBirakTamamla(appointment, appointment.startTime, newEndTime, resourceId);
+    } else {
+      // Reddedilirse önceki haline geri dön (rebuild)
+      if (mounted) setState(() {});
+    }
   }
   void _randevuEkle(DateTime tarih, String resourceId) {
     final now = DateTime.now();
@@ -2077,6 +1869,317 @@ class TakvimState extends State<Takvim> {
           ],
         );
       },
+    );
+  }
+}
+
+// ============================================================
+// CUSTOM PAINTER: Saat sütunu (sol taraf)
+// ============================================================
+class _SaatColumnPainter extends CustomPainter {
+  final int totalSlots;
+  final double slotHeight;
+  final int startTotalMinutes;
+
+  _SaatColumnPainter({
+    required this.totalSlots,
+    required this.slotHeight,
+    required this.startTotalMinutes,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = Colors.grey.shade300
+      ..strokeWidth = 1;
+    final hourLinePaint = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 1;
+    final borderPaint = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 1;
+
+    final textStyle = TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w500);
+    final halfStyle = TextStyle(fontSize: 10, color: Colors.grey[500]);
+
+    for (int i = 0; i < totalSlots; i++) {
+      final y = i * slotHeight;
+      final totalMinutes = startTotalMinutes + (i * 15);
+      final hour = totalMinutes ~/ 60;
+      final minute = totalMinutes % 60;
+      final isHour = minute == 0;
+      final isHalf = minute == 30;
+
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        isHour ? hourLinePaint : linePaint,
+      );
+
+      if (isHour || isHalf) {
+        final timeString =
+            '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+        final tp = TextPainter(
+          text: TextSpan(text: timeString, style: isHour ? textStyle : halfStyle),
+          textDirection: ui.TextDirection.ltr,
+        )..layout(maxWidth: size.width - 4);
+        tp.paint(canvas, Offset(4, y + 2));
+      }
+    }
+
+    canvas.drawLine(
+      Offset(size.width - 0.5, 0),
+      Offset(size.width - 0.5, size.height),
+      borderPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SaatColumnPainter oldDelegate) {
+    return oldDelegate.totalSlots != totalSlots ||
+        oldDelegate.slotHeight != slotHeight ||
+        oldDelegate.startTotalMinutes != startTotalMinutes;
+  }
+}
+
+// ============================================================
+// CUSTOM PAINTER: Grid çizgileri (her personel sütununda)
+// ============================================================
+class _GridLinesPainter extends CustomPainter {
+  final int totalSlots;
+  final double slotHeight;
+
+  _GridLinesPainter({required this.totalSlots, required this.slotHeight});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final softLine = Paint()
+      ..color = Colors.grey.shade200
+      ..strokeWidth = 1;
+    final strongLine = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 1;
+    final rightBorder = Paint()
+      ..color = Colors.grey.shade300
+      ..strokeWidth = 1;
+
+    for (int i = 0; i <= totalSlots; i++) {
+      final y = i * slotHeight;
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        i % 4 == 0 ? strongLine : softLine,
+      );
+    }
+
+    canvas.drawLine(
+      Offset(size.width - 0.5, 0),
+      Offset(size.width - 0.5, size.height),
+      rightBorder,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _GridLinesPainter oldDelegate) {
+    return oldDelegate.totalSlots != totalSlots ||
+        oldDelegate.slotHeight != slotHeight;
+  }
+}
+
+// ============================================================
+// APPOINTMENT CARD: Drag (LongPress 250ms) + Resize handle
+// ============================================================
+class _AppointmentCard extends StatefulWidget {
+  final Appointment appointment;
+  final Color color;
+  final double height;
+  final double width;
+  final double slotHeight; // 15 dk
+  final VoidCallback onTap;
+  final Widget Function(double height) buildFeedback;
+  final void Function(DraggableDetails details) onDragEnd;
+  final void Function(int newDurationMinutes) onResizeEnd;
+
+  const _AppointmentCard({
+    Key? key,
+    required this.appointment,
+    required this.color,
+    required this.height,
+    required this.width,
+    required this.slotHeight,
+    required this.onTap,
+    required this.buildFeedback,
+    required this.onDragEnd,
+    required this.onResizeEnd,
+  }) : super(key: key);
+
+  @override
+  State<_AppointmentCard> createState() => _AppointmentCardState();
+}
+
+class _AppointmentCardState extends State<_AppointmentCard> {
+  double? _resizeHeight;
+  bool _isResizing = false;
+
+  // FullCalendar tarzı: handle'a basıp doğrudan sürükle → resize
+  void _onResizeStart(DragStartDetails _) {
+    setState(() {
+      _isResizing = true;
+      _resizeHeight = widget.height;
+    });
+  }
+
+  void _onResizeUpdate(DragUpdateDetails details) {
+    final newH = (_resizeHeight ?? widget.height) + details.delta.dy;
+    final clamped = newH.clamp(widget.slotHeight, widget.slotHeight * 96);
+    setState(() {
+      _resizeHeight = clamped;
+    });
+  }
+
+  void _onResizeFinish(DragEndDetails _) {
+    if (!_isResizing) return;
+    final h = _resizeHeight ?? widget.height;
+    final slots = (h / widget.slotHeight).round().clamp(1, 96);
+    final newDurationMinutes = slots * 15;
+
+    setState(() {
+      _isResizing = false;
+      _resizeHeight = null;
+    });
+
+    widget.onResizeEnd(newDurationMinutes);
+  }
+
+  void _onResizeCancel() {
+    setState(() {
+      _isResizing = false;
+      _resizeHeight = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayHeight = _resizeHeight ?? widget.height;
+    final color = widget.color;
+
+    final resizeMinutes = _isResizing
+        ? ((displayHeight / widget.slotHeight).round() * 15)
+        : 0;
+
+    // Kart dekorasyonu + içerik (handle hariç - alt 16px boşluk bırakılır)
+    final cardBody = Container(
+      width: widget.width,
+      height: displayHeight,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: _isResizing ? 0.7 : 0.92),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: _isResizing ? Colors.white : color,
+          width: _isResizing ? 2 : 1,
+        ),
+        boxShadow: _isResizing
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          // Alt 16px → handle bölgesi (Stack üzerinde ayrı katman)
+          padding: const EdgeInsets.fromLTRB(4, 2, 4, 18),
+          child: Text(
+            _isResizing
+                ? '${DateFormat.Hm().format(widget.appointment.startTime.toLocal())} • $resizeMinutes dk'
+                : '${DateFormat.Hm().format(widget.appointment.startTime.toLocal())}-${DateFormat.Hm().format(widget.appointment.endTime.toLocal())} ${widget.appointment.subject}',
+            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+            maxLines: displayHeight <= 40 ? 2 : null,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+
+    // FullCalendar tarzı resize handle - Stack'te en üstte (drag'i engeller)
+    final resizeHandle = MouseRegion(
+      cursor: SystemMouseCursors.resizeRow,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onVerticalDragStart: _onResizeStart,
+        onVerticalDragUpdate: _onResizeUpdate,
+        onVerticalDragEnd: _onResizeFinish,
+        onVerticalDragCancel: _onResizeCancel,
+        child: Container(
+          color: Colors.black.withValues(alpha: _isResizing ? 0.4 : 0.25),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: _isResizing ? 42 : 34,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                width: _isResizing ? 42 : 34,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Resize sırasında drag'i tamamen devre dışı bırak
+    final dragLayer = _isResizing
+        ? cardBody
+        : GestureDetector(
+            onTap: widget.onTap,
+            child: LongPressDraggable<Appointment>(
+              data: widget.appointment,
+              delay: const Duration(milliseconds: 250),
+              hapticFeedbackOnStart: true,
+              feedback: widget.buildFeedback(widget.height),
+              childWhenDragging: Opacity(opacity: 0.25, child: cardBody),
+              onDragEnd: widget.onDragEnd,
+              child: cardBody,
+            ),
+          );
+
+    // SizedBox + Stack: handle, LongPressDraggable'ın DIŞINDA bağımsız layer
+    // Stack'te handle son child → hit-test önce ona gider → drag asla tetiklenmez
+    return SizedBox(
+      width: widget.width,
+      height: displayHeight,
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          // Layer 1: kart + drag (LongPressDraggable burada)
+          Positioned.fill(child: dragLayer),
+          // Layer 2: resize handle - alt 16px (hit-test'i kapar, drag'e geçmez)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 16,
+            child: resizeHandle,
+          ),
+        ],
+      ),
     );
   }
 }

@@ -87,63 +87,68 @@ class _AyarlarState extends State<Ayarlar> {
   Widget build(BuildContext context) {
     final bool isTablet = MediaQuery.of(context).size.width >= 600;
     final bool isDesktop = MediaQuery.of(context).size.width >= 1024;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: _buildAppBar(),
-      body: _buildBody(isTablet, isDesktop),
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.36), Colors.white),
+              Color.alphaBlend(
+                  scheme.tertiary.withValues(alpha: 0.08), Colors.white),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(context),
+              Expanded(child: _buildBody(isTablet, isDesktop)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
-      title: const Text(
-        "Ayarlar",
-        style: TextStyle(
-          color: Color(0xFF333333),
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.5,
-        ),
-      ),
-      centerTitle: false,
-      toolbarHeight: 70,
-      leading: Container(
-        margin: const EdgeInsets.only(left: 8),
-        child: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F3F9),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF4A5568), size: 20),
+  Widget _buildAppBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: scheme.onSurface),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      actions: [
-        if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: SizedBox(
+          Expanded(
+            child: Text(
+              'Ayarlar',
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+          if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
+            SizedBox(
               width: 110,
               child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
             ),
-          ),
-      ],
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(20),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildBody(bool isTablet, bool isDesktop) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.all(isDesktop ? 24 : isTablet ? 20 : 16),
       child: Column(
@@ -158,18 +163,19 @@ class _AyarlarState extends State<Ayarlar> {
                 Text(
                   "İşletme Ayarları",
                   style: TextStyle(
-                    fontSize: isDesktop ? 28 : isTablet ? 24 : 20,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF2D3748),
+                    fontSize: isDesktop ? 26 : isTablet ? 22 : 19,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.4,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   "İşletmenizin ayarlarını buradan yönetebilirsiniz",
                   style: TextStyle(
-                    fontSize: isDesktop ? 16 : 14,
-                    color: const Color(0xFF718096),
-                    fontWeight: FontWeight.w400,
+                    fontSize: isDesktop ? 14 : 12,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -199,118 +205,109 @@ class _AyarlarState extends State<Ayarlar> {
   }
 
   Widget _buildSettingCard(AyarlarItem item) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => item.route),
-          );
-        },
-        splashColor: item.gradientColors[0].withOpacity(0.1),
-        highlightColor: item.gradientColors[0].withOpacity(0.05),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                item.gradientColors[0].withOpacity(0.08),
-                item.gradientColors[1].withOpacity(0.03),
-              ],
-            ),
-            border: Border.all(
-              color: Colors.grey.withOpacity(0.1),
-              width: 1,
-            ),
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Color.alphaBlend(
+                item.gradientColors[0].withValues(alpha: 0.06), Colors.white),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // İkon konteyneri
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: item.gradientColors,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: item.gradientColors[0].withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => item.route),
+            );
+          },
+          splashColor: item.gradientColors[0].withValues(alpha: 0.10),
+          highlightColor: item.gradientColors[0].withValues(alpha: 0.05),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: item.gradientColors,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: item.gradientColors[0]
+                                .withValues(alpha: 0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Icon(item.icon, color: Colors.white, size: 20),
+                    ),
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: item.gradientColors[0].withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: item.iconColor,
+                        size: 11,
+                      ),
                     ),
                   ],
                 ),
-                child: Center(
-                  child: Icon(
-                    item.icon,
-                    color: Colors.white,
-                    size: 22,
+                const Spacer(),
+                Text(
+                  item.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.2,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-
-              const SizedBox(height: 5),
-
-              // Başlık
-              Text(
-                item.title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2D3748),
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              const SizedBox(height: 4),
-
-              // Açıklama (isteğe bağlı)
-              Text(
-                _getDescription(item.title),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF718096).withOpacity(0.8),
-                  fontWeight: FontWeight.w400,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              const SizedBox(height: 4),
-
-              // Ok işareti
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: item.gradientColors[0].withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: item.iconColor,
-                    size: 10,
+                const SizedBox(height: 2),
+                Text(
+                  _getDescription(item.title),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                    fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

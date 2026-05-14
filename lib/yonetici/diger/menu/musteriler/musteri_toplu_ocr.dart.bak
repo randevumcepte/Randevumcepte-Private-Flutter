@@ -643,7 +643,7 @@ class _MusteriTopluOcrState extends State<MusteriTopluOcr> {
       try {
         final response = await http.post(
           Uri.parse(
-              'https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/$_seciliSalonId'),
+              'https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/$_seciliSalonId'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'ad_soyad': ad,

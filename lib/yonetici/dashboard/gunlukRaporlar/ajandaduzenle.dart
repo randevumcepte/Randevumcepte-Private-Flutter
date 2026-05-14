@@ -573,9 +573,9 @@ Future<void> submitForm(dynamic isletmebilgisi, String baslik,String icerik,Stri
 
     // Add other form fields
   };
-  log('Url : https://app.randevumcepte.com.tr/api/v1/notekleduzenle/114/'+user['id'].toString());
+  log('Url : https://apptest.randevumcepte.com.tr/api/v1/notekleduzenle/114/'+user['id'].toString());
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/notekleduzenle/114/'+user['id'].toString()),
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/notekleduzenle/114/'+user['id'].toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),

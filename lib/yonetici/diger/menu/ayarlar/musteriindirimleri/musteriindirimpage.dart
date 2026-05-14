@@ -287,7 +287,7 @@ Future<void> submitForm(String sadik,String aktif,String salonid,check,check2,co
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriindirim_kaydet'),
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteriindirim_kaydet'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),

@@ -9,7 +9,6 @@ import 'package:randevu_sistem/Models/sms_taslaklari.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/kampanya/kampanyaduzenle.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/kampanya/kampanyaekle.dart';
 
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:randevu_sistem/Frontend/backroutes.dart';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';

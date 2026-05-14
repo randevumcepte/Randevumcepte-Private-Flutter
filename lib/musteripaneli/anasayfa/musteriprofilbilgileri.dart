@@ -92,7 +92,7 @@ class _ProfilBilgileriPageState extends State<MusteriProfilBilgileri> {
       var user = jsonDecode(localStorage.getString('musteri')!);
 
       final response = await http.get(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri/${user["id"]}'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteri/${user["id"]}'),
       );
 
       if (response.statusCode == 200) {
@@ -129,7 +129,7 @@ class _ProfilBilgileriPageState extends State<MusteriProfilBilgileri> {
       var user = jsonDecode(localStorage.getString('musteri')!);
 
       final response = await http.get(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri/${user["id"]}'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteri/${user["id"]}'),
       );
 
       if (response.statusCode == 200) {
@@ -192,7 +192,7 @@ class _ProfilBilgileriPageState extends State<MusteriProfilBilgileri> {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriprofilresimyukle'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteriprofilresimyukle'),
       );
 
       request.fields['yetkili_id'] = user["id"].toString();
@@ -251,7 +251,7 @@ class _ProfilBilgileriPageState extends State<MusteriProfilBilgileri> {
       return '';
     }
 
-    String baseUrl = 'https://app.randevumcepte.com.tr$_currentProfileImageUrl';
+    String baseUrl = 'https://apptest.randevumcepte.com.tr$_currentProfileImageUrl';
 
     // Cache busting için timestamp veya version ekle
     if (_imageVersion > 0) {
@@ -651,7 +651,7 @@ class _ProfilBilgileriPageState extends State<MusteriProfilBilgileri> {
       };
 
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteribilgiguncelle'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteribilgiguncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );

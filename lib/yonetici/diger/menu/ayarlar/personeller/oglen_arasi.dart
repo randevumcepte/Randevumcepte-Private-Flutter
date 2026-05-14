@@ -595,7 +595,7 @@ Future<void> submitform(String salonId, calisiyor1,  calisiyor2,  calisiyor3,  c
   final queryParameters = formData.entries.map((e) => '${e.key}=${e.value}').join('&');
 
   final response = await http.get(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/mola_saati_guncelle_ekle/$salonId?$queryParameters'),
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/mola_saati_guncelle_ekle/$salonId?$queryParameters'),
     headers: {'Content-Type': 'application/json'},
   );
 
