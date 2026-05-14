@@ -528,7 +528,13 @@
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: () => _toggleExpand(adisyon.id),
+            onTap: () {
+              if (isFullPaid) {
+                _showKapaliDetayModal(adisyon, isOpenTab);
+              } else {
+                _toggleExpand(adisyon.id);
+              }
+            },
             child: Column(
               children: [
                 Padding(
@@ -646,10 +652,12 @@
                             ),
                             SizedBox(width: 4),
                             Icon(
-                              isExpanded
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
-                              size: 22,
+                              isFullPaid
+                                  ? Icons.info_outline
+                                  : (isExpanded
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down),
+                              size: isFullPaid ? 18 : 22,
                               color: Colors.grey.shade400,
                             ),
                           ],
@@ -658,7 +666,7 @@
                     ],
                   ),
                 ),
-                if (isExpanded) ...[
+                if (isExpanded && !isFullPaid) ...[
                   Container(height: 1, color: Colors.grey.shade100),
                   Padding(
                     padding: EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -726,6 +734,201 @@
             ),
           ),
         ),
+      );
+    }
+
+    void _showKapaliDetayModal(Adisyon adisyon, bool isOpenTab) {
+      final double toplam = double.tryParse(adisyon.toplam_numeric) ?? 0;
+      final double odenen = double.tryParse(adisyon.odenen_numeric) ?? 0;
+      final double kalan = double.tryParse(adisyon.kalan_tutar_numeric) ?? 0;
+      final String personel =
+          (adisyon.hizmet_veren.isNotEmpty && adisyon.hizmet_veren != "null")
+              ? adisyon.hizmet_veren
+              : '';
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) {
+          return DraggableScrollableSheet(
+            initialChildSize: 0.55,
+            minChildSize: 0.3,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: (ctx, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: EdgeInsets.only(top: 8),
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.check_circle_outline,
+                                size: 20, color: Colors.green.shade600),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  adisyon.musteri,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Tamamlanmış Satış',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close,
+                                size: 20, color: Colors.grey.shade600),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Divider(height: 1, color: Colors.grey.shade200),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        padding: EdgeInsets.fromLTRB(16, 14, 16, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Tarih + personel bilgi satırları
+                            _modalInfoRow(
+                              Icons.event_outlined,
+                              'Açılış Tarihi',
+                              adisyon.acilis_tarihi,
+                              Colors.grey.shade600,
+                            ),
+                            if (adisyon.son_tahsilat_tarihi.isNotEmpty) ...[
+                              SizedBox(height: 8),
+                              _modalInfoRow(
+                                Icons.payments_outlined,
+                                'Son Tahsilat',
+                                adisyon.son_tahsilat_tarihi,
+                                Colors.green.shade700,
+                              ),
+                            ],
+                            if (personel.isNotEmpty) ...[
+                              SizedBox(height: 8),
+                              _modalInfoRow(
+                                Icons.person_outline,
+                                'Personel',
+                                personel,
+                                Colors.purple.shade700,
+                              ),
+                            ],
+                            SizedBox(height: 16),
+                            Text(
+                              'Satış Kalemleri',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            _buildCompactSalesContent(adisyon.icerikKisaltilmis),
+                            SizedBox(height: 16),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border:
+                                    Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildMiniStat(
+                                      'Toplam', toplam, Colors.grey.shade700),
+                                  _buildMiniStat('Ödenen', odenen,
+                                      Colors.green.shade700),
+                                  _buildMiniStat(
+                                      'Kalan',
+                                      kalan,
+                                      kalan > 0
+                                          ? Colors.orange.shade700
+                                          : Colors.green.shade700),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+
+    Widget _modalInfoRow(
+        IconData icon, String label, String value, Color valueColor) {
+      return Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade500),
+          SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: valueColor,
+            ),
+          ),
+        ],
       );
     }
 
