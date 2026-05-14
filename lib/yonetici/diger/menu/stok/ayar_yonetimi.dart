@@ -16,6 +16,7 @@ class AyarYonetimi extends StatefulWidget {
 
 class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderStateMixin {
   static const Color _mor = Color(0xFF6A1B9A);
+  static const Color _morSoft = Color(0xFFF3E8FA);
   static const Color _kirmizi = Color(0xFFE53935);
   static const Color _yesil = Color(0xFF43A047);
 
@@ -122,146 +123,714 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
 
   Widget _receteTab() {
     if (_hizmetler.isEmpty) {
-      return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Sistem hizmeti bulunamadı', textAlign: TextAlign.center)));
-    }
-    return Column(
-      children: [
-        // Bilgi banner
-        Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: const Color(0xFFF3E8FA), borderRadius: BorderRadius.circular(10)),
-          child: const Row(
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.info_outline, color: _mor, size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Bir hizmeti seç ve hangi sarf malzemelerinden ne kadar tükettiğini gir. Hizmet adisyona eklendiğinde stoktan otomatik düşer.',
-                  style: TextStyle(color: _mor, fontSize: 12, fontWeight: FontWeight.w500),
+              Icon(Icons.spa_outlined, size: 64, color: Colors.black.withValues(alpha: 0.2)),
+              const SizedBox(height: 12),
+              const Text('Henüz hizmet tanımlı değil', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              const SizedBox(height: 4),
+              Text('Önce sistem hizmetlerini ekle', textAlign: TextAlign.center, style: TextStyle(color: Colors.black.withValues(alpha: 0.5))),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final seciliHizmet = _seciliHizmetId == null
+        ? null
+        : _hizmetler.firstWhere(
+            (h) => h['id']?.toString() == _seciliHizmetId,
+            orElse: () => <String, dynamic>{},
+          );
+
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        // === Bilgilendirme kartı ===
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [_mor, Color(0xFF8E24AA)]),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Otomatik Sarf Düşümü', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+                    SizedBox(height: 4),
+                    Text(
+                      'Bir hizmete reçete tanımlarsın → o hizmet adisyona eklendiğinde malzemeler stoktan otomatik düşer.',
+                      style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 14),
 
-        // Hizmet seçimi
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: _dropdown<String>('Hizmet', _seciliHizmetId,
-              _hizmetler.map((h) => DropdownMenuItem<String>(value: h['id']?.toString(), child: Text(h['hizmet_adi']?.toString() ?? '—'))).toList(),
-              (v) async { setState(() => _seciliHizmetId = v); await _receteleriYukle(); }),
-        ),
-        const SizedBox(height: 10),
+        // === Hizmet seçici kart ===
+        _hizmetSeciciKart(seciliHizmet),
+        const SizedBox(height: 12),
 
-        // Reçete listesi
-        Expanded(
-          child: _seciliHizmetId == null
-              ? const Center(child: Text('Önce bir hizmet seç', style: TextStyle(color: Colors.black45)))
-              : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+        // === Reçete listesi veya boş durum ===
+        if (_seciliHizmetId == null)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+            child: Column(
+              children: [
+                Icon(Icons.arrow_upward, color: _mor.withValues(alpha: 0.5), size: 28),
+                const SizedBox(height: 8),
+                Text('Önce yukarıdan bir hizmet seç', textAlign: TextAlign.center, style: TextStyle(color: Colors.black.withValues(alpha: 0.5))),
+              ],
+            ),
+          )
+        else
+          _receteIcerikleri(),
+      ],
+    );
+  }
+
+  Widget _hizmetSeciciKart(Map<String, dynamic>? seciliHizmet) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: _hizmetSecBottomSheet,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _seciliHizmetId == null ? Colors.black12 : _mor.withValues(alpha: 0.3), width: _seciliHizmetId == null ? 1 : 1.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.spa_outlined, color: _mor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ..._receteler.map((r) {
-                      final urunAdi = r['urun'] is Map ? (r['urun']['urun_adi']?.toString() ?? '—') : '—';
-                      final birim = r['urun'] is Map ? (r['urun']['birim']?.toString() ?? 'adet') : '';
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(color: Color(0xFFFCE4EC), shape: BoxShape.circle),
-                              child: const Icon(Icons.local_florist_outlined, color: Color(0xFFAD1457), size: 18),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(urunAdi, style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  Text('Her hizmette: ${r['miktar']} $birim', style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: _kirmizi, size: 20),
-                              onPressed: () async {
-                                if (await _onay('Reçeteden çıkarılsın mı?')) {
-                                  await StokApi.receteSil(r['id'].toString());
-                                  _receteleriYukle();
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _receteEkle,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Reçeteye Ürün Ekle'),
-                      style: OutlinedButton.styleFrom(foregroundColor: _mor, side: const BorderSide(color: _mor), padding: const EdgeInsets.symmetric(vertical: 12)),
+                    const Text('HİZMET', style: TextStyle(fontSize: 10, color: Colors.black45, letterSpacing: 0.5, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text(
+                      seciliHizmet == null || seciliHizmet.isEmpty
+                          ? 'Hizmet seçmek için dokun'
+                          : (seciliHizmet['hizmet_adi']?.toString() ?? '—'),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: seciliHizmet == null || seciliHizmet.isEmpty ? Colors.black54 : Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
+              ),
+              Icon(_seciliHizmetId == null ? Icons.touch_app_outlined : Icons.swap_horiz, color: _mor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _hizmetSecBottomSheet() async {
+    final aramaCtl = TextEditingController();
+    String arama = '';
+    final secilen = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+        final filtre = arama.isEmpty
+            ? _hizmetler
+            : _hizmetler.where((h) => (h['hizmet_adi']?.toString().toLowerCase() ?? '').contains(arama.toLowerCase())).toList();
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollCtl) => Container(
+            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 12, 16),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(colors: [_mor, Color(0xFF8E24AA)]),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(width: 38, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
+                      Row(
+                        children: [
+                          const Icon(Icons.spa_outlined, color: Colors.white),
+                          const SizedBox(width: 8),
+                          const Expanded(child: Text('Hizmet Seç', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17))),
+                          IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(ctx)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: aramaCtl,
+                        onChanged: (v) => setSt(() => arama = v),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Hizmet ara...',
+                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                          prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.7)),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.15),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: filtre.isEmpty
+                      ? Center(child: Text('Sonuç bulunamadı', style: TextStyle(color: Colors.black.withValues(alpha: 0.5))))
+                      : ListView.separated(
+                          controller: scrollCtl,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: filtre.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            final h = filtre[i];
+                            final id = h['id']?.toString();
+                            final ad = h['hizmet_adi']?.toString() ?? '—';
+                            final secili = _seciliHizmetId == id;
+                            return ListTile(
+                              leading: Container(
+                                width: 36, height: 36,
+                                decoration: BoxDecoration(color: secili ? _mor : _morSoft, shape: BoxShape.circle),
+                                child: Icon(Icons.spa_outlined, color: secili ? Colors.white : _mor, size: 18),
+                              ),
+                              title: Text(ad, style: TextStyle(fontWeight: FontWeight.w700, color: secili ? _mor : Colors.black87)),
+                              trailing: secili ? const Icon(Icons.check_circle, color: _mor) : null,
+                              onTap: () => Navigator.pop(ctx, id),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+    if (secilen != null) {
+      setState(() => _seciliHizmetId = secilen);
+      await _receteleriYukle();
+    }
+  }
+
+  Widget _receteIcerikleri() {
+    if (_receteler.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+        child: Column(
+          children: [
+            Container(
+              width: 64, height: 64,
+              decoration: const BoxDecoration(color: _morSoft, shape: BoxShape.circle),
+              child: const Icon(Icons.science_outlined, color: _mor, size: 32),
+            ),
+            const SizedBox(height: 12),
+            const Text('Henüz reçete yok', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text(
+              'Bu hizmet için ilk malzemeyi ekleyerek\nbaşlayabilirsin',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black.withValues(alpha: 0.5), height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _receteUrunSec,
+                icon: const Icon(Icons.add),
+                label: const Text('İlk Malzemeyi Ekle'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _mor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Text(
+            'BU HİZMETE BAĞLI ${_receteler.length} MALZEME',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: Colors.black.withValues(alpha: 0.5)),
+          ),
+        ),
+        ..._receteler.map((r) {
+          final urunAdi = r['urun'] is Map ? (r['urun']['urun_adi']?.toString() ?? '—') : '—';
+          final birim = r['urun'] is Map ? (r['urun']['birim']?.toString() ?? 'adet') : '';
+          final tip = r['urun'] is Map ? (r['urun']['tip']?.toString() ?? 'sarf') : 'sarf';
+          final miktar = double.tryParse(r['miktar']?.toString() ?? '0') ?? 0;
+          final rid = r['id'].toString();
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: tip == 'karma' ? _morSoft : const Color(0xFFFCE4EC),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    tip == 'karma' ? Icons.swap_horiz : Icons.local_florist_outlined,
+                    color: tip == 'karma' ? _mor : const Color(0xFFAD1457),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(urunAdi, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(6)),
+                            child: Text(
+                              'Her hizmette ${_miktarFmt(miktar)} $birim',
+                              style: const TextStyle(color: _mor, fontWeight: FontWeight.w700, fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: _mor),
+                  tooltip: 'Miktarı düzenle',
+                  onPressed: () => _receteMiktarDuzenle(r),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: _kirmizi),
+                  tooltip: 'Çıkar',
+                  onPressed: () async {
+                    if (await _onay('"$urunAdi" reçeteden çıkarılsın mı?')) {
+                      await StokApi.receteSil(rid);
+                      _receteleriYukle();
+                    }
+                  },
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _receteUrunSec,
+          icon: const Icon(Icons.add),
+          label: const Text('Yeni Malzeme Ekle'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _mor,
+            side: const BorderSide(color: _mor, width: 1.5),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
         ),
       ],
     );
   }
 
-  Future<void> _receteEkle() async {
+  Future<void> _receteUrunSec() async {
     if (_seciliHizmetId == null) return;
-    String? secilenUrunId;
-    final miktarCtl = TextEditingController(text: '1');
-    // Sadece sarf veya karma ürünleri öner — ama hepsi de seçilebilsin
-    final secenekler = _urunler.where((u) => u.tip == 'sarf' || u.tip == 'karma').toList();
-    final tum = secenekler.isEmpty ? _urunler : secenekler;
-    final ok = await showDialog<bool>(
+    final mevcutIdler = _receteler
+        .map((r) => (r['urun_id'] ?? (r['urun'] is Map ? r['urun']['id'] : null))?.toString())
+        .whereType<String>()
+        .toSet();
+    final sarfOnerilen = _urunler.where((u) => (u.tip == 'sarf' || u.tip == 'karma') && !mevcutIdler.contains(u.id)).toList();
+    final digerleri = _urunler.where((u) => u.tip != 'sarf' && u.tip != 'karma' && !mevcutIdler.contains(u.id)).toList();
+
+    final aramaCtl = TextEditingController();
+    String arama = '';
+
+    final secilen = await showModalBottomSheet<Urun>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
-        return AlertDialog(
-          title: const Text('Reçeteye Ürün Ekle'),
-          content: SingleChildScrollView(
+        List<Urun> filtre(List<Urun> liste) => arama.isEmpty
+            ? liste
+            : liste.where((u) => u.urun_adi.toLowerCase().contains(arama.toLowerCase()) || u.barkod.contains(arama)).toList();
+        final s = filtre(sarfOnerilen);
+        final d = filtre(digerleri);
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollCtl) => Container(
+            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                DropdownButtonFormField<String>(
-                  initialValue: secilenUrunId,
-                  isExpanded: true,
-                  items: tum.map((u) => DropdownMenuItem<String>(value: u.id, child: Text('${u.urun_adi} (${u.birim})'))).toList(),
-                  onChanged: (v) => setSt(() => secilenUrunId = v),
-                  decoration: const InputDecoration(labelText: 'Ürün'),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 12, 16),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(colors: [_mor, Color(0xFF8E24AA)]),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(width: 38, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
+                      Row(
+                        children: [
+                          const Icon(Icons.science_outlined, color: Colors.white),
+                          const SizedBox(width: 8),
+                          const Expanded(child: Text('Malzeme Seç', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17))),
+                          IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(ctx)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: aramaCtl,
+                        onChanged: (v) => setSt(() => arama = v),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Ürün ara...',
+                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                          prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.7)),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.15),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: miktarCtl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Hizmet başına miktar'),
+                Expanded(
+                  child: (s.isEmpty && d.isEmpty)
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.inventory_2_outlined, size: 48, color: Colors.black.withValues(alpha: 0.2)),
+                                const SizedBox(height: 10),
+                                Text(
+                                  arama.isEmpty ? 'Eklenebilecek başka ürün yok' : 'Sonuç bulunamadı',
+                                  style: TextStyle(color: Colors.black.withValues(alpha: 0.5)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView(
+                          controller: scrollCtl,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          children: [
+                            if (s.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                                child: Text('ÖNERİLEN (SARF / KARMA)', style: TextStyle(fontSize: 10, color: Colors.black.withValues(alpha: 0.5), fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                              ),
+                              ...s.map((u) => _urunSecimSatiri(ctx, u)),
+                            ],
+                            if (d.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                                child: Text('DİĞER ÜRÜNLER', style: TextStyle(fontSize: 10, color: Colors.black.withValues(alpha: 0.5), fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                              ),
+                              ...d.map((u) => _urunSecimSatiri(ctx, u)),
+                            ],
+                          ],
+                        ),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true),  child: const Text('Ekle')),
-          ],
         );
       }),
     );
-    if (ok == true && secilenUrunId != null) {
-      final miktar = double.tryParse(miktarCtl.text.replaceAll(',', '.')) ?? 0;
-      if (miktar <= 0) return;
+
+    if (secilen != null) {
+      await _receteMiktarGir(secilen);
+    }
+  }
+
+  Widget _urunSecimSatiri(BuildContext ctx, Urun u) {
+    return ListTile(
+      leading: Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(
+          color: u.tip == 'karma' ? _morSoft : (u.tip == 'sarf' ? const Color(0xFFFCE4EC) : const Color(0xFFE3F2FD)),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          u.tip == 'karma' ? Icons.swap_horiz : (u.tip == 'sarf' ? Icons.local_florist_outlined : Icons.inventory_2_outlined),
+          color: u.tip == 'karma' ? _mor : (u.tip == 'sarf' ? const Color(0xFFAD1457) : const Color(0xFF1565C0)),
+          size: 18,
+        ),
+      ),
+      title: Text(u.urun_adi, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+      subtitle: Text('${u.birim} · stok: ${u.stok_adedi}', style: const TextStyle(fontSize: 11)),
+      trailing: const Icon(Icons.add_circle_outline, color: _mor),
+      onTap: () => Navigator.pop(ctx, u),
+    );
+  }
+
+  Future<void> _receteMiktarGir(Urun urun) async {
+    double miktar = 1;
+    final miktarCtl = TextEditingController(text: '1');
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+        void degistir(double yeniMiktar) {
+          if (yeniMiktar < 0) yeniMiktar = 0;
+          setSt(() {
+            miktar = yeniMiktar;
+            miktarCtl.text = _miktarFmt(yeniMiktar);
+          });
+        }
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 12, 16),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(colors: [_mor, Color(0xFF8E24AA)]),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(width: 38, height: 4, margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(10)),
+                            child: const Icon(Icons.science_outlined, color: Colors.white, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(urun.urun_adi, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text('Mevcut stok: ${urun.stok_adedi} ${urun.birim}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(ctx, false)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Text('Bu hizmet bir defa yapıldığında kaç birim kullanılır?', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54, fontSize: 13)),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _miktarBtn(Icons.remove, () => degistir(miktar - 1)),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 140,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(14)),
+                            child: TextField(
+                              controller: miktarCtl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: _mor),
+                              decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.zero),
+                              onChanged: (v) => miktar = double.tryParse(v.replaceAll(',', '.')) ?? 0,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          _miktarBtn(Icons.add, () => degistir(miktar + 1)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(urun.birim, style: const TextStyle(color: _mor, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 18),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [0.5, 1, 5, 10, 25, 50, 100].map((v) => _hizliMiktarChip(v, () => degistir(v.toDouble()))).toList(),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                side: const BorderSide(color: Colors.black26),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('Vazgeç', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                miktar = double.tryParse(miktarCtl.text.replaceAll(',', '.')) ?? 0;
+                                if (miktar <= 0) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text("Miktar 0'dan büyük olmalı")));
+                                  return;
+                                }
+                                Navigator.pop(ctx, true);
+                              },
+                              icon: const Icon(Icons.check),
+                              label: const Text('Reçeteye Ekle'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _mor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+
+    if (ok == true && miktar > 0) {
       await StokApi.receteKaydet(widget.salonId, {
         'hizmet_id': _seciliHizmetId,
         'hizmet_tipi': 'islem',
-        'urun_id': secilenUrunId,
+        'urun_id': urun.id,
         'miktar': miktar,
       });
       _receteleriYukle();
     }
+  }
+
+  Future<void> _receteMiktarDuzenle(Map<String, dynamic> r) async {
+    final urunMap = r['urun'] is Map ? Map<String, dynamic>.from(r['urun']) : <String, dynamic>{};
+    final urunId = (urunMap['id'] ?? r['urun_id'])?.toString();
+    if (urunId == null) return;
+    final urun = Urun(
+      id: urunId,
+      urun_adi: urunMap['urun_adi']?.toString() ?? '—',
+      barkod: urunMap['barkod']?.toString() ?? '',
+      fiyat: urunMap['fiyat']?.toString() ?? '0',
+      aktif: '1',
+      stok_adedi: urunMap['stok_adedi']?.toString() ?? '0',
+      dusuk_stok_siniri: '',
+      birim: urunMap['birim']?.toString() ?? 'adet',
+      tip: urunMap['tip']?.toString() ?? 'sarf',
+    );
+    await StokApi.receteSil(r['id'].toString());
+    await _receteMiktarGir(urun);
+  }
+
+  Widget _miktarBtn(IconData ikon, VoidCallback onTap) {
+    return Material(
+      color: _morSoft,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          width: 48, height: 48,
+          alignment: Alignment.center,
+          child: Icon(ikon, color: _mor, size: 24),
+        ),
+      ),
+    );
+  }
+
+  Widget _hizliMiktarChip(num v, VoidCallback onTap) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _mor.withValues(alpha: 0.3)),
+          ),
+          child: Text(_miktarFmt(v.toDouble()), style: const TextStyle(color: _mor, fontWeight: FontWeight.w700, fontSize: 13)),
+        ),
+      ),
+    );
+  }
+
+  static String _miktarFmt(double n) {
+    if (n == n.roundToDouble()) return n.toStringAsFixed(0);
+    return n.toStringAsFixed(3).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
   }
 
   // ============================================================
