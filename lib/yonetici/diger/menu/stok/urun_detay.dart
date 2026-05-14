@@ -4,6 +4,7 @@ import 'package:randevu_sistem/Models/stok_hareketi.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
 import 'package:randevu_sistem/Models/urun_kategorisi.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/services/birim_helper.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
 
 import 'urun_form.dart';
@@ -132,7 +133,16 @@ class _UrunDetaySayfaState extends State<UrunDetaySayfa> with SingleTickerProvid
                   decoration: const InputDecoration(labelText: 'Hareket Tipi'),
                 ),
                 const SizedBox(height: 10),
-                TextField(controller: miktarCtl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Miktar (mutlak değer)')),
+                TextField(
+                  controller: miktarCtl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Miktar (mutlak değer)',
+                    suffixText: _urun.birim,
+                    suffixStyle: const TextStyle(fontWeight: FontWeight.w700, color: _mor),
+                    helperText: 'Stoğa girer (iade) veya stoktan düşer (fire) — birim: ${BirimHelper.uzunAd(_urun.birim)}',
+                  ),
+                ),
                 const SizedBox(height: 10),
                 TextField(controller: aciklamaCtl, decoration: const InputDecoration(labelText: 'Açıklama')),
               ],
@@ -383,7 +393,13 @@ class _UrunDetaySayfaState extends State<UrunDetaySayfa> with SingleTickerProvid
                   ],
                 ),
               ),
-              Text('${art ? '+' : ''}${_adetFormat(h.miktarSayisal)}', style: TextStyle(color: renk, fontWeight: FontWeight.w800, fontSize: 16)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('${art ? '+' : ''}${BirimHelper.sayi(h.miktarSayisal, _urun.birim)}', style: TextStyle(color: renk, fontWeight: FontWeight.w800, fontSize: 16)),
+                  Text(_urun.birim, style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w600)),
+                ],
+              ),
             ],
           ),
         );

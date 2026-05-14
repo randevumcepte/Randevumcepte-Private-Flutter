@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/services/birim_helper.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
 
 import 'barkod_tarayici.dart';
@@ -172,23 +173,38 @@ class _HizliSatisSayfaState extends State<HizliSatisSayfa> {
                     separatorBuilder: (_, __) => const SizedBox(height: 6),
                     itemBuilder: (_, i) {
                       final k = _sepet[i];
+                      final birim = k.urun.birim;
+                      final artis = BirimHelper.stepperArtis(birim);
                       return Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
                         child: Row(
                           children: [
-                            Expanded(child: Text(k.urun.urun_adi, style: const TextStyle(fontWeight: FontWeight.w700))),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(k.urun.urun_adi, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  Text('₺${k.birimFiyat.toStringAsFixed(2)} / $birim', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                                ],
+                              ),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.remove_circle_outline, color: _kirmizi),
                               onPressed: () => setState(() {
-                                k.miktar -= 1;
+                                k.miktar -= artis;
                                 if (k.miktar <= 0) _sepet.removeAt(i);
                               }),
                             ),
-                            Text(k.miktar.toStringAsFixed(k.miktar == k.miktar.roundToDouble() ? 0 : 2), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                            Column(
+                              children: [
+                                Text(BirimHelper.sayi(k.miktar, birim), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                                Text(birim, style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
                             IconButton(
                               icon: const Icon(Icons.add_circle_outline, color: _yesil),
-                              onPressed: () => setState(() => k.miktar += 1),
+                              onPressed: () => setState(() => k.miktar += artis),
                             ),
                             Text('₺${k.tutar.toStringAsFixed(2)}', style: const TextStyle(color: _mor, fontWeight: FontWeight.w800)),
                           ],

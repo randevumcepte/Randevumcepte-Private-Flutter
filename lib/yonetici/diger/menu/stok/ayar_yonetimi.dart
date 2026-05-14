@@ -3,6 +3,7 @@ import 'package:randevu_sistem/Models/depo.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
 import 'package:randevu_sistem/Models/urun_kategorisi.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/services/birim_helper.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
 
 /// Stok ayarları — tab'lı: Kategoriler / Depolar / Tedarikçiler / Transfer.
@@ -623,9 +624,13 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     );
   }
 
-  Future<void> _receteMiktarGir(Urun urun) async {
-    double miktar = 1;
-    final miktarCtl = TextEditingController(text: '1');
+  Future<void> _receteMiktarGir(Urun urun, {double? mevcutMiktar}) async {
+    final birim = urun.birim;
+    final stepperArtis = BirimHelper.stepperArtis(birim);
+    final hizliSecimler = BirimHelper.hizliSecim(birim);
+    double miktar = mevcutMiktar ?? BirimHelper.varsayilanBaslangic(birim);
+    final miktarCtl = TextEditingController(text: BirimHelper.sayi(miktar, birim));
+
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -635,9 +640,10 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
           if (yeniMiktar < 0) yeniMiktar = 0;
           setSt(() {
             miktar = yeniMiktar;
-            miktarCtl.text = _miktarFmt(yeniMiktar);
+            miktarCtl.text = BirimHelper.sayi(yeniMiktar, birim);
           });
         }
+
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
@@ -645,6 +651,7 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // === Header ===
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 12, 12, 16),
                   decoration: const BoxDecoration(
@@ -667,7 +674,10 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(urun.urun_adi, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                Text('Mevcut stok: ${urun.stok_adedi} ${urun.birim}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                                Text(
+                                  'Mevcut stok: ${BirimHelper.formatla(urun.stokSayisal, birim)}',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12),
+                                ),
                               ],
                             ),
                           ),
@@ -677,44 +687,97 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
                     ],
                   ),
                 ),
+                // === Gövde ===
                 Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      const Text('Bu hizmet bir defa yapıldığında kaç birim kullanılır?', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54, fontSize: 13)),
+                      // Açıklama satırı (birime göre dinamik)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          children: [
+                            Text(BirimHelper.ikon(birim), style: const TextStyle(fontSize: 22)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Bu hizmet için kaç ${BirimHelper.uzunAd(birim).toLowerCase()} ($birim) kullanılır?',
+                                    style: const TextStyle(color: _mor, fontWeight: FontWeight.w700, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _birimOrnekMetni(birim),
+                                    style: TextStyle(color: Colors.black.withValues(alpha: 0.55), fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 20),
+
+                      // === Büyük Stepper ===
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _miktarBtn(Icons.remove, () => degistir(miktar - 1)),
+                          _miktarBtn(Icons.remove, () => degistir(miktar - stepperArtis), '-${BirimHelper.sayi(stepperArtis, birim)}'),
                           const SizedBox(width: 12),
                           Container(
-                            width: 140,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            width: 170,
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                             decoration: BoxDecoration(color: _morSoft, borderRadius: BorderRadius.circular(14)),
-                            child: TextField(
-                              controller: miktarCtl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: _mor),
-                              decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.zero),
-                              onChanged: (v) => miktar = double.tryParse(v.replaceAll(',', '.')) ?? 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Flexible(
+                                  child: TextField(
+                                    controller: miktarCtl,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: _mor),
+                                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.zero, isDense: true),
+                                    onChanged: (v) => miktar = double.tryParse(v.replaceAll(',', '.')) ?? 0,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(birim, style: const TextStyle(fontSize: 14, color: _mor, fontWeight: FontWeight.w700)),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
-                          _miktarBtn(Icons.add, () => degistir(miktar + 1)),
+                          _miktarBtn(Icons.add, () => degistir(miktar + stepperArtis), '+${BirimHelper.sayi(stepperArtis, birim)}'),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(urun.birim, style: const TextStyle(color: _mor, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 18),
+
+                      // === Hızlı seçim chip'leri (birime göre akıllı) ===
+                      Text(
+                        'HIZLI SEÇİM',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: Colors.black.withValues(alpha: 0.5)),
+                      ),
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         alignment: WrapAlignment.center,
-                        children: [0.5, 1, 5, 10, 25, 50, 100].map((v) => _hizliMiktarChip(v, () => degistir(v.toDouble()))).toList(),
+                        children: hizliSecimler
+                            .map((v) => _hizliMiktarChip(
+                                  BirimHelper.formatla(v.toDouble(), birim),
+                                  miktar == v.toDouble(),
+                                  () => degistir(v.toDouble()),
+                                ))
+                            .toList(),
                       ),
                       const SizedBox(height: 24),
+
+                      // === Aksiyon butonları ===
                       Row(
                         children: [
                           Expanded(
@@ -741,7 +804,7 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
                                 Navigator.pop(ctx, true);
                               },
                               icon: const Icon(Icons.check),
-                              label: const Text('Reçeteye Ekle'),
+                              label: Text(mevcutMiktar != null ? 'Güncelle' : 'Reçeteye Ekle'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _mor,
                                 foregroundColor: Colors.white,
@@ -774,6 +837,20 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     }
   }
 
+  /// Birim için gerçek dünya örneği (kullanıcıya yardım metni)
+  static String _birimOrnekMetni(String birim) {
+    switch (BirimHelper.tip(birim)) {
+      case 'kucuk':
+        return birim == 'gr'
+            ? 'Örn. 30 gr saç boyası, 50 gr krem'
+            : 'Örn. 50 ml oksidan, 100 ml şampuan';
+      case 'buyuk':
+        return birim == 'kg' ? 'Örn. 0,5 kg toz, 1 kg malzeme' : 'Örn. 0,25 lt, 1 lt sıvı';
+      default:
+        return birim == 'paket' ? 'Örn. 1 paket peçete' : 'Örn. 1 adet eldiven, 2 adet havlu';
+    }
+  }
+
   Future<void> _receteMiktarDuzenle(Map<String, dynamic> r) async {
     final urunMap = r['urun'] is Map ? Map<String, dynamic>.from(r['urun']) : <String, dynamic>{};
     final urunId = (urunMap['id'] ?? r['urun_id'])?.toString();
@@ -793,7 +870,7 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
     await _receteMiktarGir(urun);
   }
 
-  Widget _miktarBtn(IconData ikon, VoidCallback onTap) {
+  Widget _miktarBtn(IconData ikon, VoidCallback onTap, [String? altMetin]) {
     return Material(
       color: _morSoft,
       borderRadius: BorderRadius.circular(12),
@@ -801,17 +878,27 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
-          width: 48, height: 48,
+          width: 54,
+          padding: const EdgeInsets.symmetric(vertical: 8),
           alignment: Alignment.center,
-          child: Icon(ikon, color: _mor, size: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(ikon, color: _mor, size: 22),
+              if (altMetin != null) ...[
+                const SizedBox(height: 2),
+                Text(altMetin, style: const TextStyle(color: _mor, fontWeight: FontWeight.w700, fontSize: 10)),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _hizliMiktarChip(num v, VoidCallback onTap) {
+  Widget _hizliMiktarChip(String etiket, bool secili, VoidCallback onTap) {
     return Material(
-      color: Colors.white,
+      color: secili ? _mor : Colors.white,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -820,9 +907,12 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _mor.withValues(alpha: 0.3)),
+            border: Border.all(color: secili ? _mor : _mor.withValues(alpha: 0.3)),
           ),
-          child: Text(_miktarFmt(v.toDouble()), style: const TextStyle(color: _mor, fontWeight: FontWeight.w700, fontSize: 13)),
+          child: Text(
+            etiket,
+            style: TextStyle(color: secili ? Colors.white : _mor, fontWeight: FontWeight.w700, fontSize: 13),
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Models/depo.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/services/birim_helper.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
 
 import 'barkod_tarayici.dart';
@@ -150,6 +151,9 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
               separatorBuilder: (_, __) => const SizedBox(height: 6),
               itemBuilder: (_, i) {
                 final k = _kalemler[i];
+                final birim = k.urun?.birim ?? '';
+                final birimEtiket = birim.isEmpty ? 'Miktar' : 'Miktar ($birim)';
+                final birimFiyatEtiket = birim.isEmpty ? 'Birim ₺' : '₺ / $birim';
                 return Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
@@ -157,20 +161,36 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
                     children: [
                       _dropdown<String>('Ürün', k.urun?.id,
                           [const DropdownMenuItem<String>(value: '', child: Text('— Seç —'))] +
-                          widget.urunler.map((u) => DropdownMenuItem<String>(value: u.id, child: Text(u.urun_adi))).toList(),
+                          widget.urunler
+                              .map((u) => DropdownMenuItem<String>(
+                                    value: u.id,
+                                    child: Text('${u.urun_adi}  ·  ${u.birim}', overflow: TextOverflow.ellipsis),
+                                  ))
+                              .toList(),
                           (v) => setState(() {
-                                if (v == null || v == '') { k.urun = null; return; }
+                                if (v == null || v == '') {
+                                  k.urun = null;
+                                  return;
+                                }
                                 k.urun = widget.urunler.firstWhere((x) => x.id == v);
                                 if (k.birimAlisFiyati == 0) k.birimAlisFiyati = k.urun!.alisFiyatiSayisal;
+                                if (k.miktar == 0 || k.miktar == 1) {
+                                  k.miktar = BirimHelper.varsayilanBaslangic(k.urun!.birim);
+                                }
                               })),
                       const SizedBox(height: 6),
                       Row(
                         children: [
                           Expanded(
                             child: TextFormField(
-                              initialValue: k.miktar.toString(),
+                              initialValue: birim.isEmpty ? k.miktar.toString() : BirimHelper.sayi(k.miktar, birim),
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(labelText: 'Miktar', border: OutlineInputBorder()),
+                              decoration: InputDecoration(
+                                labelText: birimEtiket,
+                                border: const OutlineInputBorder(),
+                                suffixText: birim.isEmpty ? null : birim,
+                                suffixStyle: const TextStyle(fontWeight: FontWeight.w700, color: _mor),
+                              ),
                               onChanged: (v) => k.miktar = double.tryParse(v.replaceAll(',', '.')) ?? 0,
                             ),
                           ),
@@ -179,7 +199,7 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
                             child: TextFormField(
                               initialValue: k.birimAlisFiyati == 0 ? '' : k.birimAlisFiyati.toString(),
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(labelText: 'Birim ₺', border: OutlineInputBorder()),
+                              decoration: InputDecoration(labelText: birimFiyatEtiket, border: const OutlineInputBorder()),
                               onChanged: (v) {
                                 setState(() => k.birimAlisFiyati = double.tryParse(v.replaceAll(',', '.')) ?? 0);
                               },
@@ -190,10 +210,16 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
                       ),
                       if (k.urun != null && k.miktar > 0 && k.birimAlisFiyati > 0)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 6),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [Text('Tutar: ₺${(k.miktar * k.birimAlisFiyati).toStringAsFixed(2)}', style: const TextStyle(color: _mor, fontWeight: FontWeight.w700))],
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${BirimHelper.formatla(k.miktar, birim)} × ₺${k.birimAlisFiyati.toStringAsFixed(2)}',
+                                style: const TextStyle(color: Colors.black54, fontSize: 12),
+                              ),
+                              Text('₺${(k.miktar * k.birimAlisFiyati).toStringAsFixed(2)}', style: const TextStyle(color: _mor, fontWeight: FontWeight.w800)),
+                            ],
                           ),
                         ),
                     ],

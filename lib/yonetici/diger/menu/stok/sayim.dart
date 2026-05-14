@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Models/depo.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/services/birim_helper.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
 
 import 'barkod_tarayici.dart';
@@ -138,6 +139,7 @@ class _SayimSayfaState extends State<SayimSayfa> {
                 final fark = sayilan - u.stokSayisal;
                 final farkVar = fark.abs() > 0.0001;
                 final renk = !farkVar ? Colors.black54 : (fark > 0 ? _yesil : _sari);
+                final artis = BirimHelper.stepperArtis(u.birim);
 
                 return Container(
                   padding: const EdgeInsets.all(10),
@@ -149,26 +151,35 @@ class _SayimSayfaState extends State<SayimSayfa> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(u.urun_adi, style: const TextStyle(fontWeight: FontWeight.w700)),
-                            Text('Sistem: ${u.stok_adedi} ${u.birim}', style: const TextStyle(fontSize: 11, color: Colors.black54)),
-                            if (farkVar) Text('Fark: ${fark > 0 ? '+' : ''}${fark.toStringAsFixed(fark == fark.roundToDouble() ? 0 : 2)}', style: TextStyle(fontSize: 11, color: renk, fontWeight: FontWeight.w700)),
+                            Text('Sistem: ${BirimHelper.formatla(u.stokSayisal, u.birim)}', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                            if (farkVar)
+                              Text(
+                                'Fark: ${fark > 0 ? '+' : ''}${BirimHelper.formatla(fark, u.birim)}',
+                                style: TextStyle(fontSize: 11, color: renk, fontWeight: FontWeight.w700),
+                              ),
                           ],
                         ),
                       ),
-                      IconButton(icon: const Icon(Icons.remove_circle_outline, color: _kirmizi), onPressed: () => _arttir(u.id, -1)),
+                      IconButton(icon: const Icon(Icons.remove_circle_outline, color: _kirmizi), onPressed: () => _arttir(u.id, -artis)),
                       SizedBox(
-                        width: 70,
+                        width: 84,
                         child: TextFormField(
-                          initialValue: sayilan.toString(),
+                          initialValue: BirimHelper.sayi(sayilan, u.birim),
                           textAlign: TextAlign.center,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8)),
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            suffixText: u.birim,
+                            suffixStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                          ),
                           onChanged: (v) {
                             final n = double.tryParse(v.replaceAll(',', '.'));
                             if (n != null) _sayilan[u.id] = n;
                           },
                         ),
                       ),
-                      IconButton(icon: const Icon(Icons.add_circle_outline, color: _yesil), onPressed: () => _arttir(u.id, 1)),
+                      IconButton(icon: const Icon(Icons.add_circle_outline, color: _yesil), onPressed: () => _arttir(u.id, artis)),
                     ],
                   ),
                 );
