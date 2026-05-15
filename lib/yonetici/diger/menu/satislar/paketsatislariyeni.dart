@@ -157,11 +157,34 @@ class _PaketSatislariState extends State<PaketSatislari> {
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: scheme.surface,
-        floatingActionButton: ValueListenableBuilder<bool>(
-          valueListenable: _paketDataGridSource.anyChecked,
-          builder: (context, anyChecked, _) {
-            if (anyChecked) return const SizedBox.shrink();
-            return _buildFab(scheme);
+        bottomNavigationBar: AnimatedBuilder(
+          animation: _paketDataGridSource,
+          builder: (context, _) {
+            return ValueListenableBuilder<bool>(
+              valueListenable: _paketDataGridSource.anyChecked,
+              builder: (context, anyChecked, _) {
+                if (anyChecked) return const SizedBox.shrink();
+                final hasPagination =
+                    _paketDataGridSource.paket.isNotEmpty &&
+                        _paketDataGridSource.totalPages > 1;
+                return SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                    child: Row(
+                      children: [
+                        if (hasPagination)
+                          Expanded(child: _buildPaginationPill(scheme))
+                        else
+                          const Spacer(),
+                        const SizedBox(width: 10),
+                        _buildYeniPaketInline(scheme),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
           },
         ),
         body: PremiumGradientBg(
@@ -196,8 +219,6 @@ class _PaketSatislariState extends State<PaketSatislari> {
                         },
                       ),
                     ),
-                    _buildPaginationControls(scheme),
-                    const SizedBox(height: 4),
                   ],
                 );
               },
@@ -886,44 +907,43 @@ class _PaketSatislariState extends State<PaketSatislari> {
     );
   }
 
-  Widget _buildPaginationControls(ColorScheme scheme) {
-    if (_paketDataGridSource.paket.isEmpty) {
-      return const SizedBox(height: 8);
-    }
+  Widget _buildPaginationPill(ColorScheme scheme) {
     final totalPages = _paketDataGridSource.totalPages;
     final currentPage = _paketDataGridSource.currentPage;
     final canPrev = currentPage > 1;
     final canNext = currentPage < totalPages;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.primary.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _pageArrow(scheme, Icons.arrow_back_rounded, canPrev, () {
-              setState(() => _paketDataGridSource.setPage(currentPage - 1));
-            }),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.10),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _pageArrow(scheme, Icons.arrow_back_rounded, canPrev, () {
+            setState(() => _paketDataGridSource.setPage(currentPage - 1));
+          }),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 color: scheme.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                'Sayfa $currentPage / $totalPages',
+                '$currentPage / $totalPages',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: scheme.primary,
                   fontWeight: FontWeight.w800,
@@ -931,12 +951,12 @@ class _PaketSatislariState extends State<PaketSatislari> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            _pageArrow(scheme, Icons.arrow_forward_rounded, canNext, () {
-              setState(() => _paketDataGridSource.setPage(currentPage + 1));
-            }),
-          ],
-        ),
+          ),
+          const SizedBox(width: 6),
+          _pageArrow(scheme, Icons.arrow_forward_rounded, canNext, () {
+            setState(() => _paketDataGridSource.setPage(currentPage + 1));
+          }),
+        ],
       ),
     );
   }
@@ -976,40 +996,46 @@ class _PaketSatislariState extends State<PaketSatislari> {
     );
   }
 
-  Widget _buildFab(ColorScheme scheme) {
-    return GestureDetector(
-      onTap: _yeniPaketAc,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [scheme.primary, scheme.tertiary],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.primary.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+  Widget _buildYeniPaketInline(ColorScheme scheme) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: _yeniPaketAc,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, scheme.tertiary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add_rounded, color: scheme.onPrimary, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              'Yeni Paket',
-              style: TextStyle(
-                color: scheme.onPrimary,
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.32),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_rounded, color: scheme.onPrimary, size: 18),
+              const SizedBox(width: 5),
+              Text(
+                'Yeni Paket',
+                style: TextStyle(
+                  color: scheme.onPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
