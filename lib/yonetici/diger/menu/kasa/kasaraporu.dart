@@ -718,6 +718,7 @@ class _TransactionList extends StatelessWidget {
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               child: ListTile(
+                onTap: () => _showDetayPopup(context, item),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0), // Dikey padding 0
                 visualDensity: const VisualDensity(horizontal: 0, vertical: -3), // Dikey sıkıştırma
                 leading: CircleAvatar(
@@ -832,6 +833,325 @@ class _TransactionList extends StatelessWidget {
         }
         return '';
     }
+  }
+
+  String? _safeString(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
+  }
+
+  String? _kategoriAdi(Map<String, dynamic> item) {
+    final candidates = [
+      item['masraf_kategori'],
+      item['masraf_kategorisi'],
+      item['kategori'],
+    ];
+    for (final c in candidates) {
+      if (c is Map) {
+        final ad = _safeString(c['kategori']) ?? _safeString(c['kategori_adi']);
+        if (ad != null) return ad;
+      } else {
+        final s = _safeString(c);
+        if (s != null) return s;
+      }
+    }
+    return null;
+  }
+
+  void _showDetayPopup(BuildContext context, Map<String, dynamic> item) {
+    final isGelir = type == 'gelir';
+    final tutar = item['tutar'] ?? item['miktar'];
+    final tarih = _formatDate(item['odeme_tarihi'] ?? item['tarih']);
+    final odemeYontemi = _getOdemeYontemi(item);
+    final aciklama = _safeString(item['aciklama']);
+    final notlar = _safeString(item['notlar']);
+    final musteriAdi = (item['musteri'] is Map)
+        ? _safeString(item['musteri']['name'])
+        : null;
+    final harcayanAdi = (item['harcayan'] is Map)
+        ? _safeString(item['harcayan']['personel_adi'])
+        : null;
+    final kategori = _kategoriAdi(item);
+    final kayitNo = _safeString(item['id']);
+
+    final Color accent = isGelir ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    final IconData accentIcon =
+        isGelir ? Icons.trending_up_rounded : Icons.trending_down_rounded;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.42),
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.22),
+                  blurRadius: 28,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _detayHeader(scheme, accent, accentIcon, isGelir, tutar, ctx),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _detaySatir(
+                          icon: Icons.calendar_today_rounded,
+                          label: 'Tarih',
+                          value: tarih.isEmpty ? '-' : tarih,
+                          accent: accent,
+                        ),
+                        _detaySatir(
+                          icon: Icons.account_balance_wallet_rounded,
+                          label: 'Ödeme Yöntemi',
+                          value: odemeYontemi.isEmpty ? '-' : odemeYontemi,
+                          accent: accent,
+                        ),
+                        if (isGelir)
+                          _detaySatir(
+                            icon: Icons.person_outline_rounded,
+                            label: 'Müşteri',
+                            value: musteriAdi ?? 'Kasaya para ekleme',
+                            accent: accent,
+                          ),
+                        if (!isGelir && harcayanAdi != null)
+                          _detaySatir(
+                            icon: Icons.person_outline_rounded,
+                            label: 'Harcayan',
+                            value: harcayanAdi,
+                            accent: accent,
+                          ),
+                        if (!isGelir && kategori != null)
+                          _detaySatir(
+                            icon: Icons.category_outlined,
+                            label: 'Kategori',
+                            value: kategori,
+                            accent: accent,
+                          ),
+                        if (aciklama != null)
+                          _detaySatir(
+                            icon: Icons.notes_rounded,
+                            label: 'Açıklama',
+                            value: aciklama,
+                            accent: accent,
+                          ),
+                        if (!isGelir && notlar != null)
+                          _detaySatir(
+                            icon: Icons.sticky_note_2_outlined,
+                            label: 'Notlar',
+                            value: notlar,
+                            accent: accent,
+                          ),
+                        if (kayitNo != null)
+                          _detaySatir(
+                            icon: Icons.tag_rounded,
+                            label: 'Kayıt No',
+                            value: '#$kayitNo',
+                            accent: accent,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 6, 18, 16),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [accent, accent.withValues(alpha: 0.82)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accent.withValues(alpha: 0.30),
+                              blurRadius: 14,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Kapat',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _detayHeader(ColorScheme scheme, Color accent, IconData accentIcon,
+      bool isGelir, dynamic tutar, BuildContext ctx) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 14, 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            accent.withValues(alpha: 0.16),
+            accent.withValues(alpha: 0.04),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.25),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Icon(accentIcon, color: accent, size: 26),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isGelir ? 'Gelir Detayı' : 'Gider Detayı',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: accent,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${isGelir ? '+' : '-'} ${NumberFormat('#,##0.00', 'tr_TR').format(tutar ?? 0)} ₺',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.5,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Material(
+            color: Colors.white,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () => Navigator.of(ctx).pop(),
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.close_rounded,
+                  color: scheme.onSurface.withValues(alpha: 0.55),
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detaySatir({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color accent,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 15, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black.withValues(alpha: 0.45),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
