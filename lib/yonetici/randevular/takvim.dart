@@ -1175,6 +1175,9 @@ List<Widget> _buildAppointmentsForResource(
       Color appointmentColor = appointment.color;
       final cardWidth = personelGenisligi - left - right;
 
+      // Bu randevu saati aktif bir gap kampanyasi araliginda mi?
+      final indirim = _gapDiscountForHour(appointment.startTime.hour);
+
       appointments.add(
         Positioned(
           top: startOffset,
@@ -1194,6 +1197,7 @@ List<Widget> _buildAppointmentsForResource(
               buildFeedback: (h) => _buildDraggingFeedback(appointment, appointmentColor, h, cardWidth),
               onDragEnd: (details) => _onDragCompleted(details, appointment, resource.id.toString()),
               onResizeEnd: (newDurationMinutes) => _onResizeEnd(appointment, newDurationMinutes, resource.id.toString()),
+              indirimYuzdesi: indirim,
             ),
           ),
         ),
@@ -1201,6 +1205,19 @@ List<Widget> _buildAppointmentsForResource(
     }
 
     return appointments;
+  }
+
+  /// Verilen saat icin aktif bir gap kampanyasi varsa indirim yuzdesini doner.
+  int? _gapDiscountForHour(int hour) {
+    for (final k in _gapKampanyaListesi) {
+      final s = (k['startHour'] as num?)?.toInt() ?? 0;
+      final e = (k['endHour'] as num?)?.toInt() ?? 0;
+      if (hour >= s && hour < e) {
+        final d = (k['discount'] as num?)?.toInt() ?? 0;
+        if (d > 0) return d;
+      }
+    }
+    return null;
   }
   // _onDragCompleted metodu
   void _onDragCompleted(DraggableDetails details, Appointment appointment, String oldResourceId) {
@@ -2369,6 +2386,8 @@ class _AppointmentCard extends StatefulWidget {
   final Widget Function(double height) buildFeedback;
   final void Function(DraggableDetails details) onDragEnd;
   final void Function(int newDurationMinutes) onResizeEnd;
+  // Gap kampanyasi indirim yuzdesi — null ise rozet gosterilmez
+  final int? indirimYuzdesi;
 
   const _AppointmentCard({
     Key? key,
@@ -2381,6 +2400,7 @@ class _AppointmentCard extends StatefulWidget {
     required this.buildFeedback,
     required this.onDragEnd,
     required this.onResizeEnd,
+    this.indirimYuzdesi,
   }) : super(key: key);
 
   @override
@@ -2536,7 +2556,7 @@ class _AppointmentCardState extends State<_AppointmentCard> {
       width: widget.width,
       height: displayHeight,
       child: Stack(
-        clipBehavior: Clip.hardEdge,
+        clipBehavior: Clip.none, // rozet ust dışina taşabilir
         children: [
           // Layer 1: kart + drag (LongPressDraggable burada)
           Positioned.fill(child: dragLayer),
@@ -2548,6 +2568,42 @@ class _AppointmentCardState extends State<_AppointmentCard> {
             height: 16,
             child: resizeHandle,
           ),
+          // Layer 3: indirim rozeti (sag-ust kose)
+          if (widget.indirimYuzdesi != null && widget.indirimYuzdesi! > 0)
+            Positioned(
+              top: -4,
+              right: -3,
+              child: IgnorePointer(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 5, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.white, width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.20),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    '%${widget.indirimYuzdesi}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      height: 1.0,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
