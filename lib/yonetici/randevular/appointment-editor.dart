@@ -342,137 +342,9 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           randevusaati.text = '${result.hour}:$dakika';
         });
 
-        // Gap kampanya kontrolu — saat indirim aralginda mi?
-        _checkGapKampanyaForSaat('${result.hour.toString().padLeft(2, '0')}:$dakika');
-
         valid = true;
       }
     }
-  }
-
-  // Aktif gap kampanyasi bilgisi (saat secildiginde set edilir)
-  Map<String, dynamic>? _saatGapKampanya;
-  bool _saatGapBannerVisible = true;
-
-  Future<void> _checkGapKampanyaForSaat(String saat) async {
-    final res = await randevuKampanyaKontrol(salonId: seciliisletme, saat: saat);
-    if (!mounted) return;
-    setState(() {
-      if (res != null && res['hasCampaign'] == true) {
-        _saatGapKampanya = res;
-        _saatGapBannerVisible = true;
-      } else {
-        _saatGapKampanya = null;
-      }
-    });
-  }
-
-  Widget _buildSaatGapBanner() {
-    final k = _saatGapKampanya!;
-    final gapKey = k['gapKey'] as String? ?? 'morning';
-    final gapLabel = k['gapLabel'] as String? ?? 'Saatler';
-    final disc = (k['discount'] as num?)?.toInt() ?? 0;
-
-    final List<Color> grad;
-    final IconData icon;
-    switch (gapKey) {
-      case 'morning':
-        grad = const [Color(0xFFFDE68A), Color(0xFFFCD34D)];
-        icon = Icons.wb_twilight_rounded;
-        break;
-      case 'afternoon':
-        grad = const [Color(0xFFFED7AA), Color(0xFFFB923C)];
-        icon = Icons.wb_sunny_rounded;
-        break;
-      case 'evening':
-      default:
-        grad = const [Color(0xFFDDD6FE), Color(0xFF8B5CF6)];
-        icon = Icons.nightlight_round;
-        break;
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: const Color(0xFF22C55E).withValues(alpha: 0.55), width: 1.2),
-      ),
-      padding: const EdgeInsets.fromLTRB(12, 11, 8, 11),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: grad),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: Colors.white),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '$gapLabel Kampanyası',
-                      style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF15803D)),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '%$disc',
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Bu saat indirim aralığında — tahsilatta otomatik %$disc önerilecek.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    height: 1.35,
-                    color: const Color(0xFF1A1A1A).withValues(alpha: 0.70),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            visualDensity: VisualDensity.compact,
-            icon: Icon(
-              Icons.close_rounded,
-              size: 16,
-              color: const Color(0xFF1A1A1A).withValues(alpha: 0.45),
-            ),
-            onPressed: () => setState(() => _saatGapBannerVisible = false),
-          ),
-        ],
-      ),
-    );
   }
 
   // YENİ: Modern saat seçim widget'ı - DAKİKALAR 00-15-30-45 OLARAK GÜNCELLENDİ
@@ -725,14 +597,6 @@ class AppointmentEditorState extends State<AppointmentEditor> {
               ),
             ],
           ),
-
-          // Gap kampanya uyarisi — secilen saat indirim araliginda ise
-          if (_saatGapKampanya != null &&
-              _saatGapKampanya!['hasCampaign'] == true &&
-              _saatGapBannerVisible) ...[
-            const SizedBox(height: 12),
-            _buildSaatGapBanner(),
-          ],
 
           const SizedBox(height: 20),
 
