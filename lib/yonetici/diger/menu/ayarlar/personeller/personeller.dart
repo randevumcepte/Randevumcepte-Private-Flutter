@@ -7,6 +7,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeld
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personelduzenle.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personelekle.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personelsatislari.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personel_yetki.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/prim_hakedis.dart';
 
 // Personeller listesi sayfasi. Web'deki personelyonetimi.blade.php'in mobil karsiligi.
@@ -181,6 +182,16 @@ class _PersonellerState extends State<Personeller> {
           kullanici: p,
           isletmebilgi: widget.isletmebilgi,
         ),
+      ),
+    );
+  }
+
+  void _yetkiAc(Personel p) {
+    if (_salonid == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PersonelYetki(personel: p, salonid: _salonid!),
       ),
     );
   }
@@ -701,6 +712,7 @@ class _PersonellerState extends State<Personeller> {
           case 'detay': _detayAc(p); break;
           case 'duzenle': _duzenleAc(p); break;
           case 'satislar': _satislarAc(p); break;
+          case 'yetki': _yetkiAc(p); break;
           case 'sifre': _sifreGonder(p); break;
           case 'aktif_pasif': _aktifPasifToggle(p); break;
           case 'takvim': _takvimToggle(p); break;
@@ -713,6 +725,7 @@ class _PersonellerState extends State<Personeller> {
         _menuItem('detay', Icons.visibility_outlined, 'Detaylar'),
         _menuItem('duzenle', Icons.edit_outlined, 'Düzenle'),
         _menuItem('satislar', Icons.shopping_bag_outlined, 'Satışlar'),
+        _menuItem('yetki', Icons.shield_outlined, 'Yetkileri Düzenle'),
         _menuItem('sifre', Icons.password_outlined, 'Şifre Gönder'),
         const PopupMenuDivider(),
         _menuItem(

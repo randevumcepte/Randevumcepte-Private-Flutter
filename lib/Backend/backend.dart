@@ -3975,6 +3975,62 @@ Future<bool> primHareketSil({required String salonid, required int hareketId}) a
   }
   return false;
 }
+
+// === Personel granular yetki yonetimi ===
+// Tanimlar + sablonlar + kategori etiketleri (sayfa acilirken tek cagri).
+Future<Map<String, dynamic>?> personelYetkiSema() async {
+  final response = await http.get(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelYetkiSema'),
+    headers: {'Content-Type': 'application/json'},
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  debugPrint('personelYetkiSema failed: ${response.statusCode}');
+  return null;
+}
+
+// Belli personelin yetkilerini ve aktif sablonunu cek.
+Future<Map<String, dynamic>?> personelYetkiGetir({
+  required String salonid,
+  required String personelid,
+}) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelYetkiGetir'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'sube': salonid, 'personel_id': personelid}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  debugPrint('personelYetkiGetir failed: ${response.statusCode}');
+  return null;
+}
+
+// Yetkileri kaydet. sablon: 'sekreter' | 'personel_tam' | 'personel_sade' | 'demo' | 'ozel'
+Future<bool> personelYetkiKaydet({
+  required String salonid,
+  required String personelid,
+  required String sablon,
+  required Map<String, bool> ayarlar,
+}) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelYetkiKaydet'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'sube': salonid,
+      'personel_id': personelid,
+      'sablon': sablon,
+      'ayarlar': ayarlar,
+    }),
+  );
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data is Map && data['basarili'] == true;
+  }
+  debugPrint('personelYetkiKaydet failed: ${response.statusCode}');
+  return false;
+}
 Future<MusteriDanisan> kullanicibilgimusteri(String userid) async {
   final response = await http.get(
       Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kullaniciBilgiGetir/'+userid.toString())
