@@ -1975,11 +1975,21 @@ class _HomeState extends State<DashBoard> {
     final scheme = Theme.of(context).colorScheme;
     final real = _karsCache[_perfPeriod];
     final analysis = real?['hourlyAnalysis'] as Map?;
-    if (analysis == null) return const SizedBox.shrink();
-    final gapsList = analysis['gaps'] as List?;
-    if (gapsList == null || gapsList.isEmpty) return const SizedBox.shrink();
 
-    final gaps = gapsList.cast<Map>().map((m) => m.cast<String, dynamic>()).toList();
+    // 3 durum: (a) backend hala yeni alan vermiyor (b) gap yok / hepsi dolu
+    // (c) normal liste — her durumda karti gosterelim
+    final gapsList = analysis?['gaps'] as List?;
+    final gaps = (gapsList ?? [])
+        .cast<Map>()
+        .map((m) => m.cast<String, dynamic>())
+        .toList();
+
+    // Sadece "anlamli" olanlari (onerilen indirim > 0 veya aktif kampanyasi var) gosterelim
+    final shownGaps = gaps.where((g) {
+      final disc = (g['suggestedDiscount'] as num?)?.toInt() ?? 0;
+      final hasActive = g['activeCampaign'] != null;
+      return disc > 0 || hasActive;
+    }).toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -2033,7 +2043,9 @@ class _HomeState extends State<DashBoard> {
                         ),
                         const SizedBox(height: 1),
                         Text(
-                          'Boş saatleri indirim kampanyasıyla doldurun',
+                          shownGaps.isEmpty
+                              ? 'Boş saat analizi'
+                              : 'Boş saatleri indirim kampanyasıyla doldurun',
                           style: TextStyle(
                             fontSize: 10.5,
                             color: scheme.onSurface.withValues(alpha: 0.55),
@@ -2046,13 +2058,93 @@ class _HomeState extends State<DashBoard> {
                 ],
               ),
               const SizedBox(height: 14),
-              for (int i = 0; i < gaps.length; i++) ...[
-                _gapOpportunityTile(context, gaps[i]),
-                if (i < gaps.length - 1) const SizedBox(height: 10),
-              ],
+              if (analysis == null)
+                _gapInfoBanner(
+                  context,
+                  icon: Icons.refresh_rounded,
+                  color: const Color(0xFF6B7280),
+                  title: 'Boşluk analizi hazırlanıyor',
+                  message:
+                      'Birkaç dakika içinde saat analizi tamamlanacak. Dashboard\'ı yenilemeyi deneyin.',
+                )
+              else if (shownGaps.isEmpty)
+                _gapInfoBanner(
+                  context,
+                  icon: Icons.celebration_rounded,
+                  color: const Color(0xFF16A34A),
+                  title: 'Saatleriniz oldukça dolu',
+                  message:
+                      'Şu an için indirim kampanyası önerisi yok. Salonunuzda belirgin bir boşluk saati tespit edilmedi.',
+                )
+              else
+                for (int i = 0; i < shownGaps.length; i++) ...[
+                  _gapOpportunityTile(context, shownGaps[i]),
+                  if (i < shownGaps.length - 1) const SizedBox(height: 10),
+                ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _gapInfoBanner(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String message,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.4,
+                    color: scheme.onSurface.withValues(alpha: 0.65),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
