@@ -175,35 +175,32 @@ class _PersonelYetkiState extends State<PersonelYetki> {
     }
   }
 
-  // Belli bir sablonu uygula (tum ayarlar bir cirpida bu sablonun degerlerine doner)
+  // Belli bir sablonu uygula (tum ayarlar bir cirpida bu sablonun degerlerine doner).
+  // Backend sema cevabinda her sablonun 'ayarlar' map'i geliyor — onu kullaniyoruz.
+  // Boylece backend ile mobile arasinda uyumsuzluk olmaz, yeni yetki/sablon
+  // eklemek icin tek yer (PersonelYetkiSabitleri.php) yeterli olur.
   void _sablonUygula(String sablonKey) {
-    // Backend'de ayni sema icindeki sablonun ayarlari mevcut degil ama tanimlar
-    // _sablonlar'da sadece meta var. Sablon uygularken backend'e POST atmadan
-    // local olarak set etmek icin: backend'in sablonAyarlari'ni bilmiyoruz.
-    // Cozum: backend'e cag at, default sablon ayarlarini al.
-    _sablonUygulaAsync(sablonKey);
-  }
-
-  Future<void> _sablonUygulaAsync(String sablonKey) async {
-    // Trik: backend'de PersonelYetkiAyari kaydi olmayan bir kullanici icin
-    // /personelYetkiGetir 'personel_sade' default'unu doner. Ama biz baska
-    // sablon istiyoruz. Server'a "sablon uygula" demek yerine, ozel bir helper
-    // mantigi: tum sablonlari semaSiniri ile birlikte cekmemis olduk.
-    //
-    // Pratik: backend'de sablonAyarlari ayni dosyada ama API'de sadece meta
-    // donuyor. Sablon iceriklerini de cekmemiz lazim. Bunu sema cagrisinda
-    // dahil edebilirdik ama eklemedik. Simdilik: 4 sablonun ayarlari mobile'da
-    // statik tutuyoruz (backend ile birebir ayni — _Sablonlar sinifinda).
-    final ayar = _Sablonlar.ayarlar(sablonKey);
-    if (ayar == null) return;
+    // _sablonlar listesinden bu key'e sahip olani bul
+    final secilen = _sablonlar.firstWhere(
+      (s) => s['key'].toString() == sablonKey,
+      orElse: () => const <String, dynamic>{},
+    );
+    final ayarRaw = secilen['ayarlar'];
+    if (ayarRaw is! Map) {
+      debugPrint('Sablon ayarlari bulunamadi: $sablonKey');
+      return;
+    }
     setState(() {
       _seciliSablon = sablonKey;
       _ayarlar = {};
-      // Once tum anahtarlari false yap, sonra sablon degerleriyle doldur
+      // Once tum anahtarlari false yap (sema'da var olan ama sablonda olmayanlar)
       for (final t in _tanimlar) {
         _ayarlar[t['key'].toString()] = false;
       }
-      ayar.forEach((k, v) => _ayarlar[k] = v);
+      // Sablon degerlerini uygula
+      ayarRaw.forEach((k, v) {
+        _ayarlar[k.toString()] = v == true || v == 1 || v == '1';
+      });
     });
   }
 
@@ -738,159 +735,4 @@ class _PersonelYetkiState extends State<PersonelYetki> {
     }
     return true;
   }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Sablon ayarlari — backend PersonelYetkiSabitleri ile birebir.
-// Sablon karti tiklayinca local olarak ayarlari hemen uygulamak icin
-// (network beklemeden) burada da tutuyoruz. Backend ile farklilik olursa
-// kaydet sirasinda backend kabul eden tarafi olur.
-// ═══════════════════════════════════════════════════════════════
-class _Sablonlar {
-  static Map<String, bool>? ayarlar(String key) {
-    switch (key) {
-      case 'sekreter':
-        return Map.of(_sekreter);
-      case 'personel_tam':
-        return Map.of(_personelTam);
-      case 'personel_sade':
-        return Map.of(_personelSade);
-      case 'demo':
-        return Map.of(_demo);
-      default:
-        return null;
-    }
-  }
-
-  static const Map<String, bool> _sekreter = {
-    'randevu.takvim_gor': true, 'randevu.tum_personel_gor': true,
-    'randevu.olustur': true, 'randevu.duzenle_iptal': true,
-    'randevu.kapanis_blok_ekle': true, 'randevu.online_ayar': false,
-    'musteri.liste_gor': true, 'musteri.tum_portfoy_gor': true,
-    'musteri.detay_gor': true, 'musteri.ekle_duzenle': true,
-    'musteri.sil': false, 'musteri.telefon_gor': false,
-    'musteri.not_yaz': true, 'musteri.gecmis_satis_gor': true,
-    'satis.adisyon_olustur': true, 'satis.tahsilat_al': true,
-    'satis.tahsilat_sil': false, 'satis.adisyon_sil': false,
-    'satis.indirim_uygula': true, 'satis.hediye_isle': true,
-    'satis.senet_olustur': true, 'satis.tum_satis_gor': true,
-    'paket.sat': true, 'paket.tanim_olustur': false, 'paket.seans_takip': true,
-    'urun.sat': true, 'urun.tanim_olustur': false,
-    'urun.stok_giris': false, 'urun.stok_sayim': false, 'urun.tedarikci_yonet': false,
-    'hizmet.tanim_olustur': false, 'hizmet.kategori_yonet': false,
-    'personel.liste_gor': false, 'personel.ekle_duzenle': false,
-    'personel.sil': false, 'personel.prim_hakedis_gor': false,
-    'personel.maas_tutar_gor': false, 'personel.odeme_yap': false,
-    'personel.yetki_yonet': false,
-    'rapor.satis': true, 'rapor.kasa': true, 'rapor.tahsilat': true,
-    'rapor.personel_performans': false, 'rapor.musteri': true,
-    'rapor.ciro_kar_gor': false,
-    'finans.kasa_giris_cikis': true, 'finans.masraf_ekle': true,
-    'finans.masraf_gor': true, 'finans.alacak_yonet': true,
-    'pazarlama.sms_gonder': true, 'pazarlama.whatsapp_gonder': true,
-    'pazarlama.toplu_sms': true, 'pazarlama.kampanya_yonet': true,
-    'pazarlama.cark_yonet': true, 'pazarlama.anket_yonet': true,
-    'gorusme.liste_gor': true, 'gorusme.ekle_duzenle': true,
-    'form.olustur': false, 'form.gonder': true,
-    'ayar.salon_bilgi': false, 'ayar.sube_yonet': false, 'ayar.cihaz_oda_yonet': false,
-  };
-
-  static const Map<String, bool> _personelTam = {
-    'randevu.takvim_gor': true, 'randevu.tum_personel_gor': true,
-    'randevu.olustur': true, 'randevu.duzenle_iptal': true,
-    'randevu.kapanis_blok_ekle': true, 'randevu.online_ayar': false,
-    'musteri.liste_gor': true, 'musteri.tum_portfoy_gor': true,
-    'musteri.detay_gor': true, 'musteri.ekle_duzenle': true,
-    'musteri.sil': false, 'musteri.telefon_gor': false,
-    'musteri.not_yaz': true, 'musteri.gecmis_satis_gor': true,
-    'satis.adisyon_olustur': true, 'satis.tahsilat_al': true,
-    'satis.tahsilat_sil': false, 'satis.adisyon_sil': false,
-    'satis.indirim_uygula': true, 'satis.hediye_isle': true,
-    'satis.senet_olustur': true, 'satis.tum_satis_gor': false,
-    'paket.sat': true, 'paket.tanim_olustur': false, 'paket.seans_takip': true,
-    'urun.sat': true, 'urun.tanim_olustur': false,
-    'urun.stok_giris': false, 'urun.stok_sayim': false, 'urun.tedarikci_yonet': false,
-    'hizmet.tanim_olustur': false, 'hizmet.kategori_yonet': false,
-    'personel.liste_gor': false, 'personel.ekle_duzenle': false,
-    'personel.sil': false, 'personel.prim_hakedis_gor': false,
-    'personel.maas_tutar_gor': false, 'personel.odeme_yap': false,
-    'personel.yetki_yonet': false,
-    'rapor.satis': false, 'rapor.kasa': false, 'rapor.tahsilat': false,
-    'rapor.personel_performans': false, 'rapor.musteri': false,
-    'rapor.ciro_kar_gor': false,
-    'finans.kasa_giris_cikis': false, 'finans.masraf_ekle': false,
-    'finans.masraf_gor': false, 'finans.alacak_yonet': false,
-    'pazarlama.sms_gonder': true, 'pazarlama.whatsapp_gonder': true,
-    'pazarlama.toplu_sms': false, 'pazarlama.kampanya_yonet': false,
-    'pazarlama.cark_yonet': false, 'pazarlama.anket_yonet': false,
-    'gorusme.liste_gor': true, 'gorusme.ekle_duzenle': true,
-    'form.olustur': false, 'form.gonder': true,
-    'ayar.salon_bilgi': false, 'ayar.sube_yonet': false, 'ayar.cihaz_oda_yonet': false,
-  };
-
-  static const Map<String, bool> _personelSade = {
-    'randevu.takvim_gor': true, 'randevu.tum_personel_gor': false,
-    'randevu.olustur': true, 'randevu.duzenle_iptal': true,
-    'randevu.kapanis_blok_ekle': false, 'randevu.online_ayar': false,
-    'musteri.liste_gor': true, 'musteri.tum_portfoy_gor': false,
-    'musteri.detay_gor': true, 'musteri.ekle_duzenle': true,
-    'musteri.sil': false, 'musteri.telefon_gor': false,
-    'musteri.not_yaz': true, 'musteri.gecmis_satis_gor': false,
-    'satis.adisyon_olustur': true, 'satis.tahsilat_al': true,
-    'satis.tahsilat_sil': false, 'satis.adisyon_sil': false,
-    'satis.indirim_uygula': false, 'satis.hediye_isle': false,
-    'satis.senet_olustur': false, 'satis.tum_satis_gor': false,
-    'paket.sat': true, 'paket.tanim_olustur': false, 'paket.seans_takip': true,
-    'urun.sat': true, 'urun.tanim_olustur': false,
-    'urun.stok_giris': false, 'urun.stok_sayim': false, 'urun.tedarikci_yonet': false,
-    'hizmet.tanim_olustur': false, 'hizmet.kategori_yonet': false,
-    'personel.liste_gor': false, 'personel.ekle_duzenle': false,
-    'personel.sil': false, 'personel.prim_hakedis_gor': false,
-    'personel.maas_tutar_gor': false, 'personel.odeme_yap': false,
-    'personel.yetki_yonet': false,
-    'rapor.satis': false, 'rapor.kasa': false, 'rapor.tahsilat': false,
-    'rapor.personel_performans': false, 'rapor.musteri': false,
-    'rapor.ciro_kar_gor': false,
-    'finans.kasa_giris_cikis': false, 'finans.masraf_ekle': false,
-    'finans.masraf_gor': false, 'finans.alacak_yonet': false,
-    'pazarlama.sms_gonder': false, 'pazarlama.whatsapp_gonder': false,
-    'pazarlama.toplu_sms': false, 'pazarlama.kampanya_yonet': false,
-    'pazarlama.cark_yonet': false, 'pazarlama.anket_yonet': false,
-    'gorusme.liste_gor': false, 'gorusme.ekle_duzenle': false,
-    'form.olustur': false, 'form.gonder': false,
-    'ayar.salon_bilgi': false, 'ayar.sube_yonet': false, 'ayar.cihaz_oda_yonet': false,
-  };
-
-  static const Map<String, bool> _demo = {
-    'randevu.takvim_gor': true, 'randevu.tum_personel_gor': false,
-    'randevu.olustur': false, 'randevu.duzenle_iptal': false,
-    'randevu.kapanis_blok_ekle': false, 'randevu.online_ayar': false,
-    'musteri.liste_gor': true, 'musteri.tum_portfoy_gor': false,
-    'musteri.detay_gor': true, 'musteri.ekle_duzenle': false,
-    'musteri.sil': false, 'musteri.telefon_gor': false,
-    'musteri.not_yaz': false, 'musteri.gecmis_satis_gor': false,
-    'satis.adisyon_olustur': false, 'satis.tahsilat_al': false,
-    'satis.tahsilat_sil': false, 'satis.adisyon_sil': false,
-    'satis.indirim_uygula': false, 'satis.hediye_isle': false,
-    'satis.senet_olustur': false, 'satis.tum_satis_gor': false,
-    'paket.sat': false, 'paket.tanim_olustur': false, 'paket.seans_takip': false,
-    'urun.sat': false, 'urun.tanim_olustur': false,
-    'urun.stok_giris': false, 'urun.stok_sayim': false, 'urun.tedarikci_yonet': false,
-    'hizmet.tanim_olustur': false, 'hizmet.kategori_yonet': false,
-    'personel.liste_gor': false, 'personel.ekle_duzenle': false,
-    'personel.sil': false, 'personel.prim_hakedis_gor': false,
-    'personel.maas_tutar_gor': false, 'personel.odeme_yap': false,
-    'personel.yetki_yonet': false,
-    'rapor.satis': false, 'rapor.kasa': false, 'rapor.tahsilat': false,
-    'rapor.personel_performans': false, 'rapor.musteri': false,
-    'rapor.ciro_kar_gor': false,
-    'finans.kasa_giris_cikis': false, 'finans.masraf_ekle': false,
-    'finans.masraf_gor': false, 'finans.alacak_yonet': false,
-    'pazarlama.sms_gonder': false, 'pazarlama.whatsapp_gonder': false,
-    'pazarlama.toplu_sms': false, 'pazarlama.kampanya_yonet': false,
-    'pazarlama.cark_yonet': false, 'pazarlama.anket_yonet': false,
-    'gorusme.liste_gor': false, 'gorusme.ekle_duzenle': false,
-    'form.olustur': false, 'form.gonder': false,
-    'ayar.salon_bilgi': false, 'ayar.sube_yonet': false, 'ayar.cihaz_oda_yonet': false,
-  };
 }
