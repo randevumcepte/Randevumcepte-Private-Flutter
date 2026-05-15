@@ -53,13 +53,39 @@ class _BirHizmetDahaState extends State<BirHizmetDaha> {
     final liste = await isletmehizmetleri(seciliisletme!);
     if (!mounted) return;
     setState(() {
-      isletmehizmetliste = liste;
+      isletmehizmetliste = _dedupeHizmetler(liste);
       for (final h in widget.secilihizmetler) {
+        if (h.hizmet_id.isEmpty) continue;
         selectedHizmetIds.add(h.hizmet_id);
         existingHizmetler[h.hizmet_id] = h;
       }
       _isloading = false;
     });
+  }
+
+  // Backend bazen ayni hizmeti birden fazla salon_hizmetler satiri olarak
+  // donduruyor — gorsel kopyalari engellemek icin inner hizmet.id'ye gore
+  // tekille; ayrica ayni id+ad ile gizli kopyalari da temizle.
+  List<IsletmeHizmet> _dedupeHizmetler(List<IsletmeHizmet> liste) {
+    final seenIds = <String>{};
+    final seenAd = <String>{};
+    final result = <IsletmeHizmet>[];
+    for (final h in liste) {
+      final innerId = h.hizmet?['id']?.toString() ?? '';
+      final adi = (h.hizmet?['hizmet_adi']?.toString() ?? '').trim();
+      final key = innerId.isNotEmpty ? 'id:$innerId' : 'ad:${adi.toLowerCase()}';
+      if (key.isEmpty || key == 'id:' || key == 'ad:') continue;
+      if (seenIds.contains(key)) continue;
+      // Ayni isimde ama farkli inner id varsa da (yeni eklenen kopya hizmet)
+      // tekille — isletmenin gercekten ayni adli iki farkli hizmeti olmasi
+      // beklenmiyor.
+      final adKey = adi.isNotEmpty ? adi.toLowerCase() : '';
+      if (adKey.isNotEmpty && seenAd.contains(adKey)) continue;
+      seenIds.add(key);
+      if (adKey.isNotEmpty) seenAd.add(adKey);
+      result.add(h);
+    }
+    return result;
   }
 
   void _toggleHizmet(String id) {
@@ -86,17 +112,19 @@ class _BirHizmetDahaState extends State<BirHizmetDaha> {
 
   void _kaydet() {
     final List<PaketHizmetleri> result = [];
+    final Set<String> eklenenIdler = {};
     for (final item in isletmehizmetliste) {
       final id = item.hizmet['id'].toString();
-      if (selectedHizmetIds.contains(id)) {
-        final existing = existingHizmetler[id];
-        result.add(PaketHizmetleri(
-          seans: existing?.seans ?? '0',
-          fiyat: existing?.fiyat ?? '0',
-          hizmet: item.hizmet,
-          hizmet_id: id,
-        ));
-      }
+      if (id.isEmpty || id == 'null') continue;
+      if (!selectedHizmetIds.contains(id)) continue;
+      if (!eklenenIdler.add(id)) continue;
+      final existing = existingHizmetler[id];
+      result.add(PaketHizmetleri(
+        seans: existing?.seans ?? '0',
+        fiyat: existing?.fiyat ?? '0',
+        hizmet: item.hizmet,
+        hizmet_id: id,
+      ));
     }
     Navigator.pop(context, result);
   }

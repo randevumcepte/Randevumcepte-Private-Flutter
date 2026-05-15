@@ -509,7 +509,24 @@ Future<List<IsletmeHizmet>> isletmehizmetleri(String salonid) async{
     logyaz2("Hizmetler. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
     List jsonResponse = json.decode(response.body);
 
-    return jsonResponse.map((e) => IsletmeHizmet.fromJson(e)).toList();
+    final liste = jsonResponse.map((e) => IsletmeHizmet.fromJson(e)).toList();
+    // salon_hizmetler tablosunda ayni hizmet icin birden fazla satir oldugunda
+    // tum seciciler ayni adi/satiri tekrarli gosteriyordu. Inner hizmet.id ve
+    // hizmet_adi'na gore tekille — kullanici bir kez tiklayinca tek satir
+    // secilsin.
+    final seen = <String>{};
+    final seenAd = <String>{};
+    final deduped = <IsletmeHizmet>[];
+    for (final h in liste) {
+      final innerId = h.hizmet?['id']?.toString() ?? '';
+      final adKey = (h.hizmet?['hizmet_adi']?.toString() ?? '').trim().toLowerCase();
+      final idKey = innerId.isNotEmpty ? innerId : h.hizmet_id;
+      if (idKey.isEmpty && adKey.isEmpty) continue;
+      if (idKey.isNotEmpty && !seen.add(idKey)) continue;
+      if (adKey.isNotEmpty && !seenAd.add(adKey)) continue;
+      deduped.add(h);
+    }
+    return deduped;
   } else {
     logyaz(response.statusCode,response.reasonPhrase);
     throw Exception(response.reasonPhrase);
