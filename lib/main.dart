@@ -11,6 +11,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Frontend/randevuguncellemeprovider.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
@@ -35,7 +36,11 @@ void main() async {
   // 3) Bildirim altyapısı (FCM + local + foreground + tıklama + popup)
   await NotificationService.instance.init();
 
-  // 4) Uygulamayı başlat
+  // 4) Yetki cache'ini disktan belege yukle (varsa). Personeller sayfasi
+  //    acilirken tazelenecek; bu sadece onceki oturumun ayarlarini yukler.
+  await Yetki.baslat();
+
+  // 5) Uygulamayı başlat
   runApp(MyApp());
 }
 

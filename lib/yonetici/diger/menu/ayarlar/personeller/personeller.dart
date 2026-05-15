@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
@@ -88,6 +89,8 @@ class _PersonellerState extends State<Personeller> {
       setState(() => _initLoading = false);
       return;
     }
+    // Yetki cache'ini tazele (giris yapan kisinin guncel yetkileri)
+    await Yetki.tazele(salonid: _salonid!);
     await Future.wait([_listeYukle(), _tumListeYukle()]);
     if (!mounted) return;
     setState(() => _initLoading = false);
@@ -320,23 +323,25 @@ class _PersonellerState extends State<Personeller> {
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
             child: SizedBox(width: 110, child: YukseltButonu(isletme_bilgi: widget.isletmebilgi)),
           ),
-          IconButton(
-            tooltip: 'Prim & Hak Ediş',
-            icon: const Icon(Icons.payments_outlined, color: _p1),
-            onPressed: _initLoading
-                ? null
-                : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PrimHakedis(isletmebilgi: widget.isletmebilgi),
+          if (Yetki.varMi('personel.prim_hakedis_gor'))
+            IconButton(
+              tooltip: 'Prim & Hak Ediş',
+              icon: const Icon(Icons.payments_outlined, color: _p1),
+              onPressed: _initLoading
+                  ? null
+                  : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PrimHakedis(isletmebilgi: widget.isletmebilgi),
+                        ),
                       ),
-                    ),
-          ),
-          IconButton(
-            tooltip: 'Yeni Personel',
-            icon: const Icon(Icons.person_add_alt_1, color: _p1),
-            onPressed: _initLoading ? null : _ekleAc,
-          ),
+            ),
+          if (Yetki.varMi('personel.ekle_duzenle'))
+            IconButton(
+              tooltip: 'Yeni Personel',
+              icon: const Icon(Icons.person_add_alt_1, color: _p1),
+              onPressed: _initLoading ? null : _ekleAc,
+            ),
         ],
       ),
       body: _initLoading
@@ -415,6 +420,10 @@ class _PersonellerState extends State<Personeller> {
 
   // === Tab benzeri 2'li segment navigasyonu (web tasarimi: Personeller | Prim & Hak Edis) ===
   Widget _tabNavi() {
+    // Prim & Hak Ediş yetkisi yoksa tab gozukmesin
+    if (!Yetki.varMi('personel.prim_hakedis_gor')) {
+      return const SizedBox.shrink();
+    }
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -721,28 +730,34 @@ class _PersonellerState extends State<Personeller> {
           case 'sil': _arsivle(p); break;
         }
       },
-      itemBuilder: (_) => [
-        _menuItem('detay', Icons.visibility_outlined, 'Detaylar'),
-        _menuItem('duzenle', Icons.edit_outlined, 'Düzenle'),
-        _menuItem('satislar', Icons.shopping_bag_outlined, 'Satışlar'),
-        _menuItem('yetki', Icons.shield_outlined, 'Yetkileri Düzenle'),
-        _menuItem('sifre', Icons.password_outlined, 'Şifre Gönder'),
-        const PopupMenuDivider(),
-        _menuItem(
-          'aktif_pasif',
-          aktif ? Icons.pause_circle_outline : Icons.play_circle_outline,
-          aktif ? 'Pasif Yap' : 'Aktif Yap',
-        ),
-        _menuItem(
-          'takvim',
-          takvimde ? Icons.event_busy : Icons.event_available,
-          takvimde ? 'Takvimden Gizle' : 'Takvimde Göster',
-        ),
-        _menuItem('yukari', Icons.arrow_upward, 'Yukarı Taşı'),
-        _menuItem('asagi', Icons.arrow_downward, 'Aşağı Taşı'),
-        const PopupMenuDivider(),
-        _menuItem('sil', Icons.delete_outline, 'Sil', renk: const Color(0xFFDC2626)),
-      ],
+      itemBuilder: (_) {
+        // Yetki bazli menü items
+        final duzenleVar = Yetki.varMi('personel.ekle_duzenle');
+        final yetkiYonet = Yetki.varMi('personel.yetki_yonet');
+        final silVar = Yetki.varMi('personel.sil');
+        return [
+          _menuItem('detay', Icons.visibility_outlined, 'Detaylar'),
+          if (duzenleVar) _menuItem('duzenle', Icons.edit_outlined, 'Düzenle'),
+          _menuItem('satislar', Icons.shopping_bag_outlined, 'Satışlar'),
+          if (yetkiYonet) _menuItem('yetki', Icons.shield_outlined, 'Yetkileri Düzenle'),
+          if (duzenleVar) _menuItem('sifre', Icons.password_outlined, 'Şifre Gönder'),
+          if (duzenleVar) const PopupMenuDivider(),
+          if (duzenleVar) _menuItem(
+            'aktif_pasif',
+            aktif ? Icons.pause_circle_outline : Icons.play_circle_outline,
+            aktif ? 'Pasif Yap' : 'Aktif Yap',
+          ),
+          if (duzenleVar) _menuItem(
+            'takvim',
+            takvimde ? Icons.event_busy : Icons.event_available,
+            takvimde ? 'Takvimden Gizle' : 'Takvimde Göster',
+          ),
+          if (duzenleVar) _menuItem('yukari', Icons.arrow_upward, 'Yukarı Taşı'),
+          if (duzenleVar) _menuItem('asagi', Icons.arrow_downward, 'Aşağı Taşı'),
+          if (silVar) const PopupMenuDivider(),
+          if (silVar) _menuItem('sil', Icons.delete_outline, 'Sil', renk: const Color(0xFFDC2626)),
+        ];
+      },
     );
   }
 
