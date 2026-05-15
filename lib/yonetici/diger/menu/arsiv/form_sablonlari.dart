@@ -208,13 +208,16 @@ class _FormSablonlariState extends State<FormSablonlari> {
     return PremiumGradientBg(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _yeniVeyaDuzenle(),
-          backgroundColor: scheme.primary,
-          foregroundColor: scheme.onPrimary,
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Yeni Şablon',
-              style: TextStyle(fontWeight: FontWeight.w700)),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 6, right: 4),
+          child: FloatingActionButton.small(
+            onPressed: () => _yeniVeyaDuzenle(),
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
+            elevation: 3,
+            tooltip: 'Yeni Şablon',
+            child: const Icon(Icons.add_rounded, size: 22),
+          ),
         ),
         body: _yukleniyor
             ? const Center(child: CircularProgressIndicator())
