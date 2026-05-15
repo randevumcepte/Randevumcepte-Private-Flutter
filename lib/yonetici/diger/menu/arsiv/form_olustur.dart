@@ -37,13 +37,29 @@ class _FormOlusturState extends State<FormOlustur> {
   Future<void> _baslat() async {
     try {
       _seciliSube = (await secilisalonid()) ?? '';
-      final veri = await isletmeVerileriGetir(
-          _seciliSube, false, '', '', '', 0, 0);
-      _formlar =
-          ((veri['formlar'] ?? []) as List).whereType<Sozlesme>().toList();
+
+      // Müşterileri ve dinamik form sablonlarini paralel cek
+      final results = await Future.wait([
+        isletmeVerileriGetir(_seciliSube, false, '', '', '', 0, 0),
+        http.get(Uri.parse(
+            'https://apptest.randevumcepte.com.tr/api/v1/form-sablonlari-liste?sube=$_seciliSube')),
+      ]);
+
+      final veri = results[0] as Map<String, dynamic>;
       _musteriler = ((veri['musteriler'] ?? []) as List)
           .whereType<MusteriDanisan>()
           .toList();
+
+      final resp = results[1] as http.Response;
+      if (resp.statusCode == 200) {
+        final j = jsonDecode(resp.body);
+        final liste = (j is Map && j['formlar'] != null)
+            ? j['formlar'] as List
+            : (j is List ? j : []);
+        _formlar = liste
+            .map<Sozlesme>((e) => Sozlesme.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
     } catch (e) {
       _hataMesaji = 'Veriler yüklenemedi: $e';
     }
