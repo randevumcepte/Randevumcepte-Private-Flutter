@@ -4,7 +4,7 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 
 import 'beklenenformlar.dart';
-import 'formekle.dart';
+import 'form_olustur.dart';
 import 'form_sablonlari.dart';
 import 'haricibelge.dart';
 import 'haricibelgeekle.dart';
@@ -78,7 +78,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                       PageTransition(
                         type: PageTransitionType.rightToLeft,
                         duration: const Duration(milliseconds: 300),
-                        child: FormEkle(isletmebilgi: widget.isletmebilgi),
+                        child: FormOlustur(isletmebilgi: widget.isletmebilgi),
                       ),
                     );
                   },
