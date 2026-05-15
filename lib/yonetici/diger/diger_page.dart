@@ -20,7 +20,6 @@ import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
 import '../dashboard/profilbilgileri.dart';
 import '../santral/santralraporlari.dart';
 import '../subesecimi.dart';
-import 'menu/ajanda/ajanda.dart';
 import 'menu/anket/anket_yonetimi.dart';
 import 'menu/cark/cark_yonetimi.dart';
 import 'menu/whatsapp/whatsapp_yonetimi.dart';
@@ -32,7 +31,6 @@ import 'menu/etkinlik/etkinikler.dart';
 import 'menu/kampanya/kampanyalar.dart';
 import 'menu/kasa/alacaklar.dart';
 import 'menu/kasa/kasaraporu.dart';
-import 'menu/kasa/masraflar.dart';
 import 'menu/musteriler/musteriliste.dart';
 import 'menu/ongorusmeler/ongorusmeler.dart';
 import 'menu/randvular/randevularmenu.dart';
@@ -672,8 +670,8 @@ class _MenuState extends State<Menu> {
                 _buildSectionTitle('YÖNETİM'),
                 if (widget.uyelikturu > 1 && kullanicirolu < 5)
                   _buildMenuButton(
-                    icon: Icons.archive_rounded,
-                    label: 'Arşiv Yönetimi',
+                    icon: Icons.description_outlined,
+                    label: 'Form Yönetimi',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -766,21 +764,6 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                _buildMenuButton(
-                  icon: Icons.note_alt_rounded,
-                  label: 'Ajanda',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      PageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        duration: Duration(milliseconds: 300),
-                        child: AjandaNotlar(isletmebilgi: widget.isletmebilgi),
-                      ),
-                    );
-                  },
-                ),
-
                 if (widget.uyelikturu > 1 && kullanicirolu < 4)
                   _buildMenuButton(
                     icon: Icons.account_balance_wallet_rounded,
@@ -792,26 +775,6 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: KasaRaporu(isletmebilgi: widget.isletmebilgi),
-                        ),
-                      );
-                    },
-                  ),
-
-                if (widget.uyelikturu > 1 && kullanicirolu < 5)
-                  _buildMenuButton(
-                    icon: Icons.money_off_rounded,
-                    label: 'Masraflar',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: Duration(milliseconds: 300),
-                          child: Masraflar(
-                            odeme_yontemi: '',
-                            tarih: '',
-                            isletmebilgi: widget.isletmebilgi,
-                          ),
                         ),
                       );
                     },

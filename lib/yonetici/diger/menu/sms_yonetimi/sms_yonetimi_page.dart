@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'sms_yonetimi_state.dart';
-import 'tabs/filtreli_sms_tab.dart';
-import 'tabs/sablon_toplu_sms_tab.dart';
 import 'tabs/sms_ayarlari_tab.dart';
 import 'tabs/sms_kara_liste_tab.dart';
 import 'tabs/sms_raporlari_tab.dart';
@@ -48,15 +46,11 @@ class _SmsYonetimiPageState extends State<SmsYonetimiPage> {
         final ayarlarTabGoster =
             widget.kullanicirolu == 1 || _state.isAdmin;
         final tabBaslik = <String>[
-          'Filtreli SMS',
-          'Şablon & Toplu SMS',
           'SMS Raporları',
           if (ayarlarTabGoster) 'SMS Ayarları',
           'Kara Liste',
         ];
         final tabIcerik = <Widget>[
-          FiltreliSmsTab(state: _state),
-          SablonTopluSmsTab(state: _state),
           SmsRaporlariTab(state: _state),
           if (ayarlarTabGoster) SmsAyarlariTab(state: _state),
           SmsKaraListeTab(state: _state),
