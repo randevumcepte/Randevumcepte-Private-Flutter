@@ -424,12 +424,6 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                                               geriGitBtn: false,
                                             );
                                           });
-                                        } else {
-                                          if (widget.uyelikturu > 1) {
-                                            setState(() {
-                                              _selectedTab = 3;
-                                            });
-                                          }
                                         }
                                       },
                                     },
@@ -678,12 +672,6 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                 geriGitBtn: false,
               );
             });
-          } else {
-            if (widget.uyelikturu > 1) {
-              setState(() {
-                _selectedTab = 3;
-              });
-            }
           }
         },
       },
