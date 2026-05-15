@@ -1,19 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
-import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/sozlesme.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Web'deki formolusturma.blade.php sayfasının mobil karşılığı.
-/// Bir form şablonu seçilir, müşteri/personel/hizmet bilgileri girilir,
-/// /api/v1/arsivformekleguncelle ile gönderilir.
+/// Web'deki "Form Gönder" akışı: form şablonu seç + müşteri seç + gönder.
 class FormOlustur extends StatefulWidget {
   final dynamic isletmebilgi;
   const FormOlustur({super.key, required this.isletmebilgi});
@@ -30,20 +24,9 @@ class _FormOlusturState extends State<FormOlustur> {
 
   List<Sozlesme> _formlar = [];
   List<MusteriDanisan> _musteriler = [];
-  List<Personel> _personeller = [];
-  List<IsletmeHizmet> _hizmetler = [];
 
   Sozlesme? _form;
   MusteriDanisan? _musteri;
-  Personel? _personel;
-  IsletmeHizmet? _hizmet;
-  String _cinsiyet = 'Kadın';
-
-  final _telefon = TextEditingController();
-  final _tc = TextEditingController();
-  final _dogum = TextEditingController();
-  final _personelTel = TextEditingController();
-  final _ucret = TextEditingController(text: '0');
 
   @override
   void initState() {
@@ -51,30 +34,15 @@ class _FormOlusturState extends State<FormOlustur> {
     _baslat();
   }
 
-  @override
-  void dispose() {
-    _telefon.dispose();
-    _tc.dispose();
-    _dogum.dispose();
-    _personelTel.dispose();
-    _ucret.dispose();
-    super.dispose();
-  }
-
   Future<void> _baslat() async {
     try {
       _seciliSube = (await secilisalonid()) ?? '';
       final veri = await isletmeVerileriGetir(
           _seciliSube, false, '', '', '', 0, 0);
-      _formlar = ((veri['formlar'] ?? []) as List).whereType<Sozlesme>().toList();
+      _formlar =
+          ((veri['formlar'] ?? []) as List).whereType<Sozlesme>().toList();
       _musteriler = ((veri['musteriler'] ?? []) as List)
           .whereType<MusteriDanisan>()
-          .toList();
-      _personeller = ((veri['personeller'] ?? []) as List)
-          .whereType<Personel>()
-          .toList();
-      _hizmetler = ((veri['hizmetler'] ?? []) as List)
-          .whereType<IsletmeHizmet>()
           .toList();
     } catch (e) {
       _hataMesaji = 'Veriler yüklenemedi: $e';
@@ -103,85 +71,7 @@ class _FormOlusturState extends State<FormOlustur> {
       seciliId: _musteri?.id,
       ogeId: (m) => m.id,
     );
-    if (s != null) {
-      setState(() {
-        _musteri = s;
-        if (s.cep_telefon.isNotEmpty && s.cep_telefon != 'null') {
-          _telefon.text = s.cep_telefon;
-        }
-        if (s.tc_kimlik_no.isNotEmpty && s.tc_kimlik_no != 'null') {
-          _tc.text = s.tc_kimlik_no;
-        }
-        if (s.dogum_tarihi.isNotEmpty && s.dogum_tarihi != 'null') {
-          _dogum.text = s.dogum_tarihi;
-        }
-        if (s.cinsiyet == '1' || s.cinsiyet.toLowerCase() == 'erkek') {
-          _cinsiyet = 'Erkek';
-        } else {
-          _cinsiyet = 'Kadın';
-        }
-      });
-    }
-  }
-
-  Future<void> _personelSec() async {
-    final s = await _picker<Personel>(
-      baslik: 'Personel Seç',
-      ogeler: _personeller,
-      etiket: (p) => p.personel_adi,
-      altYazi: (p) => p.cep_telefon,
-      seciliId: _personel?.id,
-      ogeId: (p) => p.id,
-    );
-    if (s != null) {
-      setState(() {
-        _personel = s;
-        if (s.cep_telefon.isNotEmpty && s.cep_telefon != 'null') {
-          _personelTel.text = s.cep_telefon;
-        }
-      });
-    }
-  }
-
-  Future<void> _hizmetSec() async {
-    final s = await _picker<IsletmeHizmet>(
-      baslik: 'Hizmet Seç',
-      ogeler: _hizmetler,
-      etiket: (h) => h.hizmet?['hizmet_adi']?.toString() ?? '-',
-      altYazi: (h) => '${h.fiyat} ₺',
-      seciliId: _hizmet?.hizmet_id,
-      ogeId: (h) => h.hizmet_id,
-      temizleVar: true,
-    );
-    setState(() {
-      _hizmet = s;
-      if (s != null && s.fiyat.isNotEmpty) _ucret.text = s.fiyat;
-    });
-  }
-
-  Future<void> _dogumSec() async {
-    DateTime baslangic = DateTime(2000, 1, 1);
-    if (_dogum.text.isNotEmpty) {
-      try {
-        baslangic = DateFormat('yyyy-MM-dd').parse(_dogum.text);
-      } catch (_) {
-        try {
-          baslangic = DateFormat('dd.MM.yyyy').parse(_dogum.text);
-        } catch (_) {}
-      }
-    }
-    final secilen = await showDatePicker(
-      context: context,
-      initialDate: baslangic,
-      firstDate: DateTime(1925),
-      lastDate: DateTime.now(),
-      locale: const Locale('tr', 'TR'),
-    );
-    if (secilen != null) {
-      setState(() {
-        _dogum.text = DateFormat('yyyy-MM-dd').format(secilen);
-      });
-    }
+    if (s != null) setState(() => _musteri = s);
   }
 
   Future<T?> _picker<T>({
@@ -191,7 +81,6 @@ class _FormOlusturState extends State<FormOlustur> {
     required String Function(T) altYazi,
     required String? seciliId,
     required String Function(T) ogeId,
-    bool temizleVar = false,
   }) {
     return showModalBottomSheet<T?>(
       context: context,
@@ -204,7 +93,6 @@ class _FormOlusturState extends State<FormOlustur> {
         altYazi: altYazi,
         seciliId: seciliId,
         ogeId: ogeId,
-        temizleVar: temizleVar,
       ),
     );
   }
@@ -222,17 +110,6 @@ class _FormOlusturState extends State<FormOlustur> {
           message: 'Lütfen müşteri seçin.');
       return;
     }
-    if (_telefon.text.trim().isEmpty) {
-      showPremiumWarning(context,
-          title: 'Telefon Boş', message: 'Müşteri cep telefonu zorunlu.');
-      return;
-    }
-    if (_personel == null) {
-      showPremiumWarning(context,
-          title: 'Personel Seçilmedi',
-          message: 'Lütfen işlemi yapan personeli seçin.');
-      return;
-    }
 
     setState(() => _gonderiliyor = true);
     try {
@@ -243,16 +120,16 @@ class _FormOlusturState extends State<FormOlustur> {
       final body = {
         'user_id': _musteri!.id,
         'form_id': _form!.id,
-        'personel_id': _personel!.id,
-        'cinsiyet': _cinsiyet,
-        'dogumtarihi': _dogum.text,
-        'cep_telefon': _telefon.text.trim(),
-        'personel_cep': _personelTel.text.trim(),
-        'tc_kimlik_no': _tc.text.trim(),
+        'personel_id': '',
+        'cinsiyet': '',
+        'dogumtarihi': '',
+        'cep_telefon': _musteri!.cep_telefon,
+        'personel_cep': '',
+        'tc_kimlik_no': '',
         'salon_id': _seciliSube,
         'olusturan': user["id"],
-        'hizmet': _hizmet?.hizmet_id ?? '',
-        'ucret': _ucret.text,
+        'hizmet': '',
+        'ucret': '',
       };
 
       final resp = await http.post(
@@ -394,161 +271,6 @@ class _FormOlusturState extends State<FormOlustur> {
                 bos: _musteri == null,
                 onTap: _musteriSec,
               ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _Etiket('Cep Telefon *'),
-                        TextField(
-                          controller: _telefon,
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9 ]')),
-                          ],
-                          decoration: _inputDeko('05xx xxx xx xx', scheme),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _Etiket('TC Kimlik No'),
-                        TextField(
-                          controller: _tc,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(11),
-                          ],
-                          decoration: _inputDeko('11 hane', scheme),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _Etiket('Cinsiyet'),
-                        _CinsiyetSec(
-                          deger: _cinsiyet,
-                          onChanged: (v) => setState(() => _cinsiyet = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _Etiket('Doğum Tarihi'),
-                        InkWell(
-                          onTap: _dogumSec,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 13),
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today_rounded,
-                                    size: 16,
-                                    color:
-                                        scheme.primary.withValues(alpha: 0.7)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _dogum.text.isEmpty
-                                        ? 'Tarih seç'
-                                        : _dogum.text,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: _dogum.text.isEmpty
-                                          ? Colors.black38
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        PremiumGlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _Etiket('İşlemi Yapan Personel *'),
-              _SecimAlani(
-                etiket: _personel?.personel_adi ?? 'Personel seçin',
-                altYazi: _personel?.cep_telefon,
-                ikon: Icons.badge_outlined,
-                bos: _personel == null,
-                onTap: _personelSec,
-              ),
-              const SizedBox(height: 12),
-              const _Etiket('Personel Cep Telefon'),
-              TextField(
-                controller: _personelTel,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
-                ],
-                decoration:
-                    _inputDeko('Personel seçince otomatik dolar', scheme),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        PremiumGlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _Etiket('Hizmet (opsiyonel)'),
-              _SecimAlani(
-                etiket: _hizmet?.hizmet?['hizmet_adi']?.toString() ??
-                    'Hizmet seçin',
-                altYazi: _hizmet != null ? '${_hizmet!.fiyat} ₺' : null,
-                ikon: Icons.spa_outlined,
-                bos: _hizmet == null,
-                onTap: _hizmetSec,
-              ),
-              const SizedBox(height: 12),
-              const _Etiket('Ücret (₺)'),
-              TextField(
-                controller: _ucret,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: _inputDeko('0,00', scheme),
-              ),
             ],
           ),
         ),
@@ -614,22 +336,6 @@ class _FormOlusturState extends State<FormOlustur> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDeko(String hint, ColorScheme scheme) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(fontSize: 12.5, color: Colors.black38),
-      filled: true,
-      fillColor: scheme.primary.withValues(alpha: 0.05),
-      isDense: true,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
       ),
     );
   }
@@ -728,51 +434,6 @@ class _SecimAlani extends StatelessWidget {
   }
 }
 
-class _CinsiyetSec extends StatelessWidget {
-  final String deger;
-  final ValueChanged<String> onChanged;
-  const _CinsiyetSec({required this.deger, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          for (final c in const ['Kadın', 'Erkek'])
-            Expanded(
-              child: GestureDetector(
-                onTap: () => onChanged(c),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: deger == c ? scheme.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      c,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: deger == c ? Colors.white : scheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PickerSheet<T> extends StatefulWidget {
   final String baslik;
   final List<T> ogeler;
@@ -780,7 +441,6 @@ class _PickerSheet<T> extends StatefulWidget {
   final String Function(T) altYazi;
   final String? seciliId;
   final String Function(T) ogeId;
-  final bool temizleVar;
   const _PickerSheet({
     required this.baslik,
     required this.ogeler,
@@ -788,7 +448,6 @@ class _PickerSheet<T> extends StatefulWidget {
     required this.altYazi,
     required this.seciliId,
     required this.ogeId,
-    required this.temizleVar,
   });
 
   @override
@@ -847,12 +506,6 @@ class _PickerSheetState<T> extends State<_PickerSheet<T>> {
                             fontSize: 16, fontWeight: FontWeight.w800),
                       ),
                     ),
-                    if (widget.temizleVar)
-                      TextButton.icon(
-                        onPressed: () => Navigator.pop<T?>(context, null),
-                        icon: const Icon(Icons.clear_rounded, size: 16),
-                        label: const Text('Temizle'),
-                      ),
                   ],
                 ),
               ),
