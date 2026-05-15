@@ -159,6 +159,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
   int secilialacaksenet = 0;
   int secilialacaktaksit = 0;
 
+  // Gap kampanyasi (Sabah/Ogleden sonra/Aksam indirim) — su an aktif mi?
+  Map<String, dynamic>? _gapKampanya;
+  bool _gapBannerVisible = true;
+  bool _gapApplied = false;
 
   @override
   void initState() {
@@ -241,6 +245,205 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
       isloading = false;
     });
+
+    // Aktif gap kampanyasi var mi? — su anki saat ile kontrol et
+    _loadGapKampanya();
+  }
+
+  Future<void> _loadGapKampanya() async {
+    final res = await randevuKampanyaKontrol(salonId: seciliisletme);
+    if (!mounted) return;
+    if (res != null && res['hasCampaign'] == true) {
+      setState(() {
+        _gapKampanya = res;
+        _gapBannerVisible = true;
+        _gapApplied = false;
+      });
+    }
+  }
+
+  Widget _buildGapKampanyaBanner() {
+    final k = _gapKampanya!;
+    final gapLabel = k['gapLabel'] as String? ?? 'Saatler';
+    final disc = (k['discount'] as num?)?.toInt() ?? 0;
+    final hour = (k['hour'] as num?)?.toInt() ?? 0;
+
+    // Renk paleti — gap'e göre
+    final gapKey = k['gapKey'] as String? ?? 'morning';
+    final List<Color> grad;
+    final IconData icon;
+    switch (gapKey) {
+      case 'morning':
+        grad = const [Color(0xFFFDE68A), Color(0xFFFCD34D)];
+        icon = Icons.wb_twilight_rounded;
+        break;
+      case 'afternoon':
+        grad = const [Color(0xFFFED7AA), Color(0xFFFB923C)];
+        icon = Icons.wb_sunny_rounded;
+        break;
+      case 'evening':
+      default:
+        grad = const [Color(0xFFDDD6FE), Color(0xFF8B5CF6)];
+        icon = Icons.nightlight_round;
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        color: _gapApplied
+            ? const Color(0xFFF0FDF4)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: _gapApplied
+              ? const Color(0xFF22C55E)
+              : const Color(0xFFFBBF24),
+          width: 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (_gapApplied
+                    ? const Color(0xFF22C55E)
+                    : const Color(0xFFFBBF24))
+                .withValues(alpha: 0.10),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: grad),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(icon, size: 20, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '$gapLabel Kampanyası',
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF22C55E),
+                                Color(0xFF16A34A),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '%$disc',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _gapApplied
+                          ? '✓ İndirim müşteri indirim yüzdesi olarak uygulandı'
+                          : 'Şu an (${hour.toString().padLeft(2, '0')}:00) indirim aralığında. Müşteri indirimini %$disc olarak uygula?',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.4,
+                        color: const Color(0xFF1A1A1A).withValues(alpha: 0.65),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: const Color(0xFF1A1A1A).withValues(alpha: 0.45),
+                ),
+                onPressed: () =>
+                    setState(() => _gapBannerVisible = false),
+              ),
+            ],
+          ),
+          if (!_gapApplied) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _applyGapDiscount,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6A1B9A),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(11)),
+                ),
+                icon: const Icon(Icons.local_offer_rounded, size: 16),
+                label: Text(
+                  '%$disc İndirimi Uygula',
+                  style: const TextStyle(
+                      fontSize: 12.5, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _applyGapDiscount() {
+    final disc = (_gapKampanya?['discount'] as num?)?.toInt() ?? 0;
+    if (disc <= 0) return;
+    setState(() {
+      musteri_sabit_indirim.text = disc.toString();
+      _gapApplied = true;
+    });
+    // Indirim hesaplamasini yeniden tetikle
+    tutar_hesapla(false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF16A34A),
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          '${_gapKampanya?['gapLabel'] ?? ''} kampanyası: %$disc indirim uygulandı',
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
   }
 
   //hizmetsatisi
@@ -648,6 +851,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16,),
+            if (_gapKampanya != null && _gapKampanya!['hasCampaign'] == true && _gapBannerVisible)
+              _buildGapKampanyaBanner(),
             widget.adisyonId == '' ?
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),

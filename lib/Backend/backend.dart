@@ -746,6 +746,31 @@ Future<Map<String, dynamic>?> saatBosluguKampanyaOlustur({
   return null;
 }
 
+/// Belirli bir saat icin aktif gap kampanyasi var mi kontrol eder.
+/// Tahsilat ekraninda "bu randevu indirim aralginda mi?" sorusu icin.
+/// [saat] format: "HH:MM" (opsiyonel, yoksa server now kullanir)
+/// Donus: {hasCampaign: bool, gapKey, gapLabel, discount, baslik, ...}
+Future<Map<String, dynamic>?> randevuKampanyaKontrol({
+  required String salonId,
+  String? saat,
+}) async {
+  try {
+    final qp = saat != null && saat.isNotEmpty ? '?saat=$saat' : '';
+    final response = await http
+        .get(
+          Uri.parse(
+              'https://apptest.randevumcepte.com.tr/api/v1/randevuKampanyaKontrol/$salonId$qp'),
+          headers: {'Content-Type': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 10));
+    final body = json.decode(response.body);
+    if (body is Map<String, dynamic>) return body;
+  } catch (e) {
+    log('randevuKampanyaKontrol hata: $e');
+  }
+  return null;
+}
+
 /// Dashboard saat bosluk kampanyasini iptal eder (soft-deactivate).
 /// Donus: {status: success|error, message: ...}
 Future<Map<String, dynamic>?> saatBosluguKampanyaIptal({
