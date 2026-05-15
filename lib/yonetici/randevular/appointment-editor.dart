@@ -342,9 +342,137 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           randevusaati.text = '${result.hour}:$dakika';
         });
 
+        // Gap kampanya kontrolu — saat indirim aralginda mi?
+        _checkGapKampanyaForSaat('${result.hour.toString().padLeft(2, '0')}:$dakika');
+
         valid = true;
       }
     }
+  }
+
+  // Aktif gap kampanyasi bilgisi (saat secildiginde set edilir)
+  Map<String, dynamic>? _saatGapKampanya;
+  bool _saatGapBannerVisible = true;
+
+  Future<void> _checkGapKampanyaForSaat(String saat) async {
+    final res = await randevuKampanyaKontrol(salonId: seciliisletme, saat: saat);
+    if (!mounted) return;
+    setState(() {
+      if (res != null && res['hasCampaign'] == true) {
+        _saatGapKampanya = res;
+        _saatGapBannerVisible = true;
+      } else {
+        _saatGapKampanya = null;
+      }
+    });
+  }
+
+  Widget _buildSaatGapBanner() {
+    final k = _saatGapKampanya!;
+    final gapKey = k['gapKey'] as String? ?? 'morning';
+    final gapLabel = k['gapLabel'] as String? ?? 'Saatler';
+    final disc = (k['discount'] as num?)?.toInt() ?? 0;
+
+    final List<Color> grad;
+    final IconData icon;
+    switch (gapKey) {
+      case 'morning':
+        grad = const [Color(0xFFFDE68A), Color(0xFFFCD34D)];
+        icon = Icons.wb_twilight_rounded;
+        break;
+      case 'afternoon':
+        grad = const [Color(0xFFFED7AA), Color(0xFFFB923C)];
+        icon = Icons.wb_sunny_rounded;
+        break;
+      case 'evening':
+      default:
+        grad = const [Color(0xFFDDD6FE), Color(0xFF8B5CF6)];
+        icon = Icons.nightlight_round;
+        break;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: const Color(0xFF22C55E).withValues(alpha: 0.55), width: 1.2),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 11, 8, 11),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: grad),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: Colors.white),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '$gapLabel Kampanyası',
+                      style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF15803D)),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '%$disc',
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Bu saat indirim aralığında — tahsilatta otomatik %$disc önerilecek.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.35,
+                    color: const Color(0xFF1A1A1A).withValues(alpha: 0.70),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+              Icons.close_rounded,
+              size: 16,
+              color: const Color(0xFF1A1A1A).withValues(alpha: 0.45),
+            ),
+            onPressed: () => setState(() => _saatGapBannerVisible = false),
+          ),
+        ],
+      ),
+    );
   }
 
   // YENİ: Modern saat seçim widget'ı - DAKİKALAR 00-15-30-45 OLARAK GÜNCELLENDİ
@@ -523,7 +651,6 @@ class AppointmentEditorState extends State<AppointmentEditor> {
 
   Widget _getAppointmentEditor(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final double columnWidth = MediaQuery.of(context).size.width / 2 - 32;
     final Color softBorder = scheme.outline.withValues(alpha: 0.25);
 
     return isloading
@@ -598,6 +725,14 @@ class AppointmentEditorState extends State<AppointmentEditor> {
               ),
             ],
           ),
+
+          // Gap kampanya uyarisi — secilen saat indirim araliginda ise
+          if (_saatGapKampanya != null &&
+              _saatGapKampanya!['hasCampaign'] == true &&
+              _saatGapBannerVisible) ...[
+            const SizedBox(height: 12),
+            _buildSaatGapBanner(),
+          ],
 
           const SizedBox(height: 20),
 
@@ -775,13 +910,12 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       if (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
                           widget.isletmebilgi["randevu_takvim_turu"] == 1)
                         const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (widget.isletmebilgi["randevu_takvim_turu"] == 2)
                             SizedBox(
-                              width: columnWidth,
+                              width: double.infinity,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -856,7 +990,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                             ),
                           if (widget.isletmebilgi["randevu_takvim_turu"] == 3)
                             SizedBox(
-                              width: columnWidth,
+                              width: double.infinity,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -929,8 +1063,11 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                                 ],
                               ),
                             ),
+                          if (widget.isletmebilgi["randevu_takvim_turu"] == 2 ||
+                              widget.isletmebilgi["randevu_takvim_turu"] == 3)
+                            const SizedBox(height: 10),
                           SizedBox(
-                            width: columnWidth,
+                            width: double.infinity,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1007,89 +1144,90 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                               ],
                             ),
                           ),
-                          SizedBox(
-                            width: columnWidth,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Süre (dk)',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: scheme.onSurface.withValues(alpha: 0.55),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  alignment: Alignment.center,
-                                  height: 44,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(color: softBorder),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: TextFormField(
-                                    controller: suredk[index],
-                                    keyboardType: TextInputType.phone,
-                                    onTap: () {
-                                      // YENİ: TextField'a tıklanınca klavyeyi aç (diğerlerini kapatmaya gerek yok)
-                                    },
-                                    onChanged: (value) {
-                                      suredk[index].text = value!;
-                                      randevuhizmetleri[index].sure_dk = value;
-                                    },
-                                    decoration: InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 14),
+                          const SizedBox(height: 10),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Süre (dk)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: scheme.onSurface.withValues(alpha: 0.55),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(
-                            width: columnWidth,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Fiyat (₺)',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: scheme.onSurface.withValues(alpha: 0.55),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  alignment: Alignment.center,
-                                  height: 44,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(color: softBorder),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: TextFormField(
-                                    controller: fiyat[index],
-                                    keyboardType: TextInputType.phone,
-                                    onTap: () {
-                                      // YENİ: TextField'a tıklanınca klavyeyi aç
-                                    },
-                                    onChanged: (value) {
-                                      fiyat[index].text = value!;
-                                      randevuhizmetleri[index].fiyat = value;
-                                    },
-                                    decoration: InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 14),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      alignment: Alignment.center,
+                                      height: 44,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: softBorder),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: TextFormField(
+                                        controller: suredk[index],
+                                        keyboardType: TextInputType.phone,
+                                        onTap: () {},
+                                        onChanged: (value) {
+                                          suredk[index].text = value!;
+                                          randevuhizmetleri[index].sure_dk = value;
+                                        },
+                                        decoration: const InputDecoration(
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 14),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Fiyat (₺)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: scheme.onSurface.withValues(alpha: 0.55),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      alignment: Alignment.center,
+                                      height: 44,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: softBorder),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: TextFormField(
+                                        controller: fiyat[index],
+                                        keyboardType: TextInputType.phone,
+                                        onTap: () {},
+                                        onChanged: (value) {
+                                          fiyat[index].text = value!;
+                                          randevuhizmetleri[index].fiyat = value;
+                                        },
+                                        decoration: const InputDecoration(
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 14),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1543,67 +1681,65 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
+    return PremiumGradientBg(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          'Yeni Randevu',
-          style: TextStyle(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-            letterSpacing: -0.3,
+        extendBodyBehindAppBar: false,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: Text(
+            'Yeni Randevu',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              letterSpacing: -0.3,
+            ),
           ),
-        ),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
-          child: PremiumCircleAction(
-            icon: Icons.close_rounded,
-            iconColor: scheme.onSurface,
-            onTap: () {
-              _closeKeyboard(); // YENİ: Geri butonuna tıklanınca klavyeyi kapat
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
             child: PremiumCircleAction(
-              icon: Icons.person_add_alt_1_rounded,
-              onTap: () async {
-                final MusteriDanisan yenimusteridanisan = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => Yenimusteri(
-                            kullanicirolu: widget.kullanicirolu,
-                            isletmebilgi: widget.isletmebilgi,
-                            isim: "",
-                            telefon: "",
-                            sadeceekranikapat: true,
-                          )),
-                );
-                if (yenimusteridanisan != null)
-                  setState(() {
-                    musteridanisanlar.add(yenimusteridanisan);
-                    secilimusteridanisan = yenimusteridanisan;
-                    dropdownKey.currentState?.addItemAndSelect(yenimusteridanisan);
-                  });
+              icon: Icons.close_rounded,
+              iconColor: scheme.onSurface,
+              onTap: () {
+                _closeKeyboard();
+                Navigator.of(context).pop();
               },
             ),
           ),
-        ],
-        toolbarHeight: 64,
-      ),
-      body: PremiumGradientBg(
-        child: SafeArea(
-          top: false,
-          child: _getAppointmentEditor(context),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+              child: PremiumCircleAction(
+                icon: Icons.person_add_alt_1_rounded,
+                onTap: () async {
+                  final MusteriDanisan yenimusteridanisan = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => Yenimusteri(
+                              kullanicirolu: widget.kullanicirolu,
+                              isletmebilgi: widget.isletmebilgi,
+                              isim: "",
+                              telefon: "",
+                              sadeceekranikapat: true,
+                            )),
+                  );
+                  if (yenimusteridanisan != null)
+                    setState(() {
+                      musteridanisanlar.add(yenimusteridanisan);
+                      secilimusteridanisan = yenimusteridanisan;
+                      dropdownKey.currentState?.addItemAndSelect(yenimusteridanisan);
+                    });
+                },
+              ),
+            ),
+          ],
+          toolbarHeight: 64,
         ),
+        body: _getAppointmentEditor(context),
       ),
     );
   }

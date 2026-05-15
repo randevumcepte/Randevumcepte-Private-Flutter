@@ -746,6 +746,27 @@ Future<Map<String, dynamic>?> saatBosluguKampanyaOlustur({
   return null;
 }
 
+/// Salonun tum aktif gap kampanyalarini liste halinde getirir.
+/// Takvim/ajanda ekraninda kampanya saatlerini bildirim seridi olarak gostermek icin.
+/// Donus: {count: int, kampanyalar: [{id, gapKey, gapLabel, startHour, endHour, discount, ...}]}
+Future<Map<String, dynamic>?> aktifGapKampanyalari(String salonId) async {
+  if (salonId.isEmpty) return null;
+  try {
+    final response = await http
+        .get(
+          Uri.parse(
+              'https://apptest.randevumcepte.com.tr/api/v1/aktifGapKampanyalari/$salonId'),
+          headers: {'Content-Type': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 10));
+    final body = json.decode(response.body);
+    if (body is Map<String, dynamic>) return body;
+  } catch (e) {
+    log('aktifGapKampanyalari hata: $e');
+  }
+  return null;
+}
+
 /// Belirli bir saat icin aktif gap kampanyasi var mi kontrol eder.
 /// Tahsilat ekraninda "bu randevu indirim aralginda mi?" sorusu icin.
 /// [saat] format: "HH:MM" (opsiyonel, yoksa server now kullanir)

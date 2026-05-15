@@ -86,6 +86,10 @@ class TakvimState extends State<Takvim> {
   bool _isSyncingHorizontal = false;
   bool _isSyncingVertical = false;
   bool _firstLoad = true; // İlk yüklemede scroll'u doğru offset'ten başlatmak için
+
+  // Aktif gap kampanyalari — takvim ustunde serit olarak gosterilir
+  List<Map<String, dynamic>> _gapKampanyaListesi = [];
+
   @override
 
   void initState() {
@@ -111,6 +115,268 @@ class TakvimState extends State<Takvim> {
         DateFormat('yyyy-MM-dd').format(seciliTarih),
         DateFormat('yyyy-MM-dd').format(seciliTarih),
         false
+    );
+
+    _loadGapKampanyalari();
+  }
+
+  Future<void> _loadGapKampanyalari() async {
+    final salonId = widget.isletmebilgi["id"].toString();
+    final res = await aktifGapKampanyalari(salonId);
+    if (!mounted) return;
+    final list = (res?['kampanyalar'] as List?) ?? [];
+    setState(() {
+      _gapKampanyaListesi = list
+          .cast<Map>()
+          .map((m) => m.cast<String, dynamic>())
+          .toList();
+    });
+  }
+
+  Widget _buildGapKampanyaSeridi() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        border: Border(
+          bottom: BorderSide(
+              color: const Color(0xFFFBBF24).withValues(alpha: 0.35), width: 1),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.local_offer_rounded,
+              size: 14, color: Color(0xFFB45309)),
+          const SizedBox(width: 6),
+          const Text(
+            'Aktif Kampanya:',
+            style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFB45309)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (int i = 0; i < _gapKampanyaListesi.length; i++) ...[
+                    _buildGapChip(_gapKampanyaListesi[i]),
+                    if (i < _gapKampanyaListesi.length - 1)
+                      const SizedBox(width: 6),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGapChip(Map<String, dynamic> k) {
+    final gapKey = k['gapKey'] as String? ?? 'morning';
+    final start = (k['startHour'] as num?)?.toInt() ?? 0;
+    final end = (k['endHour'] as num?)?.toInt() ?? 0;
+    final disc = (k['discount'] as num?)?.toInt() ?? 0;
+
+    final List<Color> grad;
+    final IconData icon;
+    switch (gapKey) {
+      case 'morning':
+        grad = const [Color(0xFFFDE68A), Color(0xFFFCD34D)];
+        icon = Icons.wb_twilight_rounded;
+        break;
+      case 'afternoon':
+        grad = const [Color(0xFFFED7AA), Color(0xFFFB923C)];
+        icon = Icons.wb_sunny_rounded;
+        break;
+      case 'evening':
+      default:
+        grad = const [Color(0xFFDDD6FE), Color(0xFF8B5CF6)];
+        icon = Icons.nightlight_round;
+        break;
+    }
+
+    return InkWell(
+      onTap: () => _showGapKampanyaDetay(k),
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+              color: grad.last.withValues(alpha: 0.55), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: grad),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Icon(icon, size: 11, color: Colors.white),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${start.toString().padLeft(2, '0')}-${end.toString().padLeft(2, '0')}',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                ),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '%$disc',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showGapKampanyaDetay(Map<String, dynamic> k) {
+    final label = k['gapLabel'] as String? ?? 'Saatler';
+    final start = (k['startHour'] as num?)?.toInt() ?? 0;
+    final end = (k['endHour'] as num?)?.toInt() ?? 0;
+    final disc = (k['discount'] as num?)?.toInt() ?? 0;
+    final kalanGun = (k['kalanGun'] as num?)?.toInt() ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.local_offer_rounded,
+                        size: 18, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '$label Kampanyası',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _detayRow(Icons.schedule_rounded, 'Saat',
+                  '${start.toString().padLeft(2, '0')}:00 – ${end.toString().padLeft(2, '0')}:00'),
+              const SizedBox(height: 8),
+              _detayRow(Icons.local_offer_rounded, 'İndirim', '%$disc',
+                  valueColor: const Color(0xFF16A34A)),
+              const SizedBox(height: 8),
+              _detayRow(
+                  Icons.timer_outlined,
+                  'Kalan süre',
+                  kalanGun > 0 ? '$kalanGun gün' : 'Bugün son gün',
+                  valueColor: const Color(0xFF15803D)),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF22C55E).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Bu saat aralığındaki müşteriler tahsilat sırasında otomatik %$disc indirim almaya hak kazanır.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: Color(0xFF1A1A1A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6A1B9A),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11)),
+                  ),
+                  child: const Text('Tamam',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detayRow(IconData icon, String label, String value,
+      {Color? valueColor}) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: Colors.grey.shade600),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w800,
+            color: valueColor ?? Colors.black,
+          ),
+        ),
+      ],
     );
   }
 
@@ -383,6 +649,7 @@ class TakvimState extends State<Takvim> {
           : Column(
         children: [
           _buildControlBar(ekranGenisligi, formattedDate),
+          if (_gapKampanyaListesi.isNotEmpty) _buildGapKampanyaSeridi(),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
