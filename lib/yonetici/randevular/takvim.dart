@@ -2568,11 +2568,12 @@ class _AppointmentCardState extends State<_AppointmentCard> {
             height: 16,
             child: resizeHandle,
           ),
-          // Layer 3: indirim rozeti (sag-ust kose)
+          // Layer 3: indirim rozeti — kartın içinde sağ-üst köşe (parent Stack
+          // Clip.hardEdge olduğu için dışarı taşırılırsa kırpılır)
           if (widget.indirimYuzdesi != null && widget.indirimYuzdesi! > 0)
             Positioned(
-              top: -4,
-              right: -3,
+              top: 2,
+              right: 2,
               child: IgnorePointer(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -2582,11 +2583,11 @@ class _AppointmentCardState extends State<_AppointmentCard> {
                       colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
                     ),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: Colors.white, width: 1.2),
+                    border: Border.all(color: Colors.white, width: 1.0),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.20),
-                        blurRadius: 3,
+                        blurRadius: 2,
                         offset: const Offset(0, 1),
                       ),
                     ],
