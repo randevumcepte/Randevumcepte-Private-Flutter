@@ -927,6 +927,7 @@ class TakvimState extends State<Takvim> {
                               totalSlots: totalSlots,
                               slotHeight: slotHeight,
                               startTotalMinutes: startTotalMinutes,
+                              gapKampanyalari: _gapKampanyaListesi,
                             ),
                           ),
                         ),
@@ -958,13 +959,15 @@ class TakvimState extends State<Takvim> {
                                 child: Stack(
                                   clipBehavior: Clip.hardEdge,
                                   children: [
-                                    // Grid çizgileri - CustomPaint ile (List.generate Container yerine)
+                                    // Grid çizgileri + gap kampanya renkli arka plan
                                     Positioned.fill(
                                       child: RepaintBoundary(
                                         child: CustomPaint(
                                           painter: _GridLinesPainter(
                                             totalSlots: totalSlots,
                                             slotHeight: slotHeight,
+                                            startTotalMinutes: startTotalMinutes,
+                                            gapKampanyalari: _gapKampanyaListesi,
                                           ),
                                         ),
                                       ),
@@ -2147,15 +2150,53 @@ class _SaatColumnPainter extends CustomPainter {
   final int totalSlots;
   final double slotHeight;
   final int startTotalMinutes;
+  final List<Map<String, dynamic>> gapKampanyalari;
 
   _SaatColumnPainter({
     required this.totalSlots,
     required this.slotHeight,
     required this.startTotalMinutes,
+    this.gapKampanyalari = const [],
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Kampanya saat aralıklarına altın çubuk (sol sütunda 4px genişlik)
+    for (final k in gapKampanyalari) {
+      final startHour = (k['startHour'] as num?)?.toInt() ?? 0;
+      final endHour = (k['endHour'] as num?)?.toInt() ?? 0;
+      if (endHour <= startHour) continue;
+      final kStart = startHour * 60;
+      final kEnd = endHour * 60;
+      final slotStartMin = startTotalMinutes;
+      final slotEndMin = startTotalMinutes + totalSlots * 15;
+      final overlapStart = kStart > slotStartMin ? kStart : slotStartMin;
+      final overlapEnd = kEnd < slotEndMin ? kEnd : slotEndMin;
+      if (overlapEnd <= overlapStart) continue;
+      final yStart = (overlapStart - slotStartMin) / 15.0 * slotHeight;
+      final yEnd = (overlapEnd - slotStartMin) / 15.0 * slotHeight;
+
+      final gapKey = k['gapKey'] as String? ?? 'morning';
+      Color stripColor;
+      switch (gapKey) {
+        case 'morning':
+          stripColor = const Color(0xFFFCD34D);
+          break;
+        case 'afternoon':
+          stripColor = const Color(0xFFFB923C);
+          break;
+        case 'evening':
+        default:
+          stripColor = const Color(0xFF8B5CF6);
+          break;
+      }
+      final stripPaint = Paint()..color = stripColor;
+      canvas.drawRect(
+        Rect.fromLTWH(0, yStart, 3.5, yEnd - yStart),
+        stripPaint,
+      );
+    }
+
     final linePaint = Paint()
       ..color = Colors.grey.shade300
       ..strokeWidth = 1;
@@ -2190,7 +2231,7 @@ class _SaatColumnPainter extends CustomPainter {
           text: TextSpan(text: timeString, style: isHour ? textStyle : halfStyle),
           textDirection: ui.TextDirection.ltr,
         )..layout(maxWidth: size.width - 4);
-        tp.paint(canvas, Offset(4, y + 2));
+        tp.paint(canvas, Offset(6, y + 2));
       }
     }
 
@@ -2205,7 +2246,8 @@ class _SaatColumnPainter extends CustomPainter {
   bool shouldRepaint(covariant _SaatColumnPainter oldDelegate) {
     return oldDelegate.totalSlots != totalSlots ||
         oldDelegate.slotHeight != slotHeight ||
-        oldDelegate.startTotalMinutes != startTotalMinutes;
+        oldDelegate.startTotalMinutes != startTotalMinutes ||
+        oldDelegate.gapKampanyalari.length != gapKampanyalari.length;
   }
 }
 
@@ -2215,11 +2257,70 @@ class _SaatColumnPainter extends CustomPainter {
 class _GridLinesPainter extends CustomPainter {
   final int totalSlots;
   final double slotHeight;
+  // Kampanya saat araliklari — slot'lari renkli arka plan ile boyamak icin
+  final int startTotalMinutes; // gun ici takvim baslangici (dk)
+  final List<Map<String, dynamic>> gapKampanyalari;
 
-  _GridLinesPainter({required this.totalSlots, required this.slotHeight});
+  _GridLinesPainter({
+    required this.totalSlots,
+    required this.slotHeight,
+    this.startTotalMinutes = 0,
+    this.gapKampanyalari = const [],
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Once kampanya araliklarini arka plan olarak ciz
+    for (final k in gapKampanyalari) {
+      final startHour = (k['startHour'] as num?)?.toInt() ?? 0;
+      final endHour = (k['endHour'] as num?)?.toInt() ?? 0;
+      if (endHour <= startHour) continue;
+
+      final kStart = startHour * 60;
+      final kEnd = endHour * 60;
+      final slotStartMin = startTotalMinutes;
+      final slotEndMin = startTotalMinutes + totalSlots * 15;
+
+      // Calisma araligi ile kesisim
+      final overlapStart = kStart > slotStartMin ? kStart : slotStartMin;
+      final overlapEnd = kEnd < slotEndMin ? kEnd : slotEndMin;
+      if (overlapEnd <= overlapStart) continue;
+
+      final yStart = (overlapStart - slotStartMin) / 15.0 * slotHeight;
+      final yEnd = (overlapEnd - slotStartMin) / 15.0 * slotHeight;
+
+      // Gap'e gore arka plan rengi
+      final gapKey = k['gapKey'] as String? ?? 'morning';
+      Color bg;
+      switch (gapKey) {
+        case 'morning':
+          bg = const Color(0xFFFEF3C7).withValues(alpha: 0.55); // altın
+          break;
+        case 'afternoon':
+          bg = const Color(0xFFFED7AA).withValues(alpha: 0.45); // turuncumsı
+          break;
+        case 'evening':
+        default:
+          bg = const Color(0xFFE0E7FF).withValues(alpha: 0.55); // lacivertimsi
+          break;
+      }
+      final bgPaint = Paint()..color = bg;
+      canvas.drawRect(
+        Rect.fromLTWH(0, yStart, size.width, yEnd - yStart),
+        bgPaint,
+      );
+
+      // Sol kenar bandi (3px gradient) — gozun yakaladigi indirim isaret cizgisi
+      final stripePaint = Paint()
+        ..color = const Color(0xFF22C55E).withValues(alpha: 0.55)
+        ..strokeWidth = 2.5;
+      canvas.drawLine(
+        Offset(1.5, yStart),
+        Offset(1.5, yEnd),
+        stripePaint,
+      );
+    }
+
     final softLine = Paint()
       ..color = Colors.grey.shade200
       ..strokeWidth = 1;
@@ -2249,7 +2350,9 @@ class _GridLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _GridLinesPainter oldDelegate) {
     return oldDelegate.totalSlots != totalSlots ||
-        oldDelegate.slotHeight != slotHeight;
+        oldDelegate.slotHeight != slotHeight ||
+        oldDelegate.startTotalMinutes != startTotalMinutes ||
+        oldDelegate.gapKampanyalari.length != gapKampanyalari.length;
   }
 }
 
