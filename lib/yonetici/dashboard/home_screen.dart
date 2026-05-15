@@ -83,7 +83,6 @@ class _HomeState extends State<DashBoard> {
   void _updateNotificationCount() {
     _refreshDashboardData();
   }
-  final DialPadManager _dialPadManager = DialPadManager(); // Bu satırı ekleyin
 
   Future<void> _refreshDashboardData() async {
     setState(() {
@@ -454,11 +453,10 @@ class _HomeState extends State<DashBoard> {
 
   Widget _premiumQuickStrip(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      physics: const BouncingScrollPhysics(),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _quickPill(
             context,
@@ -475,18 +473,6 @@ class _HomeState extends State<DashBoard> {
             label: kullanicirolu < 5 ? 'Bugünkü Kasa' : 'Toplam Satış',
             tint: const Color(0xFF10B981),
           ),
-          if (kullanicirolu < 5) ...[
-            const SizedBox(width: 10),
-            _quickActionPill(
-              context,
-              icon: Icons.phone_in_talk_rounded,
-              label: 'Çevir',
-              onTap: () {
-                _dialPadManager.updateDialPad(
-                    context, true, "", widget.kullanici);
-              },
-            ),
-          ],
         ],
       ),
     );
@@ -552,56 +538,6 @@ class _HomeState extends State<DashBoard> {
           ),
           const SizedBox(width: 6),
         ],
-      ),
-    );
-  }
-
-  Widget _quickActionPill(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [scheme.primary, scheme.tertiary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.primary.withValues(alpha: 0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: scheme.onPrimary),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: scheme.onPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -804,28 +740,52 @@ class _HomeState extends State<DashBoard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Üst etiket — küçük, gri (başlık)
                     Text(
                       item.title,
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: scheme.onSurface,
-                        letterSpacing: -0.2,
-                        height: 1.15,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                        letterSpacing: 0.1,
+                        height: 1.1,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '${item.value} bugün',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: scheme.onSurface.withValues(alpha: 0.55),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 2),
+                    // BÜYÜK rakam — kartın yıldızı
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            item.value,
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: item.tint,
+                              letterSpacing: -0.8,
+                              height: 1.05,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 3),
+                          child: Text(
+                            'bugün',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.onSurface.withValues(alpha: 0.50),
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
