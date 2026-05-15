@@ -418,7 +418,9 @@ class _BilgiKart extends StatelessWidget {
           const SizedBox(height: 6),
           TextField(
             controller: formAdi,
+            maxLength: 200,
             decoration: InputDecoration(
+              counterText: '',
               hintText: 'Örn: Lazer Epilasyon Onam Formu',
               filled: true,
               fillColor: scheme.primary.withValues(alpha: 0.05),

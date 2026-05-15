@@ -205,80 +205,148 @@ class _FormSablonlariState extends State<FormSablonlari> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return PremiumGradientBg(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 6, right: 4),
-          child: FloatingActionButton.small(
-            onPressed: () => _yeniVeyaDuzenle(),
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            elevation: 3,
-            tooltip: 'Yeni Şablon',
-            child: const Icon(Icons.add_rounded, size: 22),
+    if (_yukleniyor) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return RefreshIndicator(
+      onRefresh: _listeyiYukle,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
+        children: [
+          _YeniSablonCTA(onTap: () => _yeniVeyaDuzenle()),
+          const SizedBox(height: 14),
+          if (_formlar.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Column(
+                children: [
+                  Icon(Icons.description_outlined,
+                      size: 64,
+                      color: scheme.primary.withValues(alpha: 0.4)),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Henüz form şablonu yok',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Yukarıdaki kartla yeni şablon oluştur.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._formlar.asMap().entries.map((entry) {
+              final i = entry.key;
+              final form = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _SablonKart(
+                  form: form,
+                  elemanSayisi: _elemanSayisi(form),
+                  tarih: _olusturmaTarihi(form),
+                  ilk: i == 0,
+                  son: i == _formlar.length - 1,
+                  onYukari: () => _siraDegistir(
+                      int.parse(form['id'].toString()), 'yukari'),
+                  onAsagi: () => _siraDegistir(
+                      int.parse(form['id'].toString()), 'asagi'),
+                  onDuzenle: () => _yeniVeyaDuzenle(form: form),
+                  onSil: () => _sil(form),
+                  onPdf: () {},
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+class _YeniSablonCTA extends StatelessWidget {
+  final VoidCallback onTap;
+  const _YeniSablonCTA({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, scheme.tertiary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.30),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.add_rounded,
+                    color: scheme.onPrimary, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Yeni Form Şablonu',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onPrimary,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Onam formu veya hizmet sözleşmesi oluştur',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onPrimary.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios_rounded,
+                  color: scheme.onPrimary, size: 14),
+            ],
           ),
         ),
-        body: _yukleniyor
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _listeyiYukle,
-                child: _formlar.isEmpty
-                    ? ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(20),
-                        children: [
-                          const SizedBox(height: 80),
-                          Icon(Icons.description_outlined,
-                              size: 64,
-                              color: scheme.primary.withValues(alpha: 0.4)),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Henüz form şablonu yok',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Sağ alttan "Yeni Şablon" diyerek başla.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: scheme.onSurface.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      )
-                    : ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
-                        itemCount: _formlar.length,
-                        itemBuilder: (context, i) {
-                          final form = _formlar[i];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _SablonKart(
-                              form: form,
-                              elemanSayisi: _elemanSayisi(form),
-                              tarih: _olusturmaTarihi(form),
-                              ilk: i == 0,
-                              son: i == _formlar.length - 1,
-                              onYukari: () =>
-                                  _siraDegistir(int.parse(form['id'].toString()), 'yukari'),
-                              onAsagi: () =>
-                                  _siraDegistir(int.parse(form['id'].toString()), 'asagi'),
-                              onDuzenle: () => _yeniVeyaDuzenle(form: form),
-                              onSil: () => _sil(form),
-                              onPdf: () {},
-                            ),
-                          );
-                        },
-                      ),
-              ),
       ),
     );
   }

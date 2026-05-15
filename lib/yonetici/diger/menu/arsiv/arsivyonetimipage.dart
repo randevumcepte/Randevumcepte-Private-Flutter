@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/theme/premium_components.dart';
 
 import 'beklenenformlar.dart';
 import 'formekle.dart';
@@ -14,11 +15,10 @@ import 'tumarsiv.dart';
 
 class ArsivYonetimiPage extends StatefulWidget {
   final dynamic isletmebilgi;
-  const ArsivYonetimiPage({Key? key, required this.isletmebilgi})
-      : super(key: key);
+  const ArsivYonetimiPage({super.key, required this.isletmebilgi});
 
   @override
-  _ArsivYonetimiPageState createState() => _ArsivYonetimiPageState();
+  State<ArsivYonetimiPage> createState() => _ArsivYonetimiPageState();
 }
 
 class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
@@ -35,12 +35,12 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.18),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  color: scheme.primary.withValues(alpha: 0.20),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
@@ -52,7 +52,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   child: Container(
                     width: 38,
                     height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
+                    margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
                       color: Colors.grey.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(999),
@@ -60,10 +60,10 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 10),
+                  padding: EdgeInsets.only(left: 4, bottom: 12),
                   child: Text(
                     'Yeni Oluştur',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                 ),
                 _SecimSatiri(
@@ -132,75 +132,42 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
+    final isDemo = widget.isletmebilgi["demo_hesabi"].toString() == "1";
+
+    return PremiumGradientBg(
       child: DefaultTabController(
         length: 6,
         child: Scaffold(
-          resizeToAvoidBottomInset: false,
-          appBar: AppBar(
-            centerTitle: false,
-            title: const Text(
-              'Form Yönetimi',
-              style: TextStyle(color: Colors.black),
-            ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            actions: <Widget>[
-              if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: SizedBox(
-                    width: 100,
-                    child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
+            child: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: Column(
+                children: [
+                  _PremiumHeader(
+                    onBack: () => Navigator.of(context).pop(),
+                    onYeni: () => _yeniSec(context),
+                    isDemo: isDemo,
+                    isletmebilgi: widget.isletmebilgi,
                   ),
-                ),
-              IconButton(
-                onPressed: () => _yeniSec(context),
-                icon: const Icon(Icons.add, color: Colors.black),
-                iconSize: 26,
-              ),
-            ],
-            backgroundColor: Colors.white,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(60),
-              child: Container(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: TabBar(
-                  isScrollable: true,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  tabAlignment: TabAlignment.start,
-                  labelColor: scheme.primary,
-                  unselectedLabelColor: scheme.primary.withValues(alpha: 0.7),
-                  labelPadding: const EdgeInsets.only(left: 10, right: 10),
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25),
-                    color: Colors.transparent,
-                    border: Border.all(color: scheme.primary, width: 1.5),
+                  const SizedBox(height: 6),
+                  _PremiumTabBar(scheme: scheme),
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: TabBarView(
+                      children: <Widget>[
+                        TumArsiv(),
+                        OnaylananArsiv(),
+                        BeklenenArsiv(),
+                        IptalEdilenArsiv(),
+                        HariciArsiv(),
+                        FormSablonlari(isletmebilgi: widget.isletmebilgi),
+                      ],
+                    ),
                   ),
-                  tabs: const [
-                    _SekmeEt(text: 'Tümü', genislik: 60),
-                    _SekmeEt(text: 'Onaylananlar', genislik: 120),
-                    _SekmeEt(text: 'Beklenenler', genislik: 120),
-                    _SekmeEt(text: 'İptal Edilenler', genislik: 120),
-                    _SekmeEt(text: 'Harici Belgeler', genislik: 130),
-                    _SekmeEt(text: 'Form Şablonları', genislik: 140),
-                  ],
-                ),
+                ],
               ),
             ),
-          ),
-          body: TabBarView(
-            children: <Widget>[
-              TumArsiv(),
-              OnaylananArsiv(),
-              BeklenenArsiv(),
-              IptalEdilenArsiv(),
-              HariciArsiv(),
-              FormSablonlari(isletmebilgi: widget.isletmebilgi),
-            ],
           ),
         ),
       ),
@@ -208,26 +175,176 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
   }
 }
 
-class _SekmeEt extends StatelessWidget {
-  final String text;
-  final double genislik;
-  const _SekmeEt({required this.text, required this.genislik});
+class _PremiumHeader extends StatelessWidget {
+  final VoidCallback onBack;
+  final VoidCallback onYeni;
+  final bool isDemo;
+  final dynamic isletmebilgi;
+
+  const _PremiumHeader({
+    required this.onBack,
+    required this.onYeni,
+    required this.isDemo,
+    required this.isletmebilgi,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Tab(
-      child: SizedBox(
-        width: genislik,
-        child: Align(
-          alignment: Alignment.center,
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+      child: Row(
+        children: [
+          PremiumCircleAction(
+            icon: Icons.arrow_back_rounded,
+            onTap: onBack,
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Form Yönetimi',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.4,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Form ve sözleşmeleri yönet',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isDemo)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SizedBox(
+                width: 92,
+                child: YukseltButonu(isletme_bilgi: isletmebilgi),
+              ),
+            ),
+          PremiumGradientPill(
+            icon: Icons.add_rounded,
+            label: 'Yeni',
+            onTap: onYeni,
+          ),
+        ],
       ),
     );
   }
+}
+
+class _PremiumTabBar extends StatelessWidget {
+  final ColorScheme scheme;
+  const _PremiumTabBar({required this.scheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: TabBar(
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+        indicator: const BoxDecoration(),
+        indicatorColor: Colors.transparent,
+        dividerColor: Colors.transparent,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        splashFactory: NoSplash.splashFactory,
+        labelColor: scheme.onPrimary,
+        unselectedLabelColor: scheme.primary,
+        tabs: const [
+          _PillTab(text: 'Tümü'),
+          _PillTab(text: 'Onaylananlar'),
+          _PillTab(text: 'Beklenenler'),
+          _PillTab(text: 'İptal Edilenler'),
+          _PillTab(text: 'Harici Belgeler'),
+          _PillTab(text: 'Form Şablonları'),
+        ],
+      ),
+    );
+  }
+}
+
+class _PillTab extends StatelessWidget {
+  final String text;
+  const _PillTab({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final controller = DefaultTabController.of(context);
+    return AnimatedBuilder(
+      animation: controller.animation!,
+      builder: (context, _) {
+        final indeks = controller.index;
+        final benimIndex = _bul(context, text);
+        final aktif = indeks == benimIndex;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: aktif
+                ? LinearGradient(
+                    colors: [scheme.primary, scheme.tertiary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: aktif ? null : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: aktif
+                ? [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.30),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Center(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: aktif ? scheme.onPrimary : scheme.primary,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static const _siralama = [
+    'Tümü',
+    'Onaylananlar',
+    'Beklenenler',
+    'İptal Edilenler',
+    'Harici Belgeler',
+    'Form Şablonları',
+  ];
+  int _bul(BuildContext context, String t) => _siralama.indexOf(t);
 }
 
 class _SecimSatiri extends StatelessWidget {
@@ -248,24 +365,24 @@ class _SecimSatiri extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: renk.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(13),
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: renk.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(13),
                 ),
                 child: Icon(icon, color: renk, size: 22),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +390,7 @@ class _SecimSatiri extends StatelessWidget {
                     Text(
                       baslik,
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w800),
+                          fontSize: 14.5, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 2),
                     Text(
