@@ -424,6 +424,10 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                                               geriGitBtn: false,
                                             );
                                           });
+                                        } else {
+                                          setState(() {
+                                            _selectedTab = 0;
+                                          });
                                         }
                                       },
                                     },
@@ -671,6 +675,10 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                 isletmebilgi: widget.isletmebilgi,
                 geriGitBtn: false,
               );
+            });
+          } else {
+            setState(() {
+              _selectedTab = 0;
             });
           }
         },
