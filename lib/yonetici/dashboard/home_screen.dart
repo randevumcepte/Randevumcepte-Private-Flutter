@@ -914,17 +914,29 @@ class _HomeState extends State<DashBoard> {
 
   Widget _premiumPerformanceRow(BuildContext context) {
     final ext = context.appTheme;
-    final mult = _periodMultiplier();
-    final kasaBase = _parseAmount(ozetsayfabilgi.toplamkasa.toString());
-    final alacakBase = _parseAmount(kullanicirolu < 5
-        ? ozetsayfabilgi.kalantutar.toString()
-        : ozetsayfabilgi.prim.toString());
-    final kasaScaled = kasaBase * mult;
-    final alacakScaled = alacakBase * mult;
-    // Donut progress'i periyot bazlı değişir → her tıklamada animasyonlu hareket
-    // (Backend periyot endpoint'i hazır olunca buraya gerçek query gelir.)
-    final kasaProgress = _periodProgress('kasa');
-    final alacakProgress = _periodProgress('alacak');
+
+    // Gerçek backend verisi (cache'te) — yoksa bugünün ozet verisine düş
+    final cache = _karsCache[_perfPeriod];
+    double kasaReal;
+    double alacakReal;
+    if (cache != null) {
+      kasaReal = (cache['kasa'] as num?)?.toDouble() ?? 0;
+      alacakReal = (cache['alacak'] as num?)?.toDouble() ?? 0;
+    } else {
+      // Backend henüz yüklenmediyse: bugünkü kasa & alacak (ölçeklemesiz, GERÇEK değer)
+      kasaReal = _parseAmount(ozetsayfabilgi.toplamkasa.toString()).toDouble();
+      alacakReal = _parseAmount(kullanicirolu < 5
+              ? ozetsayfabilgi.kalantutar.toString()
+              : ozetsayfabilgi.prim.toString())
+          .toDouble();
+    }
+
+    // Donut: toplam (kasa+alacak) içindeki oran — anlamlı bir yüzde
+    // Kasa donut = tahsil edilen / (tahsil + bekleyen)
+    // Alacak donut = bekleyen / (tahsil + bekleyen)
+    final toplam = kasaReal + alacakReal;
+    final kasaProgress = toplam > 0 ? (kasaReal / toplam) : 0.0;
+    final alacakProgress = toplam > 0 ? (alacakReal / toplam) : 0.0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -934,7 +946,7 @@ class _HomeState extends State<DashBoard> {
             child: _premiumPerfCard(
               context,
               title: kullanicirolu < 5 ? 'Toplam Kasa' : 'Toplam Satış',
-              value: '${_formatAmount(kasaScaled)} ₺',
+              value: '${_formatAmount(kasaReal)} ₺',
               icon: Icons.account_balance_wallet_rounded,
               tint: ext.successColor,
               progress: kasaProgress,
@@ -961,7 +973,7 @@ class _HomeState extends State<DashBoard> {
             child: _premiumPerfCard(
               context,
               title: kullanicirolu < 5 ? 'Alacak' : 'Prim Hakediş',
-              value: '${_formatAmount(alacakScaled)} ₺',
+              value: '${_formatAmount(alacakReal)} ₺',
               icon: Icons.payments_outlined,
               tint: ext.warningColor,
               progress: alacakProgress,
@@ -1024,64 +1036,64 @@ class _HomeState extends State<DashBoard> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: tint.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(icon, size: 15, color: tint),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: scheme.onSurface
-                                        .withValues(alpha: 0.55),
-                                    letterSpacing: 0.1,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            value,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              color: scheme.onSurface,
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: tint.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(7),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            child: Icon(icon, size: 13, color: tint),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface
+                                    .withValues(alpha: 0.55),
+                                letterSpacing: 0.1,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    _miniDonut(context, progress: progress, tint: tint),
-                  ],
+                      const SizedBox(height: 6),
+                      // Uzun TL değerleri için FittedBox ile sığdır
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                            color: scheme.onSurface,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
+                _miniDonut(context, progress: progress, tint: tint),
               ],
             ),
           ),
@@ -3132,33 +3144,40 @@ class _HomeState extends State<DashBoard> {
       {required double progress, required Color tint}) {
     final scheme = Theme.of(context).colorScheme;
     final clamped = progress.clamp(0.0, 1.0);
-    final pct = (clamped * 100).round();
     return SizedBox(
       width: 48,
       height: 48,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: CircularProgressIndicator(
-              value: clamped,
-              strokeWidth: 5,
-              strokeCap: StrokeCap.round,
-              backgroundColor: tint.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation(tint),
-            ),
-          ),
-          Text(
-            '%$pct',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
-            ),
-          ),
-        ],
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: clamped),
+        duration: const Duration(milliseconds: 900),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) {
+          final pct = (value * 100).round();
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  value: value,
+                  strokeWidth: 5,
+                  strokeCap: StrokeCap.round,
+                  backgroundColor: tint.withValues(alpha: 0.15),
+                  valueColor: AlwaysStoppedAnimation(tint),
+                ),
+              ),
+              Text(
+                '%$pct',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
