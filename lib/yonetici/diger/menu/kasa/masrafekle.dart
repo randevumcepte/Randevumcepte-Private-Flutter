@@ -1,568 +1,848 @@
-import 'dart:developer';
-
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:dropdown_model_list/drop_down/model.dart';
-import 'package:dropdown_model_list/drop_down/search_drop_list.dart';
-import 'package:dropdown_model_list/drop_down/select_drop_list.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import 'package:randevu_sistem/Models/odemeturu.dart';
-
 import 'package:randevu_sistem/Models/masrafkategorileri.dart';
+import 'package:randevu_sistem/Models/odemeturu.dart';
 import 'package:randevu_sistem/Models/personel.dart';
-
-
+import 'package:randevu_sistem/theme/premium_components.dart';
 
 class MasrafEkle extends StatefulWidget {
-    final List<MasrafKategorisi> masrafkategorileri;
-    final List<Personel> personeller;
-    final GiderDataSource giderDataSource;
-    final String seciliisletme;
-    final dynamic isletmebilgi;
-    const MasrafEkle({Key? key,required this.personeller,required this.masrafkategorileri,required this.giderDataSource,required this.seciliisletme,required this.isletmebilgi}) : super(key: key);
+  final List<MasrafKategorisi> masrafkategorileri;
+  final List<Personel> personeller;
+  final GiderDataSource giderDataSource;
+  final String seciliisletme;
+  final dynamic isletmebilgi;
 
-    @override
-    _MasrafState createState() => _MasrafState();
+  const MasrafEkle({
+    super.key,
+    required this.personeller,
+    required this.masrafkategorileri,
+    required this.giderDataSource,
+    required this.seciliisletme,
+    required this.isletmebilgi,
+  });
+
+  @override
+  _MasrafState createState() => _MasrafState();
 }
 
 class _MasrafState extends State<MasrafEkle> {
+  final List<OdemeTuru> _odemeYontemleri = [
+    OdemeTuru(id: '1', odeme_turu: 'Nakit'),
+    OdemeTuru(id: '2', odeme_turu: 'Kredi/Banka Kartı'),
+    OdemeTuru(id: '3', odeme_turu: 'Havale/EFT'),
+  ];
 
-    Personel? selectedharcayan;
-    final TextEditingController masrafharcayancontroller = TextEditingController();
-    final List<OdemeTuru> masrafodemeyontem = [
-        OdemeTuru(id: '1', odeme_turu: 'Nakit'),
-        OdemeTuru(id: '2', odeme_turu: 'Kredi/Banka Kartı'),
-        OdemeTuru(id: '3', odeme_turu: 'Havale/EFT'),
+  Personel? _selectedHarcayan;
+  MasrafKategorisi? _selectedKategori;
+  OdemeTuru? _selectedOdemeYontemi;
 
+  final TextEditingController _tarihCtrl = TextEditingController();
+  final TextEditingController _tutarCtrl = TextEditingController();
+  final TextEditingController _aciklamaCtrl = TextEditingController();
+  final TextEditingController _kategoriAramaCtrl = TextEditingController();
+  final TextEditingController _harcayanAramaCtrl = TextEditingController();
 
-    ];
-    OdemeTuru? selectedmasrafodemeyontem;
+  DateTime? _seciliTarih;
+  bool _kaydediliyor = false;
 
-    MasrafKategorisi? selectedmasrafkategori;
+  @override
+  void initState() {
+    super.initState();
+    _seciliTarih = DateTime.now();
+    _tarihCtrl.text = DateFormat('dd.MM.yyyy').format(_seciliTarih!);
+  }
 
-    final TextEditingController masrafkategoricontroller = TextEditingController();
+  @override
+  void dispose() {
+    _tarihCtrl.dispose();
+    _tutarCtrl.dispose();
+    _aciklamaCtrl.dispose();
+    _kategoriAramaCtrl.dispose();
+    _harcayanAramaCtrl.dispose();
+    super.dispose();
+  }
 
-    TextEditingController masrafodemeyontemcontroller = TextEditingController();
-    TextEditingController masraftarih = TextEditingController();
-    TextEditingController tutar = TextEditingController();
-    TextEditingController aciklama = TextEditingController();
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDemo = widget.isletmebilgi["demo_hesabi"].toString() == "1";
 
-    @override
-    void initState() {
-        masraftarih.text = ""; //set the initial value of text field
-        super.initState();
-    }
-    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-    AutovalidateMode _autoValidate = AutovalidateMode.disabled;
-
-    @override
-    Widget build(BuildContext context) {
-
-        return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            home: Scaffold(
-                appBar: new AppBar(
-                    title: const Text('Yeni Masraf',style: TextStyle(color: Colors.black),),
-                    backgroundColor: Colors.white,
-                    leading: IconButton(
-                        icon: Icon(Icons.clear_rounded, color: Colors.black),
-                        onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    actions: [
-                        if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-                        Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: SizedBox(
-                                width: 100, // <-- Your width
-                                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
-                            ),
-                        ),
-                    ],
-
-                ),
-
-                body: SingleChildScrollView(
-                    child: Container(
-                        margin: const EdgeInsets.all(15.0),
-                        child: Form(
-                            key: _formKey,
-                            autovalidateMode: _autoValidate,
-                            child: formUI(),
-                        ),
-                    ),
-                ),
-            ),
-        );
-    }
-
-    Widget formUI() {
-        return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-                Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Tarih',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                ),
-                SizedBox(height: 10,),
-                Container(
-                    height: 40,
-
-                    child: TextFormField(
-
-                        controller: masraftarih,
-                        onSaved: (value){
-                            if(value!=null)
-                                masraftarih.text = value;
-                        },
-                        enabled:true,
-                        //editing controller of this TextField
-                        decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                            ),
-                        ),
-                        readOnly: true,
-                        //set it true, so that user will not able to edit text
-
-                        onTap: () async {
-                            DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(1950),
-                                //DateTime.now() - not to allow to choose before today.
-                                lastDate: DateTime(2100));
-
-                            if (pickedDate != null) {
-                                print(
-                                    pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
-                                String formattedDate =
-                                DateFormat('yyyy-MM-dd').format(pickedDate);
-                                print(
-                                    formattedDate); //formatted date output using intl package =>  2021-03-16
-                                setState(() {
-                                    masraftarih.text =
-                                        formattedDate; //set output date to TextField value.
-                                });
-                            } else {}
-                        },
-                    ),
-
-                ),
-                SizedBox(height: 10,),
-                Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Tutar (₺)',style: TextStyle( fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                ),
-                SizedBox(height: 10,),
-                Container(
-                    height: 40,
-                    child: TextFormField(
-
-                        keyboardType: TextInputType.number,
-                        controller: tutar,
-                        onSaved: (value){
-                            if(value!=null)
-                                tutar.text = value;
-                        },
-                        decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                            ),
-                        ),
-                    ),
-                ),
-
-                SizedBox(height: 10,),
-                Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Masraf Kategorisi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                ),
-                SizedBox(height: 10,),
-                Container(
-                    alignment: Alignment.center,
-
-                    height: 40,
-                    width:double.infinity,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Color(0xFF6A1B9A)),
-                        borderRadius: BorderRadius.circular(10), //border corner radius
-
-                        //you can set more BoxShadow() here
-
-                    ),
-                    child: DropdownButtonHideUnderline(
-
-                        child: DropdownButton2<MasrafKategorisi>(
-
-                            isExpanded: true,
-                            hint: Text(
-                                'Seç',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(context).hintColor,
-                                ),
-                            ),
-                            items: widget.masrafkategorileri
-                                .map((item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(
-                                    item.kategori,
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                    ),
-                                ),
-                            ))
-                                .toList(),
-                            value: selectedmasrafkategori,
-                            onChanged: (value) {
-                                setState(() {
-                                    selectedmasrafkategori = value;
-
-
-                                });
-                            },
-                            buttonStyleData: const ButtonStyleData(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                height: 50,
-                                width: 400,
-                            ),
-
-                            dropdownStyleData: const DropdownStyleData(
-                                maxHeight: 200,
-
-                            ),
-                            menuItemStyleData: const MenuItemStyleData(
-                                height: 40,
-                            ),
-                            dropdownSearchData: DropdownSearchData(
-                                searchController: masrafkategoricontroller,
-                                searchInnerWidgetHeight: 50,
-                                searchInnerWidget: Container(
-                                    height: 50,
-                                    padding: const EdgeInsets.only(
-                                        top: 8,
-                                        bottom: 4,
-                                        right: 8,
-                                        left: 8,
-                                    ),
-                                    child: TextFormField(
-                                        expands: true,
-                                        maxLines: null,
-                                        controller: masrafkategoricontroller,
-                                        decoration: InputDecoration(
-                                            isDense: true,
-                                            contentPadding: const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 8,
-                                            ),
-                                            hintText: 'Ara..',
-                                            hintStyle: const TextStyle(fontSize: 12),
-                                            border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                                searchMatchFn: (item, searchValue) {
-                                    return item.value.toString().contains(searchValue);
-                                },
-                            ),
-                            //This to clear the search value when you close the menu
-                            onMenuStateChange: (isOpen) {
-                                if (!isOpen) {
-                                    masrafkategoricontroller.clear();
-                                }
-                            },
-
-                        )),
-                ),
-                SizedBox(height: 10,),
-                Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Ödeme Yöntemi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                ),
-                SizedBox(height: 10,),
-                Container(
-                    alignment: Alignment.center,
-
-                    height: 40,
-                    width:double.infinity,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Color(0xFF6A1B9A)),
-                        borderRadius: BorderRadius.circular(10), //border corner radius
-
-                        //you can set more BoxShadow() here
-
-                    ),
-                    child: DropdownButtonHideUnderline(
-
-                        child: DropdownButton2<OdemeTuru>(
-
-                            isExpanded: true,
-                            hint: Text(
-                                'Seç',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(context).hintColor,
-                                ),
-                            ),
-                            items: masrafodemeyontem
-                                .map((item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(
-                                    item.odeme_turu,
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                    ),
-                                ),
-                            ))
-                                .toList(),
-                            value: selectedmasrafodemeyontem,
-                            onChanged: (value) {
-                                setState(() {
-                                    selectedmasrafodemeyontem = value;
-                                });
-                            },
-                            buttonStyleData: const ButtonStyleData(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                height: 50,
-                                width: 400,
-                            ),
-
-                            dropdownStyleData: const DropdownStyleData(
-                                maxHeight: 200,
-
-                            ),
-                            menuItemStyleData: const MenuItemStyleData(
-                                height: 40,
-                            ),
-                            dropdownSearchData: DropdownSearchData(
-                                searchController: masrafodemeyontemcontroller,
-                                searchInnerWidgetHeight: 50,
-                                searchInnerWidget: Container(
-                                    height: 50,
-                                    padding: const EdgeInsets.only(
-                                        top: 8,
-                                        bottom: 4,
-                                        right: 8,
-                                        left: 8,
-                                    ),
-                                    child: TextFormField(
-                                        expands: true,
-                                        maxLines: null,
-                                        controller: masrafodemeyontemcontroller,
-                                        decoration: InputDecoration(
-                                            isDense: true,
-                                            contentPadding: const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 8,
-                                            ),
-                                            hintText: 'Ara..',
-                                            hintStyle: const TextStyle(fontSize: 12),
-                                            border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                                searchMatchFn: (item, searchValue) {
-                                    return item.value.toString().contains(searchValue);
-                                },
-                            ),
-                            //This to clear the search value when you close the menu
-                            onMenuStateChange: (isOpen) {
-                                if (!isOpen) {
-                                    masrafodemeyontemcontroller.clear();
-                                }
-                            },
-
-                        )),
-                ),
-                SizedBox(height: 10,),
-                Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Harcayan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                ),
-                SizedBox(height: 10,),
-                Container(
-                    alignment: Alignment.center,
-
-                    height: 40,
-                    width:double.infinity,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Color(0xFF6A1B9A)),
-                        borderRadius: BorderRadius.circular(10), //border corner radius
-
-                        //you can set more BoxShadow() here
-
-                    ),
-                    child: DropdownButtonHideUnderline(
-
-                        child: DropdownButton2<Personel>(
-
-                            isExpanded: true,
-                            hint: Text(
-                                'Seç',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(context).hintColor,
-                                ),
-                            ),
-                            items: widget.personeller
-                                .map((item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(
-                                    item.personel_adi,
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                    ),
-                                ),
-                            ))
-                                .toList(),
-                            value: selectedharcayan,
-                            onChanged: (value) {
-                                setState(() {
-                                    selectedharcayan = value;
-                                });
-                            },
-                            buttonStyleData: const ButtonStyleData(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                height: 50,
-                                width: 400,
-                            ),
-
-                            dropdownStyleData: const DropdownStyleData(
-                                maxHeight: 200,
-
-                            ),
-                            menuItemStyleData: const MenuItemStyleData(
-                                height: 40,
-                            ),
-                            dropdownSearchData: DropdownSearchData(
-                                searchController: masrafharcayancontroller,
-                                searchInnerWidgetHeight: 50,
-                                searchInnerWidget: Container(
-                                    height: 50,
-                                    padding: const EdgeInsets.only(
-                                        top: 8,
-                                        bottom: 4,
-                                        right: 8,
-                                        left: 8,
-                                    ),
-                                    child: TextFormField(
-                                        expands: true,
-                                        maxLines: null,
-                                        controller: masrafharcayancontroller,
-                                        decoration: InputDecoration(
-                                            isDense: true,
-                                            contentPadding: const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 8,
-                                            ),
-                                            hintText: 'Ara..',
-                                            hintStyle: const TextStyle(fontSize: 12),
-                                            border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                                searchMatchFn: (item, searchValue) {
-                                    return item.value.toString().contains(searchValue);
-                                },
-                            ),
-                            //This to clear the search value when you close the menu
-                            onMenuStateChange: (isOpen) {
-                                if (!isOpen) {
-                                    masrafharcayancontroller.clear();
-                                }
-                            },
-
-                        )),
-                ),
-                SizedBox(height: 10,),
-                Padding(
-                    padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Açıklama',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                ),
-                SizedBox(height: 10,),
-                Container(
-
-
-                    child: TextFormField(
-
-                        keyboardType: TextInputType.text,
-                        controller: aciklama,
-                        onSaved: (value){
-                            if(value!=null)
-                                aciklama.text = value;
-                        },
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                            enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
-                            ),
-                        ),
-                    ),
-                ),
-                SizedBox(height: 10,),
-                const SizedBox(
-                    height: 20.0,
-                ),
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: scheme.surface,
+        body: PremiumGradientBg(
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(scheme, isDemo),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
                     children: [
-                        ElevatedButton(onPressed: (){
-                            widget.giderDataSource.masrafEkleGuncelle('', tutar.text, selectedmasrafkategori!, aciklama.text, selectedmasrafodemeyontem!, selectedharcayan!, context,widget.seciliisletme ,masraftarih.text);
-
-
-                        },
-                            child: Text('Kaydet'),
-                            style: ElevatedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.green,
-                                minimumSize: Size(90, 40)
-                            ),
-                        ),
+                      _buildTarihTutarCard(scheme),
+                      const SizedBox(height: 12),
+                      _buildKategoriCard(scheme),
+                      const SizedBox(height: 12),
+                      _buildOdemeYontemiCard(scheme),
+                      const SizedBox(height: 12),
+                      _buildHarcayanCard(scheme),
+                      const SizedBox(height: 12),
+                      _buildAciklamaCard(scheme),
                     ],
-                )
+                  ),
+                ),
+                _buildBottomSave(scheme),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ColorScheme scheme, bool isDemo) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Row(
+        children: [
+          PremiumCircleAction(
+            icon: Icons.close_rounded,
+            onTap: () => Navigator.of(context).pop(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Yeni Masraf',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.4,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Hızlı gider kaydı oluştur',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isDemo)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: SizedBox(
+                width: 96,
+                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTarihTutarCard(ColorScheme scheme) {
+    return _glassCard(
+      scheme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel(scheme, 'Masraf Bilgileri',
+              Icons.receipt_long_outlined),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _fieldWithLabel(
+                  scheme,
+                  label: 'Tarih',
+                  child: _tarihAlani(scheme),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _fieldWithLabel(
+                  scheme,
+                  label: 'Tutar (₺)',
+                  child: _modernInput(
+                    scheme,
+                    controller: _tutarCtrl,
+                    hint: '0,00',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [TurkishLiraInputFormatter()],
+                  ),
+                ),
+              ),
             ],
-        );
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tarihAlani(ColorScheme scheme) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: _tarihSec,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(
+              color: scheme.outline.withValues(alpha: 0.25),
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: scheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _tarihCtrl.text.isEmpty ? 'Seç' : _tarihCtrl.text,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: _tarihCtrl.text.isEmpty
+                        ? scheme.onSurface.withValues(alpha: 0.4)
+                        : scheme.onSurface,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.expand_more_rounded,
+                size: 16,
+                color: scheme.onSurface.withValues(alpha: 0.45),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _tarihSec() async {
+    FocusScope.of(context).unfocus();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _seciliTarih ?? DateTime.now(),
+      firstDate: DateTime(1950),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _seciliTarih = picked;
+        _tarihCtrl.text = DateFormat('dd.MM.yyyy').format(picked);
+      });
+    }
+  }
+
+  Widget _buildKategoriCard(ColorScheme scheme) {
+    return _glassCard(
+      scheme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel(
+              scheme, 'Masraf Kategorisi', Icons.category_outlined),
+          const SizedBox(height: 10),
+          _dropdownContainer(
+            scheme,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton2<MasrafKategorisi>(
+                isExpanded: true,
+                hint: Text(
+                  'Kategori seçiniz',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+                items: widget.masrafkategorileri
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(
+                          item.kategori,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                value: _selectedKategori,
+                onChanged: (value) => setState(() => _selectedKategori = value),
+                buttonStyleData: const ButtonStyleData(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  height: 44,
+                ),
+                iconStyleData: IconStyleData(
+                  icon: Icon(
+                    Icons.expand_more_rounded,
+                    color: scheme.onSurface.withValues(alpha: 0.45),
+                  ),
+                ),
+                dropdownStyleData: DropdownStyleData(
+                  maxHeight: 280,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.10),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                ),
+                menuItemStyleData: const MenuItemStyleData(height: 40),
+                dropdownSearchData: DropdownSearchData(
+                  searchController: _kategoriAramaCtrl,
+                  searchInnerWidgetHeight: 50,
+                  searchInnerWidget: _aramaInputWrapper(
+                      scheme, _kategoriAramaCtrl, 'Kategori ara...'),
+                  searchMatchFn: (item, searchValue) {
+                    return item.value
+                        .toString()
+                        .toLowerCase()
+                        .contains(searchValue.toLowerCase());
+                  },
+                ),
+                onMenuStateChange: (isOpen) {
+                  if (!isOpen) _kategoriAramaCtrl.clear();
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOdemeYontemiCard(ColorScheme scheme) {
+    return _glassCard(
+      scheme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel(
+              scheme, 'Ödeme Yöntemi', Icons.account_balance_wallet_outlined),
+          const SizedBox(height: 10),
+          Row(
+            children: _odemeYontemleri.map((y) {
+              final secili = _selectedOdemeYontemi?.id == y.id;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: y == _odemeYontemleri.last ? 0 : 8,
+                  ),
+                  child: _odemeChip(scheme, y, secili),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _odemeChip(ColorScheme scheme, OdemeTuru y, bool secili) {
+    IconData icon;
+    switch (y.id) {
+      case '1':
+        icon = Icons.payments_rounded;
+        break;
+      case '2':
+        icon = Icons.credit_card_rounded;
+        break;
+      default:
+        icon = Icons.account_balance_rounded;
+    }
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: () => setState(() => _selectedOdemeYontemi = y),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          decoration: BoxDecoration(
+            color: secili
+                ? scheme.primary.withValues(alpha: 0.10)
+                : Colors.white,
+            border: Border.all(
+              color: secili
+                  ? scheme.primary
+                  : scheme.outline.withValues(alpha: 0.25),
+              width: secili ? 1.4 : 1,
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: secili
+                    ? scheme.primary
+                    : scheme.onSurface.withValues(alpha: 0.55),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                y.odeme_turu,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  height: 1.1,
+                  color: secili
+                      ? scheme.primary
+                      : scheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHarcayanCard(ColorScheme scheme) {
+    return _glassCard(
+      scheme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel(scheme, 'Harcayan', Icons.person_outline_rounded),
+          const SizedBox(height: 10),
+          _dropdownContainer(
+            scheme,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton2<Personel>(
+                isExpanded: true,
+                hint: Text(
+                  'Personel seçiniz',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+                items: widget.personeller
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(
+                          item.personel_adi,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                value: _selectedHarcayan,
+                onChanged: (value) => setState(() => _selectedHarcayan = value),
+                buttonStyleData: const ButtonStyleData(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  height: 44,
+                ),
+                iconStyleData: IconStyleData(
+                  icon: Icon(
+                    Icons.expand_more_rounded,
+                    color: scheme.onSurface.withValues(alpha: 0.45),
+                  ),
+                ),
+                dropdownStyleData: DropdownStyleData(
+                  maxHeight: 280,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.10),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                ),
+                menuItemStyleData: const MenuItemStyleData(height: 40),
+                dropdownSearchData: DropdownSearchData(
+                  searchController: _harcayanAramaCtrl,
+                  searchInnerWidgetHeight: 50,
+                  searchInnerWidget: _aramaInputWrapper(
+                      scheme, _harcayanAramaCtrl, 'Personel ara...'),
+                  searchMatchFn: (item, searchValue) {
+                    return item.value
+                        .toString()
+                        .toLowerCase()
+                        .contains(searchValue.toLowerCase());
+                  },
+                ),
+                onMenuStateChange: (isOpen) {
+                  if (!isOpen) _harcayanAramaCtrl.clear();
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAciklamaCard(ColorScheme scheme) {
+    return _glassCard(
+      scheme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel(scheme, 'Açıklama', Icons.notes_rounded),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                color: scheme.outline.withValues(alpha: 0.25),
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextFormField(
+              controller: _aciklamaCtrl,
+              keyboardType: TextInputType.multiline,
+              maxLines: 3,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Bu masrafa dair kısa bir not...',
+                hintStyle: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.35),
+                  fontWeight: FontWeight.w500,
+                ),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomSave(ColorScheme scheme) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, scheme.tertiary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              onTap: _kaydediliyor ? null : _kaydet,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                alignment: Alignment.center,
+                child: _kaydediliyor
+                    ? SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: scheme.onPrimary,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_rounded,
+                            color: scheme.onPrimary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Masrafı Kaydet',
+                            style: TextStyle(
+                              color: scheme.onPrimary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _kaydet() async {
+    FocusScope.of(context).unfocus();
+    if (_seciliTarih == null) {
+      _uyari('Lütfen tarih seçiniz.');
+      return;
+    }
+    if (_tutarCtrl.text.trim().isEmpty) {
+      _uyari('Lütfen tutar giriniz.');
+      return;
+    }
+    if (_selectedKategori == null) {
+      _uyari('Lütfen masraf kategorisi seçiniz.');
+      return;
+    }
+    if (_selectedOdemeYontemi == null) {
+      _uyari('Lütfen ödeme yöntemini seçiniz.');
+      return;
+    }
+    if (_selectedHarcayan == null) {
+      _uyari('Lütfen harcayan personeli seçiniz.');
+      return;
     }
 
+    setState(() => _kaydediliyor = true);
+    try {
+      final apiTarih = DateFormat('yyyy-MM-dd').format(_seciliTarih!);
+      widget.giderDataSource.masrafEkleGuncelle(
+        '',
+        _tutarCtrl.text,
+        _selectedKategori!,
+        _aciklamaCtrl.text,
+        _selectedOdemeYontemi!,
+        _selectedHarcayan!,
+        context,
+        widget.seciliisletme,
+        apiTarih,
+      );
+    } finally {
+      if (mounted) setState(() => _kaydediliyor = false);
+    }
+  }
 
+  void _uyari(String mesaj) {
+    showPremiumWarning(
+      context,
+      title: 'Eksik Bilgi',
+      message: mesaj,
+      tone: 'warning',
+    );
+  }
 
+  // --- Reusable building blocks (paketekle ile aynı dil) ---
+
+  Widget _glassCard(ColorScheme scheme, {required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _sectionLabel(ColorScheme scheme, String text, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: scheme.primary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: scheme.onSurface,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fieldWithLabel(
+    ColorScheme scheme, {
+    required String label,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurface.withValues(alpha: 0.65),
+            letterSpacing: 0.2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        child,
+      ],
+    );
+  }
+
+  Widget _modernInput(
+    ColorScheme scheme, {
+    required TextEditingController controller,
+    required String hint,
+    required TextInputType keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: scheme.outline.withValues(alpha: 0.25),
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(
+            color: scheme.onSurface.withValues(alpha: 0.35),
+            fontWeight: FontWeight.w500,
+          ),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _dropdownContainer(ColorScheme scheme, {required Widget child}) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: scheme.outline.withValues(alpha: 0.25),
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _aramaInputWrapper(
+    ColorScheme scheme,
+    TextEditingController controller,
+    String hint,
+  ) {
+    return Container(
+      height: 50,
+      padding:
+          const EdgeInsets.only(top: 8, bottom: 4, left: 8, right: 8),
+      child: TextFormField(
+        controller: controller,
+        expands: true,
+        maxLines: null,
+        style: const TextStyle(fontSize: 13),
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          hintText: hint,
+          hintStyle: TextStyle(
+            fontSize: 12,
+            color: scheme.onSurface.withValues(alpha: 0.45),
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: 16,
+            color: scheme.onSurface.withValues(alpha: 0.45),
+          ),
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 28, minHeight: 28),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: scheme.outline.withValues(alpha: 0.25),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
