@@ -297,8 +297,11 @@ class _HomeState extends State<DashBoard> {
         children: [
           _circleAction(
             context,
-            icon: Icons.notifications_outlined,
+            icon: hasUnread
+                ? Icons.notifications_active_rounded
+                : Icons.notifications_none_rounded,
             badge: hasUnread ? unread : null,
+            pulse: hasUnread,
             onTap: () {
               Navigator.push(
                 context,
@@ -359,6 +362,7 @@ class _HomeState extends State<DashBoard> {
     required IconData icon,
     String? badge,
     required VoidCallback onTap,
+    bool pulse = false,
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Stack(
@@ -375,7 +379,19 @@ class _HomeState extends State<DashBoard> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: pulse
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white,
+                          Color.alphaBlend(
+                              scheme.primary.withValues(alpha: 0.07),
+                              Colors.white),
+                        ],
+                      )
+                    : null,
+                color: pulse ? null : Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -385,34 +401,15 @@ class _HomeState extends State<DashBoard> {
                   ),
                 ],
               ),
-              child: Icon(icon, color: scheme.primary, size: 20),
+              child: Icon(icon, color: scheme.primary, size: 21),
             ),
           ),
         ),
         if (badge != null)
           Positioned(
-            top: -2,
-            right: -2,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Center(
-                child: Text(
-                  badge,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                  ),
-                ),
-              ),
-            ),
+            top: -3,
+            right: -3,
+            child: _AnimatedBadge(badge: badge),
           ),
       ],
     );
@@ -4262,4 +4259,77 @@ class _DashItem {
     required this.tint,
     required this.onTap,
   });
+}
+
+/// Çan butonunun üstünde subtle pulse animasyonlu kırmızı badge.
+class _AnimatedBadge extends StatefulWidget {
+  final String badge;
+  const _AnimatedBadge({Key? key, required this.badge}) : super(key: key);
+
+  @override
+  State<_AnimatedBadge> createState() => _AnimatedBadgeState();
+}
+
+class _AnimatedBadgeState extends State<_AnimatedBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        final scale = 1.0 + (_ctrl.value * 0.10);
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+              ),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF4444)
+                      .withValues(alpha: 0.30 + (_ctrl.value * 0.25)),
+                  blurRadius: 6,
+                  spreadRadius: _ctrl.value * 1.5,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                widget.badge,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
