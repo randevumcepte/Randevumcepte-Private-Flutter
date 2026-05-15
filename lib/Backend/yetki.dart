@@ -57,13 +57,30 @@ class Yetki {
   static Future<void> tazele({required String salonid}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userRaw = prefs.getString('user');
-      if (userRaw == null) return; // login yok
-      final user = jsonDecode(userRaw);
-      final token = user is Map ? user['token']?.toString() : null;
+      // Login akisi token'i ayri bir key'de tutuyor: setString('token', json.encode(...))
+      String? token;
+      final rawToken = prefs.getString('token');
+      if (rawToken != null && rawToken.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawToken);
+          token = decoded is String ? decoded : decoded?.toString();
+        } catch (_) {
+          token = rawToken; // direkt string olabilir
+        }
+      }
+      // Fallback: user objesi icindeki token
+      if (token == null || token.isEmpty) {
+        final userRaw = prefs.getString('user');
+        if (userRaw != null) {
+          try {
+            final user = jsonDecode(userRaw);
+            if (user is Map) token = user['token']?.toString();
+          } catch (_) {}
+        }
+      }
       if (token == null || token.isEmpty) {
         // Token yoksa auth gerektiren benimYetkilerim'i cagiramayiz.
-        // Cache'i temizleyelim, default'a duselim.
+        // Cache default'a duselim (tum yetkiler acik - geriye donuk).
         _ayarlar = {};
         _salonSahibi = true;
         _personelRolunde = false;

@@ -4008,28 +4008,48 @@ Future<Map<String, dynamic>?> personelYetkiGetir({
 }
 
 // Yetkileri kaydet. sablon: 'sekreter' | 'personel_tam' | 'personel_sade' | 'demo' | 'ozel'
-Future<bool> personelYetkiKaydet({
+// Donus: { 'basarili': bool, 'mesaj'?: string }
+Future<Map<String, dynamic>> personelYetkiKaydet({
   required String salonid,
   required String personelid,
   required String sablon,
   required Map<String, bool> ayarlar,
 }) async {
-  final response = await http.post(
-    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelYetkiKaydet'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'sube': salonid,
-      'personel_id': personelid,
-      'sablon': sablon,
-      'ayarlar': ayarlar,
-    }),
-  );
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    return data is Map && data['basarili'] == true;
+  try {
+    final response = await http.post(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelYetkiKaydet'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'sube': salonid,
+        'personel_id': personelid,
+        'sablon': sablon,
+        'ayarlar': ayarlar,
+      }),
+    );
+    debugPrint('personelYetkiKaydet status: ${response.statusCode}');
+    debugPrint('personelYetkiKaydet body: ${response.body}');
+    if (response.statusCode == 200) {
+      try {
+        final data = json.decode(response.body);
+        if (data is Map<String, dynamic>) return data;
+        return {'basarili': false, 'mesaj': 'Beklenmeyen cevap: ${response.body}'};
+      } catch (e) {
+        return {'basarili': false, 'mesaj': 'JSON parse hatasi: $e'};
+      }
+    }
+    if (response.statusCode == 403) {
+      return {'basarili': false, 'mesaj': 'Yetkiniz yok (403). Sadece yetki yönetimi izni olanlar bu işlemi yapabilir.'};
+    }
+    if (response.statusCode == 404) {
+      return {'basarili': false, 'mesaj': 'API endpoint bulunamadı (404). Backend deploy edilmiş mi?'};
+    }
+    return {
+      'basarili': false,
+      'mesaj': 'HTTP ${response.statusCode}: ${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+    };
+  } catch (e) {
+    return {'basarili': false, 'mesaj': 'Ağ hatası: $e'};
   }
-  debugPrint('personelYetkiKaydet failed: ${response.statusCode}');
-  return false;
 }
 Future<MusteriDanisan> kullanicibilgimusteri(String userid) async {
   final response = await http.get(

@@ -135,7 +135,7 @@ class _PersonelYetkiState extends State<PersonelYetki> {
 
   Future<void> _kaydet() async {
     setState(() => _kaydediliyor = true);
-    final ok = await personelYetkiKaydet(
+    final result = await personelYetkiKaydet(
       salonid: widget.salonid,
       personelid: widget.personel.id,
       sablon: _seciliSablon,
@@ -143,6 +143,7 @@ class _PersonelYetkiState extends State<PersonelYetki> {
     );
     setState(() => _kaydediliyor = false);
     if (!mounted) return;
+    final ok = result['basarili'] == true;
     if (ok) {
       _orijinalSablon = _seciliSablon;
       _orijinalAyarlar = Map.of(_ayarlar);
@@ -156,12 +157,19 @@ class _PersonelYetkiState extends State<PersonelYetki> {
         ),
       );
     } else {
+      final mesaj = (result['mesaj'] ?? 'Kaydedilemedi').toString();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Kaydedilemedi'),
+          content: Text(mesaj, maxLines: 4),
           backgroundColor: const Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          action: SnackBarAction(
+            label: 'Kapat',
+            textColor: Colors.white,
+            onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+          ),
         ),
       );
     }
