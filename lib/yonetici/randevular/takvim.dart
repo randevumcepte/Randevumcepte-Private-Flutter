@@ -927,7 +927,6 @@ class TakvimState extends State<Takvim> {
                               totalSlots: totalSlots,
                               slotHeight: slotHeight,
                               startTotalMinutes: startTotalMinutes,
-                              gapKampanyalari: _gapKampanyaListesi,
                             ),
                           ),
                         ),
@@ -959,15 +958,13 @@ class TakvimState extends State<Takvim> {
                                 child: Stack(
                                   clipBehavior: Clip.hardEdge,
                                   children: [
-                                    // Grid çizgileri + gap kampanya renkli arka plan
+                                    // Grid çizgileri
                                     Positioned.fill(
                                       child: RepaintBoundary(
                                         child: CustomPaint(
                                           painter: _GridLinesPainter(
                                             totalSlots: totalSlots,
                                             slotHeight: slotHeight,
-                                            startTotalMinutes: startTotalMinutes,
-                                            gapKampanyalari: _gapKampanyaListesi,
                                           ),
                                         ),
                                       ),
@@ -1175,9 +1172,6 @@ List<Widget> _buildAppointmentsForResource(
       Color appointmentColor = appointment.color;
       final cardWidth = personelGenisligi - left - right;
 
-      // Bu randevu saati aktif bir gap kampanyasi araliginda mi?
-      final indirim = _gapDiscountForHour(appointment.startTime.hour);
-
       appointments.add(
         Positioned(
           top: startOffset,
@@ -1197,7 +1191,6 @@ List<Widget> _buildAppointmentsForResource(
               buildFeedback: (h) => _buildDraggingFeedback(appointment, appointmentColor, h, cardWidth),
               onDragEnd: (details) => _onDragCompleted(details, appointment, resource.id.toString()),
               onResizeEnd: (newDurationMinutes) => _onResizeEnd(appointment, newDurationMinutes, resource.id.toString()),
-              indirimYuzdesi: indirim,
             ),
           ),
         ),
@@ -1205,19 +1198,6 @@ List<Widget> _buildAppointmentsForResource(
     }
 
     return appointments;
-  }
-
-  /// Verilen saat icin aktif bir gap kampanyasi varsa indirim yuzdesini doner.
-  int? _gapDiscountForHour(int hour) {
-    for (final k in _gapKampanyaListesi) {
-      final s = (k['startHour'] as num?)?.toInt() ?? 0;
-      final e = (k['endHour'] as num?)?.toInt() ?? 0;
-      if (hour >= s && hour < e) {
-        final d = (k['discount'] as num?)?.toInt() ?? 0;
-        if (d > 0) return d;
-      }
-    }
-    return null;
   }
   // _onDragCompleted metodu
   void _onDragCompleted(DraggableDetails details, Appointment appointment, String oldResourceId) {
@@ -2167,53 +2147,15 @@ class _SaatColumnPainter extends CustomPainter {
   final int totalSlots;
   final double slotHeight;
   final int startTotalMinutes;
-  final List<Map<String, dynamic>> gapKampanyalari;
 
   _SaatColumnPainter({
     required this.totalSlots,
     required this.slotHeight,
     required this.startTotalMinutes,
-    this.gapKampanyalari = const [],
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Kampanya saat aralıklarına altın çubuk (sol sütunda 4px genişlik)
-    for (final k in gapKampanyalari) {
-      final startHour = (k['startHour'] as num?)?.toInt() ?? 0;
-      final endHour = (k['endHour'] as num?)?.toInt() ?? 0;
-      if (endHour <= startHour) continue;
-      final kStart = startHour * 60;
-      final kEnd = endHour * 60;
-      final slotStartMin = startTotalMinutes;
-      final slotEndMin = startTotalMinutes + totalSlots * 15;
-      final overlapStart = kStart > slotStartMin ? kStart : slotStartMin;
-      final overlapEnd = kEnd < slotEndMin ? kEnd : slotEndMin;
-      if (overlapEnd <= overlapStart) continue;
-      final yStart = (overlapStart - slotStartMin) / 15.0 * slotHeight;
-      final yEnd = (overlapEnd - slotStartMin) / 15.0 * slotHeight;
-
-      final gapKey = k['gapKey'] as String? ?? 'morning';
-      Color stripColor;
-      switch (gapKey) {
-        case 'morning':
-          stripColor = const Color(0xFFFCD34D);
-          break;
-        case 'afternoon':
-          stripColor = const Color(0xFFFB923C);
-          break;
-        case 'evening':
-        default:
-          stripColor = const Color(0xFF8B5CF6);
-          break;
-      }
-      final stripPaint = Paint()..color = stripColor;
-      canvas.drawRect(
-        Rect.fromLTWH(0, yStart, 3.5, yEnd - yStart),
-        stripPaint,
-      );
-    }
-
     final linePaint = Paint()
       ..color = Colors.grey.shade300
       ..strokeWidth = 1;
@@ -2248,7 +2190,7 @@ class _SaatColumnPainter extends CustomPainter {
           text: TextSpan(text: timeString, style: isHour ? textStyle : halfStyle),
           textDirection: ui.TextDirection.ltr,
         )..layout(maxWidth: size.width - 4);
-        tp.paint(canvas, Offset(6, y + 2));
+        tp.paint(canvas, Offset(4, y + 2));
       }
     }
 
@@ -2263,8 +2205,7 @@ class _SaatColumnPainter extends CustomPainter {
   bool shouldRepaint(covariant _SaatColumnPainter oldDelegate) {
     return oldDelegate.totalSlots != totalSlots ||
         oldDelegate.slotHeight != slotHeight ||
-        oldDelegate.startTotalMinutes != startTotalMinutes ||
-        oldDelegate.gapKampanyalari.length != gapKampanyalari.length;
+        oldDelegate.startTotalMinutes != startTotalMinutes;
   }
 }
 
@@ -2274,70 +2215,11 @@ class _SaatColumnPainter extends CustomPainter {
 class _GridLinesPainter extends CustomPainter {
   final int totalSlots;
   final double slotHeight;
-  // Kampanya saat araliklari — slot'lari renkli arka plan ile boyamak icin
-  final int startTotalMinutes; // gun ici takvim baslangici (dk)
-  final List<Map<String, dynamic>> gapKampanyalari;
 
-  _GridLinesPainter({
-    required this.totalSlots,
-    required this.slotHeight,
-    this.startTotalMinutes = 0,
-    this.gapKampanyalari = const [],
-  });
+  _GridLinesPainter({required this.totalSlots, required this.slotHeight});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Once kampanya araliklarini arka plan olarak ciz
-    for (final k in gapKampanyalari) {
-      final startHour = (k['startHour'] as num?)?.toInt() ?? 0;
-      final endHour = (k['endHour'] as num?)?.toInt() ?? 0;
-      if (endHour <= startHour) continue;
-
-      final kStart = startHour * 60;
-      final kEnd = endHour * 60;
-      final slotStartMin = startTotalMinutes;
-      final slotEndMin = startTotalMinutes + totalSlots * 15;
-
-      // Calisma araligi ile kesisim
-      final overlapStart = kStart > slotStartMin ? kStart : slotStartMin;
-      final overlapEnd = kEnd < slotEndMin ? kEnd : slotEndMin;
-      if (overlapEnd <= overlapStart) continue;
-
-      final yStart = (overlapStart - slotStartMin) / 15.0 * slotHeight;
-      final yEnd = (overlapEnd - slotStartMin) / 15.0 * slotHeight;
-
-      // Gap'e gore arka plan rengi
-      final gapKey = k['gapKey'] as String? ?? 'morning';
-      Color bg;
-      switch (gapKey) {
-        case 'morning':
-          bg = const Color(0xFFFEF3C7).withValues(alpha: 0.55); // altın
-          break;
-        case 'afternoon':
-          bg = const Color(0xFFFED7AA).withValues(alpha: 0.45); // turuncumsı
-          break;
-        case 'evening':
-        default:
-          bg = const Color(0xFFE0E7FF).withValues(alpha: 0.55); // lacivertimsi
-          break;
-      }
-      final bgPaint = Paint()..color = bg;
-      canvas.drawRect(
-        Rect.fromLTWH(0, yStart, size.width, yEnd - yStart),
-        bgPaint,
-      );
-
-      // Sol kenar bandi (3px gradient) — gozun yakaladigi indirim isaret cizgisi
-      final stripePaint = Paint()
-        ..color = const Color(0xFF22C55E).withValues(alpha: 0.55)
-        ..strokeWidth = 2.5;
-      canvas.drawLine(
-        Offset(1.5, yStart),
-        Offset(1.5, yEnd),
-        stripePaint,
-      );
-    }
-
     final softLine = Paint()
       ..color = Colors.grey.shade200
       ..strokeWidth = 1;
@@ -2367,9 +2249,7 @@ class _GridLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _GridLinesPainter oldDelegate) {
     return oldDelegate.totalSlots != totalSlots ||
-        oldDelegate.slotHeight != slotHeight ||
-        oldDelegate.startTotalMinutes != startTotalMinutes ||
-        oldDelegate.gapKampanyalari.length != gapKampanyalari.length;
+        oldDelegate.slotHeight != slotHeight;
   }
 }
 
@@ -2386,8 +2266,6 @@ class _AppointmentCard extends StatefulWidget {
   final Widget Function(double height) buildFeedback;
   final void Function(DraggableDetails details) onDragEnd;
   final void Function(int newDurationMinutes) onResizeEnd;
-  // Gap kampanyasi indirim yuzdesi — null ise rozet gosterilmez
-  final int? indirimYuzdesi;
 
   const _AppointmentCard({
     Key? key,
@@ -2400,7 +2278,6 @@ class _AppointmentCard extends StatefulWidget {
     required this.buildFeedback,
     required this.onDragEnd,
     required this.onResizeEnd,
-    this.indirimYuzdesi,
   }) : super(key: key);
 
   @override
@@ -2568,43 +2445,6 @@ class _AppointmentCardState extends State<_AppointmentCard> {
             height: 16,
             child: resizeHandle,
           ),
-          // Layer 3: indirim rozeti — kartın içinde sağ-üst köşe (parent Stack
-          // Clip.hardEdge olduğu için dışarı taşırılırsa kırpılır)
-          if (widget.indirimYuzdesi != null && widget.indirimYuzdesi! > 0)
-            Positioned(
-              top: 2,
-              right: 2,
-              child: IgnorePointer(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 5, vertical: 1.5),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
-                    ),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: Colors.white, width: 1.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.20),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    '%${widget.indirimYuzdesi}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      height: 1.0,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
