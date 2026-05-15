@@ -1151,6 +1151,91 @@ class _HomeState extends State<DashBoard> {
     await _loadKarsilastirma(period);
   }
 
+  /// Aktif gap kampanyasi icin tum musterilere SMS bildirim gonderir.
+  /// Onay -> backend bulk SMS -> snackbar feedback.
+  Future<void> _gonderKampanyaBildirim(
+    BuildContext dialogCtx,
+    Map active,
+    String gapLabel,
+    void Function(void Function()) setLocal, {
+    required bool Function() loadingGetter,
+    required void Function(bool) loadingSetter,
+  }) async {
+    final salonId = seciliisletme;
+    final kampanyaId = (active['id'] as num?)?.toInt();
+    if (salonId == null || salonId.isEmpty || kampanyaId == null) return;
+    if (loadingGetter()) return;
+
+    final ok = await showDialog<bool>(
+      context: dialogCtx,
+      builder: (cc) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Müşterilere SMS gönder',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          '$gapLabel kampanyanız için salonunuza kayıtlı tüm aktif müşterilere tek seferde SMS gönderilecek. SMS ücretleri salon SMS bakiyenizden düşülecek. Devam edilsin mi?',
+          style: const TextStyle(fontSize: 12.5, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(cc, false),
+            child: const Text('Vazgeç'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(cc, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6A1B9A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            icon: const Icon(Icons.sms_rounded, size: 15),
+            label: const Text('Gönder'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setLocal(() => loadingSetter(true));
+    final res = await saatBosluguKampanyaBildirimGonder(
+      salonId: salonId,
+      kampanyaId: kampanyaId,
+    );
+    if (!mounted) return;
+    Navigator.of(dialogCtx).pop();
+
+    final status = res?['status'] as String?;
+    final gonderildi = (res?['gonderildi'] as num?)?.toInt() ?? 0;
+    final apiMsg = res?['message'] as String?;
+
+    if (status == 'success') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            apiMsg ?? '$gonderildi müşteriye SMS gönderildi',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            apiMsg ?? 'SMS gönderilemedi, lütfen tekrar deneyin',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+  }
+
   bool get _isLoadingCurrentPeriod => _loadingPeriods.contains(_perfPeriod);
   bool get _hasRealDataCurrentPeriod => _karsCache.containsKey(_perfPeriod);
 
@@ -2520,7 +2605,36 @@ class _HomeState extends State<DashBoard> {
                 ),
                 const SizedBox(height: 16),
                 if (isActive)
-                  Row(
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: loading
+                              ? null
+                              : () => _gonderKampanyaBildirim(
+                                  ctx, active, label, setLocal,
+                                  loadingGetter: () => loading,
+                                  loadingSetter: (v) => loading = v),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6A1B9A),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(11)),
+                          ),
+                          icon: const Icon(Icons.sms_rounded, size: 16),
+                          label: const Text(
+                            'Müşterilere SMS Gönder',
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
@@ -2660,6 +2774,8 @@ class _HomeState extends State<DashBoard> {
                           ),
                         ),
                       ),
+                    ],
+                  ),
                     ],
                   )
                 else

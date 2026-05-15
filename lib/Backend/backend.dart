@@ -746,6 +746,34 @@ Future<Map<String, dynamic>?> saatBosluguKampanyaOlustur({
   return null;
 }
 
+/// Gap kampanyasi icin salonun tum aktif musterilerine SMS gonderir.
+/// VoiceTelekom multi-recipient API ile tek call'da bulk gonderim.
+/// Donus: {status: success|error, gonderildi: int, message: ...}
+Future<Map<String, dynamic>?> saatBosluguKampanyaBildirimGonder({
+  required String salonId,
+  required int kampanyaId,
+  int maxAdet = 500,
+}) async {
+  try {
+    final response = await http
+        .post(
+          Uri.parse(
+              'https://apptest.randevumcepte.com.tr/api/v1/saatBosluguKampanyaBildirimGonder/$salonId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'kampanyaId': kampanyaId,
+            'maxAdet': maxAdet,
+          }),
+        )
+        .timeout(const Duration(seconds: 60));
+    final body = json.decode(response.body);
+    if (body is Map<String, dynamic>) return body;
+  } catch (e) {
+    log('saatBosluguKampanyaBildirimGonder hata: $e');
+  }
+  return null;
+}
+
 /// Salonun tum aktif gap kampanyalarini liste halinde getirir.
 /// Takvim/ajanda ekraninda kampanya saatlerini bildirim seridi olarak gostermek icin.
 /// Donus: {count: int, kampanyalar: [{id, gapKey, gapLabel, startHour, endHour, discount, ...}]}
