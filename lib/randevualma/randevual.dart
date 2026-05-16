@@ -1,53 +1,32 @@
-import 'dart:convert';
 import 'dart:developer';
-import 'dart:ui';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:dropdown_search/dropdown_search.dart';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import 'package:randevu_sistem/randevualma/randevuozetonay.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
-import 'package:randevu_sistem/Frontend/popupdialogs.dart';
-
-import 'package:randevu_sistem/Models/cihazlar.dart';
+import 'package:randevu_sistem/Models/BosDoluSaatler.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
-import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
-import 'package:randevu_sistem/Models/odalar.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
-import 'package:randevu_sistem/Models/randevuhizmetyardimcipersonelleri.dart';
-
-import 'package:randevu_sistem/Models/randevutekrarsikligi.dart';
-import 'package:randevu_sistem/yeni/app_colors.dart';
-
-import 'package:randevu_sistem/yonetici/randevular/musteri.dart';
-
-import 'package:randevu_sistem/Models/BosDoluSaatler.dart';
 import 'package:randevu_sistem/Models/salonlar.dart';
-
+import 'package:randevu_sistem/randevualma/randevuozetonay.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 
 class RandevuAl extends StatefulWidget {
-
-
-
   @override
   AppointmentEditorState createState() => AppointmentEditorState();
 }
 
 class AppointmentEditorState extends State<RandevuAl> {
   bool isloading = true;
-  List<IsletmeHizmet> isletmehizmetliste =[];
+  List<IsletmeHizmet> isletmehizmetliste = [];
   List<Personel> personelliste = [];
 
   List<Personel?> secilipersonel = [];
-  List<IsletmeHizmet?>  secilihizmet= [];
+  List<IsletmeHizmet?> secilihizmet = [];
 
-  List<Salonlar>subeler=[];
+  List<Salonlar> subeler = [];
   List<List<Personel>> filtreliPersonelListesi = [[]];
 
   DateTime secilitarih = DateTime.now();
@@ -56,29 +35,44 @@ class AppointmentEditorState extends State<RandevuAl> {
   TextEditingController randevutarihi = TextEditingController(text: "");
   TextEditingController randevusaati = TextEditingController(text: '');
 
-
   List<TextEditingController> hizmet = [];
   List<TextEditingController> personel = [];
   TextEditingController sube = TextEditingController();
   Salonlar? seciliSube;
 
-
-
   final TextEditingController textEditingController = TextEditingController();
 
   bool formisvalid = true;
   late String seciliisletme;
-  List<RandevuHizmet> randevuhizmetleri = [RandevuHizmet(hizmetler: null, hizmet_id: '', personel_id: '', personeller: null, oda_id: '', oda: null, cihaz_id: '', cihaz: null, fiyat: '', sure_dk: '', saat: '', saat_bitis: '', yardimci_personel: '', birusttekiileaynisaat: '')];
+  List<RandevuHizmet> randevuhizmetleri = [
+    RandevuHizmet(
+      hizmetler: null,
+      hizmet_id: '',
+      personel_id: '',
+      personeller: null,
+      oda_id: '',
+      oda: null,
+      cihaz_id: '',
+      cihaz: null,
+      fiyat: '',
+      sure_dk: '',
+      saat: '',
+      saat_bitis: '',
+      yardimci_personel: '',
+      birusttekiileaynisaat: '',
+    )
+  ];
 
   late List<String> tarihListesi;
   String? secilenTarih;
   String? secilenSaat;
-  List<BosDoluSaatler> saatler =[] ;
+  List<BosDoluSaatler> saatler = [];
   List<String> hizmetSecimHintText = [];
   List<String> personelSecimHintText = [];
+
+  @override
   void initState() {
     super.initState();
-
     initialize();
     tarihListesi = tarihleriOlustur();
     secilenTarih = tarihListesi.first;
@@ -86,48 +80,48 @@ class AppointmentEditorState extends State<RandevuAl> {
 
   List<String> tarihleriOlustur() {
     final bugun = DateTime.now();
-    final toplamGun = 180; // 2 ay ~ 60 gün
-    final List<String> tarihListesi = [];
+    final toplamGun = 180;
+    final List<String> list = [];
 
     for (int i = 0; i < toplamGun; i++) {
       final gun = bugun.add(Duration(days: i));
       if (i == 0) {
-        tarihListesi.add("Bugün");
+        list.add("Bugün");
       } else if (i == 1) {
-        tarihListesi.add("Yarın");
+        list.add("Yarın");
       } else {
-        // Gün adını kısa almak için DateFormat
-        String gunAdi = DateFormat.E("tr").format(gun); // tr için Paz, Pzt, Sal, ...
-        String tarih = DateFormat("dd.MM").format(gun); // 24.09
-        tarihListesi.add("$tarih $gunAdi");
+        String gunAdi = DateFormat.E("tr").format(gun);
+        String tarih = DateFormat("dd.MM").format(gun);
+        list.add("$tarih $gunAdi");
       }
     }
-
-    return tarihListesi;
+    return list;
   }
-  Future<void> hizmetleriGetir() async{
 
-    final isletmeVerileri = await isletmeVerileriGetir(seciliSube!.id.toString(),true,await appBundleAl(),'','',0,0);
-    List<IsletmeHizmet> isletmehizmetleriliste =  isletmeVerileri['hizmetler'];
+  Future<void> hizmetleriGetir() async {
+    final isletmeVerileri = await isletmeVerileriGetir(
+        seciliSube!.id.toString(), true, await appBundleAl(), '', '', 0, 0);
+    List<IsletmeHizmet> isletmehizmetleriliste =
+        isletmeVerileri['hizmetler'];
     setState(() {
       hizmetSecimHintText.clear;
-      hizmetSecimHintText = hizmetSecimHintText.map((e) => 'Hizmet seç...').toList();
+      hizmetSecimHintText =
+          hizmetSecimHintText.map((e) => 'Hizmet seç...').toList();
       isletmehizmetliste = isletmehizmetleriliste;
     });
   }
-  Future<void> initialize() async {
 
+  Future<void> initialize() async {
     String salonId = '';
 
-    final isletmeVerileri = await isletmeVerileriGetir(salonId,true,await appBundleAl(),'','',0,0);
+    final isletmeVerileri = await isletmeVerileriGetir(
+        salonId, true, await appBundleAl(), '', '', 0, 0);
 
     List<Salonlar> isletmesubeler = isletmeVerileri['subeler'];
-    List<IsletmeHizmet> isletmehizmetleriliste = isletmesubeler.length==1 ? isletmeVerileri['hizmetler'] : [];
+    List<IsletmeHizmet> isletmehizmetleriliste =
+        isletmesubeler.length == 1 ? isletmeVerileri['hizmetler'] : [];
     final hizmetlerRaw = isletmeVerileri['hizmetler'];
-
     log('hizmetler runtime type: ${hizmetlerRaw.runtimeType}');
-    log('hizmetler içerik: $hizmetlerRaw');
-    log('hizmetler uzunluğu: ${(hizmetlerRaw as List).length}');
 
     setState(() {
       hizmet.add(TextEditingController());
@@ -137,25 +131,18 @@ class AppointmentEditorState extends State<RandevuAl> {
       isletmehizmetliste = isletmehizmetleriliste;
       personelliste = [];
       subeler = isletmesubeler;
-      if(isletmesubeler.length == 1)
-        seciliSube = isletmesubeler[0];
-      String hizmetsecimtext = '';
-      if(isletmehizmetliste.length==0)
-
-        hizmetsecimtext= 'Önce şube seçmeniz gerekir!';
-      else
-        hizmetsecimtext = 'Hizmet seç...';
+      if (isletmesubeler.length == 1) seciliSube = isletmesubeler[0];
+      String hizmetsecimtext = isletmehizmetliste.isEmpty
+          ? 'Önce şube seçmeniz gerekir!'
+          : 'Hizmet seç...';
       hizmetSecimHintText.add(hizmetsecimtext);
       personelSecimHintText.add('Önce hizmet seçmeniz gerekir!');
       isloading = false;
     });
-
   }
 
   DateTime stringiDateTimeYap(String tarihString) {
     final bugun = DateTime.now();
-
-    // Bugün ve Yarın için özel durum
     if (tarihString == "Bugün") {
       return DateTime(bugun.year, bugun.month, bugun.day);
     }
@@ -163,694 +150,1060 @@ class AppointmentEditorState extends State<RandevuAl> {
       final yarin = bugun.add(const Duration(days: 1));
       return DateTime(yarin.year, yarin.month, yarin.day);
     }
-
-    // Diğer tarih formatı: "24.09 Çar" → sadece "24.09" kısmını al
-    String tarihPart = tarihString.split(' ')[0]; // "24.09"
+    String tarihPart = tarihString.split(' ')[0];
     List<String> parts = tarihPart.split('.');
-
     if (parts.length != 2) {
       throw FormatException("Tarih string formatı yanlış: $tarihString");
     }
-
     int gun = int.parse(parts[0]);
     int ay = int.parse(parts[1]);
-    int yil = bugun.year; // başlangıç olarak bu yıl
-
+    int yil = bugun.year;
     DateTime dt = DateTime(yil, ay, gun);
-
-    // Eğer bu tarih, bugünden daha küçük görünüyorsa → gelecek yıl olmalı
     if (dt.isBefore(DateTime(bugun.year, bugun.month, bugun.day))) {
       dt = DateTime(yil + 1, ay, gun);
     }
-
     return dt;
   }
-  void personelSecAdiminaGec (int index,String hizmetId) async{
+
+  void personelSecAdiminaGec(int index, String hizmetId) async {
     String sube = '';
-    if(seciliSube != null)
-      sube  = seciliSube!.id;
-    var personelData = await personelAdiminaGec(sube,await appBundleAl(),hizmetId);
+    if (seciliSube != null) sube = seciliSube!.id;
+    var personelData =
+        await personelAdiminaGec(sube, await appBundleAl(), hizmetId);
     List<Personel> hizmetPersonelleriListe = personelData['personeller'];
     setState(() {
       filtreliPersonelListesi[index] = hizmetPersonelleriListe;
       personelSecimHintText[index] = 'Personel seç...';
+    });
+  }
+
+  void tarihSaatAdiminaGec() async {
+    bool secimTamam = randevuhizmetleri.every((element) {
+      return element.hizmet_id != '' && element.personel_id != '';
+    });
+    if (secimTamam) {
+      List<String> seciliHizmetler = [];
+      List<String> seciliPersoneller = [];
+      randevuhizmetleri.forEach((element) {
+        seciliHizmetler.add(element.hizmet_id);
+        seciliPersoneller.add(element.personel_id);
       });
-  }
-  void tarihSaatAdiminaGec () async
-  {
-      bool secimTamam = randevuhizmetleri.every((element) {
-        return element.hizmet_id != '' && element.personel_id != '';
-      });
-      if(secimTamam)
-        {
-
-          List<String>seciliHizmetler=[];
-          List<String>seciliPersoneller=[];
-          randevuhizmetleri.forEach((element){
-              seciliHizmetler.add(element.hizmet_id);
-              seciliPersoneller.add(element.personel_id);
-
-          });
-          String sube = '';
-          if(seciliSube!=null)
-            sube = seciliSube!.id;
-          dynamic randevuSaatleri = await bosVeDoluSaatleriGetir(sube,seciliPersoneller,seciliHizmetler,DateFormat("yyyy-MM-dd").format(stringiDateTimeYap(secilenTarih!)),await appBundleAl());
-          // 🔹 JSON’dan listeyi parse et
-          if (randevuSaatleri["saatler"] != null &&
-              randevuSaatleri["saatler"] is List) {
-            saatler = (randevuSaatleri["saatler"] as List)
-                .map((e) => BosDoluSaatler.fromJson(e))
-                .toList();
-          } else {
-            saatler = []; // Boş liste döndür
-          }
-
-          setState(() {}); // UI’yı güncelle
-
-
-        }
-
-  }
-  Future<void> tarihsec(BuildContext context) async {
-    DateTime? pickedDate = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime(1950),
-        //DateTime.now() - not to allow to choose before today.
-        lastDate: DateTime(2100));
-
-    if (pickedDate != null) {
-      print(pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
-      String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
-      print(
-          formattedDate); //formatted date output using intl package =>  2021-03-16
-      setState(() {
-        randevutarihi.text =
-            formattedDate; //set output date to TextField value.
-      });
-    } else {}
-  }
-  String tarihGosterimi(DateTime tarih) {
-    final bugun = DateTime.now();
-    final fark = DateTime(tarih.year, tarih.month, tarih.day)
-        .difference(DateTime(bugun.year, bugun.month, bugun.day))
-        .inDays;
-
-    if (fark == 0) return "Bugün";
-    if (fark == 1) return "Yarın";
-    String gunAdi = DateFormat.E("tr").format(tarih); // Çar, Per...
-    String tarihStr = DateFormat("dd.MM").format(tarih);
-    return "$tarihStr $gunAdi";
-  }
-  Future<void> saatsec(BuildContext context) async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(secilisaat ?? DateTime.now()),
-    );
-
-    if (pickedTime != null) {
-      print(
-          formattedDate); //formatted date output using intl package =>  2021-03-16
-      setState(() {
-        String dakika = '0';
-        if (pickedTime.minute < 10)
-          dakika = '0' + pickedTime.minute.toString();
-        else
-          dakika = pickedTime.minute.toString();
-        randevusaati.text = pickedTime.hour.toString() + ':' + dakika;
-      });
-    } else {}
+      String sube = '';
+      if (seciliSube != null) sube = seciliSube!.id;
+      dynamic randevuSaatleri = await bosVeDoluSaatleriGetir(
+          sube,
+          seciliPersoneller,
+          seciliHizmetler,
+          DateFormat("yyyy-MM-dd").format(stringiDateTimeYap(secilenTarih!)),
+          await appBundleAl());
+      if (randevuSaatleri["saatler"] != null &&
+          randevuSaatleri["saatler"] is List) {
+        saatler = (randevuSaatleri["saatler"] as List)
+            .map((e) => BosDoluSaatler.fromJson(e))
+            .toList();
+      } else {
+        saatler = [];
+      }
+      setState(() {});
+    }
   }
 
+  void _hizmetEkle() {
+    setState(() {
+      hizmet.add(TextEditingController());
+      personel.add(TextEditingController());
+      secilipersonel.add(null);
+      secilihizmet.add(null);
+      filtreliPersonelListesi.add([]);
+      randevuhizmetleri.add(RandevuHizmet(
+        hizmetler: null,
+        hizmet_id: '',
+        personel_id: '',
+        personeller: null,
+        oda_id: '',
+        oda: null,
+        cihaz_id: '',
+        cihaz: null,
+        fiyat: '',
+        sure_dk: '',
+        saat: '',
+        saat_bitis: '',
+        yardimci_personel: '',
+        birusttekiileaynisaat: '',
+      ));
+      hizmetSecimHintText.add(isletmehizmetliste.isEmpty
+          ? 'Önce şube seçmeniz gerekir'
+          : 'Hizmet seç...');
+      personelSecimHintText.add('Önce hizmet seçmeniz gerekir!');
+    });
+  }
 
-
-  Widget _getAppointmentEditor(BuildContext context) {
-    final double columnWidth = MediaQuery.of(context).size.width / 2 - 20;
-    double height = MediaQuery.of(context).size.height;
-    double width = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    return
-      isloading ?  Center(child: CircularProgressIndicator(),) :  GestureDetector(
-          onTap: () {
-            // Unfocus the current text field, dismissing the keyboard
-            FocusScope.of(context).unfocus();
-          },
-          child: Container(
-              height: screenHeight,
-              color: Colors.white,
-              child: ListView(
-                padding: const EdgeInsets.all(0),
-                children: <Widget>[
-                  subeler.length>1 ?
-                    Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.0), // dikey padding azaltıldı
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center, // dikey ortala
-                        children: [
-                          Text(
-                            'Şube Seçimi',
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-
-                        ],
-                      ),
-                    ): SizedBox(),
-                  subeler.length>1 ? SizedBox(height: 10,) : SizedBox(),
-                  subeler.length>1?  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.0),
-                    child: Container(
-                      alignment: Alignment.center,
-                      height: 40,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Color(0xFF6A1B9A)),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton2<Salonlar>(
-                          isExpanded: true,
-                          hint: Text('Şube Seç', style: TextStyle(fontSize: 14, color: Theme.of(context).hintColor)),
-                          items: subeler.map((item) => DropdownMenuItem(
-                            value: item,
-                            child: Text(item.salon_adi, style: TextStyle(fontSize: 14)),
-                          )).toList(),
-                          value: seciliSube,
-                          onChanged: (value) {
-                            setState(() {
-                              seciliSube = value;
-                              hizmetleriGetir();
-
-
-
-                            });
-                          },
-                          buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 10), height: 50, width: MediaQuery.of(context).size.width - 40),
-                          dropdownStyleData: DropdownStyleData(maxHeight: 400),
-                          menuItemStyleData: MenuItemStyleData(height: 40),
-                          dropdownSearchData: DropdownSearchData(
-                            searchController: sube,
-                            searchInnerWidgetHeight: 50,
-                            searchInnerWidget: Container(
-                              height: 50,
-                              padding: EdgeInsets.all(8),
-                              child: TextFormField(
-                                expands: true,
-                                maxLines: null,
-                                controller: sube,
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  hintText: 'Şube Ara..',
-                                  hintStyle: TextStyle(fontSize: 12),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                              ),
-                            ),
-                            searchMatchFn: (item, searchValue) => item.value!.salon_adi.toString().toLowerCase().contains(searchValue.toLowerCase()),
-                          ),
-                        ),
-                      ),
-                    )
-                  ) :
-                   SizedBox(),
-                  subeler.length>1? SizedBox(height: 10,) : SizedBox(),
-
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.0), // dikey padding azaltıldı
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center, // dikey ortala
-                      children: [
-                        Text(
-                          'Hizmet/Personel Seçimi',
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        TextButton(
-                          onPressed: () {
-
-                            setState(() {
-
-
-                              hizmet.add(TextEditingController());
-                              personel.add(TextEditingController());
-                              secilipersonel.add(null);
-
-                              secilihizmet.add(null);
-                              filtreliPersonelListesi.add([]);
-
-                              randevuhizmetleri.add(RandevuHizmet(
-                                hizmetler: null,
-                                hizmet_id: '',
-                                personel_id: '',
-                                personeller: null,
-                                oda_id: '',
-                                oda: null,
-                                cihaz_id: '',
-                                cihaz: null,
-                                fiyat: '',
-                                sure_dk: '',
-                                saat: '',
-                                saat_bitis: '',
-                                yardimci_personel: '',
-                                birusttekiileaynisaat: '',
-                              ));
-
-
-                              hizmetSecimHintText.add( (isletmehizmetliste.length==0 ? 'Önce şube seçmeniz gerekir' :  'Hizmet seç...'));
-                              personelSecimHintText.add('Önce hizmet seçmeniz gerekir!');
-
-                            });
-                          },
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: Size(0, 30),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "Hizmet Ekle",
-                                style: TextStyle(fontSize: 12, color: Colors.green),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.add, size: 30, color: Colors.green),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  ...List.generate(randevuhizmetleri.length, (index) {
-                    final set = randevuhizmetleri[index];
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 3),
-                      child: Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Column(
-                          children: [
-
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: columnWidth  -20,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Hizmet', style: TextStyle(fontSize: 11)),
-                                      SizedBox(height: 5),
-                                      Container(
-                                        alignment: Alignment.center,
-                                        height: 40,
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          border: Border.all(color: Color(0xFF6A1B9A)),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: DropdownButtonHideUnderline(
-                                          child: DropdownButton2<IsletmeHizmet>(
-                                            isExpanded: true,
-                                            hint: Text(hizmetSecimHintText[index], style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
-                                            items: isletmehizmetliste.map((item) => DropdownMenuItem(
-                                              value: item,
-                                              child: Text(
-                                                  item.hizmet['hizmet_adi'], style: TextStyle(fontSize: 14) ,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            )).toList(),
-                                            value: secilihizmet[index],
-                                            onChanged: (value) {
-                                              setState(() {
-                                                secilihizmet[index] = value!;
-                                                randevuhizmetleri[index].hizmet_id = value.hizmet_id;
-
-                                                randevuhizmetleri[index].sure_dk = value.sure;
-                                                randevuhizmetleri[index].fiyat = value.fiyat;
-                                                randevuhizmetleri[index].hizmetler = value.hizmet;
-                                                personelSecAdiminaGec(index,value.hizmet_id);
-                                                tarihSaatAdiminaGec();
-
-                                              });
-                                            },
-                                            buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 10), height: 50, width: MediaQuery.of(context).size.width - 40),
-                                            dropdownStyleData: DropdownStyleData(maxHeight: 400),
-                                            menuItemStyleData: MenuItemStyleData(height: 60),
-                                            dropdownSearchData: DropdownSearchData(
-                                              searchController: hizmet[index],
-                                              searchInnerWidgetHeight: 50,
-                                              searchInnerWidget: Container(
-                                                height: 50,
-                                                padding: EdgeInsets.all(8),
-                                                child: TextFormField(
-                                                  expands: true,
-                                                  maxLines: null,
-                                                  controller: hizmet[index],
-                                                  decoration: InputDecoration(
-                                                    isDense: true,
-                                                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                    hintText: 'Hizmet Ara..',
-                                                    hintStyle: TextStyle(fontSize: 12),
-                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                                  ),
-                                                ),
-                                              ),
-                                              searchMatchFn: (item, searchValue) => item.value!.hizmet["hizmet_adi"].toString().toLowerCase().contains(searchValue.toLowerCase()),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(width: 10), // İki alan arası boşluk
-                                SizedBox(
-                                    width: columnWidth -20 ,
-                                    child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children:[
-                                          Text(
-                                            'Personel',
-                                            style: TextStyle( fontSize: 11),
-                                          ),
-                                          SizedBox(height:5),
-                                          Container(
-                                            alignment: Alignment.center,
-
-                                            height: 40,
-                                            width:double.infinity,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              border: Border.all(color: Color(0xFF6A1B9A)),
-                                              borderRadius: BorderRadius.circular(10), //border corner radius
-
-                                              //you can set more BoxShadow() here
-
-                                            ),
-                                            child: DropdownButtonHideUnderline(
-
-                                                child: DropdownButton2<Personel>(
-
-                                                  isExpanded: true,
-                                                  hint: Text(
-                                                    personelSecimHintText[index],
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Theme.of(context).hintColor,
-                                                    ),
-                                                  ),
-                                                  value: secilipersonel[index],
-                                                  items: filtreliPersonelListesi[index]
-                                                      .map((item) => DropdownMenuItem(
-                                                    value: item,
-                                                    child: Text(
-                                                      item.personel_adi,
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                      ),
-                                                    ),
-                                                  ))
-                                                      .toList(),
-
-                                                  onChanged: (value) {
-                                                    setState(() {
-                                                      secilipersonel[index] = value!;
-                                                      randevuhizmetleri[index].personel_id = value.id;
-                                                      randevuhizmetleri[index].personeller = value;
-                                                      tarihSaatAdiminaGec();
-                                                    });
-                                                  },
-                                                  buttonStyleData: ButtonStyleData(
-                                                    padding: EdgeInsets.symmetric(horizontal: 16),
-                                                    height: 50,
-                                                    width: MediaQuery.of(context).size.width - 40,
-                                                  ),
-
-                                                  dropdownStyleData: const DropdownStyleData(
-                                                    maxHeight: 400,
-
-                                                  ),
-                                                  menuItemStyleData: const MenuItemStyleData(
-                                                    height: 40,
-                                                  ),
-                                                  dropdownSearchData: DropdownSearchData(
-                                                    searchController: personel[index],
-                                                    searchInnerWidgetHeight: 50,
-                                                    searchInnerWidget: Container(
-                                                      height: 50,
-                                                      padding: const EdgeInsets.only(
-                                                        top: 8,
-                                                        bottom: 4,
-                                                        right: 8,
-                                                        left: 8,
-                                                      ),
-                                                      child: TextFormField(
-                                                        expands: true,
-                                                        maxLines: null,
-                                                        controller: personel[index],
-
-                                                        decoration: InputDecoration(
-                                                          isDense: true,
-                                                          contentPadding: const EdgeInsets.symmetric(
-                                                            horizontal: 10,
-                                                            vertical: 8,
-                                                          ),
-                                                          hintText: 'Personel Ara..',
-                                                          hintStyle: const TextStyle(fontSize: 12),
-                                                          border: OutlineInputBorder(
-                                                            borderRadius: BorderRadius.circular(8),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    searchMatchFn: (item, searchValue) {
-
-                                                      return item.value!.personel_adi.toString().toLowerCase().contains(searchValue.toLowerCase());
-                                                    },
-                                                  ),
-                                                  //This to clear the search value when you close the menu
-                                                  onMenuStateChange: (isOpen) {
-                                                    if (!isOpen) {
-
-                                                    }
-                                                  },
-
-                                                )),
-                                          ),
-
-                                        ]
-                                    )
-
-
-                                ),
-                                SizedBox(width: 10),
-                                if (randevuhizmetleri.length > 1)
-                                  SizedBox(
-                                    width: 20,
-                                    child: IconButton(
-                                      icon: Icon(Icons.remove_circle, color: Colors.red),
-                                      onPressed: () {
-                                        tarihSaatAdiminaGec();
-                                        setState(() => randevuhizmetleri.removeAt(index));
-                                      },
-                                    ),
-                                  ),
-
-                              ],
-                            ),
-
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-
-                  const Divider(
-                    height: 1.0,
-                    thickness: 1,
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 📌 Başlık
-                        Text(
-                          'Tarih/Saat Seçimi',
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        SizedBox(height: 10), // Başlık ile container arası boşluk
-
-                        // 📌 Tarih/Saat Seçimi Container'ı
-                        Container(
-                          decoration: const BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(15)),
-                            color: Colors.white,
-                          ),
-                          height: subeler.length > 1 ? height*0.54 : height * 0.65,
-                          width: double.infinity, // tam genişlik
-                          padding: EdgeInsets.only(top: 5, left: 5, right: 5),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 📌 Tarih Listesi
-                              SizedBox(
-                                height: 50,
-                                child: ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: tarihListesi.length,
-                                  itemBuilder: (context, index) {
-                                    final tarih = tarihListesi[index];
-                                    final seciliMi = secilenTarih == tarih;
-
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          secilenTarih = tarih;
-                                          secilenSaat = null;
-                                          tarihSaatAdiminaGec();
-                                        });
-                                      },
-                                      child: Container(
-                                        width: 90,
-                                        margin: EdgeInsets.symmetric(horizontal: 4, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: seciliMi ? Colors.purple[800] : Colors.grey.shade200,
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          tarih,
-                                          style: TextStyle(
-                                            color: seciliMi ? Colors.white : Colors.black,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              SizedBox(height: 10),
-
-                              // 📌 Saat Listesi
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: saatler == null || saatler.isEmpty
-                                      ? Center(
-                                    child: Text(
-                                      "Uygun saat bulunamadı",
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                  )
-                                      : Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: saatler.map((saat) {
-                                      final seciliMi = secilenSaat == saat.saat;
-
-                                      return RawChip(
-                                        labelPadding: EdgeInsets.symmetric(horizontal: 28),
-                                        label: Text(
-                                          saat.saat,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        selected: seciliMi,
-                                        onSelected: (selected) {
-                                          if (saat.dolu=='1') return; // Dolu saat seçilemez
-                                          setState(() {
-                                            if (secilenSaat == saat.saat) {
-                                              secilenSaat = null; // Aynı kutuya basınca seçim kaldır
-                                            } else {
-                                              secilenSaat = saat.saat;
-
-
-
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(builder: (context) => RandevuOnay(isletmebilgi:{}, seciliHizmetler: randevuhizmetleri, tarih: DateFormat("dd.MM.yyyy").format(stringiDateTimeYap(secilenTarih!)), saat: secilenSaat!,salonid: seciliSube?.id ?? '',)),
-                                              );
-
-                                            }
-                                          });
-                                        },
-                                        selectedColor: Colors.purple[800], // Seçilen boş saat mavi
-                                        backgroundColor: saat.dolu=='1' ? Colors.red : Colors.green,
-                                        disabledColor: Colors.red, // Dolu saatler kırmızı
-                                        showCheckmark: false, // ✅ Check ikonunu kaldır
-                                      );
-                                    }).toList(),
-
-                                  ),
-                                ),
-                              ),
-
-
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                ],
-              )));
+  void _hizmetSil(int index) {
+    tarihSaatAdiminaGec();
+    setState(() => randevuhizmetleri.removeAt(index));
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-
-          appBar: new AppBar(
-            title: const Text(
-              'Randevu Al',
-              style: TextStyle(color: Colors.black),
-            ),
-            backgroundColor: Colors.white,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            elevation: 4, // gölge ekler, değeri artırarak gölgeyi güçlendirebilirsin
-            shadowColor: Colors.grey.withOpacity(0.5), // gölge rengi
-            toolbarHeight: 60,
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.alphaBlend(
+                scheme.primary.withValues(alpha: 0.08),
+                Colors.white,
+              ),
+              Color.alphaBlend(
+                scheme.tertiary.withValues(alpha: 0.04),
+                Colors.white,
+              ),
+            ],
           ),
-          body: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-            child: Stack(
-              children: <Widget>[_getAppointmentEditor(context)],
-            ),
-          ),
-        ));
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: isloading
+              ? Center(
+                  child: CircularProgressIndicator(color: scheme.primary),
+                )
+              : Column(
+                  children: [
+                    _topBar(context),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => FocusScope.of(context).unfocus(),
+                        child: ListView(
+                          physics: const BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+                          children: [
+                            if (subeler.length > 1) ...[
+                              _sectionHeader(context, 'Şube Seçimi',
+                                  icon: Icons.store_mall_directory_rounded),
+                              const SizedBox(height: 10),
+                              _subeDropdown(context),
+                              const SizedBox(height: 20),
+                            ],
+                            _sectionHeaderWithAction(
+                              context,
+                              title: 'Hizmet & Personel',
+                              icon: Icons.spa_rounded,
+                              actionLabel: 'Hizmet Ekle',
+                              actionIcon: Icons.add_rounded,
+                              onAction: _hizmetEkle,
+                            ),
+                            const SizedBox(height: 10),
+                            ...List.generate(randevuhizmetleri.length,
+                                (i) => _hizmetPersonelCard(context, i)),
+                            const SizedBox(height: 22),
+                            _sectionHeader(context, 'Tarih Seçimi',
+                                icon: Icons.event_rounded),
+                            const SizedBox(height: 10),
+                            _tarihStrip(context),
+                            const SizedBox(height: 22),
+                            _sectionHeader(context, 'Uygun Saatler',
+                                icon: Icons.access_time_rounded),
+                            const SizedBox(height: 10),
+                            _saatlerCard(context),
+                            const SizedBox(height: 24),
+                            _legendRow(context),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
   }
 
+  // ── TOP BAR ──────────────────────────────────────────────────────────────
+  Widget _topBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Row(
+        children: [
+          _circleIconBtn(
+            context,
+            icon: Icons.arrow_back_rounded,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Yeni Randevu',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                    color: scheme.onSurface,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Adımları takip et, dakikalar içinde tamamla',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _circleIconBtn(
+    BuildContext context, {
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.12),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: scheme.primary, size: 20),
+        ),
+      ),
+    );
+  }
 
+  // ── SECTION HEADERS ──────────────────────────────────────────────────────
+  Widget _sectionHeader(BuildContext context, String title,
+      {required IconData icon}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 17, color: scheme.primary),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            color: scheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sectionHeaderWithAction(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required String actionLabel,
+    required IconData actionIcon,
+    required VoidCallback onAction,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(child: _sectionHeader(context, title, icon: icon)),
+        Material(
+          color: scheme.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            onTap: onAction,
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(actionIcon, size: 16, color: scheme.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    actionLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── ŞUBE DROPDOWN ────────────────────────────────────────────────────────
+  Widget _subeDropdown(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: scheme.primary.withValues(alpha: 0.18),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton2<Salonlar>(
+          isExpanded: true,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Text(
+              'Şube Seç',
+              style: TextStyle(
+                fontSize: 14,
+                color: scheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+          items: subeler
+              .map(
+                (item) => DropdownMenuItem(
+                  value: item,
+                  child: Text(
+                    item.salon_adi,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              )
+              .toList(),
+          value: seciliSube,
+          onChanged: (value) {
+            setState(() {
+              seciliSube = value;
+              hizmetleriGetir();
+            });
+          },
+          buttonStyleData: ButtonStyleData(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            height: 52,
+            width: MediaQuery.of(context).size.width - 32,
+          ),
+          dropdownStyleData: DropdownStyleData(
+            maxHeight: 400,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+          menuItemStyleData: const MenuItemStyleData(height: 44),
+          dropdownSearchData: DropdownSearchData(
+            searchController: sube,
+            searchInnerWidgetHeight: 52,
+            searchInnerWidget: Padding(
+              padding: const EdgeInsets.all(8),
+              child: TextFormField(
+                controller: sube,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  hintText: 'Şube ara...',
+                  hintStyle: const TextStyle(fontSize: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            searchMatchFn: (item, searchValue) => item.value!.salon_adi
+                .toString()
+                .toLowerCase()
+                .contains(searchValue.toLowerCase()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── HİZMET + PERSONEL KARTI ──────────────────────────────────────────────
+  Widget _hizmetPersonelCard(BuildContext context, int index) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    final isFirst = index == 0;
+    final isOnly = randevuhizmetleri.length == 1;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isFirst ? 'Ana Hizmet' : 'Ek Hizmet ${index + 1}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+              const Spacer(),
+              if (!isOnly)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    Icons.remove_circle_outline_rounded,
+                    color: scheme.error,
+                    size: 22,
+                  ),
+                  onPressed: () => _hizmetSil(index),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _fieldLabel(context, 'Hizmet', Icons.spa_rounded),
+          const SizedBox(height: 6),
+          _hizmetDropdown(context, index),
+          const SizedBox(height: 12),
+          _fieldLabel(context, 'Personel', Icons.person_outline_rounded),
+          const SizedBox(height: 6),
+          _personelDropdown(context, index),
+          if (secilihizmet[index] != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _miniStat(
+                  context,
+                  icon: Icons.schedule_rounded,
+                  value: '${randevuhizmetleri[index].sure_dk} dk',
+                  tint: ext.infoColor,
+                ),
+                const SizedBox(width: 8),
+                _miniStat(
+                  context,
+                  icon: Icons.payments_outlined,
+                  value: '${randevuhizmetleri[index].fiyat} ₺',
+                  tint: ext.successColor,
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _fieldLabel(BuildContext context, String text, IconData icon) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: scheme.onSurface.withValues(alpha: 0.55)),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+            color: scheme.onSurface.withValues(alpha: 0.65),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _miniStat(
+    BuildContext context, {
+    required IconData icon,
+    required String value,
+    required Color tint,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: tint),
+          const SizedBox(width: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: tint,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _hizmetDropdown(BuildContext context, int index) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          scheme.primary.withValues(alpha: 0.04),
+          Colors.white,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: scheme.primary.withValues(alpha: 0.18),
+          width: 1,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton2<IsletmeHizmet>(
+          isExpanded: true,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              hizmetSecimHintText[index],
+              style: TextStyle(
+                fontSize: 12.5,
+                color: scheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+          items: isletmehizmetliste
+              .map(
+                (item) => DropdownMenuItem(
+                  value: item,
+                  child: Text(
+                    item.hizmet['hizmet_adi'],
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(),
+          value: secilihizmet[index],
+          onChanged: (value) {
+            setState(() {
+              secilihizmet[index] = value!;
+              randevuhizmetleri[index].hizmet_id = value.hizmet_id;
+              randevuhizmetleri[index].sure_dk = value.sure;
+              randevuhizmetleri[index].fiyat = value.fiyat;
+              randevuhizmetleri[index].hizmetler = value.hizmet;
+              personelSecAdiminaGec(index, value.hizmet_id);
+              tarihSaatAdiminaGec();
+            });
+          },
+          buttonStyleData: ButtonStyleData(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            height: 46,
+            width: MediaQuery.of(context).size.width - 64,
+          ),
+          dropdownStyleData: DropdownStyleData(
+            maxHeight: 400,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+          menuItemStyleData: const MenuItemStyleData(height: 56),
+          dropdownSearchData: DropdownSearchData(
+            searchController: hizmet[index],
+            searchInnerWidgetHeight: 52,
+            searchInnerWidget: Padding(
+              padding: const EdgeInsets.all(8),
+              child: TextFormField(
+                controller: hizmet[index],
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  hintText: 'Hizmet ara...',
+                  hintStyle: const TextStyle(fontSize: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            searchMatchFn: (item, searchValue) => item.value!.hizmet["hizmet_adi"]
+                .toString()
+                .toLowerCase()
+                .contains(searchValue.toLowerCase()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _personelDropdown(BuildContext context, int index) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          scheme.primary.withValues(alpha: 0.04),
+          Colors.white,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: scheme.primary.withValues(alpha: 0.18),
+          width: 1,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton2<Personel>(
+          isExpanded: true,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              personelSecimHintText[index],
+              style: TextStyle(
+                fontSize: 12.5,
+                color: scheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+          value: secilipersonel[index],
+          items: filtreliPersonelListesi[index]
+              .map(
+                (item) => DropdownMenuItem(
+                  value: item,
+                  child: Text(
+                    item.personel_adi,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            setState(() {
+              secilipersonel[index] = value!;
+              randevuhizmetleri[index].personel_id = value.id;
+              randevuhizmetleri[index].personeller = value;
+              tarihSaatAdiminaGec();
+            });
+          },
+          buttonStyleData: ButtonStyleData(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            height: 46,
+            width: MediaQuery.of(context).size.width - 64,
+          ),
+          dropdownStyleData: DropdownStyleData(
+            maxHeight: 400,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+          menuItemStyleData: const MenuItemStyleData(height: 44),
+          dropdownSearchData: DropdownSearchData(
+            searchController: personel[index],
+            searchInnerWidgetHeight: 52,
+            searchInnerWidget: Padding(
+              padding: const EdgeInsets.all(8),
+              child: TextFormField(
+                controller: personel[index],
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  hintText: 'Personel ara...',
+                  hintStyle: const TextStyle(fontSize: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            searchMatchFn: (item, searchValue) => item.value!.personel_adi
+                .toString()
+                .toLowerCase()
+                .contains(searchValue.toLowerCase()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── TARİH STRIP ──────────────────────────────────────────────────────────
+  Widget _tarihStrip(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 78,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: tarihListesi.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final tarih = tarihListesi[i];
+          final selected = secilenTarih == tarih;
+
+          String topLabel;
+          String bottomLabel;
+          if (tarih == 'Bugün' || tarih == 'Yarın') {
+            topLabel = tarih;
+            bottomLabel = DateFormat('dd.MM').format(
+              DateTime.now().add(Duration(days: tarih == 'Bugün' ? 0 : 1)),
+            );
+          } else {
+            final parts = tarih.split(' ');
+            topLabel = parts.length > 1 ? parts[1] : tarih;
+            bottomLabel = parts[0];
+          }
+
+          return Material(
+            color: selected ? scheme.primary : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                setState(() {
+                  secilenTarih = tarih;
+                  secilenSaat = null;
+                  tarihSaatAdiminaGec();
+                });
+              },
+              child: Container(
+                width: 72,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: selected
+                        ? Colors.transparent
+                        : scheme.primary.withValues(alpha: 0.18),
+                  ),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: scheme.primary.withValues(alpha: 0.25),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      topLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                        color: selected
+                            ? Colors.white.withValues(alpha: 0.85)
+                            : scheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      bottomLabel,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                        color: selected ? Colors.white : scheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── SAATLER ──────────────────────────────────────────────────────────────
+  Widget _saatlerCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+
+    bool selectionComplete = randevuhizmetleri.every(
+      (e) => e.hizmet_id.isNotEmpty && e.personel_id.isNotEmpty,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 160),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: !selectionComplete
+          ? _saatlerEmpty(
+              context,
+              icon: Icons.touch_app_rounded,
+              title: 'Önce hizmet ve personel seç',
+              subtitle:
+                  'Uygun saatler hizmet/personel seçtikten sonra burada listelenir.',
+            )
+          : (saatler.isEmpty
+              ? _saatlerEmpty(
+                  context,
+                  icon: Icons.event_busy_rounded,
+                  title: 'Uygun saat bulunamadı',
+                  subtitle: 'Başka bir tarih dene.',
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: saatler.map((saat) {
+                    final dolu = saat.dolu == '1';
+                    final selected = secilenSaat == saat.saat;
+                    final base = dolu
+                        ? scheme.onSurface.withValues(alpha: 0.08)
+                        : (selected
+                            ? scheme.primary
+                            : Color.alphaBlend(
+                                ext.successColor.withValues(alpha: 0.10),
+                                Colors.white,
+                              ));
+                    final textColor = dolu
+                        ? scheme.onSurface.withValues(alpha: 0.4)
+                        : (selected ? Colors.white : ext.successColor);
+                    final borderColor = dolu
+                        ? Colors.transparent
+                        : (selected
+                            ? Colors.transparent
+                            : ext.successColor.withValues(alpha: 0.35));
+
+                    return Material(
+                      color: base,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: dolu
+                            ? null
+                            : () {
+                                setState(() {
+                                  if (secilenSaat == saat.saat) {
+                                    secilenSaat = null;
+                                  } else {
+                                    secilenSaat = saat.saat;
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => RandevuOnay(
+                                          isletmebilgi: {},
+                                          seciliHizmetler:
+                                              randevuhizmetleri,
+                                          tarih: DateFormat("dd.MM.yyyy")
+                                              .format(stringiDateTimeYap(
+                                                  secilenTarih!)),
+                                          saat: secilenSaat!,
+                                          salonid: seciliSube?.id ?? '',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                });
+                              },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: borderColor, width: 1),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color: scheme.primary
+                                          .withValues(alpha: 0.25),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Text(
+                            saat.saat,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.1,
+                              color: textColor,
+                              decoration: dolu
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                )),
+    );
+  }
+
+  Widget _saatlerEmpty(BuildContext context,
+      {required IconData icon,
+      required String title,
+      required String subtitle}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  scheme.primary.withValues(alpha: 0.15),
+                  scheme.tertiary.withValues(alpha: 0.15),
+                ],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 26, color: scheme.primary),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface.withValues(alpha: 0.55),
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── LEGEND ───────────────────────────────────────────────────────────────
+  Widget _legendRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    Widget dot(Color c) => Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+        );
+    Widget item(Color c, String label) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            dot(c),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface.withValues(alpha: 0.65),
+              ),
+            ),
+          ],
+        );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 6,
+        children: [
+          item(ext.successColor, 'Müsait'),
+          item(scheme.primary, 'Seçili'),
+          item(scheme.onSurface.withValues(alpha: 0.2), 'Dolu'),
+        ],
+      ),
+    );
+  }
 }
