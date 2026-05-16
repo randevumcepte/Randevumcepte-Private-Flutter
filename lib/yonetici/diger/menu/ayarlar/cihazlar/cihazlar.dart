@@ -471,50 +471,6 @@ class _CihazlarState extends State<Cihazlar> {
                     ],
                   ),
                 ),
-                Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(999),
-                  child: InkWell(
-                    onTap: _yeniCihaz,
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_accentLight, _accent],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _accent.withValues(alpha: 0.30),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.add_rounded,
-                              size: 16, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Yeni',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12.5,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
