@@ -19,6 +19,7 @@ class RandevuHizmet {
     this.paket_adi,
     this.adisyon_paket_id,
     this.adisyon_hizmet_id,
+    this.groupId = 'g0',
   });
 
   dynamic hizmetler;
@@ -39,6 +40,8 @@ class RandevuHizmet {
   String? paket_adi;
   dynamic adisyon_paket_id;
   dynamic adisyon_hizmet_id;
+  // UI grupla: ayni groupId'li satirlar tek karta gosterilir (1 personel + N hizmet)
+  String groupId;
 
   bool get isPaket => (paket_adi != null && paket_adi!.isNotEmpty) ||
       adisyon_paket_id != null ||

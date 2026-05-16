@@ -374,14 +374,20 @@ class AppointmentEditorState extends State<AppointmentEditor> {
 
       int eklenenSatir = 0;
       setState(() {
-        // Once mevcut son satir bos mu kontrol — bossa onu kullan, yeni satir acma.
-        // (Editor acildiginda 1 bos satir default ekleniyor; kullanici daha hicbir
-        //  hizmet secmemisse paket secimi o satirin uzerine yazsin.)
+        // Paket secimi: TUM secilen hizmetler ayni groupId'ye sahip olur =>
+        // UI tarafinda tek bir "Hizmet Grubu" karti icinde gosterilirler
+        // (1 personel + N hizmet). Web modali ile esit davranis.
+        // Mevcut son satir bossa onun groupId'sini kullan ve uzerine yaz;
+        // degilse yeni unique groupId uret.
         int? bosSatirIndex;
+        String hedefGroupId;
         if (randevuhizmetleri.isNotEmpty &&
             secilihizmet.isNotEmpty &&
             secilihizmet.last == null) {
           bosSatirIndex = randevuhizmetleri.length - 1;
+          hedefGroupId = randevuhizmetleri[bosSatirIndex].groupId;
+        } else {
+          hedefGroupId = 'g-${DateTime.now().millisecondsSinceEpoch}';
         }
 
         for (final secim in secilenler) {
@@ -443,6 +449,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             paket_adi: paketAdi,
             adisyon_paket_id: adisyonPaketId,
             adisyon_hizmet_id: adisyonHizmetId,
+            groupId: hedefGroupId,
           );
 
           if (bosSatirIndex != null) {
@@ -897,10 +904,14 @@ class AppointmentEditorState extends State<AppointmentEditor> {
               ),
               PremiumGradientPill(
                 icon: Icons.add_rounded,
-                label: 'Hizmet Ekle',
+                label: 'Yeni Personel',
                 onTap: () {
                   _closeKeyboard(); // YENİ: Butona tıklanınca klavyeyi kapat
                   setState(() {
+                    // Yeni personel/hizmet grubu: ayri bir groupId ile yeni
+                    // satir ekle (kendi bagimsiz kartinda gozukur).
+                    final yeniGroupId =
+                        'g-${DateTime.now().millisecondsSinceEpoch}';
                     suredk.add(TextEditingController());
                     fiyat.add(TextEditingController());
                     oda.add(TextEditingController());
@@ -928,6 +939,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       // chain default (backend semantik): bos => bir sonraki
                       // hizmet bu hizmetin bitis saatinden baslar. '1' = paralel.
                       birusttekiileaynisaat: '',
+                      groupId: yeniGroupId,
                     ));
                   });
                 },
@@ -937,379 +949,525 @@ class AppointmentEditorState extends State<AppointmentEditor> {
 
           const SizedBox(height: 12),
 
-          ...List.generate(randevuhizmetleri.length, (index) {
-            final bool isPaketSatir = randevuhizmetleri[index].isPaket;
-            final String? paketAdi = randevuhizmetleri[index].paket_adi;
+          ...() {
+            // Grup-tabanli render: ayni groupId'ye sahip satirlar tek bir
+            // "Hizmet Grubu" kartinda gosterilir (1 personel + N hizmet) —
+            // web "Yeni Randevu" modali ile esit UX.
             const Color paketRenk = Color(0xFF6A1B9A);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isPaketSatir
-                    ? const Color(0xFFF6F0FA)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: isPaketSatir
-                    ? Border.all(
-                        color: paketRenk.withValues(alpha: 0.35),
-                        width: 1.4,
-                      )
-                    : null,
-                boxShadow: [
-                  BoxShadow(
-                    color: (isPaketSatir ? paketRenk : scheme.primary)
-                        .withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isPaketSatir) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: paketRenk,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.card_giftcard,
-                              size: 14, color: Colors.white),
-                          const SizedBox(width: 5),
-                          Text(
-                            paketAdi != null && paketAdi.isNotEmpty
-                                ? 'PAKET: $paketAdi'
-                                : 'PAKET',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ],
-                      ),
+            final List<String> groupOrder = [];
+            final Map<String, List<int>> groups = {};
+            for (int i = 0; i < randevuhizmetleri.length; i++) {
+              final gid = randevuhizmetleri[i].groupId;
+              if (!groups.containsKey(gid)) {
+                groups[gid] = [];
+                groupOrder.add(gid);
+              }
+              groups[gid]!.add(i);
+            }
+            final int toplamGrupSayisi = groupOrder.length;
+
+            return groupOrder.map((gid) {
+              final List<int> indices = groups[gid]!;
+              final int firstIndex = indices.first;
+              final bool grupPaket =
+                  indices.any((i) => randevuhizmetleri[i].isPaket);
+              final String? grupPaketAdi = grupPaket
+                  ? randevuhizmetleri
+                      .firstWhere((h) =>
+                          h.groupId == gid &&
+                          h.isPaket &&
+                          (h.paket_adi != null && h.paket_adi!.isNotEmpty))
+                      .paket_adi
+                  : null;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color:
+                      grupPaket ? const Color(0xFFF6F0FA) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: grupPaket
+                      ? Border.all(
+                          color: paketRenk.withValues(alpha: 0.35),
+                          width: 1.4,
+                        )
+                      : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (grupPaket ? paketRenk : scheme.primary)
+                          .withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
                     ),
-                    const SizedBox(height: 12),
                   ],
-                  Stack(
-                children: [
-                  Column(
-                    children: [
-                      if (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
-                          widget.isletmebilgi["randevu_takvim_turu"] == 1)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (grupPaket) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: paketRenk,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Padding(
-                              padding: EdgeInsets.only(
-                                right: randevuhizmetleri.length > 1 ? 32 : 0,
-                              ),
-                              child: Text(
-                                'Personel',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: scheme.onSurface.withValues(alpha: 0.55),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            GestureDetector(
-                              onTap: _closeKeyboard,
-                              child: Container(
-                                alignment: Alignment.center,
-                                height: 44,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  border: Border.all(color: softBorder),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton2<Personel>(
-                                    isExpanded: true,
-                                    hint: Text(
-                                      'Personel Seç',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Theme.of(context).hintColor,
-                                      ),
-                                    ),
-                                    value: secilipersonel[index],
-                                    items: personelliste
-                                        .map((item) => DropdownMenuItem(
-                                              value: item,
-                                              child: Text(
-                                                item.personel_adi,
-                                                style: const TextStyle(fontSize: 14),
-                                              ),
-                                            ))
-                                        .toList(),
-                                    onChanged: (value) {
-                                      _closeKeyboard();
-                                      setState(() {
-                                        secilipersonel[index] = value!;
-                                        randevuhizmetleri[index].personel_id = value.id;
-                                      });
-                                    },
-                                    buttonStyleData: const ButtonStyleData(
-                                      padding: EdgeInsets.symmetric(horizontal: 14),
-                                      height: 50,
-                                      width: 400,
-                                    ),
-                                    dropdownStyleData: const DropdownStyleData(maxHeight: 400),
-                                    menuItemStyleData: const MenuItemStyleData(height: 40),
-                                    dropdownSearchData: DropdownSearchData(
-                                      searchController: personel,
-                                      searchInnerWidgetHeight: 50,
-                                      searchInnerWidget: Container(
-                                        height: 50,
-                                        padding: const EdgeInsets.only(top: 8, bottom: 4, right: 8, left: 8),
-                                        child: TextFormField(
-                                          expands: true,
-                                          maxLines: null,
-                                          controller: personel,
-                                          decoration: InputDecoration(
-                                            isDense: true,
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                            hintText: 'Personel Ara..',
-                                            hintStyle: const TextStyle(fontSize: 12),
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                          ),
-                                        ),
-                                      ),
-                                      searchMatchFn: (item, searchValue) {
-                                        return item.value!.personel_adi.toString().toLowerCase().contains(searchValue.toLowerCase());
-                                      },
-                                    ),
-                                    onMenuStateChange: (isOpen) {
-                                      if (!isOpen) {
-                                        _closeKeyboard();
-                                      }
-                                    },
-                                  ),
-                                ),
+                            const Icon(Icons.card_giftcard,
+                                size: 14, color: Colors.white),
+                            const SizedBox(width: 5),
+                            Text(
+                              grupPaketAdi != null && grupPaketAdi.isNotEmpty
+                                  ? 'PAKET: $grupPaketAdi'
+                                  : 'PAKET',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
                         ),
-                      if (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
-                          widget.isletmebilgi["randevu_takvim_turu"] == 1)
-                        const SizedBox(height: 10),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Grup ust seridi: Personel + (Cihaz/Oda) tek kez
+                    if (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
+                        widget.isletmebilgi["randevu_takvim_turu"] == 1)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (widget.isletmebilgi["randevu_takvim_turu"] == 2)
-                            SizedBox(
+                          Padding(
+                            padding: EdgeInsets.only(
+                              right: toplamGrupSayisi > 1 ? 32 : 0,
+                            ),
+                            child: Text(
+                              'Personel',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface
+                                    .withValues(alpha: 0.55),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: _closeKeyboard,
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 44,
                               width: double.infinity,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Cihaz',
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: softBorder),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton2<Personel>(
+                                  isExpanded: true,
+                                  hint: Text(
+                                    'Personel Seç',
                                     style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: scheme.onSurface.withValues(alpha: 0.55),
+                                      fontSize: 14,
+                                      color: Theme.of(context).hintColor,
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
-                                  GestureDetector(
-                                    onTap: _closeKeyboard, // YENİ: Dropdown'a tıklanınca klavyeyi kapat
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      height: 44,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(color: softBorder),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton2<Cihaz>(
-                                          isExpanded: true,
-                                          hint: Text((cihazliste.length > 0 ? 'Cihaz Seçin' : 'Sitemde cihaz bulunmamaktadır'), style: TextStyle(fontSize: 14, color: Theme.of(context).hintColor)),
-                                          items: cihazliste
-                                              .map((item) => DropdownMenuItem(
-                                                    value: item,
-                                                    child: Text(item.cihaz_adi, style: TextStyle(fontSize: 14)),
-                                                  ))
-                                              .toList(),
-                                          value: secilicihaz[index],
-                                          onChanged: (value) {
-                                            _closeKeyboard(); // YENİ: Değişiklikte klavyeyi kapat
-                                            setState(() {
-                                              secilicihaz[index] = value!;
-                                              randevuhizmetleri[index].cihaz_id = value.id;
-                                            });
-                                          },
-                                          buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 14), height: 50, width: 400),
-                                          dropdownStyleData: DropdownStyleData(maxHeight: 400),
-                                          menuItemStyleData: MenuItemStyleData(height: 40),
-                                          dropdownSearchData: DropdownSearchData(
-                                            searchController: cihaz[index],
-                                            searchInnerWidgetHeight: 50,
-                                            searchInnerWidget: Container(
-                                              height: 50,
-                                              padding: EdgeInsets.all(8),
-                                              child: TextFormField(
-                                                expands: true,
-                                                maxLines: null,
-                                                controller: cihaz[index],
-                                                decoration: InputDecoration(
-                                                  isDense: true,
-                                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                  hintText: 'Cihaz Ara..',
-                                                  hintStyle: TextStyle(fontSize: 12),
-                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                                ),
-                                              ),
+                                  value: secilipersonel[firstIndex],
+                                  items: personelliste
+                                      .map((item) => DropdownMenuItem(
+                                            value: item,
+                                            child: Text(
+                                              item.personel_adi,
+                                              style: const TextStyle(
+                                                  fontSize: 14),
                                             ),
-                                            searchMatchFn: (item, searchValue) => item.value!.cihaz_adi.toLowerCase().contains(searchValue.toLowerCase()),
-                                          ),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    _closeKeyboard();
+                                    setState(() {
+                                      for (final i in indices) {
+                                        secilipersonel[i] = value!;
+                                        randevuhizmetleri[i].personel_id =
+                                            value.id;
+                                      }
+                                    });
+                                  },
+                                  buttonStyleData: const ButtonStyleData(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 14),
+                                    height: 50,
+                                    width: 400,
+                                  ),
+                                  dropdownStyleData:
+                                      const DropdownStyleData(
+                                          maxHeight: 400),
+                                  menuItemStyleData:
+                                      const MenuItemStyleData(height: 40),
+                                  dropdownSearchData: DropdownSearchData(
+                                    searchController: personel,
+                                    searchInnerWidgetHeight: 50,
+                                    searchInnerWidget: Container(
+                                      height: 50,
+                                      padding: const EdgeInsets.only(
+                                          top: 8,
+                                          bottom: 4,
+                                          right: 8,
+                                          left: 8),
+                                      child: TextFormField(
+                                        expands: true,
+                                        maxLines: null,
+                                        controller: personel,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                  vertical: 8),
+                                          hintText: 'Personel Ara..',
+                                          hintStyle: const TextStyle(
+                                              fontSize: 12),
+                                          border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      8)),
                                         ),
                                       ),
                                     ),
+                                    searchMatchFn: (item, searchValue) {
+                                      return item.value!.personel_adi
+                                          .toString()
+                                          .toLowerCase()
+                                          .contains(
+                                              searchValue.toLowerCase());
+                                    },
                                   ),
-                                ],
+                                  onMenuStateChange: (isOpen) {
+                                    if (!isOpen) {
+                                      _closeKeyboard();
+                                    }
+                                  },
+                                ),
                               ),
                             ),
-                          if (widget.isletmebilgi["randevu_takvim_turu"] == 3)
-                            SizedBox(
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      ),
+                    if (widget.isletmebilgi["randevu_takvim_turu"] == 2)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Cihaz',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface
+                                  .withValues(alpha: 0.55),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: _closeKeyboard,
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 44,
                               width: double.infinity,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Oda',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: scheme.onSurface.withValues(alpha: 0.55),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  GestureDetector(
-                                    onTap: _closeKeyboard, // YENİ: Dropdown'a tıklanınca klavyeyi kapat
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      height: 44,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(color: softBorder),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton2<Oda>(
-                                          isExpanded: true,
-                                          hint: Text((odaliste.length > 0 ? 'Oda Seçin' : 'Sistemde oda bulunmamaktadır'), style: TextStyle(fontSize: 14, color: Theme.of(context).hintColor)),
-                                          items: odaliste
-                                              .map((item) => DropdownMenuItem(
-                                                    value: item,
-                                                    child: Text(item.oda_adi, style: TextStyle(fontSize: 14)),
-                                                  ))
-                                              .toList(),
-                                          value: secilioda[index],
-                                          onChanged: (value) {
-                                            _closeKeyboard(); // YENİ: Değişiklikte klavyeyi kapat
-                                            setState(() {
-                                              secilioda[index] = value!;
-                                              randevuhizmetleri[index].oda_id = value.id;
-                                            });
-                                          },
-                                          buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 14), height: 50, width: 400),
-                                          dropdownStyleData: DropdownStyleData(maxHeight: 400),
-                                          menuItemStyleData: MenuItemStyleData(height: 40),
-                                          dropdownSearchData: DropdownSearchData(
-                                            searchController: oda[index],
-                                            searchInnerWidgetHeight: 50,
-                                            searchInnerWidget: Container(
-                                              height: 50,
-                                              padding: EdgeInsets.all(8),
-                                              child: TextFormField(
-                                                expands: true,
-                                                maxLines: null,
-                                                controller: oda[index],
-                                                decoration: InputDecoration(
-                                                  isDense: true,
-                                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                  hintText: 'Oda Ara..',
-                                                  hintStyle: TextStyle(fontSize: 12),
-                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                                ),
-                                              ),
-                                            ),
-                                            searchMatchFn: (item, searchValue) => item.value!.oda_adi.toLowerCase().contains(searchValue.toLowerCase()),
-                                          ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: softBorder),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton2<Cihaz>(
+                                  isExpanded: true,
+                                  hint: Text(
+                                      (cihazliste.length > 0
+                                          ? 'Cihaz Seçin'
+                                          : 'Sitemde cihaz bulunmamaktadır'),
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          color: Theme.of(context)
+                                              .hintColor)),
+                                  items: cihazliste
+                                      .map((item) => DropdownMenuItem(
+                                            value: item,
+                                            child: Text(item.cihaz_adi,
+                                                style: TextStyle(
+                                                    fontSize: 14)),
+                                          ))
+                                      .toList(),
+                                  value: secilicihaz[firstIndex],
+                                  onChanged: (value) {
+                                    _closeKeyboard();
+                                    setState(() {
+                                      for (final i in indices) {
+                                        secilicihaz[i] = value!;
+                                        randevuhizmetleri[i].cihaz_id =
+                                            value.id;
+                                      }
+                                    });
+                                  },
+                                  buttonStyleData: ButtonStyleData(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 14),
+                                      height: 50,
+                                      width: 400),
+                                  dropdownStyleData:
+                                      DropdownStyleData(maxHeight: 400),
+                                  menuItemStyleData:
+                                      MenuItemStyleData(height: 40),
+                                  dropdownSearchData: DropdownSearchData(
+                                    searchController: cihaz[firstIndex],
+                                    searchInnerWidgetHeight: 50,
+                                    searchInnerWidget: Container(
+                                      height: 50,
+                                      padding: EdgeInsets.all(8),
+                                      child: TextFormField(
+                                        expands: true,
+                                        maxLines: null,
+                                        controller: cihaz[firstIndex],
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          contentPadding:
+                                              EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                  vertical: 8),
+                                          hintText: 'Cihaz Ara..',
+                                          hintStyle:
+                                              TextStyle(fontSize: 12),
+                                          border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      8)),
                                         ),
                                       ),
                                     ),
+                                    searchMatchFn: (item, searchValue) =>
+                                        item.value!.cihaz_adi
+                                            .toLowerCase()
+                                            .contains(searchValue
+                                                .toLowerCase()),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          if (widget.isletmebilgi["randevu_takvim_turu"] == 2 ||
-                              widget.isletmebilgi["randevu_takvim_turu"] == 3)
-                            const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      ),
+                    if (widget.isletmebilgi["randevu_takvim_turu"] == 3)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Oda',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface
+                                  .withValues(alpha: 0.55),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: _closeKeyboard,
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 44,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: softBorder),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton2<Oda>(
+                                  isExpanded: true,
+                                  hint: Text(
+                                      (odaliste.length > 0
+                                          ? 'Oda Seçin'
+                                          : 'Sistemde oda bulunmamaktadır'),
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          color: Theme.of(context)
+                                              .hintColor)),
+                                  items: odaliste
+                                      .map((item) => DropdownMenuItem(
+                                            value: item,
+                                            child: Text(item.oda_adi,
+                                                style: TextStyle(
+                                                    fontSize: 14)),
+                                          ))
+                                      .toList(),
+                                  value: secilioda[firstIndex],
+                                  onChanged: (value) {
+                                    _closeKeyboard();
+                                    setState(() {
+                                      for (final i in indices) {
+                                        secilioda[i] = value!;
+                                        randevuhizmetleri[i].oda_id =
+                                            value.id;
+                                      }
+                                    });
+                                  },
+                                  buttonStyleData: ButtonStyleData(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 14),
+                                      height: 50,
+                                      width: 400),
+                                  dropdownStyleData:
+                                      DropdownStyleData(maxHeight: 400),
+                                  menuItemStyleData:
+                                      MenuItemStyleData(height: 40),
+                                  dropdownSearchData: DropdownSearchData(
+                                    searchController: oda[firstIndex],
+                                    searchInnerWidgetHeight: 50,
+                                    searchInnerWidget: Container(
+                                      height: 50,
+                                      padding: EdgeInsets.all(8),
+                                      child: TextFormField(
+                                        expands: true,
+                                        maxLines: null,
+                                        controller: oda[firstIndex],
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          contentPadding:
+                                              EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                  vertical: 8),
+                                          hintText: 'Oda Ara..',
+                                          hintStyle:
+                                              TextStyle(fontSize: 12),
+                                          border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      8)),
+                                        ),
+                                      ),
+                                    ),
+                                    searchMatchFn: (item, searchValue) =>
+                                        item.value!.oda_adi
+                                            .toLowerCase()
+                                            .contains(searchValue
+                                                .toLowerCase()),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      ),
+                    // Grup icindeki hizmet mini-kartlari
+                    ...indices.map((i) {
+                      final bool grupCokluHizmet = indices.length > 1;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: softBorder),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Stack(
+                          children: [
+                            Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Hizmet',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: scheme.onSurface.withValues(alpha: 0.55),
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    right: grupCokluHizmet ? 32 : 0,
+                                  ),
+                                  child: Text(
+                                    'Hizmet',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.55),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 GestureDetector(
-                                  onTap: _closeKeyboard, // YENİ: Dropdown'a tıklanınca klavyeyi kapat
+                                  onTap: _closeKeyboard,
                                   child: Container(
                                     alignment: Alignment.center,
                                     height: 44,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
-                                      border: Border.all(color: softBorder),
-                                      borderRadius: BorderRadius.circular(12),
+                                      border:
+                                          Border.all(color: softBorder),
+                                      borderRadius:
+                                          BorderRadius.circular(12),
                                     ),
                                     child: DropdownButtonHideUnderline(
-                                      child: DropdownButton2<IsletmeHizmet>(
+                                      child:
+                                          DropdownButton2<IsletmeHizmet>(
                                         isExpanded: true,
-                                        hint: Text('Hizmet Seç', style: TextStyle(fontSize: 14, color: Theme.of(context).hintColor)),
+                                        hint: Text('Hizmet Seç',
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: Theme.of(context)
+                                                    .hintColor)),
                                         items: isletmehizmetliste
                                             .map((item) => DropdownMenuItem(
                                                   value: item,
-                                                  child: Text(item.hizmet['hizmet_adi'], style: TextStyle(fontSize: 14)),
+                                                  child: Text(
+                                                      item.hizmet[
+                                                          'hizmet_adi'],
+                                                      style: TextStyle(
+                                                          fontSize: 14)),
                                                 ))
                                             .toList(),
-                                        value: secilihizmet[index],
+                                        value: secilihizmet[i],
                                         onChanged: (value) {
-                                          _closeKeyboard(); // YENİ: Değişiklikte klavyeyi kapat
+                                          _closeKeyboard();
                                           setState(() {
-                                            secilihizmet[index] = value!;
-                                            randevuhizmetleri[index].hizmet_id = value.hizmet_id;
-                                            suredk[index].text = value.sure != 'null' ? value.sure : '30';
-                                            fiyat[index].text = value.fiyat != 'null' ? value.fiyat : '0';
-                                            randevuhizmetleri[index].sure_dk = value.sure != 'null' ? value.sure : '30';
-                                            randevuhizmetleri[index].fiyat = value.fiyat != 'null' ? value.fiyat : '0';
+                                            secilihizmet[i] = value!;
+                                            randevuhizmetleri[i]
+                                                    .hizmet_id =
+                                                value.hizmet_id;
+                                            suredk[i].text =
+                                                value.sure != 'null'
+                                                    ? value.sure
+                                                    : '30';
+                                            fiyat[i].text =
+                                                value.fiyat != 'null'
+                                                    ? value.fiyat
+                                                    : '0';
+                                            randevuhizmetleri[i]
+                                                    .sure_dk =
+                                                value.sure != 'null'
+                                                    ? value.sure
+                                                    : '30';
+                                            randevuhizmetleri[i].fiyat =
+                                                value.fiyat != 'null'
+                                                    ? value.fiyat
+                                                    : '0';
                                           });
                                         },
-                                        buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 14), height: 50, width: 400),
-                                        dropdownStyleData: DropdownStyleData(maxHeight: 400),
-                                        menuItemStyleData: MenuItemStyleData(height: 60),
-                                        dropdownSearchData: DropdownSearchData(
-                                          searchController: hizmet[index],
+                                        buttonStyleData: ButtonStyleData(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 14),
+                                            height: 50,
+                                            width: 400),
+                                        dropdownStyleData:
+                                            DropdownStyleData(
+                                                maxHeight: 400),
+                                        menuItemStyleData:
+                                            MenuItemStyleData(height: 60),
+                                        dropdownSearchData:
+                                            DropdownSearchData(
+                                          searchController: hizmet[i],
                                           searchInnerWidgetHeight: 50,
                                           searchInnerWidget: Container(
                                             height: 50,
@@ -1317,145 +1475,296 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                                             child: TextFormField(
                                               expands: true,
                                               maxLines: null,
-                                              controller: hizmet[index],
+                                              controller: hizmet[i],
                                               decoration: InputDecoration(
                                                 isDense: true,
-                                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 8),
                                                 hintText: 'Hizmet Ara..',
-                                                hintStyle: TextStyle(fontSize: 12),
-                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                                hintStyle: TextStyle(
+                                                    fontSize: 12),
+                                                border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius
+                                                            .circular(8)),
                                               ),
                                             ),
                                           ),
-                                          searchMatchFn: (item, searchValue) => item.value!.hizmet["hizmet_adi"].toString().toLowerCase().contains(searchValue.toLowerCase()),
+                                          searchMatchFn: (item,
+                                                  searchValue) =>
+                                              item.value!
+                                                  .hizmet["hizmet_adi"]
+                                                  .toString()
+                                                  .toLowerCase()
+                                                  .contains(searchValue
+                                                      .toLowerCase()),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Süre (dk)',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: scheme.onSurface
+                                                  .withValues(alpha: 0.55),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Container(
+                                            alignment: Alignment.center,
+                                            height: 44,
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                  color: softBorder),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      12),
+                                            ),
+                                            child: TextFormField(
+                                              controller: suredk[i],
+                                              keyboardType:
+                                                  TextInputType.phone,
+                                              onTap: () {},
+                                              onChanged: (value) {
+                                                suredk[i].text = value;
+                                                randevuhizmetleri[i]
+                                                    .sure_dk = value;
+                                              },
+                                              decoration:
+                                                  const InputDecoration(
+                                                border: InputBorder.none,
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                        horizontal: 14),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Fiyat (₺)',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: scheme.onSurface
+                                                  .withValues(alpha: 0.55),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Container(
+                                            alignment: Alignment.center,
+                                            height: 44,
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                  color: softBorder),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      12),
+                                            ),
+                                            child: TextFormField(
+                                              controller: fiyat[i],
+                                              keyboardType:
+                                                  TextInputType.phone,
+                                              onTap: () {},
+                                              onChanged: (value) {
+                                                fiyat[i].text = value;
+                                                randevuhizmetleri[i]
+                                                    .fiyat = value;
+                                              },
+                                              decoration:
+                                                  const InputDecoration(
+                                                border: InputBorder.none,
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                        horizontal: 14),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Süre (dk)',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: scheme.onSurface.withValues(alpha: 0.55),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      alignment: Alignment.center,
-                                      height: 44,
-                                      width: double.infinity,
+                            if (grupCokluHizmet)
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  shape: const CircleBorder(),
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: () {
+                                      _closeKeyboard();
+                                      setState(() {
+                                        randevuhizmetleri.removeAt(i);
+                                        secilihizmet.removeAt(i);
+                                        suredk.removeAt(i);
+                                        fiyat.removeAt(i);
+                                        oda.removeAt(i);
+                                        cihaz.removeAt(i);
+                                        hizmet.removeAt(i);
+                                        secilipersonel.removeAt(i);
+                                        seciliyardimcipersonel
+                                            .removeAt(i);
+                                        secilioda.removeAt(i);
+                                        secilicihaz.removeAt(i);
+                                      });
+                                    },
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(color: softBorder),
-                                        borderRadius: BorderRadius.circular(12),
+                                        color: const Color(0xFFEF4444)
+                                            .withValues(alpha: 0.12),
+                                        shape: BoxShape.circle,
                                       ),
-                                      child: TextFormField(
-                                        controller: suredk[index],
-                                        keyboardType: TextInputType.phone,
-                                        onTap: () {},
-                                        onChanged: (value) {
-                                          suredk[index].text = value!;
-                                          randevuhizmetleri[index].sure_dk = value;
-                                        },
-                                        decoration: const InputDecoration(
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 14),
-                                        ),
-                                      ),
+                                      child: const Icon(
+                                          Icons.close_rounded,
+                                          size: 16,
+                                          color: Color(0xFFDC2626)),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Fiyat (₺)',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: scheme.onSurface.withValues(alpha: 0.55),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      alignment: Alignment.center,
-                                      height: 44,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(color: softBorder),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: TextFormField(
-                                        controller: fiyat[index],
-                                        keyboardType: TextInputType.phone,
-                                        onTap: () {},
-                                        onChanged: (value) {
-                                          fiyat[index].text = value!;
-                                          randevuhizmetleri[index].fiyat = value;
-                                        },
-                                        decoration: const InputDecoration(
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 14),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  if (randevuhizmetleri.length > 1)
-                    Positioned(
-                      top: -4,
-                      right: -4,
-                      child: Material(
-                        color: Colors.transparent,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () {
-                            _closeKeyboard(); // YENİ: Butona tıklanınca klavyeyi kapat
-                            setState(() => randevuhizmetleri.removeAt(index));
-                          },
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEF4444).withValues(alpha: 0.12),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFDC2626)),
+                          ],
+                        ),
+                      );
+                    }),
+                    // Bu personele yeni hizmet ekle butonu
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          _closeKeyboard();
+                          setState(() {
+                            // Yeni hizmet ayni grup'ta — personel/oda/cihaz
+                            // grup uzerinden paylasilir.
+                            final src = randevuhizmetleri[firstIndex];
+                            suredk.add(TextEditingController());
+                            fiyat.add(TextEditingController());
+                            oda.add(TextEditingController());
+                            cihaz.add(TextEditingController());
+                            hizmet.add(TextEditingController());
+                            secilipersonel.add(secilipersonel[firstIndex]);
+                            seciliyardimcipersonel.add([null]);
+                            secilihizmet.add(null);
+                            secilioda.add(secilioda[firstIndex]);
+                            secilicihaz.add(secilicihaz[firstIndex]);
+                            randevuhizmetleri.add(RandevuHizmet(
+                              hizmetler: null,
+                              hizmet_id: '',
+                              personel_id: src.personel_id,
+                              personeller: null,
+                              oda_id: src.oda_id,
+                              oda: null,
+                              cihaz_id: src.cihaz_id,
+                              cihaz: null,
+                              fiyat: '',
+                              sure_dk: '',
+                              saat: '',
+                              saat_bitis: '',
+                              yardimci_personel: '',
+                              birusttekiileaynisaat: '',
+                              groupId: gid,
+                            ));
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: scheme.primary,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          tapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text(
+                          'Bu Personele Hizmet Ekle',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                     ),
-                ],
-              ), // Stack
-                ],
-              ), // Column (paket badge + Stack)
-            );
-          }),
+                    if (toplamGrupSayisi > 1)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            _closeKeyboard();
+                            setState(() {
+                              // Sondan basa sil — index kaymalarini onler.
+                              final sortedDesc = [...indices]
+                                ..sort((a, b) => b.compareTo(a));
+                              for (final i in sortedDesc) {
+                                randevuhizmetleri.removeAt(i);
+                                secilihizmet.removeAt(i);
+                                suredk.removeAt(i);
+                                fiyat.removeAt(i);
+                                oda.removeAt(i);
+                                cihaz.removeAt(i);
+                                hizmet.removeAt(i);
+                                secilipersonel.removeAt(i);
+                                seciliyardimcipersonel.removeAt(i);
+                                secilioda.removeAt(i);
+                                secilicihaz.removeAt(i);
+                              }
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFFDC2626),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            tapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18),
+                          label: const Text(
+                            'Grubu Sil',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }).toList();
+          }(),
 
           const SizedBox(height: 8),
 
