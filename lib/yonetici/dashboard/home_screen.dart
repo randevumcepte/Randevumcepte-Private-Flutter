@@ -238,8 +238,6 @@ class _HomeState extends State<DashBoard> {
                   const SizedBox(height: 12),
                   _branchPerformanceCard(context),
                 ],
-                const SizedBox(height: 12),
-                _profitMarginCard(context),
               ],
               if (kullanicirolu < 5) ...[
                 const SizedBox(height: 18),
