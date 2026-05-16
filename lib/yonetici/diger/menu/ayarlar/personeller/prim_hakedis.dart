@@ -69,6 +69,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
       return;
     }
     try {
+      _personeller = await personellistegetir(_salonid!);
+      _personeller = _personeller.where((p) => p.durum == '1' || p.durum == 'true').toList();
       await _primleriHesapla();
     } catch (e) {
       _hata = 'Hata: $e';
@@ -77,45 +79,39 @@ class _PrimHakedisState extends State<PrimHakedis> {
     setState(() => _yukleniyor = false);
   }
 
-  // TEK HTTP istegi ile tum personellerin prim+odeme verisi.
-  // Onceden N personel icin 2N+1 istek atiliyordu — buyuk performans iyilesmesi.
   Future<void> _primleriHesapla() async {
     if (_salonid == null) return;
     final ay = _seciliAy.toString().padLeft(2, '0');
     final yil = _seciliYil.toString();
-    final data = await primHakedisToplu(salonid: _salonid!, ay: ay, yil: yil);
-    if (data == null || data['basarili'] != true) {
-      _personeller = [];
-      _primler = {};
-      _odenenler = {};
-      return;
-    }
-    final list = (data['personeller'] as List?) ?? const [];
-    _personeller = list.map((m) {
-      final map = Map<String, dynamic>.from(m as Map);
-      return Personel.fromJson(map);
-    }).toList();
-    _primler = {};
-    _odenenler = {};
-    for (final m in list) {
-      final map = Map<String, dynamic>.from(m as Map);
-      final id = map['personel_id'].toString();
-      _primler[id] = {
-        'hizmet_toplam_numeric':  map['hizmet_toplam'],
-        'urun_toplam_numeric':    map['urun_toplam'],
-        'paket_toplam_numeric':   map['paket_toplam'],
-        'hizmet_hakedis_numeric': map['hizmet_hakedis'],
-        'urun_hakedis_numeric':   map['urun_hakedis'],
-        'paket_hakedis_numeric':  map['paket_hakedis'],
+    final donem = '$yil-$ay';
+    // Her personel icin paralel: (a) ham prim hesabi, (b) donem odeme listesi
+    final results = await Future.wait(_personeller.map((p) async {
+      Map<String, dynamic>? primData;
+      Map<String, double> odemeOzeti = const {
+        'maas': 0.0, 'prim': 0.0, 'diger': 0.0, 'bonus': 0.0, 'kesinti': 0.0,
       };
-      _odenenler[id] = {
-        'maas':    _parseTrNumber(map['odenen_maas']),
-        'prim':    _parseTrNumber(map['odenen_prim']),
-        'diger':   _parseTrNumber(map['odenen_diger']),
-        'bonus':   _parseTrNumber(map['bonus']),
-        'kesinti': _parseTrNumber(map['kesinti']),
-      };
-    }
+      try {
+        primData = await personelPrimHesaplaAyYil(
+          personelid: p.id, salonid: _salonid!, ay: ay, yil: yil,
+        );
+      } catch (_) {}
+      try {
+        final od = await primOdemeListesi(
+          salonid: _salonid!, personelid: p.id, donem: donem,
+        );
+        final t = (od?['toplamlar'] as Map?) ?? const {};
+        odemeOzeti = {
+          'maas':    _parseTrNumber(t['maas']),
+          'prim':    _parseTrNumber(t['prim']),
+          'diger':   _parseTrNumber(t['diger']),
+          'bonus':   _parseTrNumber(t['bonus']),
+          'kesinti': _parseTrNumber(t['kesinti']),
+        };
+      } catch (_) {}
+      return (p.id, primData, odemeOzeti);
+    }));
+    _primler = {for (final r in results) r.$1: r.$2};
+    _odenenler = {for (final r in results) r.$1: r.$3};
   }
 
   // === Bir personel icin: maas/prim ham + odenmis + kalan tutarlar ===
@@ -778,17 +774,17 @@ class _PrimHakedisState extends State<PrimHakedis> {
     bool kaydediliyor = false;
 
     // Tip'e gore default tutari ata
-    double defaultTutar(String t) {
+    double _defaultTutar(String t) {
       if (t == 'maas') return k.kalanMaas;
       if (t == 'prim') return k.kalanPrim;
       return 0.0;
     }
-    String fmtForField(double v) {
+    String _fmtForField(double v) {
       if (v <= 0) return '';
       return v.toStringAsFixed(2).replaceAll('.', ',');
     }
     // Acilista default ata
-    tutarCtrl.text = fmtForField(defaultTutar(tip));
+    tutarCtrl.text = _fmtForField(_defaultTutar(tip));
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -801,7 +797,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
               setSt(() {
                 tip = yeni;
                 // Her tip degisikliginde tutari otomatik doldur (kullanici elle override edebilir)
-                tutarCtrl.text = fmtForField(defaultTutar(yeni));
+                tutarCtrl.text = _fmtForField(_defaultTutar(yeni));
                 tutarCtrl.selection = TextSelection.fromPosition(
                   TextPosition(offset: tutarCtrl.text.length),
                 );
@@ -882,7 +878,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
                                   child: InkWell(
                                     onTap: () {
                                       setSt(() {
-                                        tutarCtrl.text = fmtForField(kalanGoster);
+                                        tutarCtrl.text = _fmtForField(kalanGoster);
                                         tutarCtrl.selection = TextSelection.fromPosition(
                                             TextPosition(offset: tutarCtrl.text.length));
                                       });
