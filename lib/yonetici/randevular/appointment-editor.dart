@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
@@ -59,6 +60,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   late List<Oda> odaliste;
   late List<MusteriDanisan> musteridanisanlar;
   bool isloading = true;
+  String? _initError;
   final GlobalKey<LazyDropdownState> dropdownKey = GlobalKey<LazyDropdownState>();
 
   TextEditingController personel = TextEditingController();
@@ -163,41 +165,86 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   }
 
   Future<void> initialize() async {
-    seciliisletme = (await secilisalonid())!;
-    final isletmeVerileri = await isletmeVerileriGetir(seciliisletme, false, '', '', '', 0, 0);
-    List<MusteriDanisan> musteridanisanliste = isletmeVerileri['musteriler'];
-    List<IsletmeHizmet> isletmehizmetleriliste = isletmeVerileri['hizmetler'];
-    List<Personel> isletmepersonellerliste = isletmeVerileri['personeller'];
-    List<Cihaz> isletmecihazliste = isletmeVerileri['cihazlar'];
-    List<Oda> isletmeodaliste = isletmeVerileri['odalar'];
-
+    if (!mounted) return;
     setState(() {
-      suredk.add(TextEditingController());
-      fiyat.add(TextEditingController());
-      oda.add(TextEditingController());
-      cihaz.add(TextEditingController());
-      hizmet.add(TextEditingController());
-      secilipersonel.add(null);
-      seciliyardimcipersonel.add([null]);
-      secilihizmet.add(null);
-      secilioda.add(null);
-      secilicihaz.add(null);
-
-      musteridanisanlar = musteridanisanliste;
-      isletmehizmetliste = isletmehizmetleriliste;
-      personelliste = isletmepersonellerliste;
-      odaliste = isletmeodaliste;
-      cihazliste = isletmecihazliste;
-
-      if (widget.tarihsaat != "") {
-        randevutarihi.text = DateFormat('yyyy-MM-dd').format(DateTime.parse(widget.tarihsaat));
-        randevusaati.text = DateFormat('HH:mm').format(DateTime.parse(widget.tarihsaat));
-      }
-
-      _autoSelectResource();
-
-      isloading = false;
+      isloading = true;
+      _initError = null;
     });
+    try {
+      final salonId = await secilisalonid();
+      if (salonId == null || salonId.isEmpty) {
+        throw Exception('Seçili işletme bulunamadı. Lütfen tekrar giriş yapın.');
+      }
+      seciliisletme = salonId;
+
+      final isletmeVerileri = await isletmeVerileriGetir(
+        seciliisletme,
+        false,
+        '',
+        '',
+        '',
+        0,
+        0,
+      ).timeout(const Duration(seconds: 25));
+
+      List<MusteriDanisan> musteridanisanliste = isletmeVerileri['musteriler'];
+      List<IsletmeHizmet> isletmehizmetleriliste = isletmeVerileri['hizmetler'];
+      List<Personel> isletmepersonellerliste = isletmeVerileri['personeller'];
+      List<Cihaz> isletmecihazliste = isletmeVerileri['cihazlar'];
+      List<Oda> isletmeodaliste = isletmeVerileri['odalar'];
+
+      if (!mounted) return;
+      setState(() {
+        // Liste sıfırla — retry'de duplicate eklenmesin
+        suredk.clear();
+        fiyat.clear();
+        oda.clear();
+        cihaz.clear();
+        hizmet.clear();
+        secilipersonel.clear();
+        seciliyardimcipersonel.clear();
+        secilihizmet.clear();
+        secilioda.clear();
+        secilicihaz.clear();
+
+        suredk.add(TextEditingController());
+        fiyat.add(TextEditingController());
+        oda.add(TextEditingController());
+        cihaz.add(TextEditingController());
+        hizmet.add(TextEditingController());
+        secilipersonel.add(null);
+        seciliyardimcipersonel.add([null]);
+        secilihizmet.add(null);
+        secilioda.add(null);
+        secilicihaz.add(null);
+
+        musteridanisanlar = musteridanisanliste;
+        isletmehizmetliste = isletmehizmetleriliste;
+        personelliste = isletmepersonellerliste;
+        odaliste = isletmeodaliste;
+        cihazliste = isletmecihazliste;
+
+        if (widget.tarihsaat != "") {
+          randevutarihi.text =
+              DateFormat('yyyy-MM-dd').format(DateTime.parse(widget.tarihsaat));
+          randevusaati.text =
+              DateFormat('HH:mm').format(DateTime.parse(widget.tarihsaat));
+        }
+
+        _autoSelectResource();
+
+        isloading = false;
+      });
+    } catch (e, st) {
+      log('AppointmentEditor initialize hatası: $e', stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        isloading = false;
+        _initError = e is TimeoutException
+            ? 'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'
+            : 'Veriler yüklenemedi: $e';
+      });
+    }
   }
 
   void _autoSelectResource() {
@@ -521,13 +568,95 @@ class AppointmentEditorState extends State<AppointmentEditor> {
     return 0; // 53-59 arası için 00 (saat artar)
   }
 
+  Widget _buildInitErrorView(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cloud_off_rounded,
+                  size: 34, color: Color(0xFFEF4444)),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Randevu ekranı yüklenemedi',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _initError ?? '',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: scheme.onSurface.withValues(alpha: 0.65),
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: const Text('Kapat'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: scheme.onSurface,
+                    side: BorderSide(
+                        color: scheme.onSurface.withValues(alpha: 0.2)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: () => initialize(),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Tekrar Dene'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _getAppointmentEditor(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final Color softBorder = scheme.outline.withValues(alpha: 0.25);
 
-    return isloading
-        ? Center(child: CircularProgressIndicator())
-        : GestureDetector(
+    if (isloading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_initError != null) {
+      return _buildInitErrorView(context);
+    }
+    return GestureDetector(
       onTap: () {
         // YENİ: Tüm ekrana tıklanınca klavyeyi kapat
         _closeKeyboard();

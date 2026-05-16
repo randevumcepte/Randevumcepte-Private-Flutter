@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -3285,11 +3286,47 @@ Future<void> randevuEkleGuncelle(
     'appBundle': await appBundleAl(),
   };
 
-  final response = await http.post(
-    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/randevuekleguncelle'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(formData),
-  );
+  http.Response response;
+  try {
+    log('randevuEkleGuncelle POST gönderiliyor — payload boyut: ${jsonEncode(formData).length} bytes');
+    final t0 = DateTime.now();
+    response = await http
+        .post(
+          Uri.parse(
+              'https://apptest.randevumcepte.com.tr/api/v1/randevuekleguncelle'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(formData),
+        )
+        .timeout(const Duration(seconds: 60));
+    log('randevuEkleGuncelle POST tamamlandı — ${DateTime.now().difference(t0).inMilliseconds}ms, status ${response.statusCode}');
+  } catch (e, st) {
+    log('randevuEkleGuncelle hatası: $e', stackTrace: st);
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    final String mesaj;
+    if (e is TimeoutException) {
+      mesaj =
+          'Sunucu 60 saniyede yanıt vermedi. Lütfen biraz sonra tekrar deneyin. '
+          'Sorun devam ederse internet bağlantınızı veya VPN ayarlarınızı kontrol edin.';
+    } else {
+      mesaj = 'Randevu kaydedilemedi.\n\nHata türü: ${e.runtimeType}\nDetay: $e';
+    }
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('HATA'),
+        content: SingleChildScrollView(child: Text(mesaj)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('TAMAM'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
 
   if (response.statusCode == 200) {
     var result = json.decode(response.body);
@@ -3409,7 +3446,24 @@ Future<void> randevuEkleGuncelle(
       );
     }
   } else {
-    debugPrint('Error: ${response.body}');
+    debugPrint('Error: ${response.statusCode} ${response.body}');
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('HATA'),
+        content: Text(
+            'Randevu kaydedilemedi. Sunucu hata kodu: ${response.statusCode}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('TAMAM'),
+          ),
+        ],
+      ),
+    );
   }
 }
 Future<dynamic> satisyapilmadi(BuildContext context, String ongorusmeid,String aciklama,String currentPage,String aramaterimi,bool showprogress) async {
