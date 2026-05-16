@@ -416,6 +416,12 @@ class AppointmentEditorState extends State<AppointmentEditor> {
               fiyat: '0',
               bolum: '',
             );
+            // KRITIK: yapay obje 'isletmehizmetliste'ye eklenmezse,
+            // DropdownButton2 (value=hizmetObj, items=isletmehizmetliste.map...)
+            // "There should be exactly one item with DropdownButton's value"
+            // assertion error fırlatır -> gri ekran. Listeye ekleyerek hem
+            // value hem items'da bulunmasini garanti et.
+            isletmehizmetliste.add(hizmetObj);
           }
 
           final sureStr = (secim['sure']?.toString().isNotEmpty == true)
