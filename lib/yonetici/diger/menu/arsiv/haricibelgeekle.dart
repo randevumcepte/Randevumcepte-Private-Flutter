@@ -1,656 +1,887 @@
 import 'dart:convert';
-import 'package:page_transition/page_transition.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
-// import 'package:file_picker/file_picker.dart'; // Apple deprecated-API rejection avoidance — DKImagePickerController
 import 'dart:io';
-
-import 'package:photo_view/photo_view.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/personel.dart';
-import 'arsivyonetimipage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HariciBelgeEkle extends StatefulWidget {
   final dynamic isletmebilgi;
-  HariciBelgeEkle({Key? key,required this.isletmebilgi}) : super(key: key);
+  const HariciBelgeEkle({super.key, required this.isletmebilgi});
+
   @override
-  _HariciBelgeEkleState createState() => _HariciBelgeEkleState();
+  State<HariciBelgeEkle> createState() => _HariciBelgeEkleState();
 }
-class ImageViewer extends StatelessWidget {
-  final File image;
-  final VoidCallback onDelete;
 
-  ImageViewer({required this.image, required this.onDelete});
+class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
+  String _seciliSube = '';
+  bool _yukleniyor = true;
+  bool _gonderiliyor = false;
+  String? _hataMesaji;
+
+  List<MusteriDanisan> _musteriler = [];
+  List<Personel> _personeller = [];
+
+  MusteriDanisan? _musteri;
+  Personel? _personel;
+  final List<File> _gorseller = [];
+  final _baslik = TextEditingController();
+
+  final ImagePicker _picker = ImagePicker();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Resim Görüntüle'),
-        backgroundColor:Colors.purple[800] ,
-        actions: [
-          IconButton(
-            onPressed: onDelete,
-            icon: Icon(Icons.delete),
-          ),
-        ],
+  void initState() {
+    super.initState();
+    _baslat();
+  }
+
+  @override
+  void dispose() {
+    _baslik.dispose();
+    super.dispose();
+  }
+
+  Future<void> _baslat() async {
+    try {
+      _seciliSube = (await secilisalonid()) ?? '';
+      final results = await Future.wait([
+        musterilistegetir(_seciliSube),
+        personellistegetir(_seciliSube),
+      ]);
+      _musteriler = (results[0] as List).cast<MusteriDanisan>();
+      _personeller = (results[1] as List).cast<Personel>();
+    } catch (e) {
+      _hataMesaji = 'Veriler yüklenemedi: $e';
+    }
+    if (mounted) setState(() => _yukleniyor = false);
+  }
+
+  Future<void> _musteriSec() async {
+    final s = await _picker_<MusteriDanisan>(
+      baslik: 'Müşteri Seç',
+      ogeler: _musteriler,
+      etiket: (m) => m.name,
+      altYazi: (m) => m.cep_telefon,
+      seciliId: _musteri?.id,
+      ogeId: (m) => m.id,
+    );
+    if (s != null) setState(() => _musteri = s);
+  }
+
+  Future<void> _personelSec() async {
+    final s = await _picker_<Personel>(
+      baslik: 'Personel Seç',
+      ogeler: _personeller,
+      etiket: (p) => p.personel_adi,
+      altYazi: (p) => p.cep_telefon,
+      seciliId: _personel?.id,
+      ogeId: (p) => p.id,
+    );
+    if (s != null) setState(() => _personel = s);
+  }
+
+  Future<T?> _picker_<T>({
+    required String baslik,
+    required List<T> ogeler,
+    required String Function(T) etiket,
+    required String Function(T) altYazi,
+    required String? seciliId,
+    required String Function(T) ogeId,
+  }) {
+    return showModalBottomSheet<T?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _PickerSheet<T>(
+        baslik: baslik,
+        ogeler: ogeler,
+        etiket: etiket,
+        altYazi: altYazi,
+        seciliId: seciliId,
+        ogeId: ogeId,
       ),
-      body: Center(
-        child: PhotoView(
-          imageProvider: FileImage(image),
-          minScale: PhotoViewComputedScale.contained * 0.8,
-          maxScale: PhotoViewComputedScale.covered * 2,
-          backgroundDecoration: BoxDecoration(color: Colors.black),
+    );
+  }
+
+  Future<void> _kaynakSec() async {
+    final secim = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => SafeArea(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 12),
+                child: Text('Belge Kaynağı',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+              _KaynakBtn(
+                icon: Icons.camera_alt_rounded,
+                baslik: 'Kameradan Çek',
+                altYazi: 'Telefon kamerasıyla fotoğraf çek',
+                renk: Theme.of(ctx).colorScheme.primary,
+                onTap: () => Navigator.pop(ctx, 'camera'),
+              ),
+              const SizedBox(height: 8),
+              _KaynakBtn(
+                icon: Icons.photo_library_outlined,
+                baslik: 'Galeriden Seç',
+                altYazi: 'Cihaz galerisinden resim seç',
+                renk: const Color(0xFF0EA5E9),
+                onTap: () => Navigator.pop(ctx, 'gallery'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (secim == null) return;
+    await Future.delayed(const Duration(milliseconds: 80));
+    try {
+      final XFile? img = await _picker.pickImage(
+        source: secim == 'camera' ? ImageSource.camera : ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (img != null && mounted) {
+        setState(() => _gorseller.add(File(img.path)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Resim seçilemedi.')),
+        );
+      }
+    }
+  }
+
+  void _gorselSil(int idx) {
+    setState(() => _gorseller.removeAt(idx));
+  }
+
+  void _gorselGoster(int idx) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded),
+                onPressed: () {
+                  _gorselSil(idx);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+          body: PhotoView(
+            imageProvider: FileImage(_gorseller[idx]),
+            minScale: PhotoViewComputedScale.contained * 0.8,
+            maxScale: PhotoViewComputedScale.covered * 2,
+            backgroundDecoration: const BoxDecoration(color: Colors.black),
+          ),
         ),
       ),
     );
   }
-}
-class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
-  bool _isLoading = false;
-  List<File> _images = [];
-  late File belge;
-  String? _documentName;
-  String? _documentExtension;
-  late String seciliisletme;
-  late List<Personel> personelliste;
-  late List<MusteriDanisan> musteridanisanliste;
-  bool yukleniyor =true;
-  void initState() {
 
-    super.initState();
-    initialize();
-
+  void _uyari(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tamam')),
+        ],
+      ),
+    );
   }
-  Future<void> initialize() async
-  {
-    seciliisletme = (await secilisalonid())!;
-    List<MusteriDanisan> musteridanisan = await musterilistegetir(seciliisletme!);
-    List<Personel> isletmepersonellerliste = await personellistegetir(seciliisletme!);
 
-
-
-
-    setState(() {
-      musteridanisanliste = musteridanisan;
-      personelliste = isletmepersonellerliste;
-      yukleniyor = false;
-    });
-
-  }
-  // Function to take a picture from the camera
-  Future<void> takePicture() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final imagePicker = ImagePicker();
-    final XFile? pickedImage =
-    await imagePicker.pickImage(source: ImageSource.camera);
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (pickedImage != null) {
-      setState(() {
-        _images.add(File(pickedImage.path));
-      });
-    }
-  }
-  // Function to upload a document
-  Future<void> uploadDocument() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Check for permission
-    PermissionStatus status = await Permission.storage.request();
-
-    if (status.isGranted) {
-      // file_picker geçici olarak devre dışı (Apple deprecated-API reddi)
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Belge yükleme özelliği geçici olarak kullanılamıyor.')),
-      );
+  Future<void> _gonder() async {
+    if (_baslik.text.trim().isEmpty) {
+      _uyari('Başlık Gerekli', 'Lütfen belge başlığını girin.');
       return;
-      // Aşağıdaki blok kullanılmıyor; file_picker geri eklendiğinde uncomment edin.
-      /*
-      FilePickerResult? result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx'],
-      );
-
-      if (result != null) {
-        String? extension = result.files.single.extension;
-
-        final Map<String, String> mimeTypes = {
-          'pdf': 'application/pdf',
-          'doc': 'application/msword',
-          'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        };
-
-        if (mimeTypes.containsKey(extension)) {
-          setState(() {
-            _documentName = result.files.single.name;
-            _documentExtension = extension;
-            belge = File(result.files.single.path!);
-          });
-        } else {
-          print('Invalid file type selected.');
-        }*/
-    } else if (status.isDenied) {
-      // Handle the case when permission is denied
-      print('Storage permission denied');
-    } else if (status.isPermanentlyDenied) {
-      // Handle the case when permission is permanently denied
-      openAppSettings(); // Direct the user to app settings
+    }
+    if (_musteri == null) {
+      _uyari('Müşteri Seçilmedi', 'Lütfen müşteri seçin.');
+      return;
+    }
+    if (_gorseller.isEmpty) {
+      _uyari('Belge Yok', 'En az bir resim ekleyin (kamera veya galeri).');
+      return;
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _gonderiliyor = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('user');
+      final user = userJson != null ? jsonDecode(userJson) : {};
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(
+            'https://apptest.randevumcepte.com.tr/api/v1/haricibelgeekle'),
+      );
+
+      request.files
+          .add(await http.MultipartFile.fromPath('file', _gorseller[0].path));
+      request.fields['id'] = '';
+      request.fields['form_baslik'] = _baslik.text.trim();
+      request.fields['form_id'] = '0';
+      request.fields['personel_id'] = _personel?.id ?? '';
+      request.fields['user_id'] = _musteri!.id;
+      request.fields['salon_id'] = _seciliSube;
+      request.fields['olusturan'] = user['id']?.toString() ?? '';
+
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        if (mounted) Navigator.pop(context, true);
+      } else {
+        if (mounted) {
+          _uyari('Sunucu Hatası', 'Hata kodu: ${response.statusCode}');
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        _uyari('Bağlantı Hatası', 'İnternet bağlantınızı kontrol edin.');
+      }
+    } finally {
+      if (mounted) setState(() => _gonderiliyor = false);
+    }
   }
-
-
-  // Function to delete the uploaded image
-  void deleteImage(int index) {
-    setState(() {
-      _images.removeAt(index);
-    });
-  }
-
-  // Function to delete the uploaded document
-  void deleteDocument() {
-    setState(() {
-      _documentName = null;
-      _documentExtension = null;
-    });
-  }
-  // Function to view image in full screen
-
-  final List<String> musteri = [
-    'Cevriye Güleç',
-    'Anıl Orbey',
-    'Çağlar  Filiz',
-    'Elif Çetin',
-    'Ferdi Korkmaz',
-
-
-  ];
-  MusteriDanisan? selectedmusteri;
-  TextEditingController musteriController = TextEditingController();
-  final List<String> personel = [
-    'Cevriye Efe',
-    'Alkın Orbey',
-    'Çağrı  Taner',
-    'Esra Çetin',
-    'Gülşah Korkmaz',
-
-
-  ];
-  Personel? selectedpersonel;
-  TextEditingController personelController = TextEditingController();
-
-
-  TextEditingController formbaslik = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Unfocus the current text field, dismissing the keyboard
-        FocusScope.of(context).unfocus();
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          title:  const Text('Harici Belge Ekle',style: TextStyle(color: Colors.black),),
-
-          leading: IconButton(
-            icon: Icon(Icons.clear_rounded, color: Colors.black),
-            onPressed: () {Navigator.of(context).pop(); Navigator.push(context, PageTransition(type: PageTransitionType.rightToLeft,duration: Duration(milliseconds:500), child: ArsivYonetimiPage(isletmebilgi: widget.isletmebilgi,)));},
-          ),
-          toolbarHeight: 60,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: SizedBox(
-                width: 100, // <-- Your width
-                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi
-                  ,)
-              ),
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F4FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0.5,
+        title: const Text('Harici Belge Ekle',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+        actions: [
+          TextButton.icon(
+            onPressed: _gonderiliyor ? null : _gonder,
+            icon: _gonderiliyor
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(Icons.check_rounded, color: scheme.primary),
+            label: Text(
+              'Kaydet',
+              style: TextStyle(
+                  fontWeight: FontWeight.w800, color: scheme.primary),
             ),
-
-
-          ],
-          backgroundColor: Colors.white,
-        ),
-        body: yukleniyor ? Center(child: CircularProgressIndicator(),) : SingleChildScrollView(
-          reverse: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 20,),
-              Padding(
-                padding: const EdgeInsets.only(left: 20.0),
-                child: Text('Form Başlığı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-              ),
-              SizedBox(height: 10,),
-              Container(
-                height: 40,
-                padding: const EdgeInsets.only(left: 20.0,right: 20),
-                child: TextFormField(
-                  controller: formbaslik,
-                  onSaved: (value){ formbaslik.text = value!;},
-                  keyboardType: TextInputType.text,
-
-                  enabled:true,
-
-                  decoration: InputDecoration(
-
-                    focusColor:Color(0xFF6A1B9A) ,
-                    hoverColor: Color(0xFF6A1B9A) ,
-                    hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                    contentPadding:  EdgeInsets.all(15.0),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                        color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
-                    border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+          ),
+        ],
+      ),
+      body: _yukleniyor
+          ? const Center(child: CircularProgressIndicator())
+          : _hataMesaji != null
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(_hataMesaji!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.w600)),
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 90),
+                  children: [
+                    _kart(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _Etiket('Belge Başlığı *'),
+                          TextField(
+                            controller: _baslik,
+                            decoration: _inputDeko(
+                                'Örn: Eski Onam Formu - 2024', scheme),
+                          ),
+                          const SizedBox(height: 14),
+                          const _Etiket('Müşteri *'),
+                          _SecimAlani(
+                            etiket: _musteri?.name ?? 'Müşteri seçin',
+                            altYazi: _musteri?.cep_telefon,
+                            ikon: Icons.person_outline_rounded,
+                            bos: _musteri == null,
+                            onTap: _musteriSec,
+                          ),
+                          const SizedBox(height: 14),
+                          const _Etiket('İşlemi Yapan Personel (opsiyonel)'),
+                          _SecimAlani(
+                            etiket: _personel?.personel_adi ?? 'Personel seçin',
+                            altYazi: _personel?.cep_telefon,
+                            ikon: Icons.badge_outlined,
+                            bos: _personel == null,
+                            onTap: _personelSec,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 10,),
-              Padding(
-                padding: const EdgeInsets.only(left: 20.0),
-                child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-              ),
-              SizedBox(height: 10,),
-              Container(
-
-                alignment: Alignment.center,
-                margin: EdgeInsets.only(left:20,right: 20),
-                height: 40,
-                width:double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Color(0xFF6A1B9A)),
-                  borderRadius: BorderRadius.circular(10), //border corner radius
-
-                  //you can set more BoxShadow() here
-
-                ),
-                child: DropdownButtonHideUnderline(
-
-                    child: DropdownButton2<MusteriDanisan>(
-
-                      isExpanded: true,
-                      hint: Text(
-                        'Seç',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).hintColor,
-                        ),
-                      ),
-                      items: musteridanisanliste
-                          .map((item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontSize: 14,
+                    const SizedBox(height: 12),
+                    _kart(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.image_outlined,
+                                  size: 18, color: scheme.primary),
+                              const SizedBox(width: 6),
+                              const Text('Belge Resimleri',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800)),
+                              const Spacer(),
+                              if (_gorseller.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: scheme.primary
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '${_gorseller.length}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                      ))
-                          .toList(),
-                      value: selectedmusteri,
-
-                      onChanged: (value) {
-                        setState(() {
-                          selectedmusteri = value;
-                        });
-                      },
-                      buttonStyleData: const ButtonStyleData(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        height: 50,
-                        width: 400,
-                      ),
-
-                      dropdownStyleData: const DropdownStyleData(
-                        maxHeight: 200,
-                      ),
-                      menuItemStyleData: const MenuItemStyleData(
-                        height: 40,
-                      ),
-                      dropdownSearchData: DropdownSearchData(
-                        searchController: musteriController,
-                        searchInnerWidgetHeight: 50,
-                        searchInnerWidget: Container(
-                          height: 50,
-                          padding: const EdgeInsets.only(
-                            top: 8,
-                            bottom: 4,
-                            right: 8,
-                            left: 8,
-                          ),
-                          child: TextFormField(
-                            expands: true,
-                            maxLines: null,
-                            controller: musteriController,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
+                          const SizedBox(height: 10),
+                          if (_gorseller.isEmpty)
+                            _BosResimAlani(
+                              renk: scheme.primary,
+                              onTap: _kaynakSec,
+                            )
+                          else ...[
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                                childAspectRatio: 1,
                               ),
-                              hintText: 'Şablon Ara..',
-                              hintStyle: const TextStyle(fontSize: 12),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(5),
+                              itemCount: _gorseller.length,
+                              itemBuilder: (ctx, i) => _ResimKuc(
+                                file: _gorseller[i],
+                                onTap: () => _gorselGoster(i),
+                                onSil: () => _gorselSil(i),
                               ),
                             ),
-                          ),
-                        ),
-                        searchMatchFn: (item, searchValue) {
-                          return item.value!.name.toString().toLowerCase().contains(searchValue.toLowerCase());
-                        },
-                      ),
-                      //This to clear the search value when you close the menu
-                      onMenuStateChange: (isOpen) {
-                        if (!isOpen) {
-                          musteriController.clear();
-                        }
-                      },
-
-                    )),
-              ),
-              SizedBox(height: 10,),
-              Padding(
-                padding: const EdgeInsets.only(left: 20.0),
-                child: Text('İşlemi Yapan Personel',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-              ),
-              SizedBox(height: 10,),
-              Container(
-
-                alignment: Alignment.center,
-                margin: EdgeInsets.only(left:20,right: 20),
-                height: 40,
-                width:double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Color(0xFF6A1B9A)),
-                  borderRadius: BorderRadius.circular(10), //border corner radius
-
-                  //you can set more BoxShadow() here
-
-                ),
-                child: DropdownButtonHideUnderline(
-
-                    child: DropdownButton2<Personel>(
-
-                      isExpanded: true,
-                      hint: Text(
-                        'Seç',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).hintColor,
-                        ),
-                      ),
-                      items: personelliste
-                          .map((item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(
-                          item.personel_adi,
-                          style: const TextStyle(
-                            fontSize: 14,
-                          ),
-                        ),
-                      ))
-                          .toList(),
-                      value: selectedpersonel,
-
-                      onChanged: (value) {
-                        setState(() {
-                          selectedpersonel = value;
-                        });
-                      },
-                      buttonStyleData: const ButtonStyleData(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        height: 50,
-                        width: 400,
-                      ),
-
-                      dropdownStyleData: const DropdownStyleData(
-                        maxHeight: 200,
-                      ),
-                      menuItemStyleData: const MenuItemStyleData(
-                        height: 40,
-                      ),
-                      dropdownSearchData: DropdownSearchData(
-                        searchController: personelController,
-                        searchInnerWidgetHeight: 50,
-                        searchInnerWidget: Container(
-                          height: 50,
-                          padding: const EdgeInsets.only(
-                            top: 8,
-                            bottom: 4,
-                            right: 8,
-                            left: 8,
-                          ),
-                          child: TextFormField(
-                            expands: true,
-                            maxLines: null,
-                            controller: personelController,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              hintText: ' Ara..',
-                              hintStyle: const TextStyle(fontSize: 12),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                          ),
-                        ),
-                        searchMatchFn: (item, searchValue) {
-                          return item.value!.personel_adi.toString().toLowerCase().contains(searchValue.toLowerCase());
-                        },
-                      ),
-                      //This to clear the search value when you close the menu
-                      onMenuStateChange: (isOpen) {
-                        if (!isOpen) {
-                          personelController.clear();
-                        }
-                      },
-
-                    )),
-              ),
-
-              SizedBox(height: 20,),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : takePicture,
-                    child: Row(
-
-                      children: [
-                        Icon(Icons.camera_alt_outlined),
-                        SizedBox(width: 5,),
-                        Text('Resim Çek'),
-                      ],
-                    ),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[800],foregroundColor: Colors.white,minimumSize: Size(100, 40)),
-                  ),
-
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : uploadDocument,
-                    child: Row(
-                      children: [
-                        Icon(Icons.upload_file),
-                        SizedBox(width: 5,),
-                        Text('Belge Yükle'),
-                      ],
-                    ),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[800],foregroundColor: Colors.white,minimumSize: Size(100, 40)),
-                  ),
-                ],
-              ),
-              SizedBox(height: 10),
-              Container(
-                padding: EdgeInsets.only(left:20,right: 20),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 4,
-
-                    mainAxisSpacing: 4,
-                  ),
-                  itemCount: _images.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ImageViewer(
-                                  image: _images[index],
-                                  onDelete: () => deleteImage(index),
+                            const SizedBox(height: 10),
+                          ],
+                          Material(
+                            color: scheme.primary.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                            child: InkWell(
+                              onTap: _kaynakSec,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined,
+                                        size: 18, color: scheme.primary),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _gorseller.isEmpty
+                                          ? 'Resim Ekle (Kamera / Galeri)'
+                                          : 'Daha Fazla Ekle',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: scheme.primary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            );
-                          },
-                          child:  Image.file(_images[index], fit: BoxFit.cover),
-
-
-                        ),
-                        Positioned(
-                          bottom: 70,
-                          right: 72,
-                          child: IconButton(
-                            onPressed: () => deleteImage(index),
-                            icon: Icon(Icons.delete, color: Colors.red),
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              if (_documentName != null)
-                Container(padding: EdgeInsets.only(left:10),child:  Stack(
-                  alignment: Alignment.centerRight,
-                  children: [
-                    Text('Belge: $_documentName ',style: TextStyle(fontSize: 16,color: Colors.blue[900]),),
-
-                    Positioned(
-
-                      child: IconButton(
-                        onPressed: deleteDocument,
-                        icon: Icon(Icons.delete,color:Colors.red[600]),
+                        ],
                       ),
                     ),
                   ],
-                )),
-              SizedBox(height: 20,),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                ),
+    );
+  }
 
-                  ElevatedButton(onPressed: (){
-                    if(_images.length==0)
-                      hariciBelgeEkle(belge,'');
-                    else
-                      hariciBelgeEkle(_images[0],'');
+  Widget _kart({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
 
-                  },
-                    child: Row(
-                      children: [
+  InputDecoration _inputDeko(String hint, ColorScheme scheme) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 12.5, color: Colors.black38),
+      filled: true,
+      fillColor: const Color(0xFFF4F5F7),
+      isDense: true,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+}
 
-                        Text(' Gönder'),
-                      ],
-                    ),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(90, 40)
-                    ),
-                  ),
-                ],
+class _Etiket extends StatelessWidget {
+  final String text;
+  const _Etiket(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
+class _SecimAlani extends StatelessWidget {
+  final String etiket;
+  final String? altYazi;
+  final IconData ikon;
+  final bool bos;
+  final VoidCallback onTap;
+  const _SecimAlani({
+    required this.etiket,
+    required this.ikon,
+    required this.bos,
+    required this.onTap,
+    this.altYazi,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.primary.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(ikon, color: scheme.primary, size: 18),
               ),
-              Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom))
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      etiket,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: bos
+                            ? Colors.black.withValues(alpha: 0.45)
+                            : scheme.onSurface,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (altYazi != null && altYazi!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        altYazi!,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: scheme.onSurface.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.unfold_more_rounded,
+                  size: 18, color: scheme.primary.withValues(alpha: 0.6)),
             ],
           ),
         ),
       ),
     );
   }
-  Future<void> hariciBelgeEkle(File file,String id) async {
-    showProgressLoading(context);
-    SharedPreferences localStorage = await SharedPreferences.getInstance();
+}
 
-    var user = jsonDecode(localStorage.getString('user')!);
-    Map<String, dynamic> formData = {
-      'id': id,
-      'form_baslik': formbaslik.text,
-      'form_id': '0',
-      'personel_id': selectedpersonel?.id,
-      'user_id' : selectedmusteri?.id,
-      'salon_id' : seciliisletme,
-      'olusturan':user["id"]
+class _BosResimAlani extends StatelessWidget {
+  final Color renk;
+  final VoidCallback onTap;
+  const _BosResimAlani({required this.renk, required this.onTap});
 
-
-      // Add other form fields
-    };
-
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/haricibelgeekle'),
-    );
-
-    request.files.add(await http.MultipartFile.fromPath('file', file.path));
-    formData.forEach((key, value) {
-      request.fields[key] = value.toString();
-    });
-    var response = await request.send();
-
-    if (response.statusCode == 200) {
-
-      Navigator.push(context, PageTransition(type: PageTransitionType.rightToLeft,duration: Duration(milliseconds:500), child: ArsivYonetimiPage(isletmebilgi: widget.isletmebilgi,)));
-      print('File uploaded successfully!');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Form oluşturulurken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 140,
+        decoration: BoxDecoration(
+          color: renk.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: renk.withValues(alpha: 0.35),
+            style: BorderStyle.solid,
+            width: 1.5,
+          ),
         ),
-      );
-      var responseBody = await response.stream.bytesToString();
-      debugPrint('Error: ${responseBody}');
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: renk.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.cloud_upload_outlined,
+                  size: 28, color: renk),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Henüz resim eklenmedi',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: renk,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    }
+class _ResimKuc extends StatelessWidget {
+  final File file;
+  final VoidCallback onTap;
+  final VoidCallback onSil;
+  const _ResimKuc({
+    required this.file,
+    required this.onTap,
+    required this.onSil,
+  });
 
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Material(
+            child: InkWell(
+              onTap: onTap,
+              child: Image.file(file, fit: BoxFit.cover),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: Material(
+            color: Colors.black.withValues(alpha: 0.55),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: onSil,
+              customBorder: const CircleBorder(),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.close_rounded,
+                    size: 16, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _KaynakBtn extends StatelessWidget {
+  final IconData icon;
+  final String baslik;
+  final String altYazi;
+  final Color renk;
+  final VoidCallback onTap;
+  const _KaynakBtn({
+    required this.icon,
+    required this.baslik,
+    required this.altYazi,
+    required this.renk,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: renk.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: renk.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: renk, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(baslik,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text(altYazi,
+                        style: const TextStyle(
+                            fontSize: 11.5, color: Colors.black54)),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: renk),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PickerSheet<T> extends StatefulWidget {
+  final String baslik;
+  final List<T> ogeler;
+  final String Function(T) etiket;
+  final String Function(T) altYazi;
+  final String? seciliId;
+  final String Function(T) ogeId;
+  const _PickerSheet({
+    required this.baslik,
+    required this.ogeler,
+    required this.etiket,
+    required this.altYazi,
+    required this.seciliId,
+    required this.ogeId,
+  });
+
+  @override
+  State<_PickerSheet<T>> createState() => _PickerSheetState<T>();
+}
+
+class _PickerSheetState<T> extends State<_PickerSheet<T>> {
+  String _arama = '';
+  final _aramaController = TextEditingController();
+
+  @override
+  void dispose() {
+    _aramaController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final filtreli = widget.ogeler.where((o) {
+      if (_arama.isEmpty) return true;
+      final q = _arama.toLowerCase();
+      return widget.etiket(o).toLowerCase().contains(q) ||
+          widget.altYazi(o).toLowerCase().contains(q);
+    }).toList();
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (ctx, scroll) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 38,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.baslik,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                child: TextField(
+                  controller: _aramaController,
+                  onChanged: (v) => setState(() => _arama = v),
+                  decoration: InputDecoration(
+                    hintText: 'Ara...',
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    filled: true,
+                    fillColor: scheme.primary.withValues(alpha: 0.05),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: filtreli.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Sonuç yok',
+                          style: TextStyle(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              fontSize: 13),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scroll,
+                        itemCount: filtreli.length,
+                        itemBuilder: (ctx, i) {
+                          final o = filtreli[i];
+                          final aktif = widget.seciliId == widget.ogeId(o);
+                          return ListTile(
+                            dense: true,
+                            tileColor: aktif
+                                ? scheme.primary.withValues(alpha: 0.06)
+                                : null,
+                            title: Text(
+                              widget.etiket(o),
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: aktif
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: widget.altYazi(o).isNotEmpty
+                                ? Text(
+                                    widget.altYazi(o),
+                                    style: const TextStyle(fontSize: 11.5),
+                                  )
+                                : null,
+                            trailing: aktif
+                                ? Icon(Icons.check_circle_rounded,
+                                    color: scheme.primary, size: 18)
+                                : null,
+                            onTap: () => Navigator.pop<T?>(context, o),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
