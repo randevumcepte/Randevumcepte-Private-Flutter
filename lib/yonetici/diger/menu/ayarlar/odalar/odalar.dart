@@ -349,10 +349,6 @@ class _OdalarState extends State<Odalar> {
                 child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: _AddIconButton(onTap: _yeniOda, accent: _accent),
-          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -1083,40 +1079,3 @@ class _OdalarState extends State<Odalar> {
   }
 }
 
-class _AddIconButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final Color accent;
-  const _AddIconButton({required this.onTap, required this.accent});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [accent.withValues(alpha: 0.85), accent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.30),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
-        ),
-      ),
-    );
-  }
-}
