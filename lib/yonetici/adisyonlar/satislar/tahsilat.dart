@@ -1370,12 +1370,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text('Tarih',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
-                        height: 40,
+                        height: 48,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
+                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
                           controller: tahsilat_tarihi,
                           //editing controller of this TextField
                           decoration: InputDecoration(
@@ -1383,7 +1383,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             focusColor:cs.primary ,
                             hoverColor: cs.primary ,
                             hintStyle: TextStyle(color:  cs.primary),
-                            contentPadding:  EdgeInsets.all(0.0),
+                            isDense: true,
+                            contentPadding:  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
                                 color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
@@ -1420,17 +1421,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           },
                         ),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text('Birim Tutar(₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
-                        height: 40,
+                        height: 48,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
+                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
                           keyboardType: TextInputType.phone,
                           enabled: false,
                           controller: birim_tutar,
@@ -1447,7 +1448,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             fillColor: Theme.of(context).cardColor,
                             hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
                                 color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
@@ -1460,18 +1461,18 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
 
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text('Müşteri İndirimi (%)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
-                        height:40,
+                        height:48,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
+                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
                           enabled: false,
                           keyboardType: TextInputType.phone,
                           controller:musteri_sabit_indirim,
@@ -1484,7 +1485,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             hoverColor: cs.primary ,
                             hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
                                 color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
@@ -1497,19 +1498,19 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
 
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text('İndirim (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
 
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
-                        height:40,
+                        height:48,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
+                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
 
                           controller: harici_indirim,
                           keyboardType: TextInputType.phone,
@@ -1528,7 +1529,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             hoverColor: cs.primary ,
                             hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
                                 color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
@@ -1557,11 +1558,11 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text('Ödeme Yöntemi',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
                         alignment: Alignment.center,
                         margin: const EdgeInsets.only(left:8,right: 8),
-                        height: 40,
+                        height: 48,
                         width:double.infinity,
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
@@ -1576,7 +1577,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                               hint: Text(
                                 'Seçiniz..',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 15,
                                   color: Theme.of(context).hintColor,
                                 ),
                               ),
@@ -1586,7 +1587,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                 child: Text(
                                   item.odeme_turu,
                                   style: const TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ))
@@ -1653,17 +1655,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             )),
                       ),
 
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text('Ödenecek Tutar(₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
-                        height: 40,
+                        height: 48,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
+                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
 
                           controller: odenecek_tutar,
                           keyboardType: TextInputType.phone,
@@ -1682,7 +1684,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             hoverColor: cs.primary ,
                             hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
                                 color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
@@ -1695,17 +1697,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text('Kalan Alacak Tutarı(₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
-                      const SizedBox(height: 6,),
+                      const SizedBox(height: 8,),
                       Container(
-                        height: 40,
+                        height: 48,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
+                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
                           enabled: false,
                           keyboardType: TextInputType.phone,
                           controller: kalan_alacak_tutar,
@@ -1723,7 +1725,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             hoverColor: cs.primary ,
                             hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
                                 color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
@@ -1825,7 +1827,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                       child: Icon(Icons.timeline_rounded, size: 18, color: cs.primary),
                                     ),
                                     const SizedBox(width: 10),
-                                    const Expanded(
+                                    Expanded(
                                       child: Text('Yeni Taksitli Tahsilat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
                                     ),
                                   ],
@@ -1838,8 +1840,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: <Widget>[
                                         // Ön Ödeme Tutarı
-                                        const Padding(
-                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Ön Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
@@ -1867,8 +1869,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         ),
                                         const SizedBox(height: 12),
                                         // Ön Ödeme Türü
-                                        const Padding(
-                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Ön Ödeme Türü',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         Container(
@@ -1898,8 +1900,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         ),
                                         const SizedBox(height: 12),
                                         // Kalan Ödeme Tutarı (auto)
-                                        const Padding(
-                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Kalan Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
@@ -1921,8 +1923,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         ),
                                         const SizedBox(height: 12),
                                         // Tarih
-                                        const Padding(
-                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
@@ -1957,8 +1959,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         ),
                                         const SizedBox(height: 12),
                                         // Taksit Sayısı
-                                        const Padding(
-                                          padding: EdgeInsets.only(left: 4, bottom: 6),
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Taksit Sayısı (Ay)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
