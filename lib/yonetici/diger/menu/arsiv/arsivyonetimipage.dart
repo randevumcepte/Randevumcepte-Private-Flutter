@@ -5,6 +5,7 @@ import 'package:randevu_sistem/theme/premium_components.dart';
 
 import 'beklenenformlar.dart';
 import 'form_olustur.dart';
+import 'form_sablon_duzenle.dart';
 import 'form_sablonlari.dart';
 import 'haricibelge.dart';
 import 'haricibelgeekle.dart';
@@ -79,6 +80,25 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                         type: PageTransitionType.rightToLeft,
                         duration: const Duration(milliseconds: 300),
                         child: FormOlustur(isletmebilgi: widget.isletmebilgi),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                _SecimSatiri(
+                  icon: Icons.dashboard_customize_rounded,
+                  baslik: 'Yeni Form Şablonu',
+                  altYazi: 'Onam formu veya sözleşme şablonu oluştur',
+                  renk: const Color(0xFFD97706),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.rightToLeft,
+                        duration: const Duration(milliseconds: 300),
+                        child: FormSablonDuzenle(
+                            isletmebilgi: widget.isletmebilgi),
                       ),
                     );
                   },

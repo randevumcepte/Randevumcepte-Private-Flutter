@@ -462,18 +462,30 @@ class _BilgiKart extends StatelessWidget {
               border: Border.all(
                   color: const Color(0xFF0EA5E9).withValues(alpha: 0.3)),
             ),
-            child: SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: isSozlesme,
-              onChanged: onSozlesmeDegisti,
-              activeThumbColor: const Color(0xFF0EA5E9),
-              title: const Text('Hizmet Sözleşmesi',
-                  style: TextStyle(
-                      fontSize: 13.5, fontWeight: FontWeight.w800)),
-              subtitle: const Text(
-                'Sözleşme bloklarını kullanmak için açın',
-                style: TextStyle(fontSize: 11, color: Colors.black54),
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('Hizmet Sözleşmesi',
+                          style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800)),
+                      SizedBox(height: 2),
+                      Text(
+                        'Sözleşme bloklarını kullanmak için açın',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: isSozlesme,
+                  onChanged: onSozlesmeDegisti,
+                  activeThumbColor: const Color(0xFF0EA5E9),
+                ),
+              ],
             ),
           ),
         ],
