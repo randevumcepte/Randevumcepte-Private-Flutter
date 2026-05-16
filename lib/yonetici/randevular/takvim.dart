@@ -2334,7 +2334,31 @@ class _AppointmentCardState extends State<_AppointmentCard> {
         ? ((displayHeight / widget.slotHeight).round() * 15)
         : 0;
 
-    // Kart dekorasyonu + içerik (handle hariç - alt 16px boşluk bırakılır)
+    // Yukseklige gore adaptif render:
+    // - tiny  (<28px, ~10dk):       handle gizli, ucap padding, fontSize 8.5, tek satir "HH:MM isim"
+    // - short (28-44px, 15-20dk):   handle 8px, sik padding, fontSize 9, tek satir
+    // - normal(>=44px):             mevcut gorunum (handle 16px, fontSize 10, 2 satira kadar)
+    final bool isTiny = displayHeight < 28;
+    final bool isShort = !isTiny && displayHeight < 44;
+    final double handleHeight = isTiny ? 0 : (isShort ? 8 : 16);
+    final EdgeInsets textPadding = isTiny
+        ? const EdgeInsets.fromLTRB(3, 1, 3, 2)
+        : (isShort
+            ? const EdgeInsets.fromLTRB(3, 1, 3, 10)
+            : const EdgeInsets.fromLTRB(4, 2, 4, 18));
+    final double fontSize = isTiny ? 8.5 : (isShort ? 9 : 10);
+    final int maxLines = (isTiny || isShort) ? 1 : 2;
+
+    final String startTimeText = DateFormat.Hm().format(widget.appointment.startTime.toLocal());
+    final String endTimeText = DateFormat.Hm().format(widget.appointment.endTime.toLocal());
+    final String contentText = _isResizing
+        ? '$startTimeText • $resizeMinutes dk'
+        // Tiny'de yer az: saat aralik yerine sadece baslangic saati
+        : (isTiny
+            ? '$startTimeText ${widget.appointment.subject}'
+            : '$startTimeText-$endTimeText ${widget.appointment.subject}');
+
+    // Kart dekorasyonu + icerik
     final cardBody = Container(
       width: widget.width,
       height: displayHeight,
@@ -2358,14 +2382,16 @@ class _AppointmentCardState extends State<_AppointmentCard> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Padding(
-          // Alt 16px → handle bölgesi (Stack üzerinde ayrı katman)
-          padding: const EdgeInsets.fromLTRB(4, 2, 4, 18),
+          padding: textPadding,
           child: Text(
-            _isResizing
-                ? '${DateFormat.Hm().format(widget.appointment.startTime.toLocal())} • $resizeMinutes dk'
-                : '${DateFormat.Hm().format(widget.appointment.startTime.toLocal())}-${DateFormat.Hm().format(widget.appointment.endTime.toLocal())} ${widget.appointment.subject}',
-            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
-            maxLines: displayHeight <= 40 ? 2 : null,
+            contentText,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w500,
+              height: 1.1,
+            ),
+            maxLines: maxLines,
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -2428,23 +2454,23 @@ class _AppointmentCardState extends State<_AppointmentCard> {
           );
 
     // SizedBox + Stack: handle, LongPressDraggable'ın DIŞINDA bağımsız layer
-    // Stack'te handle son child → hit-test önce ona gider → drag asla tetiklenmez
+    // Stack'te handle son child → hit-test önce ona gider → drag asla tetiklenmez.
+    // Tiny (10dk) blokta handle hic gosterilmez; resize uzun-basip surukleyerek hala mumkun.
     return SizedBox(
       width: widget.width,
       height: displayHeight,
       child: Stack(
-        clipBehavior: Clip.none, // rozet ust dışina taşabilir
+        clipBehavior: Clip.none,
         children: [
-          // Layer 1: kart + drag (LongPressDraggable burada)
           Positioned.fill(child: dragLayer),
-          // Layer 2: resize handle - alt 16px (hit-test'i kapar, drag'e geçmez)
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 16,
-            child: resizeHandle,
-          ),
+          if (handleHeight > 0)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: handleHeight,
+              child: resizeHandle,
+            ),
         ],
       ),
     );
