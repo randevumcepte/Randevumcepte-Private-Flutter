@@ -125,7 +125,7 @@ class _HomeState extends State<DashBoard> {
       _gunlukRandevulariGetirInternal(),
     ]);
     final OzetSayfasi ozet = futures[0] as OzetSayfasi;
-    final asistanVerileri = futures[1];
+    final asistanVerileri = futures[1] as List<EAsistan>;
     final List<Map<String, dynamic>> randevulariBugun =
         futures[2] as List<Map<String, dynamic>>;
 
