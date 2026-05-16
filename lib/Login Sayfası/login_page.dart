@@ -82,85 +82,136 @@ class _HomeState extends State<LoginPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
-            colors: [
-              Color.alphaBlend(
-                  scheme.primary.withValues(alpha: 0.42), Colors.white),
-              Color.alphaBlend(
-                  scheme.tertiary.withValues(alpha: 0.10), Colors.white),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom -
-                    32,
+      body: Stack(
+        children: [
+          // Soft gradient background
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                  colors: [
+                    Color.alphaBlend(
+                        scheme.primary.withValues(alpha: 0.38), Colors.white),
+                    Color.alphaBlend(
+                        scheme.tertiary.withValues(alpha: 0.08), Colors.white),
+                  ],
+                ),
               ),
-              child: Form(
-                key: _formKey,
-                autovalidateMode: _autoValidate,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-                    // Logo card
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: scheme.primary.withValues(alpha: 0.18),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
+            ),
+          ),
+          // Decorative blurred blobs for premium depth
+          Positioned(
+            top: -80,
+            right: -60,
+            child: _decorBlob(scheme.primary.withValues(alpha: 0.28), 220),
+          ),
+          Positioned(
+            top: size.height * 0.28,
+            left: -90,
+            child: _decorBlob(scheme.tertiary.withValues(alpha: 0.22), 180),
+          ),
+          Positioned(
+            bottom: -70,
+            right: -40,
+            child: _decorBlob(scheme.primary.withValues(alpha: 0.18), 200),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom -
+                      32,
+                ),
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: _autoValidate,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 32),
+                      // Logo — icon badge + wordmark, no boxy card
+                      Center(
                         child: FadeAnimation(
                           1,
-                          Image.asset(
-                            'images/randevumcepte.png',
-                            height: 80,
-                            fit: BoxFit.contain,
+                          Column(
+                            children: [
+                              Container(
+                                width: 88,
+                                height: 88,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: scheme.primary
+                                          .withValues(alpha: 0.28),
+                                      blurRadius: 28,
+                                      offset: const Offset(0, 12),
+                                    ),
+                                  ],
+                                  border: Border.all(
+                                    color: Colors.white
+                                        .withValues(alpha: 0.85),
+                                    width: 4,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Image.asset(
+                                    'images/randevumcepteicon.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Image.asset(
+                                'images/randevumcepte.png',
+                                height: 28,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Zaman Şimdi Kontrolünüzde',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontStyle: FontStyle.italic,
+                                  letterSpacing: 0.2,
+                                  color: scheme.onSurface
+                                      .withValues(alpha: 0.55),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 36),
-                    Text(
-                      'Tekrar Hoşgeldiniz 👋',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: scheme.onSurface.withValues(alpha: 0.55),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Tekrar Hoşgeldiniz 👋',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: scheme.onSurface.withValues(alpha: 0.55),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Giriş Yap',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.6,
-                        color: scheme.onSurface,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Giriş Yap',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.6,
+                          color: scheme.onSurface,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 28),
+                      const SizedBox(height: 24),
                     // Form glass card
                     PremiumGlassCard(
                       padding: const EdgeInsets.all(20),
@@ -367,11 +418,28 @@ class _HomeState extends State<LoginPage> {
                             fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _decorBlob(Color color, double size) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withValues(alpha: 0)],
+            stops: const [0, 1],
           ),
         ),
       ),
