@@ -109,11 +109,12 @@ class StokApi {
       }, <Urun>[], hataBaslik: 'Düşük stok listesi yüklenemedi');
 
   static Future<List<dynamic>> urunSatisRaporu(String urunId, {String? baslangic, String? bitis}) => _guvenli(() async {
-        final body = <String, dynamic>{
-          if (baslangic != null) 'baslangic': baslangic,
-          if (bitis != null) 'bitis': bitis,
-        };
-        final data = await _post('/urun-satis-raporu/$urunId', body);
+        // Backend route GET — query string ile gönder
+        final qs = <String, String>{};
+        if (baslangic != null) qs['baslangic'] = baslangic;
+        if (bitis != null) qs['bitis'] = bitis;
+        final yol = '/urun-satis-raporu/$urunId' + (qs.isEmpty ? '' : '?${Uri(queryParameters: qs).query}');
+        final data = await _get(yol);
         return List<dynamic>.from(data ?? []);
       }, <dynamic>[], hataBaslik: 'Rapor yüklenemedi');
 
