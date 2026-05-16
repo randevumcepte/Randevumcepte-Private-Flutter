@@ -240,7 +240,7 @@ class _SeansTakibiState extends State<SeansTakibi> {
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
         itemCount: _items.length,
         itemBuilder: (context, index) => _buildItemCard(_items[index]),
       ),
@@ -260,15 +260,15 @@ class _SeansTakibiState extends State<SeansTakibi> {
     final isOpen = _expanded.contains(cardKey);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -277,8 +277,8 @@ class _SeansTakibiState extends State<SeansTakibi> {
         children: [
           InkWell(
             borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(14),
-              topRight: Radius.circular(14),
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
             ),
             onTap: () => setState(() {
               if (isOpen) {
@@ -288,7 +288,7 @@ class _SeansTakibiState extends State<SeansTakibi> {
               }
             }),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 8, 10),
+              padding: const EdgeInsets.fromLTRB(12, 10, 6, 6),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -298,45 +298,38 @@ class _SeansTakibiState extends State<SeansTakibi> {
                       children: [
                         Text(
                           musteriAdi,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             color: Colors.black87,
+                            height: 1.15,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
-                          item.paket,
+                          '${item.paket}  ·  $baslangicTarih',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black87,
+                            fontSize: 11,
+                            color: Colors.black54,
+                            height: 1.15,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.event,
-                                size: 13, color: Colors.black45),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Başlangıç: $baslangicTarih',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 2),
                     child: Icon(
                       isOpen
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
                       color: _primary,
+                      size: 22,
                     ),
                   ),
                 ],
@@ -344,10 +337,10 @@ class _SeansTakibiState extends State<SeansTakibi> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
             child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: 4,
+              runSpacing: 4,
               children: [
                 _statChip(
                     label: toplam.toString(),
@@ -377,11 +370,11 @@ class _SeansTakibiState extends State<SeansTakibi> {
               decoration: const BoxDecoration(
                 color: Color(0xFFFAFAFC),
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(14),
-                  bottomRight: Radius.circular(14),
+                  bottomLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(12),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
               child: _buildExpanded(item),
             ),
         ],
@@ -396,19 +389,19 @@ class _SeansTakibiState extends State<SeansTakibi> {
     required Color fg,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(label,
               style: TextStyle(
-                  color: fg, fontSize: 12, fontWeight: FontWeight.w700)),
-          const SizedBox(width: 4),
-          Icon(icon, size: 14, color: fg),
+                  color: fg, fontSize: 11, fontWeight: FontWeight.w700)),
+          const SizedBox(width: 3),
+          Icon(icon, size: 12, color: fg),
         ],
       ),
     );
@@ -486,11 +479,11 @@ class _SeansTakibiState extends State<SeansTakibi> {
     final ekstra = toplam - mevcut;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE6E6EE)),
       ),
       child: Column(
@@ -501,8 +494,10 @@ class _SeansTakibiState extends State<SeansTakibi> {
               Expanded(
                 child: Text(
                   group.adi,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Colors.black87,
                   ),
@@ -510,7 +505,7 @@ class _SeansTakibiState extends State<SeansTakibi> {
               ),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2E7D32),
                   borderRadius: BorderRadius.circular(20),
@@ -519,17 +514,17 @@ class _SeansTakibiState extends State<SeansTakibi> {
                   '$toplam Seans',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 5,
+            runSpacing: 5,
             children: [
               ...List.generate(group.seanslar.length, (i) {
                 final s = group.seanslar[i];
@@ -550,19 +545,19 @@ class _SeansTakibiState extends State<SeansTakibi> {
                 return GestureDetector(
                   onTap: () => _seansDetayDialog(item, s),
                   child: Container(
-                    width: 22,
-                    height: 22,
+                    width: 18,
+                    height: 18,
                     decoration: BoxDecoration(
                       color: bg,
                       shape: BoxShape.circle,
                       border: icon == null
                           ? Border.all(
-                              color: Colors.grey.shade400, width: 1.5)
+                              color: Colors.grey.shade400, width: 1.2)
                           : null,
                     ),
                     child: icon == null
                         ? null
-                        : Icon(icon, color: Colors.white, size: 14),
+                        : Icon(icon, color: Colors.white, size: 11),
                   ),
                 );
               }),
@@ -571,24 +566,24 @@ class _SeansTakibiState extends State<SeansTakibi> {
                 (_) => GestureDetector(
                   onTap: () => _yeniSeansEkleDialog(item, group),
                   child: Container(
-                    width: 22,
-                    height: 22,
+                    width: 18,
+                    height: 18,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: Colors.grey.shade400, width: 1.5),
+                          color: Colors.grey.shade400, width: 1.2),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
             decoration: BoxDecoration(
               color: const Color(0xFFF6F7FB),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -615,19 +610,20 @@ class _SeansTakibiState extends State<SeansTakibi> {
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 11, color: Colors.black54)),
-        const SizedBox(height: 2),
+                fontSize: 10, color: Colors.black54, height: 1.1)),
+        const SizedBox(height: 1),
         Text(value,
             style: TextStyle(
-                fontSize: 16,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: color)),
+                color: color,
+                height: 1.1)),
       ],
     );
   }
 
   Widget _divider() {
-    return Container(width: 1, height: 26, color: const Color(0xFFE0E0E0));
+    return Container(width: 1, height: 20, color: const Color(0xFFE0E0E0));
   }
 
   Widget _buildPaginationBar() {
@@ -930,19 +926,34 @@ class _SeansTakibiState extends State<SeansTakibi> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 13),
-      label: Text(label, style: const TextStyle(fontSize: 10)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: Colors.white),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        minimumSize: const Size(0, 32),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
