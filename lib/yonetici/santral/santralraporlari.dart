@@ -1152,8 +1152,34 @@ class _CDRState extends State<CDRRaporlari> {
       ],
     );
   }
+  Future<void> _playAudioUrl(String url) async {
+    try {
+      final encoded = Uri.encodeFull(url);
+      await _audioPlayer.stop();
+      await _audioPlayer.play(UrlSource(encoded));
+    } catch (e) {
+      log("ses kaydı oynatma hatası: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Ses kaydı oynatılamadı: $e")),
+        );
+      }
+    }
+  }
+
   Future<void> seskaydinical(String url) async {
     log("ses kaydı url " + url);
+
+    if (url.isEmpty || url == "null") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Bu arama için ses kaydı bulunmuyor")),
+      );
+      return;
+    }
+
+    // Dialog açılır açılmaz otomatik oynatma başlasın
+    _playAudioUrl(url);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1219,12 +1245,28 @@ class _CDRState extends State<CDRRaporlari> {
                         color: Colors.green[400],
                         shape: BoxShape.circle,
                       ),
-                      child: IconButton(
-                        icon: Icon(Icons.play_arrow, color: Colors.white),
-                        iconSize: 32,
-                        onPressed: () async {
-                          await _audioPlayer.setSourceUrl(url);
-                          await _audioPlayer.resume();
+                      child: StreamBuilder<PlayerState>(
+                        stream: _audioPlayer.onPlayerStateChanged,
+                        builder: (context, snapshot) {
+                          final isPlaying = snapshot.data == PlayerState.playing;
+                          return IconButton(
+                            icon: Icon(
+                              isPlaying ? Icons.pause : Icons.play_arrow,
+                              color: Colors.white,
+                            ),
+                            iconSize: 32,
+                            onPressed: () async {
+                              if (isPlaying) {
+                                await _audioPlayer.pause();
+                              } else {
+                                if (_audioPlayer.state == PlayerState.paused) {
+                                  await _audioPlayer.resume();
+                                } else {
+                                  await _playAudioUrl(url);
+                                }
+                              }
+                            },
+                          );
                         },
                       ),
                     ),
