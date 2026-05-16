@@ -57,7 +57,7 @@ class _AyarlarState extends State<Ayarlar> {
         route: Odalar(isletmebilgi: widget.isletmebilgi),
       ),
       AyarlarItem(
-        title: 'Randevu Ayarları',
+        title: 'Online Randevu',
         icon: Icons.calendar_today_rounded,
         iconColor: const Color(0xFF42A5F5),
         gradientColors: [const Color(0xFF64B5F6), const Color(0xFF42A5F5)],
@@ -326,8 +326,8 @@ class _AyarlarState extends State<Ayarlar> {
         return 'Cihazlarınızı yönetin';
       case 'Odalar':
         return 'Oda bilgilerini düzenleyin';
-      case 'Randevu Ayarları':
-        return 'Randevu sistemini yapılandırın';
+      case 'Online Randevu':
+        return 'Online randevu sistemini yapılandırın';
       case 'Müşteri İndirimleri':
         return 'İndirim politikalarınızı belirleyin';
       case 'Ürünler':
