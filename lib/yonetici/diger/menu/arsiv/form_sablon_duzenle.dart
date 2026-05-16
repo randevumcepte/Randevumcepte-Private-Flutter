@@ -2,9 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/theme/premium_components.dart';
 
-/// Form şablonu eleman tipleri — web tarafındaki TIP_RENK ve OTOMATIK_TIPLER ile birebir.
+/// Form şablonu eleman tipleri.
 class _Tip {
   final String key;
   final String etiket;
@@ -30,9 +29,9 @@ const _otoTipleri = <_Tip>[
 ];
 
 const _cevapTipleri = <_Tip>[
-  _Tip('evet_hayir', 'Evet/Hayır Sorusu', Icons.check_box_outlined, Color(0xFF5C008E)),
-  _Tip('metin', 'Kısa Metin Girişi', Icons.short_text_rounded, Color(0xFF28A745)),
-  _Tip('uzun_metin', 'Uzun Metin Girişi', Icons.subject_rounded, Color(0xFFFFC107)),
+  _Tip('evet_hayir', 'Evet/Hayır', Icons.check_box_outlined, Color(0xFF5C008E)),
+  _Tip('metin', 'Kısa Metin', Icons.short_text_rounded, Color(0xFF28A745)),
+  _Tip('uzun_metin', 'Uzun Metin', Icons.subject_rounded, Color(0xFFFFC107)),
 ];
 
 _Tip _tipBul(String key) {
@@ -49,10 +48,9 @@ bool _zorunluKutucukluMu(String key) =>
 
 class _SoruModel {
   String tip;
-  String metin;
   bool zorunlu;
   final TextEditingController controller;
-  _SoruModel({required this.tip, this.metin = '', this.zorunlu = false})
+  _SoruModel({required this.tip, String metin = '', this.zorunlu = false})
       : controller = TextEditingController(text: metin);
 }
 
@@ -87,7 +85,9 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
   }
 
   Future<void> _baslat() async {
-    _seciliSube = (await secilisalonid()) ?? '';
+    try {
+      _seciliSube = (await secilisalonid()) ?? '';
+    } catch (_) {}
     if (_duzenleme) {
       final f = widget.mevcutForm!;
       _formAdi.text = f['form_adi']?.toString() ?? '';
@@ -103,7 +103,8 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
                 _sorular.add(_SoruModel(
                   tip: item['tip']?.toString() ?? 'metin_blogu',
                   metin: item['soru']?.toString() ?? '',
-                  zorunlu: item['zorunlu'] == true || item['zorunlu']?.toString() == '1',
+                  zorunlu: item['zorunlu'] == true ||
+                      item['zorunlu']?.toString() == '1',
                 ));
               }
             }
@@ -125,15 +126,11 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
   }
 
   void _soruEkle(String tip) {
-    setState(() {
-      _sorular.add(_SoruModel(tip: tip));
-    });
+    setState(() => _sorular.add(_SoruModel(tip: tip)));
   }
 
   void _soruSil(int idx) {
-    setState(() {
-      _sorular.removeAt(idx).controller.dispose();
-    });
+    setState(() => _sorular.removeAt(idx).controller.dispose());
   }
 
   void _soruTasi(int idx, int yon) {
@@ -146,17 +143,30 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
     });
   }
 
+  void _uyari(String baslik, String mesaj) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(baslik),
+        content: Text(mesaj),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _kaydet() async {
     final ad = _formAdi.text.trim();
     if (ad.isEmpty) {
-      showPremiumWarning(context,
-          title: 'Form Adı Gerekli', message: 'Lütfen form adı girin.');
+      _uyari('Form Adı Gerekli', 'Lütfen form adı girin.');
       return;
     }
     if (_sorular.isEmpty) {
-      showPremiumWarning(context,
-          title: 'Boş Form',
-          message: 'En az bir form elemanı eklemelisiniz.');
+      _uyari('Boş Form', 'En az bir form elemanı ekleyin.');
       return;
     }
 
@@ -193,28 +203,14 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
           return;
         }
         if (mounted) {
-          showPremiumWarning(context,
-              title: 'Kaydedilemedi',
-              message: (j is Map && j['mesaj'] != null)
-                  ? j['mesaj'].toString()
-                  : 'Bir hata oluştu, tekrar deneyin.',
-              tone: 'error');
+          _uyari('Kaydedilemedi',
+              (j is Map && j['mesaj'] != null) ? j['mesaj'].toString() : 'Hata oluştu.');
         }
-      } else {
-        if (mounted) {
-          showPremiumWarning(context,
-              title: 'Sunucu Hatası',
-              message: 'Hata kodu: ${resp.statusCode}',
-              tone: 'error');
-        }
+      } else if (mounted) {
+        _uyari('Sunucu Hatası', 'Kod: ${resp.statusCode}');
       }
-    } catch (e) {
-      if (mounted) {
-        showPremiumWarning(context,
-            title: 'Bağlantı Hatası',
-            message: 'İnternet bağlantınızı kontrol edin.',
-            tone: 'error');
-      }
+    } catch (_) {
+      if (mounted) _uyari('Bağlantı Hatası', 'İnternet bağlantınızı kontrol edin.');
     } finally {
       if (mounted) setState(() => _kaydediliyor = false);
     }
@@ -223,291 +219,196 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return PremiumGradientBg(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: false,
-          title: Text(
-            _duzenleme ? 'Şablonu Düzenle' : 'Yeni Form Şablonu',
-            style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w700,
-                fontSize: 16),
-          ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
-          ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F4FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0.5,
+        title: Text(
+          _duzenleme ? 'Şablonu Düzenle' : 'Yeni Form Şablonu',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
         ),
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                onTap: _kaydediliyor ? null : _kaydet,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [scheme.primary, scheme.tertiary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: scheme.primary.withValues(alpha: 0.30),
-                        blurRadius: 14,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: _kaydediliyor
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.save_outlined,
-                                  color: scheme.onPrimary, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                _duzenleme ? 'Güncelle' : 'Şablonu Kaydet',
-                                style: TextStyle(
-                                  color: scheme.onPrimary,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
+        actions: [
+          TextButton.icon(
+            onPressed: _kaydediliyor ? null : _kaydet,
+            icon: _kaydediliyor
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(Icons.check_rounded, color: scheme.primary),
+            label: Text(
+              _duzenleme ? 'Güncelle' : 'Kaydet',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: scheme.primary,
               ),
-            ),
-          ),
-        ),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 24),
-          children: [
-            _BilgiKart(
-              formAdi: _formAdi,
-              aciklama: _aciklama,
-              isSozlesme: _isSozlesme,
-              onSozlesmeDegisti: (v) => setState(() => _isSozlesme = v),
-            ),
-            const SizedBox(height: 14),
-            PremiumGlassCard(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.add_box_outlined,
-                          size: 18, color: scheme.primary),
-                      const SizedBox(width: 8),
-                      const Text('Eleman Ekle',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w800)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _TipBolumu(
-                      baslik: 'YAPI ELEMANLARI',
-                      tipler: _yapiTipleri,
-                      onTip: _soruEkle),
-                  if (_isSozlesme) ...[
-                    const SizedBox(height: 8),
-                    _TipBolumu(
-                      baslik: 'OTOMATİK SÖZLEŞME BLOKLARI',
-                      altYazi: 'Gönderirken otomatik doldurulur',
-                      tipler: _otoTipleri,
-                      onTip: _soruEkle,
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  _TipBolumu(
-                      baslik: 'MÜŞTERİ CEVAPLI ALANLAR',
-                      tipler: _cevapTipleri,
-                      onTip: _soruEkle),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            if (_sorular.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    Icon(Icons.touch_app_outlined,
-                        size: 40,
-                        color: scheme.primary.withValues(alpha: 0.45)),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Yukarıdan eleman ekleyin',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ..._sorular.asMap().entries.map((e) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _SoruKart(
-                    soru: e.value,
-                    ilk: e.key == 0,
-                    son: e.key == _sorular.length - 1,
-                    onYukari: () => _soruTasi(e.key, -1),
-                    onAsagi: () => _soruTasi(e.key, 1),
-                    onSil: () => _soruSil(e.key),
-                    onZorunluDegisti: (v) =>
-                        setState(() => e.value.zorunlu = v),
-                  ),
-                );
-              }),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BilgiKart extends StatelessWidget {
-  final TextEditingController formAdi;
-  final TextEditingController aciklama;
-  final bool isSozlesme;
-  final ValueChanged<bool> onSozlesmeDegisti;
-
-  const _BilgiKart({
-    required this.formAdi,
-    required this.aciklama,
-    required this.isSozlesme,
-    required this.onSozlesmeDegisti,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return PremiumGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Form Adı',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: formAdi,
-            maxLength: 200,
-            decoration: InputDecoration(
-              counterText: '',
-              hintText: 'Örn: Lazer Epilasyon Onam Formu',
-              filled: true,
-              fillColor: scheme.primary.withValues(alpha: 0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-          ),
-          const SizedBox(height: 14),
-          const Text('Açıklama',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-          const Text('Formun üstünde gri kutuda gösterilir.',
-              style: TextStyle(fontSize: 11, color: Colors.black54)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: aciklama,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Bu formdaki açıklamaların amacı...',
-              filled: true,
-              fillColor: scheme.primary.withValues(alpha: 0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0EA5E9).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: const Color(0xFF0EA5E9).withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Hizmet Sözleşmesi',
-                          style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800)),
-                      SizedBox(height: 2),
-                      Text(
-                        'Sözleşme bloklarını kullanmak için açın',
-                        style: TextStyle(fontSize: 11, color: Colors.black54),
-                      ),
-                    ],
-                  ),
-                ),
-                Switch(
-                  value: isSozlesme,
-                  onChanged: onSozlesmeDegisti,
-                  activeThumbColor: const Color(0xFF0EA5E9),
-                ),
-              ],
             ),
           ),
         ],
       ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 90),
+        children: [
+          _kart(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _Etiket('Form Adı *'),
+                TextField(
+                  controller: _formAdi,
+                  maxLength: 200,
+                  decoration: _inputDeko(
+                      'Örn: Lazer Epilasyon Onam Formu', scheme),
+                  buildCounter: (_,
+                      {required currentLength,
+                      required isFocused,
+                      maxLength}) =>
+                      null,
+                ),
+                const SizedBox(height: 12),
+                const _Etiket('Açıklama (opsiyonel)'),
+                TextField(
+                  controller: _aciklama,
+                  maxLines: 2,
+                  decoration: _inputDeko(
+                      'Formun üstünde gri kutuda gösterilir', scheme),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0EA5E9).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: const Color(0xFF0EA5E9)
+                            .withValues(alpha: 0.30)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Hizmet Sözleşmesi',
+                                style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w800)),
+                            SizedBox(height: 2),
+                            Text(
+                                'Açarsan otomatik sözleşme blokları kullanılabilir',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black54)),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _isSozlesme,
+                        onChanged: (v) =>
+                            setState(() => _isSozlesme = v),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _kart(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.add_box_outlined,
+                        size: 18, color: scheme.primary),
+                    const SizedBox(width: 6),
+                    const Text('Eleman Ekle',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w800)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _tipBolumu('YAPI ELEMANLARI', _yapiTipleri),
+                if (_isSozlesme) ...[
+                  const SizedBox(height: 12),
+                  _tipBolumu('OTOMATİK SÖZLEŞME BLOKLARI', _otoTipleri),
+                ],
+                const SizedBox(height: 12),
+                _tipBolumu('MÜŞTERİ CEVAPLI ALANLAR', _cevapTipleri),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_sorular.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 30),
+              child: Column(
+                children: [
+                  Icon(Icons.touch_app_outlined,
+                      size: 44,
+                      color: scheme.primary.withValues(alpha: 0.5)),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Yukarıdan eleman ekleyin',
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.black54),
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._sorular.asMap().entries.map((e) {
+              final i = e.key;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _soruKart(e.value, i, _sorular.length),
+              );
+            }),
+        ],
+      ),
     );
   }
-}
 
-class _TipBolumu extends StatelessWidget {
-  final String baslik;
-  final String? altYazi;
-  final List<_Tip> tipler;
-  final void Function(String tip) onTip;
-  const _TipBolumu({
-    required this.baslik,
-    required this.tipler,
-    required this.onTip,
-    this.altYazi,
-  });
+  Widget _kart({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  InputDecoration _inputDeko(String hint, ColorScheme scheme) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 12.5, color: Colors.black38),
+      filled: true,
+      fillColor: const Color(0xFFF4F5F7),
+      isDense: true,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+
+  Widget _tipBolumu(String baslik, List<_Tip> tipler) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -518,12 +419,6 @@ class _TipBolumu extends StatelessWidget {
               color: Colors.black.withValues(alpha: 0.55),
               letterSpacing: 0.4,
             )),
-        if (altYazi != null) ...[
-          const SizedBox(height: 2),
-          Text(altYazi!,
-              style: const TextStyle(
-                  fontSize: 10.5, color: Colors.black54)),
-        ],
         const SizedBox(height: 6),
         Wrap(
           spacing: 6,
@@ -533,7 +428,7 @@ class _TipBolumu extends StatelessWidget {
               color: t.renk.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
               child: InkWell(
-                onTap: () => onTip(t.key),
+                onTap: () => _soruEkle(t.key),
                 borderRadius: BorderRadius.circular(10),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -560,29 +455,8 @@ class _TipBolumu extends StatelessWidget {
       ],
     );
   }
-}
 
-class _SoruKart extends StatelessWidget {
-  final _SoruModel soru;
-  final bool ilk;
-  final bool son;
-  final VoidCallback onYukari;
-  final VoidCallback onAsagi;
-  final VoidCallback onSil;
-  final ValueChanged<bool> onZorunluDegisti;
-
-  const _SoruKart({
-    required this.soru,
-    required this.ilk,
-    required this.son,
-    required this.onYukari,
-    required this.onAsagi,
-    required this.onSil,
-    required this.onZorunluDegisti,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _soruKart(_SoruModel soru, int idx, int toplam) {
     final tip = _tipBul(soru.tip);
     final otomatik = _otomatikMi(soru.tip);
     final zorunluKutucuk = _zorunluKutucukluMu(soru.tip);
@@ -590,13 +464,13 @@ class _SoruKart extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border(left: BorderSide(color: tip.renk, width: 4)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -628,56 +502,48 @@ class _SoruKart extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                _MiniBtn(
-                  icon: Icons.keyboard_arrow_up_rounded,
-                  enabled: !ilk,
-                  onTap: onYukari,
-                ),
+                _miniBtn(Icons.keyboard_arrow_up_rounded, idx > 0,
+                    () => _soruTasi(idx, -1)),
                 const SizedBox(width: 4),
-                _MiniBtn(
-                  icon: Icons.keyboard_arrow_down_rounded,
-                  enabled: !son,
-                  onTap: onAsagi,
-                ),
+                _miniBtn(
+                    Icons.keyboard_arrow_down_rounded,
+                    idx < toplam - 1,
+                    () => _soruTasi(idx, 1)),
                 const SizedBox(width: 4),
-                _MiniBtn(
-                  icon: Icons.delete_outline_rounded,
-                  color: const Color(0xFFDC2626),
-                  enabled: true,
-                  onTap: onSil,
-                ),
+                _miniBtn(Icons.delete_outline_rounded, true,
+                    () => _soruSil(idx),
+                    renk: const Color(0xFFDC2626)),
               ],
             ),
             const SizedBox(height: 8),
             if (otomatik)
-              _OtomatikAciklama(tip: soru.tip)
+              _otomatikAciklama(soru.tip)
             else
-              _icerikGiris(),
+              _soruIcerik(soru),
             if (zorunluKutucuk) ...[
               const SizedBox(height: 6),
               InkWell(
-                onTap: () => onZorunluDegisti(!soru.zorunlu),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: Checkbox(
-                          value: soru.zorunlu,
-                          onChanged: (v) => onZorunluDegisti(v ?? false),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
+                onTap: () =>
+                    setState(() => soru.zorunlu = !soru.zorunlu),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: Checkbox(
+                        value: soru.zorunlu,
+                        onChanged: (v) =>
+                            setState(() => soru.zorunlu = v ?? false),
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
                       ),
-                      const SizedBox(width: 8),
-                      const Text('Zorunlu cevap',
-                          style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Zorunlu cevap',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                  ],
                 ),
               ),
             ],
@@ -687,7 +553,29 @@ class _SoruKart extends StatelessWidget {
     );
   }
 
-  Widget _icerikGiris() {
+  Widget _miniBtn(IconData icon, bool enabled, VoidCallback onTap,
+      {Color? renk}) {
+    final c = renk ?? Theme.of(context).colorScheme.primary;
+    return Opacity(
+      opacity: enabled ? 1 : 0.3,
+      child: Material(
+        color: c.withValues(alpha: 0.10),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 30,
+            height: 28,
+            child: Icon(icon, size: 16, color: c),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _soruIcerik(_SoruModel soru) {
     final isCokSatir = soru.tip == 'metin_blogu' ||
         soru.tip == 'madde_listesi' ||
         soru.tip == 'not_kutusu';
@@ -696,7 +584,7 @@ class _SoruKart extends StatelessWidget {
       'alt_baslik' => 'Alt başlık metni...',
       'metin_blogu' => 'Paragraf metni...',
       'madde_listesi' =>
-        'Her satıra bir madde:\nKızarıklık (eritem).\nYan etki sadece geçici...',
+        'Her satıra bir madde:\nKızarıklık.\nYan etki geçici...',
       'not_kutusu' => 'Not kutusu metni...',
       'evet_hayir' => 'Soru metni (Evet/Hayır)...',
       'metin' => 'Soru metni (kısa cevap)...',
@@ -726,48 +614,8 @@ class _SoruKart extends StatelessWidget {
       ),
     );
   }
-}
 
-class _MiniBtn extends StatelessWidget {
-  final IconData icon;
-  final bool enabled;
-  final Color? color;
-  final VoidCallback onTap;
-  const _MiniBtn({
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.primary;
-    return Opacity(
-      opacity: enabled ? 1 : 0.3,
-      child: Material(
-        color: c.withValues(alpha: 0.10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            width: 30,
-            height: 28,
-            child: Icon(icon, size: 16, color: c),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OtomatikAciklama extends StatelessWidget {
-  final String tip;
-  const _OtomatikAciklama({required this.tip});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _otomatikAciklama(String tip) {
     final aciklama = switch (tip) {
       'musteri_bilgi_tablosu' =>
         'Müşteri ad, soyad, telefon ve tarih otomatik gösterilir.',
@@ -785,8 +633,7 @@ class _OtomatikAciklama extends StatelessWidget {
         color: const Color(0xFF0DCAF0).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-            color: const Color(0xFF0DCAF0).withValues(alpha: 0.3),
-            style: BorderStyle.solid),
+            color: const Color(0xFF0DCAF0).withValues(alpha: 0.30)),
       ),
       child: Row(
         children: [
@@ -801,6 +648,22 @@ class _OtomatikAciklama extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _Etiket extends StatelessWidget {
+  final String text;
+  const _Etiket(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
       ),
     );
   }
