@@ -7,6 +7,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/cihazlar.dart';
 import 'package:randevu_sistem/Models/hizmetkategorisi.dart';
 import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'hizmetler.dart';
 
 class ListedeOlmayanHizmet extends StatefulWidget {
@@ -18,9 +19,6 @@ class ListedeOlmayanHizmet extends StatefulWidget {
 }
 
 class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
-  static const Color _accent = Color(0xFF4CAF93);
-  static const Color _accent2 = Color(0xFF6FC8B1);
-
   bool _yukleniyor = true;
   bool _kaydediliyor = false;
 
@@ -127,10 +125,10 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Hizmet başarıyla eklendi'),
-            backgroundColor: _accent,
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Text('Hizmet başarıyla eklendi'),
+            backgroundColor: context.colors.primary,
+            duration: const Duration(seconds: 2),
           ),
         );
         Navigator.of(context).pushReplacement(
@@ -155,6 +153,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   Future<void> _yeniKategoriEkle() async {
     final ctrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final cs = context.colors;
+    final ext = context.appTheme;
     final sonuc = await showDialog<String>(
       context: context,
       builder: (ctx) => Dialog(
@@ -163,7 +163,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(ctx).cardColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: Form(
@@ -177,37 +177,37 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [_accent2, _accent],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: ext.heroGradient,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: _accent.withValues(alpha: 0.30),
+                          color: cs.primary.withValues(alpha: 0.30),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.add_rounded,
-                        color: Colors.white, size: 28),
+                    child: Icon(Icons.add_rounded,
+                        color: cs.onPrimary, size: 28),
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
+                Text(
                   'Yeni Kategori',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFB),
+                    color: ext.surfaceMuted,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _accent.withValues(alpha: 0.18),
+                      color: cs.primary.withValues(alpha: 0.18),
                       width: 1,
                     ),
                   ),
@@ -215,9 +215,10 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                     controller: ctrl,
                     autofocus: true,
                     textInputAction: TextInputAction.done,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
                     ),
                     decoration: const InputDecoration(
                       hintText: 'Örn: Cilt Bakımı',
@@ -248,7 +249,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           side: BorderSide(
-                              color: _accent.withValues(alpha: 0.30)),
+                              color: cs.primary.withValues(alpha: 0.30)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -268,8 +269,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _accent,
-                          foregroundColor: Colors.white,
+                          backgroundColor: cs.primary,
+                          foregroundColor: cs.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -306,6 +307,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   Future<void> _kategoriSec() async {
     final aramaCtrl = TextEditingController();
     String arama = '';
+    final cs = context.colors;
+    final ext = context.appTheme;
     final secim = await showModalBottomSheet<HizmetKategorisi>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -321,9 +324,9 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
             }).toList();
             return Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: Theme.of(ctx).cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -332,38 +335,44 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: cs.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Kategori Seç',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: cs.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFB),
+                      color: ext.surfaceMuted,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _accent.withValues(alpha: 0.18),
+                        color: cs.primary.withValues(alpha: 0.18),
                         width: 1,
                       ),
                     ),
                     child: TextField(
                       controller: aramaCtrl,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface),
                       onChanged: (v) {
                         sheetSetState(() => arama = v);
                       },
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         prefixIcon: Icon(Icons.search_rounded,
-                            color: _accent, size: 20),
+                            color: cs.primary, size: 20),
                         hintText: 'Kategori ara',
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 13),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                     ),
                   ),
@@ -375,7 +384,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                             child: Text(
                               'Eşleşme bulunamadı',
                               style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: cs.onSurfaceVariant,
                                   fontWeight: FontWeight.w600),
                             ),
                           )
@@ -389,7 +398,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                               final secili = _seciliKategori?.id == k.id;
                               return Material(
                                 color: secili
-                                    ? _accent.withValues(alpha: 0.10)
+                                    ? cs.primary.withValues(alpha: 0.10)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(12),
                                 child: InkWell(
@@ -406,8 +415,9 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                                               : Icons.circle_outlined,
                                           size: 20,
                                           color: secili
-                                              ? _accent
-                                              : Colors.grey[400],
+                                              ? cs.primary
+                                              : cs.onSurfaceVariant
+                                                  .withValues(alpha: 0.5),
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
@@ -418,8 +428,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                                                   ? FontWeight.w800
                                                   : FontWeight.w600,
                                               color: secili
-                                                  ? _accent
-                                                  : Colors.black87,
+                                                  ? cs.primary
+                                                  : cs.onSurface,
                                               fontSize: 14,
                                             ),
                                           ),
@@ -446,6 +456,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   }
 
   void _uyari(String title, String message) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -454,7 +466,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(ctx).cardColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: Column(
@@ -464,27 +476,30 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: ext.warningColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFD97706).withValues(alpha: 0.20),
+                      color: ext.warningColor.withValues(alpha: 0.20),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.warning_amber_rounded,
-                  color: Color(0xFFD97706),
+                  color: ext.warningColor,
                   size: 28,
                 ),
               ),
               const SizedBox(height: 14),
               Text(
                 title,
-                style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
@@ -492,7 +507,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: cs.onSurfaceVariant,
                   height: 1.4,
                 ),
               ),
@@ -502,8 +517,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent,
-                    foregroundColor: Colors.white,
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -525,22 +540,20 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         toolbarHeight: 62,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.black, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           'Yeni Hizmet',
           style: TextStyle(
-            color: Colors.black,
             fontWeight: FontWeight.w800,
             fontSize: 18,
             letterSpacing: -0.3,
@@ -548,13 +561,13 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: Colors.black12),
+          child: Container(height: 1, color: ext.borderSubtle),
         ),
       ),
       body: _yukleniyor
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                color: _accent,
+                color: cs.primary,
                 strokeWidth: 2.5,
               ),
             )
@@ -599,18 +612,16 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   }
 
   Widget _header() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_accent2, _accent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: ext.heroGradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _accent.withValues(alpha: 0.30),
+            color: cs.primary.withValues(alpha: 0.30),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -622,11 +633,11 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
+              color: cs.onPrimary.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.add_business_rounded,
-                color: Colors.white, size: 24),
+            child: Icon(Icons.add_business_rounded,
+                color: cs.onPrimary, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -634,10 +645,10 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Yeni Hizmet Oluştur',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: cs.onPrimary,
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
                     letterSpacing: -0.3,
@@ -647,7 +658,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 Text(
                   'Sistemde olmayan bir hizmeti kendin ekle',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: cs.onPrimary.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w500,
                     fontSize: 12,
                   ),
@@ -724,6 +735,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   }
 
   Widget _kategoriCard() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: _kartDekorasyon(),
@@ -736,20 +749,20 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.12),
+                  color: cs.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.category_outlined,
-                    color: _accent, size: 17),
+                child: Icon(Icons.category_outlined,
+                    color: cs.primary, size: 17),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Hizmet Kategorisi',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black87,
+                    color: cs.onSurface,
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -764,30 +777,26 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 9, vertical: 6),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [_accent2, _accent],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: ext.heroGradient,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: _accent.withValues(alpha: 0.30),
+                          color: cs.primary.withValues(alpha: 0.30),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.add_rounded,
-                            size: 14, color: Colors.white),
-                        SizedBox(width: 3),
+                            size: 14, color: cs.onPrimary),
+                        const SizedBox(width: 3),
                         Text(
                           'Yeni',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: cs.onPrimary,
                             fontWeight: FontWeight.w800,
                             fontSize: 11.5,
                             letterSpacing: 0.1,
@@ -811,10 +820,10 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 13),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFB),
+                  color: ext.surfaceMuted,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _accent.withValues(alpha: 0.18),
+                    color: cs.primary.withValues(alpha: 0.18),
                     width: 1,
                   ),
                 ),
@@ -828,14 +837,14 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: _seciliKategori == null
-                              ? Colors.grey[500]
-                              : Colors.black87,
+                              ? cs.onSurfaceVariant
+                              : cs.onSurface,
                           letterSpacing: -0.1,
                         ),
                       ),
                     ),
                     Icon(Icons.unfold_more_rounded,
-                        color: _accent.withValues(alpha: 0.7), size: 20),
+                        color: cs.primary.withValues(alpha: 0.7), size: 20),
                   ],
                 ),
               ),
@@ -847,6 +856,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   }
 
   Widget _cinsiyetCard() {
+    final cs = context.colors;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: _kartDekorasyon(),
@@ -859,20 +869,20 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.12),
+                  color: cs.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.people_alt_outlined,
-                    color: _accent, size: 17),
+                child: Icon(Icons.people_alt_outlined,
+                    color: cs.primary, size: 17),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Müşteri Cinsiyeti',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black87,
+                    color: cs.onSurface,
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -917,6 +927,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
     required String value,
     required IconData icon,
   }) {
+    final cs = context.colors;
     final selected = _cinsiyet == value;
     return Material(
       color: Colors.transparent,
@@ -928,16 +939,16 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? _accent : Colors.white,
+            color: selected ? cs.primary : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? _accent : _accent.withValues(alpha: 0.20),
+              color: selected ? cs.primary : cs.primary.withValues(alpha: 0.20),
               width: 1.2,
             ),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: _accent.withValues(alpha: 0.30),
+                      color: cs.primary.withValues(alpha: 0.30),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -950,7 +961,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
               Icon(
                 icon,
                 size: 18,
-                color: selected ? Colors.white : _accent,
+                color: selected ? cs.onPrimary : cs.primary,
               ),
               const SizedBox(height: 3),
               Text(
@@ -958,7 +969,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: selected ? Colors.white : _accent,
+                  color: selected ? cs.onPrimary : cs.primary,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -976,6 +987,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
     required int toplam,
     required List<Widget> children,
   }) {
+    final cs = context.colors;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: _kartDekorasyon(),
@@ -988,19 +1000,19 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.12),
+                  color: cs.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(ikon, color: _accent, size: 17),
+                child: Icon(ikon, color: cs.primary, size: 17),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   baslik,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black87,
+                    color: cs.onSurface,
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -1010,8 +1022,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                     const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: secimSayisi > 0
-                      ? _accent.withValues(alpha: 0.14)
-                      : Colors.grey[200],
+                      ? cs.primary.withValues(alpha: 0.14)
+                      : cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -1019,7 +1031,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: secimSayisi > 0 ? _accent : Colors.grey[700],
+                    color: secimSayisi > 0 ? cs.primary : cs.onSurfaceVariant,
                     letterSpacing: -0.1,
                   ),
                 ),
@@ -1070,6 +1082,8 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   }
 
   Widget _bottomBar() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       padding: EdgeInsets.fromLTRB(
         14,
@@ -1077,13 +1091,13 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
         14,
         10 + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
+            color: ext.shadowBase,
             blurRadius: 12,
-            offset: Offset(0, -3),
+            offset: const Offset(0, -3),
           ),
         ],
       ),
@@ -1096,19 +1110,22 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
           child: Container(
             height: 52,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: _kaydediliyor
-                    ? [Colors.grey[400]!, Colors.grey[500]!]
-                    : const [_accent2, _accent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: _kaydediliyor
+                  ? LinearGradient(
+                      colors: [
+                        cs.onSurfaceVariant.withValues(alpha: 0.5),
+                        cs.onSurfaceVariant.withValues(alpha: 0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : ext.heroGradient,
               borderRadius: BorderRadius.circular(16),
               boxShadow: _kaydediliyor
                   ? []
                   : [
                       BoxShadow(
-                        color: _accent.withValues(alpha: 0.40),
+                        color: cs.primary.withValues(alpha: 0.40),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
@@ -1116,24 +1133,24 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
             ),
             alignment: Alignment.center,
             child: _kaydediliyor
-                ? const SizedBox(
+                ? SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.4,
-                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                      valueColor: AlwaysStoppedAnimation(cs.onPrimary),
                     ),
                   )
-                : const Row(
+                : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.check_rounded,
-                          color: Colors.white, size: 20),
-                      SizedBox(width: 8),
+                          color: cs.onPrimary, size: 20),
+                      const SizedBox(width: 8),
                       Text(
                         'Hizmeti Kaydet',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: cs.onPrimary,
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                           letterSpacing: 0.2,
@@ -1148,16 +1165,17 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   }
 
   BoxDecoration _kartDekorasyon() {
+    final cs = context.colors;
     return BoxDecoration(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(18),
       border: Border.all(
-        color: _accent.withValues(alpha: 0.10),
+        color: cs.primary.withValues(alpha: 0.10),
         width: 1,
       ),
       boxShadow: [
         BoxShadow(
-          color: _accent.withValues(alpha: 0.05),
+          color: cs.primary.withValues(alpha: 0.05),
           blurRadius: 12,
           offset: const Offset(0, 4),
         ),
@@ -1166,16 +1184,17 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
   }
 
   Widget _labelLine(IconData icon, String label) {
+    final cs = context.colors;
     return Row(
       children: [
-        Icon(icon, size: 15, color: _accent),
+        Icon(icon, size: 15, color: cs.primary),
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: cs.onSurface,
             letterSpacing: -0.1,
           ),
         ),
@@ -1191,12 +1210,14 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
   }) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFB),
+        color: ext.surfaceMuted,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _accent.withValues(alpha: 0.18),
+          color: cs.primary.withValues(alpha: 0.18),
           width: 1,
         ),
       ),
@@ -1204,28 +1225,28 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
         controller: controller,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: Colors.black87,
+          color: cs.onSurface,
           letterSpacing: -0.1,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            color: Colors.grey[500],
+            color: cs.onSurfaceVariant,
             fontWeight: FontWeight.w500,
             fontSize: 13.5,
           ),
           prefixText: prefixText,
-          prefixStyle: const TextStyle(
-            color: _accent,
+          prefixStyle: TextStyle(
+            color: cs.primary,
             fontWeight: FontWeight.w800,
             fontSize: 14,
           ),
           suffixText: suffixText,
-          suffixStyle: const TextStyle(
-            color: _accent,
+          suffixStyle: TextStyle(
+            color: cs.primary,
             fontWeight: FontWeight.w800,
             fontSize: 13,
           ),
@@ -1251,10 +1272,9 @@ class _SecimChip extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color _accent = Color(0xFF4CAF93);
-
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(999),
@@ -1265,16 +1285,16 @@ class _SecimChip extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? _accent : Colors.white,
+            color: selected ? cs.primary : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? _accent : _accent.withValues(alpha: 0.30),
+              color: selected ? cs.primary : cs.primary.withValues(alpha: 0.30),
               width: 1.2,
             ),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: _accent.withValues(alpha: 0.30),
+                      color: cs.primary.withValues(alpha: 0.30),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -1287,7 +1307,7 @@ class _SecimChip extends StatelessWidget {
               Icon(
                 selected ? Icons.check_rounded : icon,
                 size: 14,
-                color: selected ? Colors.white : _accent,
+                color: selected ? cs.onPrimary : cs.primary,
               ),
               const SizedBox(width: 5),
               Text(
@@ -1295,7 +1315,7 @@ class _SecimChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : _accent,
+                  color: selected ? cs.onPrimary : cs.primary,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -1313,11 +1333,12 @@ class _EmptyMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -1325,7 +1346,7 @@ class _EmptyMini extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
-          color: Colors.grey[600],
+          color: cs.onSurfaceVariant,
           fontWeight: FontWeight.w500,
         ),
       ),

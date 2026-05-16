@@ -22,6 +22,7 @@ import 'package:randevu_sistem/yonetici/dashboard/urunsatisiduzenleme.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 import 'package:randevu_sistem/Frontend/lazyload.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/Frontend/tlrakamacevir.dart';
 import 'package:randevu_sistem/Models/adisyonkalemleri.dart';
 import 'package:randevu_sistem/Models/odemeturu.dart';
@@ -177,6 +178,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
   void loadbar(MusteriDanisan value) async
   {
+    final cs = context.colors;
+    final ext = context.appTheme;
     String musterituru = await musteriDanisanTuru(seciliisletme,value?.id.toString() ?? "");
     log('müşteri türü '+musterituru.toString());
     final settings = await fetchSalonSettings(seciliisletme);
@@ -186,21 +189,21 @@ class _TahsilatState extends State<TahsilatEkrani> {
     if(musterituru == "1"){
 
       aktifpasif= "Aktif";
-      aktifPasifRenk = Color(0xFF9C27B0);
+      aktifPasifRenk = cs.primary;
       indirimtext = settings['aktif_musteri_indirim_yuzde']?.toString() ?? '0';
       print("Aktif Müşteri İndirim Yüzdesi: ${widget.isletmebilgi["aktif_musteri_indirim_yuzde"]}");
 
     }
     else if(musterituru == "2")
     {
-      aktifPasifRenk = Color(0xFF28A745);
+      aktifPasifRenk = ext.successColor;
       aktifpasif="Sadık";
       indirimtext =settings['sadik_musteri_indirim_yuzde']?.toString() ?? '0';
       print("Sadik Müşteri İndirim Yüzdesi: ${widget.isletmebilgi["sadik_musteri_indirim_yuzde"]}");
 
     }
     else{
-      aktifPasifRenk = Color(0xFF000000);
+      aktifPasifRenk = cs.onSurface;
       aktifpasif="Pasif";
     }
 
@@ -263,6 +266,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
   }
 
   Widget _buildGapKampanyaBanner() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final k = _gapKampanya!;
     final gapLabel = k['gapLabel'] as String? ?? 'Saatler';
     final disc = (k['discount'] as num?)?.toInt() ?? 0;
@@ -292,20 +297,20 @@ class _TahsilatState extends State<TahsilatEkrani> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         color: _gapApplied
-            ? const Color(0xFFF0FDF4)
-            : Colors.white,
+            ? ext.successColor.withValues(alpha: 0.10)
+            : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: _gapApplied
-              ? const Color(0xFF22C55E)
-              : const Color(0xFFFBBF24),
+              ? ext.successColor
+              : ext.warningColor,
           width: 1.4,
         ),
         boxShadow: [
           BoxShadow(
             color: (_gapApplied
-                    ? const Color(0xFF22C55E)
-                    : const Color(0xFFFBBF24))
+                    ? ext.successColor
+                    : ext.warningColor)
                 .withValues(alpha: 0.10),
             blurRadius: 12,
             offset: const Offset(0, 4),
@@ -336,10 +341,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       children: [
                         Text(
                           '$gapLabel Kampanyası',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A1A1A),
+                            color: cs.onSurface,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -347,10 +352,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [
-                                Color(0xFF22C55E),
-                                Color(0xFF16A34A),
+                                ext.successColor,
+                                ext.successColor,
                               ],
                             ),
                             borderRadius: BorderRadius.circular(999),
@@ -375,7 +380,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       style: TextStyle(
                         fontSize: 11.5,
                         height: 1.4,
-                        color: const Color(0xFF1A1A1A).withValues(alpha: 0.65),
+                        color: cs.onSurface.withValues(alpha: 0.65),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -389,7 +394,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                 icon: Icon(
                   Icons.close_rounded,
                   size: 18,
-                  color: const Color(0xFF1A1A1A).withValues(alpha: 0.45),
+                  color: cs.onSurface.withValues(alpha: 0.45),
                 ),
                 onPressed: () =>
                     setState(() => _gapBannerVisible = false),
@@ -403,7 +408,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
               child: ElevatedButton.icon(
                 onPressed: _applyGapDiscount,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6A1B9A),
+                  backgroundColor: cs.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 11),
@@ -425,6 +430,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
   }
 
   void _applyGapDiscount() {
+    final ext = context.appTheme;
     final disc = (_gapKampanya?['discount'] as num?)?.toInt() ?? 0;
     if (disc <= 0) return;
     setState(() {
@@ -436,7 +442,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF16A34A),
+        backgroundColor: ext.successColor,
         behavior: SnackBarBehavior.floating,
         content: Text(
           '${_gapKampanya?['gapLabel'] ?? ''} kampanyası: %$disc indirim uygulandı',
@@ -783,24 +789,25 @@ class _TahsilatState extends State<TahsilatEkrani> {
   }
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: const Color(0xFFF7F5FB),
       //floatingActionButton:  AltYuvarlakYeniEkleMenu(isletme_bilgi: widget.isletmebilgi,),
 
       appBar: AppBar(
-        title:  const Text('Tahsilatlar',style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 19),),
+        title:  Text('Tahsilatlar',style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 19),),
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.clear_rounded, color: Color(0xFF1A1A1A)),
+          icon: Icon(Icons.clear_rounded, color: cs.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
         toolbarHeight: 60,
-        shape: const Border(bottom: BorderSide(color: Color(0xFFEDE7F2), width: 1)),
+        shape: Border(bottom: BorderSide(color: ext.borderSubtle, width: 1)),
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
             Padding(
@@ -811,7 +818,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
               ),
             ),
           IconButton(
-            icon: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF6A1B9A)),
+            icon: Icon(Icons.person_add_alt_1_rounded, color: cs.primary),
             iconSize: 24,
             tooltip: 'Yeni müşteri',
             onPressed: ()  async{
@@ -841,7 +848,6 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
 
         ],
-        backgroundColor: Colors.white,
       ),
       body: isloading ? Center(child: CircularProgressIndicator(),):
       GestureDetector(
@@ -858,12 +864,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
+                border: Border.all(color: ext.borderSubtle, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.05),
+                    color: cs.primary.withValues(alpha: 0.05),
                     blurRadius: 14,
                     offset: const Offset(0, 4),
                   ),
@@ -878,10 +884,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            children: const [
-                              Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF6A1B9A)),
+                            children: [
+                              Icon(Icons.person_outline_rounded, size: 18, color: cs.primary),
                               SizedBox(width: 6),
-                              Text('Müşteri',style: TextStyle(fontSize: 14,color: Color(0xFF1A1A1A),fontWeight: FontWeight.w700),),
+                              Text('Müşteri',style: TextStyle(fontSize: 14,color: cs.onSurface,fontWeight: FontWeight.w700),),
                             ],
                           ),
                           const SizedBox(height: 10,),
@@ -922,7 +928,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           icon: const Icon(Icons.add_rounded, size: 16),
                           label: const Text('Yeni',style:TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF6A1B9A),
+                            backgroundColor: cs.primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
@@ -940,12 +946,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
+                color: Theme.of(context).cardColor,
+                border: Border.all(color: ext.borderSubtle, width: 1),
                 borderRadius: BorderRadius.circular(18.0),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.05),
+                    color: cs.primary.withValues(alpha: 0.05),
                     blurRadius: 14,
                     offset: const Offset(0, 4),
                   ),
@@ -961,17 +967,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: (aktifPasifRenk ?? const Color(0xFF6A1B9A)).withValues(alpha: 0.12),
+                            color: (aktifPasifRenk ?? cs.primary).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
-                          child: Icon(Icons.person_rounded, color: aktifPasifRenk ?? const Color(0xFF6A1B9A), size: 20),
+                          child: Icon(Icons.person_rounded, color: aktifPasifRenk ?? cs.primary, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             musteridanisanadi.text,
-                            style: const TextStyle(color: Color(0xFF1A1A1A),fontSize: 16,fontWeight: FontWeight.w700),
+                            style: TextStyle(color: cs.onSurface,fontSize: 16,fontWeight: FontWeight.w700),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -981,16 +987,16 @@ class _TahsilatState extends State<TahsilatEkrani> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: (aktifPasifRenk ?? const Color(0xFF6A1B9A)).withValues(alpha: 0.12),
+                      color: (aktifPasifRenk ?? cs.primary).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: (aktifPasifRenk ?? const Color(0xFF6A1B9A)).withValues(alpha: 0.25), width: 1),
+                      border: Border.all(color: (aktifPasifRenk ?? cs.primary).withValues(alpha: 0.25), width: 1),
                     ),
                     child: Text(
                       aktifsadikpasif.text,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: aktifPasifRenk ?? const Color(0xFF6A1B9A),
+                        color: aktifPasifRenk ?? cs.primary,
                       ),
                     ),
                   ),
@@ -1008,7 +1014,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       icon: const Icon(Icons.spa_rounded, size: 16),
                       label: const Text('Hizmet', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9C27B0),
+                        backgroundColor: cs.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
@@ -1024,7 +1030,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       icon: const Icon(Icons.shopping_bag_rounded, size: 16),
                       label: const Text('Ürün', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEA80FC),
+                        backgroundColor: cs.primaryContainer,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
@@ -1040,7 +1046,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       icon: const Icon(Icons.inventory_2_rounded, size: 16),
                       label: const Text('Paket', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1976D2),
+                        backgroundColor: ext.infoColor,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
@@ -1056,12 +1062,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
+                border: Border.all(color: ext.borderSubtle, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.04),
+                    color: cs.primary.withValues(alpha: 0.04),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1081,11 +1087,11 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         child: Center(
                           child: Column(
                             children: [
-                              Icon(Icons.receipt_long_rounded, size: 40, color: const Color(0xFF6A1B9A).withValues(alpha: 0.35)),
+                              Icon(Icons.receipt_long_rounded, size: 40, color: cs.primary.withValues(alpha: 0.35)),
                               const SizedBox(height: 10),
-                              Text('Henüz kalem eklenmedi', style: TextStyle(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)),
+                              Text('Henüz kalem eklenmedi', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w500)),
                               const SizedBox(height: 4),
-                              Text('Yukarıdan hizmet, ürün veya paket ekleyin', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                              Text('Yukarıdan hizmet, ürün veya paket ekleyin', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
                             ],
                           ),
                         ),
@@ -1169,12 +1175,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
                             }
 
                             IconData typeIcon = Icons.receipt_long_rounded;
-                            Color typeColor = const Color(0xFF6A1B9A);
-                            if (item is AdisyonHizmet) { typeIcon = Icons.spa_rounded; typeColor = const Color(0xFF9C27B0); }
-                            else if (item is AdisyonUrun) { typeIcon = Icons.shopping_bag_rounded; typeColor = const Color(0xFFEA80FC); }
-                            else if (item is AdisyonPaket) { typeIcon = Icons.inventory_2_rounded; typeColor = const Color(0xFF1976D2); }
-                            else if (item is SenetVade) { typeIcon = Icons.description_rounded; typeColor = const Color(0xFFFF7043); }
-                            else if (item is TaksitVade) { typeIcon = Icons.event_note_rounded; typeColor = const Color(0xFF26A69A); }
+                            Color typeColor = cs.primary;
+                            if (item is AdisyonHizmet) { typeIcon = Icons.spa_rounded; typeColor = cs.primary; }
+                            else if (item is AdisyonUrun) { typeIcon = Icons.shopping_bag_rounded; typeColor = cs.primaryContainer; }
+                            else if (item is AdisyonPaket) { typeIcon = Icons.inventory_2_rounded; typeColor = ext.infoColor; }
+                            else if (item is SenetVade) { typeIcon = Icons.description_rounded; typeColor = ext.warningColor; }
+                            else if (item is TaksitVade) { typeIcon = Icons.event_note_rounded; typeColor = ext.infoColor; }
 
                             return
                               GestureDetector(
@@ -1199,13 +1205,13 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                     direction: DismissDirection.horizontal,
                                     key: Key(key ),
                                     background: Container(
-                                      color: const Color(0xFF4CAF50),
+                                      color: ext.successColor,
                                       alignment: Alignment.centerLeft,
                                       padding: const EdgeInsets.only(left: 20),
                                       child: const Icon(Icons.edit_rounded, color: Colors.white),
                                     ),
                                     secondaryBackground: Container(
-                                      color: const Color(0xFFE53935),
+                                      color: cs.error,
                                       alignment: Alignment.centerRight,
                                       padding: const EdgeInsets.only(right: 20),
                                       child: const Icon(Icons.delete_rounded, color: Colors.white),
@@ -1280,10 +1286,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                     },
 
                                     child : Container(
-                                      decoration: const BoxDecoration(
-                                        color: Colors.white,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).cardColor,
                                         border: Border(
-                                          bottom: BorderSide(color: Color(0xFFF1ECF6), width: 1.0),
+                                          bottom: BorderSide(color: ext.borderSubtle, width: 1.0),
                                         ),
                                       ),
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1304,9 +1310,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(kalem, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                                Text(kalem, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis,),
                                                 const SizedBox(height: 2),
-                                                Text(satan, style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+                                                Text(satan, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
                                               ],
                                             ),
                                           ),
@@ -1314,9 +1320,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           Column(
                                             crossAxisAlignment: CrossAxisAlignment.end,
                                             children: [
-                                              Text('$tutar ₺', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
+                                              Text('$tutar ₺', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: cs.onSurface)),
                                               const SizedBox(height: 2),
-                                              Text('$adet adet', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                              Text('$adet adet', style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
                                             ],
                                           ),
                                         ],
@@ -1340,12 +1346,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFEDE7F2), width: 1),
+                border: Border.all(color: ext.borderSubtle, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6A1B9A).withValues(alpha: 0.04),
+                    color: cs.primary.withValues(alpha: 0.04),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1362,31 +1368,31 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('Tarih',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                        child: Text('Tarih',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
                       const SizedBox(height: 6,),
                       Container(
                         height: 40,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
+                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
                           controller: tahsilat_tarihi,
                           //editing controller of this TextField
                           decoration: InputDecoration(
 
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor:cs.primary ,
+                            hoverColor: cs.primary ,
+                            hintStyle: TextStyle(color:  cs.primary),
                             contentPadding:  EdgeInsets.all(0.0),
-                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
-                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                           readOnly: true,
                           //set it true, so that user will not able to edit text
@@ -1417,14 +1423,14 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       const SizedBox(height: 6,),
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('Birim Tutar(₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                        child: Text('Birim Tutar(₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
                       const SizedBox(height: 6,),
                       Container(
                         height: 40,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
+                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
                           keyboardType: TextInputType.phone,
                           enabled: false,
                           controller: birim_tutar,
@@ -1434,23 +1440,23 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                           decoration: InputDecoration(
 
-                            focusColor:Color(0xFF6A1B9A) ,
+                            focusColor:cs.primary ,
 
-                            hoverColor: Color(0xFF6A1B9A) ,
+                            hoverColor: cs.primary ,
                             filled: true,
-                            fillColor: Colors.white,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            fillColor: Theme.of(context).cardColor,
+                            hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
-                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
@@ -1458,14 +1464,14 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       Container(
 
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('Müşteri İndirimi (%)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                        child: Text('Müşteri İndirimi (%)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
                       const SizedBox(height: 6,),
                       Container(
                         height:40,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
+                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
                           enabled: false,
                           keyboardType: TextInputType.phone,
                           controller:musteri_sabit_indirim,
@@ -1473,21 +1479,21 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            fillColor: Theme.of(context).cardColor,
+                            focusColor:cs.primary ,
+                            hoverColor: cs.primary ,
+                            hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
-                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
@@ -1495,7 +1501,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       Container(
 
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('İndirim (₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                        child: Text('İndirim (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
 
                       const SizedBox(height: 6,),
@@ -1503,7 +1509,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         height:40,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
+                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
 
                           controller: harici_indirim,
                           keyboardType: TextInputType.phone,
@@ -1517,21 +1523,21 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            fillColor: Theme.of(context).cardColor,
+                            focusColor:cs.primary ,
+                            hoverColor: cs.primary ,
+                            hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
-                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
@@ -1549,7 +1555,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     children: [
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('Ödeme Yöntemi',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                        child: Text('Ödeme Yöntemi',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
                       const SizedBox(height: 6,),
                       Container(
@@ -1558,8 +1564,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         height: 40,
                         width:double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFFE5DCEC), width: 1.2),
+                          color: Theme.of(context).cardColor,
+                          border: Border.all(color: ext.borderSubtle, width: 1.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -1650,14 +1656,14 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       const SizedBox(height: 6,),
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('Ödenecek Tutar(₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                        child: Text('Ödenecek Tutar(₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
                       const SizedBox(height: 6,),
                       Container(
                         height: 40,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
+                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
 
                           controller: odenecek_tutar,
                           keyboardType: TextInputType.phone,
@@ -1671,35 +1677,35 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                           decoration: InputDecoration(
                             filled: true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            fillColor: Colors.white,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor:cs.primary ,
+                            fillColor: Theme.of(context).cardColor,
+                            hoverColor: cs.primary ,
+                            hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
-                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
                       const SizedBox(height: 6,),
                       Container(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('Kalan Alacak Tutarı(₺)',style: const TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                        child: Text('Kalan Alacak Tutarı(₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                       ),
                       const SizedBox(height: 6,),
                       Container(
                         height: 40,
                         padding: const EdgeInsets.only(left:8,right: 8),
                         child: TextFormField(
-                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1A1A1A)),
+                          style: TextStyle(fontSize: 13.5, color: cs.onSurface),
                           enabled: false,
                           keyboardType: TextInputType.phone,
                           controller: kalan_alacak_tutar,
@@ -1712,21 +1718,21 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           decoration: InputDecoration(
                             filled: true,
 
-                            focusColor:Color(0xFF6A1B9A) ,
-                            fillColor: Colors.white,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor:cs.primary ,
+                            fillColor: Theme.of(context).cardColor,
+                            hoverColor: cs.primary ,
+                            hintStyle: TextStyle(color:  cs.primary),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0),
                             ),
-                            disabledBorder: OutlineInputBorder(borderSide: const BorderSide(
-                                color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(
+                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                           ),
                         ),
                       ),
@@ -1753,7 +1759,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     icon: const Icon(Icons.account_balance_wallet_rounded, size: 16),
                     label: const Text('Alacaklar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4CAF50),
+                      backgroundColor: ext.successColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
@@ -1812,15 +1818,15 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                       width: 36,
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF6A1B9A).withValues(alpha: 0.12),
+                                        color: cs.primary.withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       alignment: Alignment.center,
-                                      child: const Icon(Icons.timeline_rounded, size: 18, color: Color(0xFF6A1B9A)),
+                                      child: Icon(Icons.timeline_rounded, size: 18, color: cs.primary),
                                     ),
                                     const SizedBox(width: 10),
                                     const Expanded(
-                                      child: Text('Yeni Taksitli Tahsilat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
+                                      child: Text('Yeni Taksitli Tahsilat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
                                     ),
                                   ],
                                 ),
@@ -1834,12 +1840,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         // Ön Ödeme Tutarı
                                         const Padding(
                                           padding: EdgeInsets.only(left: 4, bottom: 6),
-                                          child: Text('Ön Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                          child: Text('Ön Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
                                           height: 42,
                                           child: TextFormField(
-                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             controller: onOdemeTutariCtrl,
                                             keyboardType: TextInputType.phone,
                                             onChanged: (value) {
@@ -1851,11 +1857,11 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                             },
                                             decoration: InputDecoration(
                                               filled: true,
-                                              fillColor: Colors.white,
+                                              fillColor: Theme.of(context).cardColor,
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
                                             ),
                                           ),
                                         ),
@@ -1863,14 +1869,14 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         // Ön Ödeme Türü
                                         const Padding(
                                           padding: EdgeInsets.only(left: 4, bottom: 6),
-                                          child: Text('Ön Ödeme Türü',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                          child: Text('Ön Ödeme Türü',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         Container(
                                           height: 44,
                                           padding: const EdgeInsets.symmetric(horizontal: 12),
                                           decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            border: Border.all(color: const Color(0xFFE5DCEC), width: 1.2),
+                                            color: Theme.of(context).cardColor,
+                                            border: Border.all(color: ext.borderSubtle, width: 1.2),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: DropdownButtonHideUnderline(
@@ -1894,22 +1900,22 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         // Kalan Ödeme Tutarı (auto)
                                         const Padding(
                                           padding: EdgeInsets.only(left: 4, bottom: 6),
-                                          child: Text('Kalan Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                          child: Text('Kalan Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
                                           height: 42,
                                           child: TextFormField(
-                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             enabled: false,
                                             controller: taksit_toplam_tutar,
                                             decoration: InputDecoration(
                                               filled: true,
-                                              fillColor: const Color(0xFFF7F5FB),
+                                              fillColor: ext.surfaceMuted,
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
-                                              disabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFEDE7F2), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                              disabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                                             ),
                                           ),
                                         ),
@@ -1917,22 +1923,22 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         // Tarih
                                         const Padding(
                                           padding: EdgeInsets.only(left: 4, bottom: 6),
-                                          child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                          child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
                                           height: 42,
                                           child: TextFormField(
-                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             controller: ilk_taksit_vade_tarihi,
                                             readOnly: true,
                                             decoration: InputDecoration(
                                               filled: true,
-                                              fillColor: Colors.white,
-                                              suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF6A1B9A)),
+                                              fillColor: Theme.of(context).cardColor,
+                                              suffixIcon: Icon(Icons.calendar_today_rounded, size: 18, color: cs.primary),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
                                             ),
                                             onTap: () async {
                                               DateTime? pickedDate = await showDatePicker(
@@ -1953,21 +1959,21 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         // Taksit Sayısı
                                         const Padding(
                                           padding: EdgeInsets.only(left: 4, bottom: 6),
-                                          child: Text('Taksit Sayısı (Ay)',style: TextStyle(fontSize: 13,color: Color(0xFF555555),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                          child: Text('Taksit Sayısı (Ay)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
                                           height: 42,
                                           child: TextFormField(
-                                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             keyboardType: TextInputType.phone,
                                             controller: taksit_sayisi,
                                             decoration: InputDecoration(
                                               filled: true,
-                                              fillColor: Colors.white,
+                                              fillColor: Theme.of(context).cardColor,
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFE5DCEC), width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
                                             ),
                                           ),
                                         ),
@@ -1978,7 +1984,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                 ),
                                 actions: <Widget>[
                                   TextButton(
-                                    child: const Text('KAPAT', style: TextStyle(color: Color(0xFF777777), fontWeight: FontWeight.w600)),
+                                    child: Text('KAPAT', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
                                     onPressed: () {
                                       Navigator.of(dialogContext).pop();
                                     },
@@ -1987,7 +1993,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                     icon: const Icon(Icons.check_rounded, size: 18),
                                     label: const Text('KAYDET', style: TextStyle(fontWeight: FontWeight.w700)),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF6A1B9A),
+                                      backgroundColor: cs.primary,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -2013,7 +2019,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                       }
                                       if (hata.isNotEmpty) {
                                         ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                          SnackBar(content: Text(hata), backgroundColor: const Color(0xFFE53935)),
+                                          SnackBar(content: Text(hata), backgroundColor: cs.error),
                                         );
                                         return;
                                       }
@@ -2042,12 +2048,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         Navigator.of(context).pop();
                                         Navigator.of(context).pop();
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Taksitlendirme başarıyla kaydedildi'), backgroundColor: Color(0xFF2E7D32)),
+                                          SnackBar(content: Text('Taksitlendirme başarıyla kaydedildi'), backgroundColor: ext.successColor),
                                         );
                                         initialize();
                                       } else {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Taksitlendirme işlenirken bir hata oluştu. Hata kodu : $taksitResult'), backgroundColor: const Color(0xFFE53935)),
+                                          SnackBar(content: Text('Taksitlendirme işlenirken bir hata oluştu. Hata kodu : $taksitResult'), backgroundColor: cs.error),
                                         );
                                       }
                                       setState(() {
@@ -2067,7 +2073,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6A1B9A),
+                    backgroundColor: cs.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
@@ -2151,7 +2157,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     ],
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
+                    backgroundColor: ext.successColor,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
@@ -2171,6 +2177,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
   }
 
   void alacaklarigoster(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     showDialog(
       context: context,
       builder: (context) {
@@ -2191,10 +2199,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           onTap: () {
                             Navigator.of(context).pop();
                           },
-                          child: const CircleAvatar(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.red,
-                            child: Icon(Icons.close),
+                          child: CircleAvatar(
+                            foregroundColor: cs.onError,
+                            backgroundColor: cs.error,
+                            child: const Icon(Icons.close),
                           ),
                         ),
                       ),
@@ -2212,22 +2220,22 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                 margin: const EdgeInsets.fromLTRB(4, 4, 4, 8),
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF3EBF7),
+                                  color: ext.surfaceMuted,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: TabBar(
                                   isScrollable: false,
                                   indicatorSize: TabBarIndicatorSize.tab,
                                   labelColor: Colors.white,
-                                  unselectedLabelColor: const Color(0xFF6A1B9A),
+                                  unselectedLabelColor: cs.primary,
                                   labelPadding: EdgeInsets.zero,
                                   dividerColor: Colors.transparent,
                                   indicator: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
-                                    color: const Color(0xFF6A1B9A),
+                                    color: cs.primary,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF6A1B9A).withValues(alpha: 0.25),
+                                        color: cs.primary.withValues(alpha: 0.25),
                                         blurRadius: 8,
                                         offset: const Offset(0, 3),
                                       ),
@@ -2296,17 +2304,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                               return Container(
                                                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                 decoration: BoxDecoration(
-                                                  color: isCheckedList[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.06) : Colors.white,
+                                                  color: isCheckedList[index] ? cs.primary.withValues(alpha: 0.06) : Theme.of(context).cardColor,
                                                   borderRadius: BorderRadius.circular(12),
                                                   border: Border.all(
-                                                    color: isCheckedList[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.4) : const Color(0xFFEDE7F2),
+                                                    color: isCheckedList[index] ? cs.primary.withValues(alpha: 0.4) : ext.borderSubtle,
                                                     width: 1.2,
                                                   ),
                                                 ),
                                                 child: ListTile(
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                   leading: Checkbox(
-                                                    activeColor: const Color(0xFF6A1B9A),
+                                                    activeColor: cs.primary,
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                                     value: isCheckedList[index],
                                                     onChanged: (bool? value) {
@@ -2320,12 +2328,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                                       });
                                                     },
                                                   ),
-                                                  title: Text(kalem2, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-                                                  subtitle: Text(satan2, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                                  title: Text(kalem2, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                                                  subtitle: Text(satan2, style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
                                                   trailing: Text(
                                                     '$tutar2 ₺\n$adet2 adet',
                                                     textAlign: TextAlign.right,
-                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+                                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface),
                                                   ),
                                                 ),
                                               );
@@ -2366,17 +2374,17 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                               return Container(
                                                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                 decoration: BoxDecoration(
-                                                  color: isCheckedList2[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.06) : Colors.white,
+                                                  color: isCheckedList2[index] ? cs.primary.withValues(alpha: 0.06) : Theme.of(context).cardColor,
                                                   borderRadius: BorderRadius.circular(12),
                                                   border: Border.all(
-                                                    color: isCheckedList2[index] ? const Color(0xFF6A1B9A).withValues(alpha: 0.4) : const Color(0xFFEDE7F2),
+                                                    color: isCheckedList2[index] ? cs.primary.withValues(alpha: 0.4) : ext.borderSubtle,
                                                     width: 1.2,
                                                   ),
                                                 ),
                                                 child: ListTile(
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                   leading: Checkbox(
-                                                    activeColor: const Color(0xFF6A1B9A),
+                                                    activeColor: cs.primary,
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                                     value: isCheckedList2[index],
                                                     onChanged: (bool? value) {
@@ -2390,12 +2398,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                                       });
                                                     },
                                                   ),
-                                                  title: Text(kalem2, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-                                                  subtitle: Text(satan2, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                                  title: Text(kalem2, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                                                  subtitle: Text(satan2, style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
                                                   trailing: Text(
                                                     '$tutar2 ₺\n$adet2 adet',
                                                     textAlign: TextAlign.right,
-                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+                                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface),
                                                   ),
                                                 ),
                                               );
@@ -2414,7 +2422,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF2E7D32),
+                                      backgroundColor: ext.successColor,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       padding: const EdgeInsets.symmetric(vertical: 14),

@@ -18,6 +18,7 @@ import 'package:randevu_sistem/yonetici/dashboard/urunsatisiduzenleme.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 import 'package:randevu_sistem/Frontend/lazyload.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/Frontend/tlrakamacevir.dart';
 import 'package:randevu_sistem/Models/adisyonkalemleri.dart';
 import 'package:randevu_sistem/Models/odemeturu.dart';
@@ -111,35 +112,31 @@ class _SatisEkraniState extends State<SatisEkrani> {
   int secilialacaksenet = 0;
   int secilialacaktaksit = 0;
 
-  // Modern Renk Palette
-  final Color _primaryColor = Color(0xFF7C4DFF);
-  final Color _secondaryColor = Color(0xFFB388FF);
-  final Color _accentColor = Color(0xFFEA80FC);
-  final Color _successColor = Color(0xFF00E676);
-  final Color _warningColor = Color(0xFFFF9100);
-  final Color _errorColor = Color(0xFFFF5252);
-  final Color _backgroundColor = Color(0xFFF8F9FF);
-  final Color _surfaceColor = Colors.white;
-  final Color _textColor = Color(0xFF1A1A2E);
-  final Color _textLightColor = Color(0xFF6B7280);
-  final Color _borderColor = Color(0xFFE5E7EB);
-  final Color _shadowColor = Color(0x0A1A1A2E);
+  // Modern Renk Palette — tema'dan
+  Color get _primaryColor => context.colors.primary;
+  Color get _secondaryColor => context.colors.primaryContainer;
+  Color get _accentColor => context.colors.primaryContainer;
+  Color get _successColor => context.appTheme.successColor;
+  Color get _warningColor => context.appTheme.warningColor;
+  Color get _errorColor => context.colors.error;
+  Color get _backgroundColor => context.appTheme.surfaceMuted;
+  Color get _surfaceColor => Theme.of(context).cardColor;
+  Color get _textColor => context.colors.onSurface;
+  Color get _textLightColor => context.colors.onSurfaceVariant;
+  Color get _borderColor => context.appTheme.borderSubtle;
+  Color get _shadowColor => context.appTheme.shadowBase.withValues(alpha: 0.04);
 
-  // Gradient Colors
-  final Gradient _primaryGradient = LinearGradient(
-    colors: [Color(0xFF7C4DFF), Color(0xFFB388FF)],
+  // Gradient Colors — tema heroGradient
+  Gradient get _primaryGradient => context.appTheme.heroGradient;
+
+  Gradient get _successGradient => LinearGradient(
+    colors: [context.appTheme.successColor, context.appTheme.successColor.withValues(alpha: 0.7)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  final Gradient _successGradient = LinearGradient(
-    colors: [Color(0xFF00E676), Color(0xFF69F0AE)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  final Gradient _warningGradient = LinearGradient(
-    colors: [Color(0xFFFF9100), Color(0xFFFFAB40)],
+  Gradient get _warningGradient => LinearGradient(
+    colors: [context.appTheme.warningColor, context.appTheme.warningColor.withValues(alpha: 0.7)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -159,19 +156,20 @@ class _SatisEkraniState extends State<SatisEkrani> {
     String musterituru = await musteriDanisanTuru(seciliisletme, value?.id.toString() ?? "");
     log('müşteri türü ' + musterituru.toString());
     final settings = await fetchSalonSettings(seciliisletme);
+    if (!mounted) return;
     String indirimtext = "0";
     String aktifpasif = "";
 
     if (musterituru == "1") {
       aktifpasif = "Aktif";
-      aktifPasifRenk = Color(0xFF7C4DFF);
+      aktifPasifRenk = context.colors.primary;
       indirimtext = settings['aktif_musteri_indirim_yuzde']?.toString() ?? '0';
     } else if (musterituru == "2") {
-      aktifPasifRenk = Color(0xFF00E676);
+      aktifPasifRenk = context.appTheme.successColor;
       aktifpasif = "Sadık";
       indirimtext = settings['sadik_musteri_indirim_yuzde']?.toString() ?? '0';
     } else {
-      aktifPasifRenk = Color(0xFF9E9E9E);
+      aktifPasifRenk = context.colors.onSurfaceVariant;
       aktifpasif = "Pasif";
     }
 
@@ -847,8 +845,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   }
                   tutar = tryformat.format(double.parse(item.fiyat));
                   icon = Icons.spa_rounded;
-                  iconColor = Color(0xFF7C4DFF);
-                  backgroundColor = Color(0xFF7C4DFF).withOpacity(0.1);
+                  iconColor = _primaryColor;
+                  backgroundColor = _primaryColor.withValues(alpha: 0.1);
                 }
 
                 if (item is AdisyonUrun) {
@@ -858,8 +856,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   satan = item.personel?["personel_adi"] ?? "Personel Yok";
                   tutar = tryformat.format(double.parse(item.fiyat));
                   icon = Icons.shopping_bag_rounded;
-                  iconColor = Color(0xFFEA80FC);
-                  backgroundColor = Color(0xFFEA80FC).withOpacity(0.1);
+                  iconColor = context.appTheme.infoColor;
+                  backgroundColor = context.appTheme.infoColor.withValues(alpha: 0.1);
                 }
 
                 if (item is AdisyonPaket) {
@@ -869,8 +867,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   satan = item.personel?["personel_adi"] ?? "Personel Yok";
                   tutar = tryformat.format(double.parse(item.fiyat));
                   icon = Icons.card_membership_rounded;
-                  iconColor = Color(0xFF00E5FF);
-                  backgroundColor = Color(0xFF00E5FF).withOpacity(0.1);
+                  iconColor = _successColor;
+                  backgroundColor = _successColor.withValues(alpha: 0.1);
                 }
 
                 if (item is SenetVade) {
@@ -880,8 +878,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   satan = DateFormat('dd.MM.yyyy').format(DateTime.parse(item.vade_tarih));
                   tutar = tryformat.format(double.parse(item.tutar));
                   icon = Icons.description_rounded;
-                  iconColor = Color(0xFFFF9100);
-                  backgroundColor = Color(0xFFFF9100).withOpacity(0.1);
+                  iconColor = _warningColor;
+                  backgroundColor = _warningColor.withValues(alpha: 0.1);
                 }
 
                 if (item is TaksitVade) {
@@ -891,8 +889,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   satan = DateFormat('dd.MM.yyyy').format(DateTime.parse(item.vade_tarih));
                   tutar = tryformat.format(double.parse(item.tutar));
                   icon = Icons.payment_rounded;
-                  iconColor = Color(0xFF00E676);
-                  backgroundColor = Color(0xFF00E676).withOpacity(0.1);
+                  iconColor = _successColor;
+                  backgroundColor = _successColor.withValues(alpha: 0.1);
                 }
 
                 return Dismissible(
@@ -900,29 +898,29 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   direction: DismissDirection.horizontal,
                   background: Container(
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: _successColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         SizedBox(width: 20),
-                        Icon(Icons.edit_rounded, color: Colors.green),
+                        Icon(Icons.edit_rounded, color: _successColor),
                         SizedBox(width: 10),
-                        Text('Düzenle', style: TextStyle(color: Colors.green)),
+                        Text('Düzenle', style: TextStyle(color: _successColor)),
                       ],
                     ),
                   ),
                   secondaryBackground: Container(
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: _errorColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text('Sil', style: TextStyle(color: Colors.red)),
+                        Text('Sil', style: TextStyle(color: _errorColor)),
                         SizedBox(width: 10),
-                        Icon(Icons.delete_rounded, color: Colors.red),
+                        Icon(Icons.delete_rounded, color: _errorColor),
                         SizedBox(width: 20),
                       ],
                     ),
@@ -946,7 +944,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                               padding: EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [Color(0xFFFF5252), Color(0xFFFF8A80)],
+                                  colors: [_errorColor, _errorColor.withValues(alpha: 0.7)],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -957,12 +955,12 @@ class _SatisEkraniState extends State<SatisEkrani> {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_forever_rounded, color: Colors.white, size: 24),
+                                  Icon(Icons.delete_forever_rounded, color: context.colors.onError, size: 24),
                                   SizedBox(width: 12),
                                   Text(
                                     "Satış Kalemini Sil",
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: context.colors.onError,
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -1027,7 +1025,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(kalemsilme["mesaj"]),
-                                        backgroundColor: Colors.red,
+                                        backgroundColor: _errorColor,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(12),
                                         ),
@@ -1037,8 +1035,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xFFFF5252),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: _errorColor,
+                                  foregroundColor: context.colors.onError,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -1343,7 +1341,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
           Expanded(
             child: _buildActionButton(
               text: 'Hizmet Ekle',
-              color: Color(0xFF7C4DFF),
+              color: _primaryColor,
               onPressed: () => hizmetsatisi(null),
               icon: Icons.spa_outlined,
               isSmall: true,
@@ -1353,7 +1351,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
           Expanded(
             child: _buildActionButton(
               text: 'Ürün Ekle',
-              color: Color(0xFFEA80FC),
+              color: context.appTheme.infoColor,
               onPressed: () => urunsatisi(null),
               icon: Icons.shopping_bag_rounded,
               isSmall: true,
@@ -1363,7 +1361,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
           Expanded(
             child: _buildActionButton(
               text: 'Paket Ekle',
-              color: Color(0xFF64A3FF),
+              color: _successColor,
               onPressed: () => paketsatisi(null),
               icon: Icons.card_membership_rounded,
               isSmall: true,
@@ -1492,7 +1490,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Taksitlendirme işlenirken bir hata oluştu. Hata kodu: $taksitResult'),
-                                    backgroundColor: Colors.red,
+                                    backgroundColor: _errorColor,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -1598,9 +1596,9 @@ class _SatisEkraniState extends State<SatisEkrani> {
               }
 
               return Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF8F9FF),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                decoration: BoxDecoration(
+                  color: _backgroundColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: SingleChildScrollView(
                   child: Padding(
@@ -1856,7 +1854,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                   Navigator.of(sheetCtx).pop();
                                   Navigator.of(context).pop({'refresh': true});
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: const Text('Satış kaydedildi ve taksitlendirildi.'), backgroundColor: Color(0xFF2E7D32)),
+                                    SnackBar(content: const Text('Satış kaydedildi ve taksitlendirildi.'), backgroundColor: _successColor),
                                   );
                                 } else {
                                   ScaffoldMessenger.of(sheetCtx).showSnackBar(

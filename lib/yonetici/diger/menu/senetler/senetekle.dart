@@ -1,6 +1,7 @@
-﻿import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 
 class YeniSenet extends StatefulWidget {
   const YeniSenet({Key? key}) : super(key: key);
@@ -48,30 +49,25 @@ class _YeniSenetState extends State<YeniSenet> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          leading: IconButton(
-            icon: Icon(Icons.close_outlined, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: const Text('Yeni Senets',style: TextStyle(color: Colors.black,fontSize: 20),),
-          toolbarHeight: 60,
-
-          centerTitle: true,
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close_outlined),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        body: SingleChildScrollView(
-          reverse: true,
-          child: Container(
-            margin: const EdgeInsets.all(15.0),
-            child: Form(
-              key: _formKey,
-              autovalidateMode: _autoValidate,
-              child: formUI(),
-            ),
+        title: const Text('Yeni Senets', style: TextStyle(fontSize: 20)),
+        toolbarHeight: 60,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        reverse: true,
+        child: Container(
+          margin: const EdgeInsets.all(15.0),
+          child: Form(
+            key: _formKey,
+            autovalidateMode: _autoValidate,
+            child: formUI(),
           ),
         ),
       ),
@@ -79,13 +75,15 @@ class _YeniSenetState extends State<YeniSenet> {
   }
 
   Widget formUI() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
 
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Müşteri', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 10,),
         Container(
@@ -94,8 +92,8 @@ class _YeniSenetState extends State<YeniSenet> {
           height: 40,
           width:double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: cs.primary),
             borderRadius: BorderRadius.circular(10), //border corner radius
 
             //you can set more BoxShadow() here
@@ -194,7 +192,7 @@ class _YeniSenetState extends State<YeniSenet> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Vade Başlangıç Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                    child: Text('Vade Başlangıç Tarihi', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
                   ),
                   SizedBox(height: 10,),
                   Container(
@@ -207,16 +205,16 @@ class _YeniSenetState extends State<YeniSenet> {
                       //editing controller of this TextField
                       decoration: InputDecoration(
 
-                        focusColor:Color(0xFF6A1B9A) ,
-                        hoverColor: Color(0xFF6A1B9A) ,
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                        focusColor: cs.primary,
+                        hoverColor: cs.primary,
+                        hintStyle: TextStyle(color: cs.primary),
                         contentPadding:  EdgeInsets.all(15.0),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                            color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                         border:
                         OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
                         ),
                       ),
                       readOnly: true,
@@ -256,7 +254,7 @@ class _YeniSenetState extends State<YeniSenet> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Vade (Ay)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                    child: Text('Vade (Ay)', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
                   ),
                   SizedBox(height: 10,),
                   Container(
@@ -267,16 +265,16 @@ class _YeniSenetState extends State<YeniSenet> {
 
                       decoration: InputDecoration(
 
-                        focusColor:Color(0xFF6A1B9A) ,
-                        hoverColor: Color(0xFF6A1B9A) ,
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                        focusColor: cs.primary,
+                        hoverColor: cs.primary,
+                        hintStyle: TextStyle(color: cs.primary),
                         contentPadding:  EdgeInsets.all(15.0),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                            color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                         border:
                         OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
                         ),
                       ),
                     ),
@@ -297,7 +295,7 @@ class _YeniSenetState extends State<YeniSenet> {
 
                   Padding(
                     padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Tutar (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                    child: Text('Tutar (₺)', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
                   ),
                   SizedBox(height: 10,),
                   Container(
@@ -309,16 +307,16 @@ class _YeniSenetState extends State<YeniSenet> {
 
                       decoration: InputDecoration(
 
-                        focusColor:Color(0xFF6A1B9A) ,
-                        hoverColor: Color(0xFF6A1B9A) ,
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                        focusColor: cs.primary,
+                        hoverColor: cs.primary,
+                        hintStyle: TextStyle(color: cs.primary),
                         contentPadding:  EdgeInsets.all(15.0),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                            color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                         border:
                         OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
                         ),
                       ),
                     ),
@@ -333,15 +331,15 @@ class _YeniSenetState extends State<YeniSenet> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 5.0),
-                    child: Text('Senet Türü',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                    child: Text('Senet Türü', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
                   ),
                   SizedBox(height: 10,),
                   Container(
                     height: 40,
                     width:double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Color(0xFF6A1B9A)),
+                      color: Theme.of(context).cardColor,
+                      border: Border.all(color: cs.primary),
                       borderRadius: BorderRadius.circular(10), //border corner radius
 
                       //you can set more BoxShadow() here
@@ -439,7 +437,7 @@ class _YeniSenetState extends State<YeniSenet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('T.C NO',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('T.C NO', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 10,),
         Container(
@@ -450,16 +448,16 @@ class _YeniSenetState extends State<YeniSenet> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -467,7 +465,7 @@ class _YeniSenetState extends State<YeniSenet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Adres',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Adres', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 10,),
         Container(
@@ -480,16 +478,16 @@ class _YeniSenetState extends State<YeniSenet> {
             maxLines: 2,
             decoration: InputDecoration(
               enabled:true,
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -497,7 +495,7 @@ class _YeniSenetState extends State<YeniSenet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Kefil Adı ve Soyadı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Kefil Adı ve Soyadı', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 10,),
         Container(
@@ -508,16 +506,16 @@ class _YeniSenetState extends State<YeniSenet> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -525,7 +523,7 @@ class _YeniSenetState extends State<YeniSenet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Kefil T.C NO',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Kefil T.C NO', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 10,),
         Container(
@@ -536,16 +534,16 @@ class _YeniSenetState extends State<YeniSenet> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -553,7 +551,7 @@ class _YeniSenetState extends State<YeniSenet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Kefil Adres',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Kefil Adres', style: TextStyle(fontSize: 16, color: cs.onSurface, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 10,),
         Container(
@@ -566,16 +564,16 @@ class _YeniSenetState extends State<YeniSenet> {
             maxLines: 2,
             decoration: InputDecoration(
               enabled:true,
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -589,7 +587,7 @@ class _YeniSenetState extends State<YeniSenet> {
             ElevatedButton(onPressed: (){},
               child: Text('Kaydet'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: ext.successColor,
                   foregroundColor: Colors.white,
                   minimumSize: Size(90, 40)
               ),

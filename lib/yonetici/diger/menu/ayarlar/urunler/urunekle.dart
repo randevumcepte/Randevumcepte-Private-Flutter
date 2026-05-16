@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
@@ -84,15 +85,16 @@ class _YeniUrunState extends State<YeniUrun> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: new AppBar(
-          title: const Text('Yeni ürün',style: TextStyle(color: Colors.black),),
-          backgroundColor: Colors.white,
+          title: const Text('Yeni ürün'),
           leading: IconButton(
-            icon: Icon(Icons.clear_rounded, color: Colors.black),
+            icon: Icon(Icons.clear_rounded),
             onPressed: () => Navigator.of(context).pop(),
           ),
           actions: [
@@ -124,12 +126,14 @@ class _YeniUrunState extends State<YeniUrun> {
   }
 
   Widget formUI() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Ürün Adı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Ürün Adı',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -146,16 +150,16 @@ class _YeniUrunState extends State<YeniUrun> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -163,7 +167,7 @@ class _YeniUrunState extends State<YeniUrun> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Fiyat',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Fiyat',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -180,16 +184,16 @@ class _YeniUrunState extends State<YeniUrun> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -197,7 +201,7 @@ class _YeniUrunState extends State<YeniUrun> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Stok Adedi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Stok Adedi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -214,16 +218,16 @@ class _YeniUrunState extends State<YeniUrun> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -232,7 +236,7 @@ class _YeniUrunState extends State<YeniUrun> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Düşük Stok Sınırı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Düşük Stok Sınırı',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -249,16 +253,16 @@ class _YeniUrunState extends State<YeniUrun> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -266,7 +270,7 @@ class _YeniUrunState extends State<YeniUrun> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Barkod',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Barkod',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
 
         SizedBox(height: 10,),
@@ -283,16 +287,16 @@ class _YeniUrunState extends State<YeniUrun> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(10.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -307,8 +311,8 @@ class _YeniUrunState extends State<YeniUrun> {
 
               textStyle:
               TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              backgroundColor: Colors.purple[800], // background (button) color
-              foregroundColor: Colors.white,
+              backgroundColor: cs.primary, // background (button) color
+              foregroundColor: cs.onPrimary,
 
             ),),
           ],
@@ -354,7 +358,7 @@ class _YeniUrunState extends State<YeniUrun> {
             },
               child: Text('Kaydet'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: ext.successColor,
                   foregroundColor: Colors.white,
                   minimumSize: Size(90, 40)
               ),

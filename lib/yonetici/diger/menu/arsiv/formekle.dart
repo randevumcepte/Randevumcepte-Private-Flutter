@@ -10,6 +10,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -95,13 +96,15 @@ class _FormEkleState extends State<FormEkle> {
     FocusManager.instance.primaryFocus?.unfocus();
   }
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     double height = MediaQuery.of(context).size.height;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title:  const Text('Yeni Form Oluştur',style: TextStyle(color: Colors.black),),
+        title:  const Text('Yeni Form Oluştur'),
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon: Icon(Icons.clear_rounded),
           onPressed: () {Navigator.of(context).pop(); Navigator.push(context, PageTransition(type: PageTransitionType.rightToLeft,duration: Duration(milliseconds:500), child: ArsivYonetimiPage(isletmebilgi: widget.isletmebilgi,)));},
         ),
         toolbarHeight: 60,
@@ -115,7 +118,6 @@ class _FormEkleState extends State<FormEkle> {
               ),
             ),
         ],
-        backgroundColor: Colors.white,
       ),
       body: isloading ? Center(child: CircularProgressIndicator(),) : SingleChildScrollView(
           reverse: true,
@@ -125,7 +127,7 @@ class _FormEkleState extends State<FormEkle> {
               SizedBox(height: 20,),
               Padding(
                 padding: const EdgeInsets.only(left: 20.0),
-                child: Text('Form/Sözleşme Türü',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                child: Text('Form/Sözleşme Türü',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
               ),
               SizedBox(height: 10,),
               Container(
@@ -134,8 +136,8 @@ class _FormEkleState extends State<FormEkle> {
                 height: 40,
                 width:double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Color(0xFF6A1B9A)),
+                  color: Theme.of(context).cardColor,
+                  border: Border.all(color: cs.primary),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -220,7 +222,7 @@ class _FormEkleState extends State<FormEkle> {
               SizedBox(height: 10,),
               Padding(
                 padding: const EdgeInsets.only(left: 20.0),
-                child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                child: Text('Müşteri',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
               ),
               SizedBox(height: 10,),
               Container(
@@ -229,8 +231,8 @@ class _FormEkleState extends State<FormEkle> {
                 height: 43,
                 width:double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Color(0xFF6A1B9A)),
+                  color: Theme.of(context).cardColor,
+                  border: Border.all(color: cs.primary),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -263,7 +265,7 @@ class _FormEkleState extends State<FormEkle> {
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,children: [
                     Padding(
                       padding: const EdgeInsets.only(left: 20.0),
-                      child: Text('Cep Telefon',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                      child: Text('Cep Telefon',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                     ),
                     SizedBox(height: 10,),
                     Container(
@@ -275,16 +277,16 @@ class _FormEkleState extends State<FormEkle> {
                         keyboardType: TextInputType.text,
                         enabled:true,
                         decoration: InputDecoration(
-                          focusColor:Color(0xFF6A1B9A) ,
-                          hoverColor: Color(0xFF6A1B9A) ,
-                          hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                          focusColor: cs.primary,
+                          hoverColor: cs.primary,
+                          hintStyle: TextStyle(color: cs.primary),
                           contentPadding:  EdgeInsets.all(15.0),
                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                              color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                              color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                           border:
                           OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                           ),
                         ),
                       ),
@@ -295,7 +297,7 @@ class _FormEkleState extends State<FormEkle> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('TC Kimlik No',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('TC Kimlik No',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -307,16 +309,16 @@ class _FormEkleState extends State<FormEkle> {
                           keyboardType: TextInputType.text,
                           enabled:true,
                           decoration: InputDecoration(
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                         ),
@@ -332,7 +334,7 @@ class _FormEkleState extends State<FormEkle> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Doğum Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Doğum Tarihi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -342,16 +344,16 @@ class _FormEkleState extends State<FormEkle> {
                           controller: musteridotarih,
                           enabled:true,
                           decoration: InputDecoration(
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                           readOnly: true,
@@ -380,7 +382,7 @@ class _FormEkleState extends State<FormEkle> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -389,8 +391,8 @@ class _FormEkleState extends State<FormEkle> {
                         height: 40,
                         width:double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Color(0xFF6A1B9A)),
+                          color: Theme.of(context).cardColor,
+                          border: Border.all(color: cs.primary),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -483,7 +485,7 @@ class _FormEkleState extends State<FormEkle> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('İşlemi Yapan Personel',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('İşlemi Yapan Personel',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -492,8 +494,8 @@ class _FormEkleState extends State<FormEkle> {
                         height: 40,
                         width:double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Color(0xFF6A1B9A)),
+                          color: Theme.of(context).cardColor,
+                          border: Border.all(color: cs.primary),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -582,7 +584,7 @@ class _FormEkleState extends State<FormEkle> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Personel Cep Telefon',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Personel Cep Telefon',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -594,16 +596,16 @@ class _FormEkleState extends State<FormEkle> {
                           keyboardType: TextInputType.text,
                           enabled:true,
                           decoration: InputDecoration(
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                         ),
@@ -622,7 +624,7 @@ class _FormEkleState extends State<FormEkle> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 20.0),
-                    child: Text('Hizmet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                    child: Text('Hizmet',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                   ),
                   SizedBox(height: 10,),
                   Padding(
@@ -634,8 +636,8 @@ class _FormEkleState extends State<FormEkle> {
                         height: 40,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Color(0xFF6A1B9A)),
+                          color: Theme.of(context).cardColor,
+                          border: Border.all(color: cs.primary),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -693,7 +695,7 @@ class _FormEkleState extends State<FormEkle> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 20.0),
-                    child: Text('Hizmet Fiyatı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                    child: Text('Hizmet Fiyatı',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                   ),
                   SizedBox(height: 10,),
                   Container(
@@ -709,16 +711,16 @@ class _FormEkleState extends State<FormEkle> {
                       ],
                       enabled:true,
                       decoration  : InputDecoration(
-                        focusColor:Color(0xFF6A1B9A) ,
-                        hoverColor: Color(0xFF6A1B9A) ,
-                        hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                        focusColor: cs.primary,
+                        hoverColor: cs.primary,
+                        hintStyle: TextStyle(color: cs.primary),
                         contentPadding:  EdgeInsets.all(15.0),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                            color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                            color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                         border:
                         OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                         ),
                       ),
                     ),
@@ -743,7 +745,7 @@ class _FormEkleState extends State<FormEkle> {
                     ),
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                        backgroundColor: Colors.green,
+                        backgroundColor: ext.successColor,
                         minimumSize: Size(90, 40)
                     ),
                   ),
@@ -840,6 +842,8 @@ class _FormEkleState extends State<FormEkle> {
     }
   }
   void _showStyledAlert(String title, String message) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -850,7 +854,7 @@ class _FormEkleState extends State<FormEkle> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -858,25 +862,25 @@ class _FormEkleState extends State<FormEkle> {
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
-                  color: Colors.orange.shade700,
+                  color: ext.warningColor,
                   size: 48,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: cs.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   message,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black54,
+                    color: cs.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -886,8 +890,8 @@ class _FormEkleState extends State<FormEkle> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF6A1B9A),
-                      foregroundColor: Colors.white,
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -905,6 +909,8 @@ class _FormEkleState extends State<FormEkle> {
   }
   void _showValidationErrors(List<String> errors) {
     if (errors.isEmpty) return;
+    final cs = context.colors;
+    final ext = context.appTheme;
 
     showDialog(
       context: context,
@@ -916,7 +922,7 @@ class _FormEkleState extends State<FormEkle> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -927,42 +933,42 @@ class _FormEkleState extends State<FormEkle> {
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
-                      color: Colors.orange.shade700,
+                      color: ext.warningColor,
                       size: 28,
                     ),
                     const SizedBox(width: 10),
-                    const Text(
+                    Text(
                       'Eksik Bilgiler',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: cs.onSurface,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Divider(color: Colors.grey, thickness: 0.5),
+                Divider(color: context.appTheme.borderSubtle, thickness: 0.5),
                 const SizedBox(height: 12),
                 ...errors.map((error) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '• ',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange,
+                          color: ext.warningColor,
                         ),
                       ),
                       Expanded(
                         child: Text(
                           error,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.black54,
+                            color: cs.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -975,8 +981,8 @@ class _FormEkleState extends State<FormEkle> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6A1B9A),
-                      foregroundColor: Colors.white,
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

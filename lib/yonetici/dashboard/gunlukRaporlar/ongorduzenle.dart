@@ -11,6 +11,7 @@ import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/ongorusmenedeni.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 
 
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -138,15 +139,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: new AppBar(
-          title: const Text('Ön Görüşme Düzenle',style: TextStyle(color: Colors.black),),
-          backgroundColor: Colors.white,
+          title: const Text('Ön Görüşme Düzenle'),
           leading: IconButton(
-            icon: Icon(Icons.clear_rounded, color: Colors.black),
+            icon: Icon(Icons.clear_rounded),
             onPressed: () => Navigator.of(context).pop(),
           ),
           actions: [
@@ -176,12 +178,14 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
   }
 
   Widget formUI() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Müşteri',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -190,8 +194,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
           height: 40,
           width:double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: cs.primary),
             borderRadius: BorderRadius.circular(10), //border corner radius
 
             //you can set more BoxShadow() here
@@ -300,7 +304,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Ad Soyad',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Ad Soyad',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -311,16 +315,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -328,7 +332,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Telefon Numarası',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Telefon Numarası',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -341,16 +345,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -358,7 +362,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('E-mail',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('E-mail',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -371,16 +375,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -388,7 +392,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         Row(
           children: [
@@ -397,7 +401,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
                 leading: Radio<String>(
                   value: 'kadin',
                   groupValue: _selectedGender,
-                  activeColor: Colors.purple[800],
+                  activeColor: cs.primary,
                   onChanged: (value) {
                     setState(() {
                       _selectedGender = value!;
@@ -412,7 +416,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
                 leading: Radio<String>(
                   value: 'erkek',
                   groupValue: _selectedGender,
-                  activeColor: Colors.purple[800],
+                  activeColor: cs.primary,
                   onChanged: (value) {
                     setState(() {
                       _selectedGender = value!;
@@ -428,7 +432,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Şehir',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Şehir',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -437,8 +441,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
           height: 40,
           width:double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: cs.primary),
             borderRadius: BorderRadius.circular(10), //border corner radius
 
             //you can set more BoxShadow() here
@@ -531,7 +535,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Referans',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Referans',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -540,8 +544,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
           height: 40,
           width:double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: cs.primary),
             borderRadius: BorderRadius.circular(10), //border corner radius
 
             //you can set more BoxShadow() here
@@ -602,7 +606,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Meslek',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Meslek',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -613,16 +617,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
 
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -630,7 +634,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Ön Görüşme Nedeni',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Ön Görüşme Nedeni',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -639,8 +643,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
           height: 40,
           width:double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: cs.primary),
             borderRadius: BorderRadius.circular(10), //border corner radius
 
             //you can set more BoxShadow() here
@@ -733,7 +737,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Görüşmeyi Yapan',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Görüşmeyi Yapan',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -742,8 +746,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
           height: 40,
           width:double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: cs.primary),
             borderRadius: BorderRadius.circular(10), //border corner radius
 
             //you can set more BoxShadow() here
@@ -841,7 +845,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(left: 0.0),
-                  child: Text('Randevu Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                  child: Text('Randevu Tarihi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                 ),
                 SizedBox(height: 10,),
                 Container(
@@ -862,16 +866,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
                     //editing controller of this TextField
                     decoration: InputDecoration(
 
-                      focusColor:Color(0xFF6A1B9A) ,
-                      hoverColor: Color(0xFF6A1B9A) ,
-                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                      focusColor: cs.primary,
+                      hoverColor: cs.primary,
+                      hintStyle: TextStyle(color: cs.primary),
                       contentPadding:  EdgeInsets.all(15.0),
                       enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                          color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                       border:
                       OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                        borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                       ),
                     ),
                     readOnly: true,
@@ -909,7 +913,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(left: 0.0),
-                  child: Text('Randevu Saati',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                  child: Text('Randevu Saati',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                 ),
                 SizedBox(height: 10,),
                 Container(
@@ -956,16 +960,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
                     decoration: InputDecoration(
 
                       suffixIcon: Icon(Icons.access_time),
-                      focusColor:Color(0xFF6A1B9A) ,
-                      hoverColor: Color(0xFF6A1B9A) ,
-                      hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                      focusColor: cs.primary,
+                      hoverColor: cs.primary,
+                      hintStyle: TextStyle(color: cs.primary),
                       contentPadding:  EdgeInsets.all(15.0),
                       enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                          color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                          color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                       border:
                       OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                        borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                       ),
                     ),
                   ),
@@ -977,7 +981,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Açıklama',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Açıklama',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -993,16 +997,16 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
             maxLines: 2,
             decoration: InputDecoration(
               enabled:true,
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
@@ -1028,7 +1032,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
             },
               child: Text('Kaydet'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: ext.successColor,
                   foregroundColor: Colors.white,
                   minimumSize: Size(90, 40)
               ),

@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/takvimturu.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevuduzenle.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -134,27 +135,28 @@ class TakvimState extends State<Takvim> {
   }
 
   Widget _buildGapKampanyaSeridi() {
+    final ext = context.appTheme;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
+        color: ext.warningColor.withValues(alpha: 0.10),
         border: Border(
           bottom: BorderSide(
-              color: const Color(0xFFFBBF24).withValues(alpha: 0.35), width: 1),
+              color: ext.warningColor.withValues(alpha: 0.35), width: 1),
         ),
       ),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Row(
         children: [
-          const Icon(Icons.local_offer_rounded,
-              size: 14, color: Color(0xFFB45309)),
+          Icon(Icons.local_offer_rounded,
+              size: 14, color: ext.warningColor),
           const SizedBox(width: 6),
-          const Text(
+          Text(
             'Aktif Kampanya:',
             style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFB45309)),
+                color: ext.warningColor),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -200,13 +202,15 @@ class TakvimState extends State<Takvim> {
         break;
     }
 
+    final cs = context.colors;
+    final ext = context.appTheme;
     return InkWell(
       onTap: () => _showGapKampanyaDetay(k),
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
               color: grad.last.withValues(alpha: 0.55), width: 1),
@@ -226,10 +230,10 @@ class TakvimState extends State<Takvim> {
             const SizedBox(width: 6),
             Text(
               '${start.toString().padLeft(2, '0')}-${end.toString().padLeft(2, '0')}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1A1A),
+                color: cs.onSurface,
               ),
             ),
             const SizedBox(width: 5),
@@ -237,9 +241,7 @@ class TakvimState extends State<Takvim> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
-                ),
+                color: ext.successColor,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -265,6 +267,8 @@ class TakvimState extends State<Takvim> {
     final disc = (k['discount'] as num?)?.toInt() ?? 0;
     final kalanGun = (k['kalanGun'] as num?)?.toInt() ?? 0;
 
+    final cs = context.colors;
+    final ext = context.appTheme;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -282,9 +286,7 @@ class TakvimState extends State<Takvim> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
-                      ),
+                      color: ext.successColor,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.local_offer_rounded,
@@ -294,8 +296,10 @@ class TakvimState extends State<Takvim> {
                   Expanded(
                     child: Text(
                       '$label Kampanyası',
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: cs.onSurface),
                     ),
                   ),
                 ],
@@ -305,26 +309,26 @@ class TakvimState extends State<Takvim> {
                   '${start.toString().padLeft(2, '0')}:00 – ${end.toString().padLeft(2, '0')}:00'),
               const SizedBox(height: 8),
               _detayRow(Icons.local_offer_rounded, 'İndirim', '%$disc',
-                  valueColor: const Color(0xFF16A34A)),
+                  valueColor: ext.successColor),
               const SizedBox(height: 8),
               _detayRow(
                   Icons.timer_outlined,
                   'Kalan süre',
                   kalanGun > 0 ? '$kalanGun gün' : 'Bugün son gün',
-                  valueColor: const Color(0xFF15803D)),
+                  valueColor: ext.successColor),
               const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.all(11),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF22C55E).withValues(alpha: 0.08),
+                  color: ext.successColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   'Bu saat aralığındaki müşteriler tahsilat sırasında otomatik %$disc indirim almaya hak kazanır.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1.4,
-                    color: Color(0xFF1A1A1A),
+                    color: cs.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -335,8 +339,8 @@ class TakvimState extends State<Takvim> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(ctx).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6A1B9A),
-                    foregroundColor: Colors.white,
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 11),
                     shape: RoundedRectangleBorder(
@@ -355,9 +359,10 @@ class TakvimState extends State<Takvim> {
 
   Widget _detayRow(IconData icon, String label, String value,
       {Color? valueColor}) {
+    final cs = context.colors;
     return Row(
       children: [
-        Icon(icon, size: 15, color: Colors.grey.shade600),
+        Icon(icon, size: 15, color: cs.onSurfaceVariant),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -365,7 +370,7 @@ class TakvimState extends State<Takvim> {
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700),
+                color: cs.onSurfaceVariant),
           ),
         ),
         Text(
@@ -373,7 +378,7 @@ class TakvimState extends State<Takvim> {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w800,
-            color: valueColor ?? Colors.black,
+            color: valueColor ?? cs.onSurface,
           ),
         ),
       ],
@@ -601,14 +606,15 @@ class TakvimState extends State<Takvim> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     double ekranGenisligi = MediaQuery.of(context).size.width;
     final String formattedDate = DateFormat('d MMMM EEEE', 'tr_TR').format(_selectedDate);
 
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Takvim', style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: const Text('Takvim'),
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
             Padding(
@@ -638,7 +644,7 @@ class TakvimState extends State<Takvim> {
                 );
               });
             },
-            icon: Icon(Icons.add, color: Colors.black),
+            icon: const Icon(Icons.add),
             iconSize: 26,
           ),
         ],
@@ -653,14 +659,14 @@ class TakvimState extends State<Takvim> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: ext.borderSubtle),
               ),
               // resources.isEmpty ise mesaj göster, değilse takvimi göster
               child: resources.isEmpty
-                  ? const Center(
+                  ? Center(
                 child: Text(
                   'Gösterilecek veri bulunmamaktadır.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant),
                 ),
               )
                   : _buildCustomCalendar(),
@@ -726,7 +732,7 @@ class TakvimState extends State<Takvim> {
           width: widget.kullanicirolu == 5 ? ekranGenisligi : ekranGenisligi * 0.65,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
-            color: Colors.grey.shade200,
+            color: context.colors.surfaceContainerHighest,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -756,6 +762,8 @@ class TakvimState extends State<Takvim> {
 
   // _buildCustomCalendar fonksiyonunun düzeltilmiş hali
   Widget _buildCustomCalendar() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return LayoutBuilder(
       key: _calendarKey,
       builder: (context, constraints) {
@@ -799,14 +807,17 @@ class TakvimState extends State<Takvim> {
                     width: saatColumnWidth,
                     decoration: BoxDecoration(
                       border: Border(
-                        right: BorderSide(color: Colors.grey.shade400),
-                        bottom: BorderSide(color: Colors.grey.shade400),
+                        right: BorderSide(color: ext.borderStrong),
+                        bottom: BorderSide(color: ext.borderStrong),
                       ),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         'Saat',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: cs.onSurface),
                       ),
                     ),
                   ),
@@ -839,10 +850,12 @@ class TakvimState extends State<Takvim> {
                                   height: 70,
                                   decoration: BoxDecoration(
                                     border: Border(
-                                      right: BorderSide(color: Colors.grey.shade400),
-                                      bottom: BorderSide(color: Colors.grey.shade400),
+                                      right: BorderSide(color: ext.borderStrong),
+                                      bottom: BorderSide(color: ext.borderStrong),
                                     ),
-                                    color: index % 2 == 0 ? Colors.grey[50] : Colors.white,
+                                    color: index % 2 == 0
+                                        ? ext.surfaceMuted
+                                        : Theme.of(context).cardColor,
                                   ),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -851,21 +864,21 @@ class TakvimState extends State<Takvim> {
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           border: Border.all(
-                                            color: resource.color ?? Colors.grey.shade400,
+                                            color: resource.color ?? ext.borderStrong,
                                             width: 2.0,
                                           ),
                                         ),
                                         child: CircleAvatar(
                                           radius: 16,
                                           backgroundImage: resource.image,
-                                          backgroundColor: Colors.grey[200],
+                                          backgroundColor: cs.surfaceContainerHighest,
                                           child: resource.image == null
                                               ? Text(
                                             resource.displayName.isNotEmpty
                                                 ? resource.displayName[0].toUpperCase()
                                                 : '?',
                                             style: TextStyle(
-                                              color: resource.color ?? Colors.grey[700],
+                                              color: resource.color ?? cs.onSurfaceVariant,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14,
                                             ),
@@ -876,9 +889,10 @@ class TakvimState extends State<Takvim> {
                                       const SizedBox(height: 4),
                                       Text(
                                         resource.displayName,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 11
+                                            fontSize: 11,
+                                            color: cs.onSurface
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -905,7 +919,7 @@ class TakvimState extends State<Takvim> {
                   // SAATLER - CustomPaint ile çiz (performans için)
                   Container(
                     width: saatColumnWidth,
-                    color: Colors.grey[50],
+                    color: ext.surfaceMuted,
                     child: Listener(
                       onPointerSignal: (signal) {
                         if (signal is PointerScrollEvent) {
@@ -927,6 +941,10 @@ class TakvimState extends State<Takvim> {
                               totalSlots: totalSlots,
                               slotHeight: slotHeight,
                               startTotalMinutes: startTotalMinutes,
+                              softLineColor: ext.borderSubtle,
+                              strongLineColor: ext.borderStrong,
+                              hourTextColor: cs.onSurface,
+                              halfTextColor: cs.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -965,6 +983,8 @@ class TakvimState extends State<Takvim> {
                                           painter: _GridLinesPainter(
                                             totalSlots: totalSlots,
                                             slotHeight: slotHeight,
+                                            softLineColor: ext.borderSubtle,
+                                            strongLineColor: ext.borderStrong,
                                           ),
                                         ),
                                       ),
@@ -1054,16 +1074,17 @@ class TakvimState extends State<Takvim> {
     final minuteHeight = _hourHeight / 60;
     final topPosition = minutesFromStart * minuteHeight;
 
-    // Kırmızı nokta (daire)
+    final cs = context.colors;
+    // Kırmızı nokta (daire) — şu an = error semantic
     final redDot = Container(
       width: 10,
       height: 10,
       decoration: BoxDecoration(
-        color: Colors.red,
+        color: cs.error,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withValues(alpha: 0.5),
+            color: cs.error.withValues(alpha: 0.5),
             blurRadius: 4,
             spreadRadius: 1,
           ),
@@ -1074,7 +1095,7 @@ class TakvimState extends State<Takvim> {
     // Çizgi (tüm personel sütunu boyunca)
     final line = Container(
       height: 2,
-      color: Colors.red,
+      color: cs.error,
       child: Row(
         children: [
           // Sol taraftaki kırmızı nokta (saat sütununda)
@@ -1087,7 +1108,7 @@ class TakvimState extends State<Takvim> {
           Expanded(
             child: Container(
               height: 2,
-              color: Colors.red,
+              color: cs.error,
             ),
           ),
         ],
@@ -1223,7 +1244,10 @@ List<Widget> _buildAppointmentsForResource(
 
     if (personelIndex < 0 || personelIndex >= resources.length) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Geçersiz personel!"), backgroundColor: Colors.red),
+        SnackBar(
+          content: const Text("Geçersiz personel!"),
+          backgroundColor: context.colors.error,
+        ),
       );
       return;
     }
@@ -1285,7 +1309,7 @@ List<Widget> _buildAppointmentsForResource(
       orElse: () => CalendarResource(
         displayName: 'Bilinmiyor',
         id: '0',
-        color: Colors.grey,
+        color: context.colors.outline,
         image: const NetworkImage(''),
       ),
     );
@@ -1303,6 +1327,8 @@ List<Widget> _buildAppointmentsForResource(
     }
 
     // Onay dialog'u göster
+    final cs = context.colors;
+    final ext = context.appTheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1319,7 +1345,7 @@ List<Widget> _buildAppointmentsForResource(
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: ext.surfaceMuted,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -1351,7 +1377,7 @@ List<Widget> _buildAppointmentsForResource(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('İptal', style: TextStyle(color: Colors.grey)),
+            child: Text('İptal', style: TextStyle(color: cs.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1359,7 +1385,7 @@ List<Widget> _buildAppointmentsForResource(
               _surukleBirakTamamla(appointment, newStartTime, newEndTime, resources[personelIndex].id.toString());
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: ext.successColor,
               foregroundColor: Colors.white,
             ),
             child: const Text('Güncelle'),
@@ -1417,7 +1443,7 @@ List<Widget> _buildAppointmentsForResource(
         ScaffoldMessenger.of(context).showSnackBar(
            SnackBar(
             content: Text("Randevu güncellenirken bir hata oluştu. Hata kodu : "+response.statusCode.toString()),
-            backgroundColor: Colors.red,
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -1426,7 +1452,7 @@ List<Widget> _buildAppointmentsForResource(
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Güncelleme hatası: $e"),
-          backgroundColor: Colors.red,
+          backgroundColor: context.colors.error,
         ),
       );
     }
@@ -1434,6 +1460,7 @@ List<Widget> _buildAppointmentsForResource(
 
 // Sürükleme sırasında gösterilecek widget
   Widget _buildDraggingFeedback(Appointment appointment, Color color, double height, double width) {
+    final ext = context.appTheme;
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -1445,7 +1472,7 @@ List<Widget> _buildAppointmentsForResource(
           border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
+              color: ext.shadowBase.withValues(alpha: 0.35),
               blurRadius: 12,
               offset: const Offset(2, 4),
             ),
@@ -1482,6 +1509,8 @@ List<Widget> _buildAppointmentsForResource(
     final oldEndTime = appointment.endTime.toLocal();
 
     // Onay dialog'u
+    final cs = context.colors;
+    final ext = context.appTheme;
     final onay = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1495,7 +1524,7 @@ List<Widget> _buildAppointmentsForResource(
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: ext.surfaceMuted,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -1512,11 +1541,11 @@ List<Widget> _buildAppointmentsForResource(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('İptal', style: TextStyle(color: Colors.grey)),
+            child: Text('İptal', style: TextStyle(color: cs.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: ext.successColor, foregroundColor: Colors.white),
             child: const Text('Güncelle'),
           ),
         ],
@@ -1566,6 +1595,8 @@ List<Widget> _buildAppointmentsForResource(
   }
 
   void RandevuDetayGoster(BuildContext context, Appointment randevudetay) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final _formKey = GlobalKey<FormState>();
     List<String> randevutitle = randevudetay.subject.split('\n');
     List<String>? randevudurum = randevudetay.location?.split('-');
@@ -1590,10 +1621,10 @@ List<Widget> _buildAppointmentsForResource(
                       onTap: () {
                         Navigator.of(context).pop();
                       },
-                      child: const CircleAvatar(
-                        backgroundColor: Colors.red,
-                        child: Icon(Icons.close),
+                      child: CircleAvatar(
+                        backgroundColor: cs.error,
                         foregroundColor: Colors.white,
+                        child: const Icon(Icons.close),
                       ),
                     ),
                   ),
@@ -1607,18 +1638,18 @@ List<Widget> _buildAppointmentsForResource(
                           padding: EdgeInsets.all(12),
                           margin: EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.orange[100],
+                            color: ext.warningColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange),
+                            border: Border.all(color: ext.warningColor),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.info, color: Colors.orange),
+                              Icon(Icons.info, color: ext.warningColor),
                               SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Bu randevunuzun tahsilatını daha önce gerçekleştirdiniz.',
-                                  style: TextStyle(color: Colors.orange[800]),
+                                  style: TextStyle(color: ext.warningColor),
                                 ),
                               ),
                             ],
@@ -1629,9 +1660,9 @@ List<Widget> _buildAppointmentsForResource(
                         SizedBox(height: 20,),
                         Text(
                           randevutitle[0] + " Randevu Detayları",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
                         ),
-                        Divider(color: Colors.black, height: 10,),
+                        Divider(color: cs.outlineVariant, height: 10,),
                         Row(
                           children: [
 
@@ -1639,7 +1670,7 @@ List<Widget> _buildAppointmentsForResource(
                           ],
                         ),
 
-                        randevudurum![0] == "0" || randevudurum![0] == "1" ? Divider(color: Colors.black,
+                        randevudurum![0] == "0" || randevudurum![0] == "1" ? Divider(color: cs.outlineVariant,
                           height: 30,): SizedBox.shrink(),
                         randevudurum![0] == "0" || randevudurum![0] == "1" ? Row(
                           children: [
@@ -1656,8 +1687,8 @@ List<Widget> _buildAppointmentsForResource(
                               }, child:
                               Text('Düzenle'),
                                 style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor:  Color(0xFF5E35B1),
+                                    foregroundColor: cs.onPrimary,
+                                    backgroundColor: cs.primary,
 
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
@@ -1683,7 +1714,7 @@ List<Widget> _buildAppointmentsForResource(
                               Text('Onayla'),
                                 style: ElevatedButton.styleFrom(
                                     foregroundColor: Colors.white,
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: ext.successColor,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1725,8 +1756,8 @@ List<Widget> _buildAppointmentsForResource(
                                 child:
                                 Text('İptal Et'),
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: cs.error,
+                                    foregroundColor: cs.onError,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1743,8 +1774,8 @@ List<Widget> _buildAppointmentsForResource(
                               }, child:
                               Text('Gelmedi'),
                                 style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: Colors.red[600],
+                                    foregroundColor: cs.onError,
+                                    backgroundColor: cs.error,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1760,8 +1791,8 @@ List<Widget> _buildAppointmentsForResource(
                               }, child:
                               Text('Gelmedi İşaretini\nKaldır',style:TextStyle(fontSize: 10)),
                                 style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: Colors.red[600],
+                                    foregroundColor: cs.onError,
+                                    backgroundColor: cs.error,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1779,7 +1810,7 @@ List<Widget> _buildAppointmentsForResource(
                               Text('Geldi'),
                                 style: ElevatedButton.styleFrom(
                                     foregroundColor: Colors.white,
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: ext.successColor,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1796,7 +1827,7 @@ List<Widget> _buildAppointmentsForResource(
                                 child: Text('Geldi İşaretini\nKaldır',style: TextStyle(fontSize: 10),),
                                 style: ElevatedButton.styleFrom(
                                     foregroundColor: Colors.white,
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: ext.successColor,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1825,8 +1856,8 @@ List<Widget> _buildAppointmentsForResource(
                               }, child:
                               Text('Tahsilat'),
                                 style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: Color(0xFF5E35B1),
+                                    foregroundColor: cs.onPrimary,
+                                    backgroundColor: cs.primary,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1868,8 +1899,8 @@ List<Widget> _buildAppointmentsForResource(
                                 child:
                                 Text('İptal Et'),
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: cs.error,
+                                    foregroundColor: cs.onError,
                                     elevation: 5,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5.0)
@@ -1893,7 +1924,8 @@ List<Widget> _buildAppointmentsForResource(
                             }, child:
                             Text('Satış Yapıldı'),
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
+                                  backgroundColor: ext.successColor,
+                                  foregroundColor: Colors.white,
                                   elevation: 5,
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(5.0)
@@ -1918,7 +1950,8 @@ List<Widget> _buildAppointmentsForResource(
                             }, child:
                             Text('Satış Yapılmadı'),
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red[600],
+                                  backgroundColor: cs.error,
+                                  foregroundColor: cs.onError,
                                   elevation: 5,
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(5.0)
@@ -1944,6 +1977,7 @@ List<Widget> _buildAppointmentsForResource(
   }
 
   void paketsatispopup(BuildContext context, String ongorusmeid) {
+    final cs = context.colors;
     TextEditingController ongorusmetarihi = TextEditingController();
     TextEditingController seansaralik = TextEditingController();
 
@@ -1959,11 +1993,11 @@ List<Widget> _buildAppointmentsForResource(
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 0.0),
+              Padding(
+                padding: const EdgeInsets.only(left: 0.0),
                 child: Text(
                   'Seans Başlangıç Tarihi',
-                  style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 12, color: cs.onSurface, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 10),
@@ -1973,19 +2007,19 @@ List<Widget> _buildAppointmentsForResource(
                 child: TextFormField(
                   controller: ongorusmetarihi,
                   decoration: InputDecoration(
-                    focusColor: const Color(0xFF6A1B9A),
-                    hoverColor: const Color(0xFF6A1B9A),
-                    hintStyle: const TextStyle(color: Color(0xFF6A1B9A)),
+                    focusColor: cs.primary,
+                    hoverColor: cs.primary,
+                    hintStyle: TextStyle(color: cs.primary),
                     contentPadding: const EdgeInsets.all(15.0),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+                      borderSide: BorderSide(color: cs.primary),
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+                      borderSide: BorderSide(color: cs.primary),
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                   ),
@@ -2005,11 +2039,11 @@ List<Widget> _buildAppointmentsForResource(
                 ),
               ),
               const SizedBox(height: 10),
-              const Padding(
-                padding: EdgeInsets.only(left: 0.0),
+              Padding(
+                padding: const EdgeInsets.only(left: 0.0),
                 child: Text(
                   'Seans Aralığı (Gün)',
-                  style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 12, color: cs.onSurface, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 10),
@@ -2021,19 +2055,19 @@ List<Widget> _buildAppointmentsForResource(
                   keyboardType: TextInputType.number,
                   maxLines: 1,
                   decoration: InputDecoration(
-                    focusColor: const Color(0xFF6A1B9A),
-                    hoverColor: const Color(0xFF6A1B9A),
-                    hintStyle: const TextStyle(color: Color(0xFF6A1B9A)),
+                    focusColor: cs.primary,
+                    hoverColor: cs.primary,
+                    hintStyle: TextStyle(color: cs.primary),
                     contentPadding: const EdgeInsets.all(15.0),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+                      borderSide: BorderSide(color: cs.primary),
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+                      borderSide: BorderSide(color: cs.primary),
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                   ),
@@ -2046,7 +2080,7 @@ List<Widget> _buildAppointmentsForResource(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Kapat', style: TextStyle(color: Colors.black)),
+              child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
             ),
             TextButton(
               onPressed: () {
@@ -2057,7 +2091,7 @@ List<Widget> _buildAppointmentsForResource(
                     false
                 );
               },
-              child: const Text('Kaydet', style: TextStyle(color: Colors.purple)),
+              child: Text('Kaydet', style: TextStyle(color: cs.primary)),
             ),
           ],
         );
@@ -2066,6 +2100,7 @@ List<Widget> _buildAppointmentsForResource(
   }
 
   void urunsatispopup(BuildContext context, String ongorusmeid) {
+    final cs = context.colors;
     TextEditingController quantityController = TextEditingController();
 
     showDialog(
@@ -2080,11 +2115,11 @@ List<Widget> _buildAppointmentsForResource(
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 0.0),
+              Padding(
+                padding: const EdgeInsets.only(left: 0.0),
                 child: Text(
                   'Adet',
-                  style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 14, color: cs.onSurface, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 10),
@@ -2095,19 +2130,19 @@ List<Widget> _buildAppointmentsForResource(
                   keyboardType: TextInputType.number,
                   maxLines: 1,
                   decoration: InputDecoration(
-                    focusColor: const Color(0xFF6A1B9A),
-                    hoverColor: const Color(0xFF6A1B9A),
-                    hintStyle: const TextStyle(color: Color(0xFF6A1B9A)),
+                    focusColor: cs.primary,
+                    hoverColor: cs.primary,
+                    hintStyle: TextStyle(color: cs.primary),
                     contentPadding: const EdgeInsets.all(15.0),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+                      borderSide: BorderSide(color: cs.primary),
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+                      borderSide: BorderSide(color: cs.primary),
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                   ),
@@ -2120,7 +2155,7 @@ List<Widget> _buildAppointmentsForResource(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Kapat', style: TextStyle(color: Colors.black)),
+              child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
             ),
             TextButton(
               onPressed: () {
@@ -2131,7 +2166,7 @@ List<Widget> _buildAppointmentsForResource(
                     false
                 );
               },
-              child: const Text('Kaydet', style: TextStyle(color: Colors.purple)),
+              child: Text('Kaydet', style: TextStyle(color: cs.primary)),
             ),
           ],
         );
@@ -2147,27 +2182,35 @@ class _SaatColumnPainter extends CustomPainter {
   final int totalSlots;
   final double slotHeight;
   final int startTotalMinutes;
+  final Color softLineColor;
+  final Color strongLineColor;
+  final Color hourTextColor;
+  final Color halfTextColor;
 
   _SaatColumnPainter({
     required this.totalSlots,
     required this.slotHeight,
     required this.startTotalMinutes,
+    required this.softLineColor,
+    required this.strongLineColor,
+    required this.hourTextColor,
+    required this.halfTextColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final linePaint = Paint()
-      ..color = Colors.grey.shade300
+      ..color = softLineColor
       ..strokeWidth = 1;
     final hourLinePaint = Paint()
-      ..color = Colors.grey.shade400
+      ..color = strongLineColor
       ..strokeWidth = 1;
     final borderPaint = Paint()
-      ..color = Colors.grey.shade400
+      ..color = strongLineColor
       ..strokeWidth = 1;
 
-    final textStyle = TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w500);
-    final halfStyle = TextStyle(fontSize: 10, color: Colors.grey[500]);
+    final textStyle = TextStyle(fontSize: 12, color: hourTextColor, fontWeight: FontWeight.w500);
+    final halfStyle = TextStyle(fontSize: 10, color: halfTextColor);
 
     for (int i = 0; i < totalSlots; i++) {
       final y = i * slotHeight;
@@ -2205,7 +2248,11 @@ class _SaatColumnPainter extends CustomPainter {
   bool shouldRepaint(covariant _SaatColumnPainter oldDelegate) {
     return oldDelegate.totalSlots != totalSlots ||
         oldDelegate.slotHeight != slotHeight ||
-        oldDelegate.startTotalMinutes != startTotalMinutes;
+        oldDelegate.startTotalMinutes != startTotalMinutes ||
+        oldDelegate.softLineColor != softLineColor ||
+        oldDelegate.strongLineColor != strongLineColor ||
+        oldDelegate.hourTextColor != hourTextColor ||
+        oldDelegate.halfTextColor != halfTextColor;
   }
 }
 
@@ -2215,19 +2262,26 @@ class _SaatColumnPainter extends CustomPainter {
 class _GridLinesPainter extends CustomPainter {
   final int totalSlots;
   final double slotHeight;
+  final Color softLineColor;
+  final Color strongLineColor;
 
-  _GridLinesPainter({required this.totalSlots, required this.slotHeight});
+  _GridLinesPainter({
+    required this.totalSlots,
+    required this.slotHeight,
+    required this.softLineColor,
+    required this.strongLineColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final softLine = Paint()
-      ..color = Colors.grey.shade200
+      ..color = softLineColor
       ..strokeWidth = 1;
     final strongLine = Paint()
-      ..color = Colors.grey.shade400
+      ..color = strongLineColor
       ..strokeWidth = 1;
     final rightBorder = Paint()
-      ..color = Colors.grey.shade300
+      ..color = softLineColor
       ..strokeWidth = 1;
 
     for (int i = 0; i <= totalSlots; i++) {
@@ -2249,7 +2303,9 @@ class _GridLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _GridLinesPainter oldDelegate) {
     return oldDelegate.totalSlots != totalSlots ||
-        oldDelegate.slotHeight != slotHeight;
+        oldDelegate.slotHeight != slotHeight ||
+        oldDelegate.softLineColor != softLineColor ||
+        oldDelegate.strongLineColor != strongLineColor;
   }
 }
 
@@ -2327,6 +2383,7 @@ class _AppointmentCardState extends State<_AppointmentCard> {
 
   @override
   Widget build(BuildContext context) {
+    final ext = context.appTheme;
     final displayHeight = _resizeHeight ?? widget.height;
     final color = widget.color;
 
@@ -2407,7 +2464,7 @@ class _AppointmentCardState extends State<_AppointmentCard> {
         boxShadow: _isResizing
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
+                  color: ext.shadowBase.withValues(alpha: 0.25),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

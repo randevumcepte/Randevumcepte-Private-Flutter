@@ -8,6 +8,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/cihazlar.dart';
 import 'package:randevu_sistem/Models/hizmetler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 
 class HizmetDuzenle extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -28,9 +29,6 @@ class HizmetDuzenle extends StatefulWidget {
 }
 
 class _HizmetDuzenleState extends State<HizmetDuzenle> {
-  static const Color _accent = Color(0xFF4CAF93);
-  static const Color _accent2 = Color(0xFF6FC8B1);
-
   bool _yukleniyor = true;
   bool _kaydediliyor = false;
 
@@ -72,7 +70,6 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
     _tumPersoneller = personeller;
     _tumCihazlar = cihazlar;
 
-    // Mevcut secimleri parse et (virgulle ayrilmis isim listesi)
     if (widget.hizmet.personel.isNotEmpty &&
         widget.hizmet.personel != 'null') {
       final secilenAdlar = widget.hizmet.personel
@@ -179,6 +176,8 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
   }
 
   void _uyari(String title, String message) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -187,7 +186,7 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(ctx).cardColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: Column(
@@ -197,27 +196,30 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: ext.warningColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFD97706).withValues(alpha: 0.20),
+                      color: ext.warningColor.withValues(alpha: 0.20),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.warning_amber_rounded,
-                  color: Color(0xFFD97706),
+                  color: ext.warningColor,
                   size: 28,
                 ),
               ),
               const SizedBox(height: 14),
               Text(
                 title,
-                style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
@@ -225,7 +227,7 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: cs.onSurfaceVariant,
                   height: 1.4,
                 ),
               ),
@@ -235,8 +237,8 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent,
-                    foregroundColor: Colors.white,
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -258,22 +260,19 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
         toolbarHeight: 62,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: cs.onSurface, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Hizmet Düzenle',
           style: TextStyle(
-            color: Colors.black,
+            color: cs.onSurface,
             fontWeight: FontWeight.w800,
             fontSize: 18,
             letterSpacing: -0.3,
@@ -281,13 +280,13 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: Colors.black12),
+          child: Container(height: 1, color: context.appTheme.borderSubtle),
         ),
       ),
       body: _yukleniyor
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                color: _accent,
+                color: cs.primary,
                 strokeWidth: 2.5,
               ),
             )
@@ -328,18 +327,16 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
   }
 
   Widget _header() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_accent2, _accent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: ext.heroGradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _accent.withValues(alpha: 0.30),
+            color: cs.primary.withValues(alpha: 0.30),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -351,11 +348,11 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
+              color: cs.onPrimary.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.spa_rounded,
-                color: Colors.white, size: 24),
+            child: Icon(Icons.spa_rounded,
+                color: cs.onPrimary, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -369,8 +366,8 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                       : widget.hizmet.hizmet_adi,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: cs.onPrimary,
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
                     letterSpacing: -0.3,
@@ -380,7 +377,7 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                 Text(
                   'Hizmet bilgilerini güncelleyin',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: cs.onPrimary.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w500,
                     fontSize: 12,
                   ),
@@ -394,18 +391,19 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
   }
 
   Widget _formCard() {
+    final cs = context.colors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: _accent.withValues(alpha: 0.10),
+          color: cs.primary.withValues(alpha: 0.10),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: _accent.withValues(alpha: 0.05),
+            color: cs.primary.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -473,16 +471,17 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
   }
 
   Widget _labelLine(IconData icon, String label, {String? opsiyonel}) {
+    final cs = context.colors;
     return Row(
       children: [
-        Icon(icon, size: 15, color: _accent),
+        Icon(icon, size: 15, color: cs.primary),
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: cs.onSurface,
             letterSpacing: -0.1,
           ),
         ),
@@ -491,7 +490,7 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.grey[200],
+              color: cs.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -499,7 +498,7 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
               style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
-                color: Colors.grey[700],
+                color: cs.onSurfaceVariant,
               ),
             ),
           ),
@@ -517,12 +516,16 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
   }) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       decoration: BoxDecoration(
-        color: enabled ? const Color(0xFFF8FAFB) : const Color(0xFFF1F3F4),
+        color: enabled
+            ? ext.surfaceMuted
+            : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _accent.withValues(alpha: enabled ? 0.18 : 0.06),
+          color: cs.primary.withValues(alpha: enabled ? 0.18 : 0.06),
           width: 1,
         ),
       ),
@@ -534,29 +537,32 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: enabled ? Colors.black87 : Colors.grey[600],
+          color: enabled ? cs.onSurface : cs.onSurfaceVariant,
           letterSpacing: -0.1,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            color: Colors.grey[500],
+            color: cs.onSurfaceVariant.withValues(alpha: 0.7),
             fontWeight: FontWeight.w500,
             fontSize: 13.5,
           ),
           prefixText: prefixText,
-          prefixStyle: const TextStyle(
-            color: _accent,
+          prefixStyle: TextStyle(
+            color: cs.primary,
             fontWeight: FontWeight.w800,
             fontSize: 14,
           ),
           suffixText: suffixText,
-          suffixStyle: const TextStyle(
-            color: _accent,
+          suffixStyle: TextStyle(
+            color: cs.primary,
             fontWeight: FontWeight.w800,
             fontSize: 13,
           ),
+          filled: false,
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
         ),
@@ -571,18 +577,19 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
     required int toplam,
     required List<Widget> children,
   }) {
+    final cs = context.colors;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: _accent.withValues(alpha: 0.10),
+          color: cs.primary.withValues(alpha: 0.10),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: _accent.withValues(alpha: 0.05),
+            color: cs.primary.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -597,19 +604,19 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.12),
+                  color: cs.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(ikon, color: _accent, size: 17),
+                child: Icon(ikon, color: cs.primary, size: 17),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   baslik,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black87,
+                    color: cs.onSurface,
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -619,8 +626,8 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                     const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: secimSayisi > 0
-                      ? _accent.withValues(alpha: 0.14)
-                      : Colors.grey[200],
+                      ? cs.primary.withValues(alpha: 0.14)
+                      : cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -628,7 +635,9 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: secimSayisi > 0 ? _accent : Colors.grey[700],
+                    color: secimSayisi > 0
+                        ? cs.primary
+                        : cs.onSurfaceVariant,
                     letterSpacing: -0.1,
                   ),
                 ),
@@ -679,6 +688,8 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
   }
 
   Widget _bottomBar() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       padding: EdgeInsets.fromLTRB(
         14,
@@ -686,13 +697,13 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
         14,
         10 + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
+            color: ext.shadowBase.withValues(alpha: 0.08),
             blurRadius: 12,
-            offset: Offset(0, -3),
+            offset: const Offset(0, -3),
           ),
         ],
       ),
@@ -705,19 +716,18 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
           child: Container(
             height: 52,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: _kaydediliyor
-                    ? [Colors.grey[400]!, Colors.grey[500]!]
-                    : const [_accent2, _accent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: _kaydediliyor
+                  ? LinearGradient(colors: [
+                      cs.surfaceContainerHighest,
+                      cs.surfaceContainerHigh,
+                    ])
+                  : ext.heroGradient,
               borderRadius: BorderRadius.circular(16),
               boxShadow: _kaydediliyor
                   ? []
                   : [
                       BoxShadow(
-                        color: _accent.withValues(alpha: 0.40),
+                        color: cs.primary.withValues(alpha: 0.40),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
@@ -725,24 +735,24 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
             ),
             alignment: Alignment.center,
             child: _kaydediliyor
-                ? const SizedBox(
+                ? SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.4,
-                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                      valueColor: AlwaysStoppedAnimation(cs.onPrimary),
                     ),
                   )
-                : const Row(
+                : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.check_rounded,
-                          color: Colors.white, size: 20),
-                      SizedBox(width: 8),
+                          color: cs.onPrimary, size: 20),
+                      const SizedBox(width: 8),
                       Text(
                         'Güncelle',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: cs.onPrimary,
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                           letterSpacing: 0.2,
@@ -770,10 +780,9 @@ class _SecimChip extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color _accent = Color(0xFF4CAF93);
-
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(999),
@@ -784,18 +793,18 @@ class _SecimChip extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? _accent : Colors.white,
+            color: selected ? cs.primary : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: selected
-                  ? _accent
-                  : _accent.withValues(alpha: 0.30),
+                  ? cs.primary
+                  : cs.primary.withValues(alpha: 0.30),
               width: 1.2,
             ),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: _accent.withValues(alpha: 0.30),
+                      color: cs.primary.withValues(alpha: 0.30),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -808,7 +817,7 @@ class _SecimChip extends StatelessWidget {
               Icon(
                 selected ? Icons.check_rounded : icon,
                 size: 14,
-                color: selected ? Colors.white : _accent,
+                color: selected ? cs.onPrimary : cs.primary,
               ),
               const SizedBox(width: 5),
               Text(
@@ -816,7 +825,7 @@ class _SecimChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : _accent,
+                  color: selected ? cs.onPrimary : cs.primary,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -834,11 +843,12 @@ class _EmptyMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -846,7 +856,7 @@ class _EmptyMini extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
-          color: Colors.grey[600],
+          color: cs.onSurfaceVariant,
           fontWeight: FontWeight.w500,
         ),
       ),

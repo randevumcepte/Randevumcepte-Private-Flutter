@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import '../../dashboard/hizmetsatisi.dart';
@@ -165,6 +166,8 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
   }
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
     return Scaffold(
@@ -172,10 +175,10 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
       // floatingActionButton: AltYuvarlakYeniEkleMenu(isletme_bilgi: widget.isletmebilgi,),
 
       appBar: AppBar(
-        title:  const Text('Tahsilatlar',style: TextStyle(color: Colors.black),),
+        title:  Text('Tahsilatlar',style: TextStyle(color: cs.onSurface),),
 
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon: Icon(Icons.clear_rounded, color: cs.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
         toolbarHeight: 60,
@@ -190,7 +193,6 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
 
         ],
-        backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -202,15 +204,15 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
               padding: EdgeInsets.all(10.0),
               margin: EdgeInsets.all(20.0),
               decoration: BoxDecoration(
-                color: Colors.white, // Set container background color
+                color: Theme.of(context).cardColor, // Set container background color
                 border: Border.all(
-                  color: Color(0XFFE0E0E0),
+                  color: ext.borderSubtle,
                   width: 1.2,
                 ),
                 borderRadius: BorderRadius.circular(20.0),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.15),
+                    color: ext.shadowBase.withValues(alpha: 0.15),
                     spreadRadius: 5,
                     blurRadius: 7,
                     offset: Offset(0,3), // changes position of shadow
@@ -224,14 +226,15 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                 children:[
 
-                  Text('Cevriye Güleç', style: TextStyle(color: Colors.black,fontSize: 18,fontWeight: FontWeight.bold),),
+                  Text('Cevriye Güleç', style: TextStyle(color: cs.onSurface,fontSize: 18,fontWeight: FontWeight.bold),),
                   Container( padding: EdgeInsets.only(left: 20),
                     child: ElevatedButton(
                       onPressed: (){},
                       child:
                       Text('Aktif',style: TextStyle(fontSize: 15),),
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: ext.successColor,
+                          foregroundColor: Colors.white,
 
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10.0)
@@ -256,7 +259,8 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                 ElevatedButton(onPressed: hizmetsatisi,
                   child: Text('Hizmet Ekle',style: TextStyle(fontSize: 12),),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF9C27B0),
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     minimumSize: Size(90, 30),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
 
@@ -266,7 +270,8 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                 ElevatedButton(onPressed: urunsatisi,
                   child: Text('Ürün Ekle',style:TextStyle(fontSize:12)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFEA80FC),
+                    backgroundColor: cs.primaryContainer,
+                    foregroundColor: cs.onPrimaryContainer,
                     minimumSize: Size(95, 30),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
 
@@ -276,7 +281,8 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                 ElevatedButton(onPressed: paketsatisi,
                   child: Text('Paket Ekle',style:TextStyle(fontSize:12)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:  Color(0xFF1976D2),
+                    backgroundColor:  ext.infoColor,
+                    foregroundColor: Colors.white,
                     minimumSize: Size(95, 30),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
 
@@ -326,20 +332,20 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                             return confirmed;
                           },
-                          background: const ColoredBox(
-                            color: Colors.red,
+                          background: ColoredBox(
+                            color: cs.error,
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: Padding(
                                 padding: EdgeInsets.all(0.0),
-                                child: Icon(Icons.delete, color: Colors.white,size: 20,),
+                                child: Icon(Icons.delete, color: cs.onError,size: 20,),
                               ),
                             ),
                           ),
                           child: Container(
                             height: _containerHeight,
                             width: double.infinity,
-                            color: _dataAdded ? Colors.blue[50] : null,
+                            color: _dataAdded ? ext.infoColor.withValues(alpha: 0.10) : null,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -363,7 +369,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                                   ],
                                 ),
                                 if(_dataAdded)
-                                  Icon(Icons.close_outlined,color: Colors.red[600],size: 18,)
+                                  Icon(Icons.close_outlined,color: cs.error,size: 18,)
 
 
                               ],
@@ -400,20 +406,20 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                             return confirmed;
                           },
-                          background: const ColoredBox(
-                            color: Colors.red,
+                          background: ColoredBox(
+                            color: cs.error,
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: Padding(
                                 padding: EdgeInsets.all(0.0),
-                                child: Icon(Icons.delete, color: Colors.white,size: 20,),
+                                child: Icon(Icons.delete, color: cs.onError,size: 20,),
                               ),
                             ),
                           ),
                           child: Container(
                             height: _containerHeighturun,
                             width: double.infinity,
-                            color: _dataAddedurun ? Colors.blue[50] : null,
+                            color: _dataAddedurun ? ext.infoColor.withValues(alpha: 0.10) : null,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -436,7 +442,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                                   ],
                                 ),
                                 if(_dataAddedurun)
-                                  Icon(Icons.close_outlined,color: Colors.red[600],size: 18,)
+                                  Icon(Icons.close_outlined,color: cs.error,size: 18,)
 
 
                               ],
@@ -473,20 +479,20 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                             return confirmed;
                           },
-                          background: const ColoredBox(
-                            color: Colors.red,
+                          background: ColoredBox(
+                            color: cs.error,
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: Padding(
                                 padding: EdgeInsets.all(0.0),
-                                child: Icon(Icons.delete, color: Colors.white,size: 20,),
+                                child: Icon(Icons.delete, color: cs.onError,size: 20,),
                               ),
                             ),
                           ),
                           child: Container(
                             height: _containerHeightpaket,
                             width: double.infinity,
-                            color: _dataAddedpaket ? Colors.blue[50] : null,
+                            color: _dataAddedpaket ? ext.infoColor.withValues(alpha: 0.10) : null,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -509,7 +515,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                                   ],
                                 ),
                                 if(_dataAddedpaket)
-                                  Icon(Icons.close_outlined,color: Colors.red[600],size: 18,)
+                                  Icon(Icons.close_outlined,color: cs.error,size: 18,)
 
 
                               ],
@@ -533,7 +539,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                       Container(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Tarih',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Tarih',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -544,16 +550,16 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                           //editing controller of this TextField
                           decoration: InputDecoration(
 
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(0.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                           readOnly: true,
@@ -585,7 +591,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                       SizedBox(height: 10,),
                       Container(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Birim Tutar(₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Birim Tutar(₺)',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -600,19 +606,19 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                           decoration: InputDecoration(
 
-                            focusColor:Color(0xFF6A1B9A) ,
+                            focusColor: cs.primary,
 
-                            hoverColor: Color(0xFF6A1B9A) ,
+                            hoverColor: cs.primary,
                             filled: true,
-                            fillColor: Colors.white,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            fillColor: Theme.of(context).cardColor,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                         ),
@@ -621,7 +627,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                       Container(
 
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('İndirim (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('İndirim (₺)',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -635,17 +641,17 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            fillColor: Theme.of(context).cardColor,
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                         ),
@@ -654,7 +660,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                       Container(
 
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Müşteri İndirimi (₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Müşteri İndirimi (₺)',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -668,17 +674,17 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            fillColor: Theme.of(context).cardColor,
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                         ),
@@ -696,7 +702,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                     children: [
                       Container(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Ödeme Yöntemi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Ödeme Yöntemi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -706,8 +712,8 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                         height: 40,
                         width:double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Color(0xFF6A1B9A)),
+                          color: Theme.of(context).cardColor,
+                          border: Border.all(color: cs.primary),
                           borderRadius: BorderRadius.circular(10), //border corner radius
 
                           //you can set more BoxShadow() here
@@ -801,7 +807,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                       SizedBox(height: 10,),
                       Container(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Ödenecek Tutar(₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Ödenecek Tutar(₺)',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -815,17 +821,17 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
 
                           decoration: InputDecoration(
                             filled: true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            fillColor: Colors.white,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            fillColor: Theme.of(context).cardColor,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                         ),
@@ -833,7 +839,7 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                       SizedBox(height: 10,),
                       Container(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Alacak Tutarı(₺)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Alacak Tutarı(₺)',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -848,24 +854,24 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                           decoration: InputDecoration(
                             filled: true,
 
-                            focusColor:Color(0xFF6A1B9A) ,
-                            fillColor: Colors.white,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            fillColor: Theme.of(context).cardColor,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                             ),
                           ),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Ödenecek Tutar(₺)',style: TextStyle(fontSize: 16,color: Colors.white,fontWeight: FontWeight.bold),),
+                        child: Text('Ödenecek Tutar(₺)',style: TextStyle(fontSize: 16,color: Colors.transparent,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 15,),
                       Container(
@@ -880,7 +886,8 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                             ],
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: ext.successColor,
+                            foregroundColor: Colors.white,
                             minimumSize: Size(0, 30),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
                           ),
@@ -902,9 +909,10 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                 ElevatedButton(onPressed: (){
                   Navigator.push(context, PageTransition(type: PageTransitionType.rightToLeft,duration: Duration(milliseconds:500), child: AlacaklarScreen()));
                 },
-                  child: Text('Alacaklar',style: TextStyle(color:Colors.white),),
+                  child: Text('Alacaklar',style: TextStyle(color: Colors.white),),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.yellow[800],
+                    backgroundColor: ext.warningColor,
+                    foregroundColor: Colors.white,
                     minimumSize: Size(100, 30),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
                   ),
@@ -912,7 +920,8 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                 ElevatedButton(onPressed: (){},
                   child: Text('Taksit Yap'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple[800],
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     minimumSize: Size(90, 30),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
                   ),

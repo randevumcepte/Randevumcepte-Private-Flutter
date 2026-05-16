@@ -5,6 +5,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/hizmetler.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/yeni/hizmet.dart';
 import 'hizmet_duzenle.dart';
 
@@ -23,8 +24,6 @@ class _HizmetlerState extends State<Hizmetler> {
   Timer? _debounce;
   String? _lastQuery;
   final TextEditingController _searchCtrl = TextEditingController();
-
-  static const Color _accent = Color(0xFF4CAF93);
 
   @override
   void initState() {
@@ -99,6 +98,7 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Future<void> _silOnay(Hizmet h) async {
+    final cs = context.colors;
     final onay = await showDialog<bool>(
       context: context,
       builder: (ctx) => Dialog(
@@ -107,7 +107,7 @@ class _HizmetlerState extends State<Hizmetler> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(ctx).cardColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: Column(
@@ -116,17 +116,21 @@ class _HizmetlerState extends State<Hizmetler> {
               Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFEE2E2),
+                decoration: BoxDecoration(
+                  color: cs.error.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.delete_outline_rounded,
-                    color: Color(0xFFDC2626), size: 28),
+                child: Icon(Icons.delete_outline_rounded,
+                    color: cs.error, size: 28),
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Hizmeti Sil',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
@@ -134,7 +138,7 @@ class _HizmetlerState extends State<Hizmetler> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: cs.onSurfaceVariant,
                   height: 1.4,
                 ),
               ),
@@ -146,7 +150,8 @@ class _HizmetlerState extends State<Hizmetler> {
                       onPressed: () => Navigator.pop(ctx, false),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 13),
-                        side: BorderSide(color: _accent.withValues(alpha: 0.3)),
+                        side: BorderSide(
+                            color: cs.primary.withValues(alpha: 0.3)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -162,8 +167,8 @@ class _HizmetlerState extends State<Hizmetler> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(ctx, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
-                        foregroundColor: Colors.white,
+                        backgroundColor: cs.error,
+                        foregroundColor: cs.onError,
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -190,22 +195,19 @@ class _HizmetlerState extends State<Hizmetler> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
         toolbarHeight: 62,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.black, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: cs.onSurface, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Hizmetler',
           style: TextStyle(
-            color: Colors.black,
+            color: cs.onSurface,
             fontWeight: FontWeight.w800,
             fontSize: 18,
             letterSpacing: -0.3,
@@ -221,17 +223,18 @@ class _HizmetlerState extends State<Hizmetler> {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 10),
-            child: _AddIconButton(onTap: _yeniHizmet, accent: _accent),
+            child: _AddIconButton(onTap: _yeniHizmet),
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: Colors.black12),
+          child: Container(height: 1, color: context.appTheme.borderSubtle),
         ),
       ),
       body: _isLoading || _ds == null
-          ? const Center(
-              child: CircularProgressIndicator(color: _accent, strokeWidth: 2.5),
+          ? Center(
+              child: CircularProgressIndicator(
+                  color: cs.primary, strokeWidth: 2.5),
             )
           : GestureDetector(
               onTap: () => FocusScope.of(context).unfocus(),
@@ -247,6 +250,8 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Widget _buildHeader() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final hizmetSayisi = _ds!.totalRows;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
@@ -256,11 +261,11 @@ class _HizmetlerState extends State<Hizmetler> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: _accent.withValues(alpha: 0.10),
+                  color: cs.primary.withValues(alpha: 0.10),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
@@ -272,22 +277,18 @@ class _HizmetlerState extends State<Hizmetler> {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6FC8B1), Color(0xFF4CAF93)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    gradient: ext.heroGradient,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: _accent.withValues(alpha: 0.30),
+                        color: cs.primary.withValues(alpha: 0.30),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.spa_rounded,
-                      color: Colors.white, size: 22),
+                  child: Icon(Icons.spa_rounded,
+                      color: cs.onPrimary, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -295,11 +296,11 @@ class _HizmetlerState extends State<Hizmetler> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
+                      Text(
                         'Toplam Hizmet',
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: Colors.black54,
+                          color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.2,
                         ),
@@ -307,10 +308,10 @@ class _HizmetlerState extends State<Hizmetler> {
                       const SizedBox(height: 3),
                       Text(
                         '$hizmetSayisi',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black87,
+                          color: cs.onSurface,
                           height: 1,
                           letterSpacing: -0.4,
                         ),
@@ -325,15 +326,15 @@ class _HizmetlerState extends State<Hizmetler> {
           // Arama
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: _accent.withValues(alpha: 0.10),
+                color: cs.primary.withValues(alpha: 0.10),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _accent.withValues(alpha: 0.05),
+                  color: cs.primary.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -342,27 +343,34 @@ class _HizmetlerState extends State<Hizmetler> {
             child: TextField(
               controller: _searchCtrl,
               textInputAction: TextInputAction.search,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
               decoration: InputDecoration(
                 hintText: 'Hizmet adıyla ara',
                 hintStyle: TextStyle(
-                  color: Colors.grey[500],
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.7),
                   fontSize: 13.5,
                   fontWeight: FontWeight.w500,
                 ),
-                prefixIcon: const Icon(Icons.search_rounded,
-                    color: _accent, size: 22),
+                prefixIcon: Icon(Icons.search_rounded,
+                    color: cs.primary, size: 22),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
                         icon: Icon(Icons.close_rounded,
-                            size: 18, color: Colors.grey[600]),
+                            size: 18, color: cs.onSurfaceVariant),
                         onPressed: () {
                           _searchCtrl.clear();
                           _ds?.search('');
                         },
                       )
                     : null,
+                filled: false,
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
               ),
@@ -374,10 +382,12 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Widget _buildBody() {
+    final cs = context.colors;
     final hizmetler = _ds!.hizmet;
     if (_ds!.isLoadingNotifier.value && hizmetler.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: _accent, strokeWidth: 2.5),
+      return Center(
+        child: CircularProgressIndicator(
+            color: cs.primary, strokeWidth: 2.5),
       );
     }
     if (hizmetler.isEmpty) {
@@ -392,6 +402,7 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Widget _buildEmpty() {
+    final cs = context.colors;
     final aramada = _searchCtrl.text.isNotEmpty;
     return Center(
       child: Padding(
@@ -402,21 +413,22 @@ class _HizmetlerState extends State<Hizmetler> {
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: _accent.withValues(alpha: 0.08),
+                color: cs.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 aramada ? Icons.search_off_rounded : Icons.spa_rounded,
                 size: 44,
-                color: _accent,
+                color: cs.primary,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               aramada ? 'Eşleşme bulunamadı' : 'Henüz hizmet eklenmemiş',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 16,
+                color: cs.onSurface,
               ),
             ),
             const SizedBox(height: 6),
@@ -426,7 +438,7 @@ class _HizmetlerState extends State<Hizmetler> {
                   : 'Üstteki "Yeni" butonu ile hizmet ekleyebilirsin.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: cs.onSurfaceVariant,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 height: 1.4,
@@ -439,8 +451,10 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Widget _buildCard(Hizmet h) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -450,12 +464,12 @@ class _HizmetlerState extends State<Hizmetler> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: _accent.withValues(alpha: 0.10),
+              color: cs.primary.withValues(alpha: 0.10),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: _accent.withValues(alpha: 0.05),
+                color: cs.primary.withValues(alpha: 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -474,16 +488,16 @@ class _HizmetlerState extends State<Hizmetler> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          _accent.withValues(alpha: 0.18),
-                          _accent.withValues(alpha: 0.08),
+                          cs.primary.withValues(alpha: 0.18),
+                          cs.primary.withValues(alpha: 0.08),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(13),
                     ),
-                    child: const Icon(Icons.spa_rounded,
-                        color: _accent, size: 22),
+                    child: Icon(Icons.spa_rounded,
+                        color: cs.primary, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -495,10 +509,10 @@ class _HizmetlerState extends State<Hizmetler> {
                           h.hizmet_adi.isEmpty ? '-' : h.hizmet_adi,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 14.5,
-                            color: Colors.black87,
+                            color: cs.onSurface,
                             letterSpacing: -0.2,
                           ),
                         ),
@@ -510,12 +524,12 @@ class _HizmetlerState extends State<Hizmetler> {
                             _buildChip(
                               icon: Icons.payments_rounded,
                               text: _fiyatText(h.fiyat),
-                              color: const Color(0xFF16A34A),
+                              color: ext.successColor,
                             ),
                             _buildChip(
                               icon: Icons.timer_outlined,
                               text: '${_safeNum(h.sure_dk)} dk',
-                              color: const Color(0xFFF59E0B),
+                              color: ext.warningColor,
                             ),
                           ],
                         ),
@@ -531,7 +545,7 @@ class _HizmetlerState extends State<Hizmetler> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFB),
+                    color: ext.surfaceMuted,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -598,17 +612,18 @@ class _HizmetlerState extends State<Hizmetler> {
     required String label,
     required String value,
   }) {
+    final cs = context.colors;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 14, color: Colors.grey[600]),
+        Icon(icon, size: 14, color: cs.onSurfaceVariant),
         const SizedBox(width: 6),
         Text(
           '$label: ',
           style: TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.w700,
-            color: Colors.grey[700],
+            color: cs.onSurfaceVariant,
           ),
         ),
         Expanded(
@@ -619,7 +634,7 @@ class _HizmetlerState extends State<Hizmetler> {
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[700],
+              color: cs.onSurfaceVariant,
               height: 1.35,
             ),
           ),
@@ -629,9 +644,10 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Widget _buildMenu(Hizmet h) {
+    final cs = context.colors;
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert_rounded,
-          color: Colors.grey[600], size: 20),
+          color: cs.onSurfaceVariant, size: 20),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
       ),
@@ -659,7 +675,8 @@ class _HizmetlerState extends State<Hizmetler> {
     String label, {
     bool danger = false,
   }) {
-    final color = danger ? Colors.red[600] : Colors.grey[800];
+    final cs = context.colors;
+    final color = danger ? cs.error : cs.onSurface;
     return PopupMenuItem<String>(
       value: value,
       height: 40,
@@ -681,6 +698,7 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Widget _buildPagination() {
+    final cs = context.colors;
     final total = _ds!.totalPages;
     final current = _ds!.currentPage;
     if (total <= 1) return const SizedBox.shrink();
@@ -697,15 +715,15 @@ class _HizmetlerState extends State<Hizmetler> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha: 0.10),
+              color: cs.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               'Sayfa $current / $total',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 12.5,
-                color: _accent,
+                color: cs.primary,
                 letterSpacing: -0.1,
               ),
             ),
@@ -720,8 +738,9 @@ class _HizmetlerState extends State<Hizmetler> {
   }
 
   Widget _pageBtn(IconData icon, bool enabled, VoidCallback onTap) {
+    final cs = context.colors;
     return Material(
-      color: enabled ? _accent : Colors.grey[200],
+      color: enabled ? cs.primary : cs.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -731,7 +750,9 @@ class _HizmetlerState extends State<Hizmetler> {
           child: Icon(
             icon,
             size: 22,
-            color: enabled ? Colors.white : Colors.grey[400],
+            color: enabled
+                ? cs.onPrimary
+                : cs.onSurfaceVariant.withValues(alpha: 0.5),
           ),
         ),
       ),
@@ -754,11 +775,12 @@ class _HizmetlerState extends State<Hizmetler> {
 
 class _AddIconButton extends StatelessWidget {
   final VoidCallback onTap;
-  final Color accent;
-  const _AddIconButton({required this.onTap, required this.accent});
+  const _AddIconButton({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(12),
@@ -769,21 +791,17 @@ class _AddIconButton extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF6FC8B1), Color(0xFF4CAF93)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: ext.heroGradient,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: accent.withValues(alpha: 0.30),
+                color: cs.primary.withValues(alpha: 0.30),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+          child: Icon(Icons.add_rounded, color: cs.onPrimary, size: 22),
         ),
       ),
     );

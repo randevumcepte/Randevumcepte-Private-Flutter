@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'etkinikler.dart';
 
 class EtkinlikEkle extends StatefulWidget {
@@ -88,6 +89,7 @@ setState(() {
     }
 
     void showCheckboxPopup(BuildContext context) {
+        final cs = Theme.of(context).colorScheme;
         showDialog(
             context: context,
             builder: (context) {
@@ -125,8 +127,8 @@ setState(() {
                                                     },
                                                     child: Text(selectAll ? 'Tümünü Seçme' : 'Tümünü Seç'),
                                                     style: ElevatedButton.styleFrom(
-                                                        backgroundColor: Colors.purple[800],
-                                                        foregroundColor: Colors.white,
+                                                        backgroundColor: cs.primary,
+                                                        foregroundColor: cs.onPrimary,
                                                         minimumSize: Size(150, 30),
                                                         shape: RoundedRectangleBorder(
                                                             borderRadius: BorderRadius.circular(10.0)
@@ -152,7 +154,7 @@ setState(() {
                                                         return CheckboxListTile(
                                                             title: Text(item.name),
 
-                                                            activeColor: Colors.purple[800],
+                                                            activeColor: cs.primary,
                                                             value: (item.name != 'Veriler getiriliyor. Lütfen bekleyiniz!') ? secilenkatilimcilar.contains(item) : secilenkatilimcilar.contains(''),
 
                                                             onChanged: (bool? value) {
@@ -179,7 +181,7 @@ setState(() {
                                         buttonLabel = 'Katılımcı Sayısı: ${secilenkatilimcilar.length}';
                                         Navigator.of(context).pop();
                                     },
-                                    child: Text('Ekle & Kapat',style: TextStyle(color: Colors.purple[800]),),
+                                    child: Text('Ekle & Kapat',style: TextStyle(color: cs.primary),),
                                 ),
                             ],
                         );
@@ -220,13 +222,14 @@ setState(() {
 
     @override
     Widget build(BuildContext context) {
+        final cs = context.colors;
         return Scaffold(
             resizeToAvoidBottomInset: false,
             appBar: AppBar(
-                title:  const Text('Yeni Etkinlik',style: TextStyle(color: Colors.black),),
+                title:  const Text('Yeni Etkinlik'),
 
                 leading: IconButton(
-                    icon: Icon(Icons.clear_rounded, color: Colors.black),
+                    icon: Icon(Icons.clear_rounded),
                     onPressed: () => Navigator.of(context).pop(),
                 ),
                 toolbarHeight: 60,
@@ -242,7 +245,6 @@ setState(() {
 
 
                 ],
-                backgroundColor: Colors.white,
             ),
             body: GestureDetector(
                 onTap: () {
@@ -259,7 +261,7 @@ setState(() {
                               SizedBox(height: 20,),
                               Padding(
                                   padding: const EdgeInsets.only(left: 20.0),
-                                  child: Text('Etkinlik İsmi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                  child: Text('Etkinlik İsmi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                               ),
                               SizedBox(height: 10,),
                               Container(
@@ -284,16 +286,16 @@ setState(() {
 
                                       decoration: InputDecoration(
 
-                                          focusColor:Color(0xFF6A1B9A) ,
-                                          hoverColor: Color(0xFF6A1B9A) ,
-                                          hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                          focusColor:cs.primary ,
+                                          hoverColor: cs.primary ,
+                                          hintStyle: TextStyle(color:  cs.primary),
                                           contentPadding:  EdgeInsets.all(15.0),
                                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                              color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                              color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                                           border:
                                           OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                                           focusedBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                                           ),
                                       ),
                                   ),
@@ -306,7 +308,7 @@ setState(() {
                                           children: [
                                               Padding(
                                                   padding: const EdgeInsets.only(left: 20.0),
-                                                  child: Text('Tarih',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                                  child: Text('Tarih',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                                               ),
                                               SizedBox(height: 10,),
                                               Container(
@@ -329,16 +331,16 @@ setState(() {
                                                       //editing controller of this TextField
                                                       decoration: InputDecoration(
 
-                                                          focusColor:Color(0xFF6A1B9A) ,
-                                                          hoverColor: Color(0xFF6A1B9A) ,
-                                                          hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                                          focusColor:cs.primary ,
+                                                          hoverColor: cs.primary ,
+                                                          hintStyle: TextStyle(color:  cs.primary),
                                                           contentPadding:  EdgeInsets.all(15.0),
                                                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                                              color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                                              color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                                                           border:
                                                           OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                                                           focusedBorder: OutlineInputBorder(
-                                                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                                                           ),
                                                       ),
                                                       readOnly: true,
@@ -376,7 +378,7 @@ setState(() {
                                           children: [
                                               Padding(
                                                   padding: const EdgeInsets.only(left: 20.0),
-                                                  child: Text('Saat',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                                  child: Text('Saat',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                                               ),
                                               SizedBox(height: 10,),
                                               Container(
@@ -424,16 +426,16 @@ setState(() {
                                                       decoration: InputDecoration(
 
                                                           suffixIcon: Icon(Icons.access_time),
-                                                          focusColor:Color(0xFF6A1B9A) ,
-                                                          hoverColor: Color(0xFF6A1B9A) ,
-                                                          hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                                          focusColor:cs.primary ,
+                                                          hoverColor: cs.primary ,
+                                                          hintStyle: TextStyle(color:  cs.primary),
                                                           contentPadding:  EdgeInsets.all(15.0),
                                                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                                              color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                                              color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                                                           border:
                                                           OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                                                           focusedBorder: OutlineInputBorder(
-                                                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                                                           ),
                                                       ),
                                                   ),
@@ -446,7 +448,7 @@ setState(() {
                               SizedBox(height: 10,),
                               Padding(
                                   padding: const EdgeInsets.only(left: 20.0),
-                                  child: Text('SMS Şablonu',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                  child: Text('SMS Şablonu',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                               ),
                               SizedBox(height: 10,),
                               Container(
@@ -456,8 +458,8 @@ setState(() {
                                   height: 40,
                                   width:double.infinity,
                                   decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: Color(0xFF6A1B9A)),
+                                      color: Theme.of(context).cardColor,
+                                      border: Border.all(color: cs.primary),
                                       borderRadius: BorderRadius.circular(10), //border corner radius
 
                                       //you can set more BoxShadow() here
@@ -553,7 +555,7 @@ setState(() {
                               SizedBox(height: 10,),
                               Padding(
                                   padding: const EdgeInsets.only(left: 20.0),
-                                  child: Text('Mesaj İçeriği',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                  child: Text('Mesaj İçeriği',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                               ),
                               SizedBox(height: 10,),
                               Container(
@@ -570,16 +572,16 @@ setState(() {
                                       maxLines: 6,
                                       decoration: InputDecoration(
                                           enabled:true,
-                                          focusColor:Color(0xFF6A1B9A) ,
-                                          hoverColor: Color(0xFF6A1B9A) ,
-                                          hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                          focusColor:cs.primary ,
+                                          hoverColor: cs.primary ,
+                                          hintStyle: TextStyle(color:  cs.primary),
                                           contentPadding:  EdgeInsets.all(15.0),
                                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                              color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                              color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                                           border:
                                           OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                                           focusedBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                                           ),
                                       ),
                                   ),
@@ -594,7 +596,7 @@ setState(() {
                                           children: [
                                               Padding(
                                                   padding: const EdgeInsets.only(left: 20.0),
-                                                  child: Text('Fiyat',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                                  child: Text('Fiyat',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                                               ),
                                               SizedBox(height: 10,),
                                               Container(
@@ -610,16 +612,16 @@ setState(() {
 
                                                       decoration: InputDecoration(
                                                           enabled:true,
-                                                          focusColor:Color(0xFF6A1B9A) ,
-                                                          hoverColor: Color(0xFF6A1B9A) ,
-                                                          hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                                                          focusColor:cs.primary ,
+                                                          hoverColor: cs.primary ,
+                                                          hintStyle: TextStyle(color:  cs.primary),
                                                           contentPadding:  EdgeInsets.all(15.0),
                                                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                                              color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                                                              color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
                                                           border:
                                                           OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
                                                           focusedBorder: OutlineInputBorder(
-                                                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                                                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
                                                           ),
                                                       ),
                                                   ),
@@ -631,7 +633,7 @@ setState(() {
                                           children: [
                                               Padding(
                                                   padding: const EdgeInsets.only(left: 20.0),
-                                                  child: Text('',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                                                  child: Text('',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                                               ),
                                               SizedBox(height: 10,),
                                               ElevatedButton(
@@ -640,8 +642,8 @@ setState(() {
                                                   },
                                                   child: Text(buttonLabel),
                                                   style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.purple[800],
-                                                      foregroundColor: Colors.white,
+                                                      backgroundColor: cs.primary,
+                                                      foregroundColor: cs.onPrimary,
                                                       minimumSize: Size(150, 40),
                                                       shape: RoundedRectangleBorder(
                                                           borderRadius: BorderRadius.circular(10.0)
@@ -687,7 +689,7 @@ setState(() {
                                               ],
                                           ),
                                           style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
+                                              backgroundColor: context.appTheme.successColor,
                                               foregroundColor: Colors.white,
                                               minimumSize: Size(90, 40)
                                           ),

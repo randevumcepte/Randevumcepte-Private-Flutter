@@ -1,8 +1,9 @@
-﻿import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 
 
 class HizmetSatisiAdisyon extends StatefulWidget {
@@ -43,12 +44,14 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
   TextEditingController _contentController2 = TextEditingController();
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Scaffold(
       appBar: AppBar(
-        title:  const Text('Yeni Hizmet Satışı',style: TextStyle(color: Colors.black),),
+        title:  Text('Yeni Hizmet Satışı',style: TextStyle(color: cs.onSurface),),
 
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon: Icon(Icons.clear_rounded, color: cs.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
         toolbarHeight: 60,
@@ -63,7 +66,6 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
 
 
         ],
-        backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -72,7 +74,7 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
             SizedBox(height: 20,),
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
-              child: Text('İşlem Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+              child: Text('İşlem Tarihi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
             ),
             SizedBox(height: 10,),
             Container(
@@ -85,16 +87,16 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
                 //editing controller of this TextField
                 decoration: InputDecoration(
 
-                  focusColor:Color(0xFF6A1B9A) ,
-                  hoverColor: Color(0xFF6A1B9A) ,
-                  hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                  focusColor: cs.primary,
+                  hoverColor: cs.primary,
+                  hintStyle: TextStyle(color: cs.primary),
                   contentPadding:  EdgeInsets.all(15.0),
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                      color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                      color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
                   border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+                    borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
                   ),
                 ),
                 readOnly: true,
@@ -127,7 +129,7 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
             SizedBox(height: 10,),
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
-              child: Text('İşlem Saati',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+              child: Text('İşlem Saati',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
             ),
             SizedBox(height: 10,),
             Container(
@@ -164,16 +166,16 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
                 decoration: InputDecoration(
 
                   suffixIcon: Icon(Icons.access_time),
-                  focusColor:Color(0xFF6A1B9A) ,
-                  hoverColor: Color(0xFF6A1B9A) ,
-                  hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                  focusColor: cs.primary,
+                  hoverColor: cs.primary,
+                  hintStyle: TextStyle(color: cs.primary),
                   contentPadding:  EdgeInsets.all(15.0),
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                      color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                      color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
                   border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+                    borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
                   ),
                 ),
               ),
@@ -181,7 +183,7 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
             SizedBox(height: 10,),
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Personel',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+              child: Text('Personel',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
             ),
             SizedBox(height: 10,),
             Container(
@@ -190,8 +192,8 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
               height: 50,
               width:double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
+                color: Theme.of(context).cardColor,
+                border: Border.all(color: cs.primary),
                 borderRadius: BorderRadius.circular(30), //border corner radius
 
                 //you can set more BoxShadow() here
@@ -284,7 +286,7 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
             SizedBox(height: 10,),
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Hizmet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+              child: Text('Hizmet',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
             ),
             SizedBox(height: 10,),
             Container(
@@ -293,8 +295,8 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
               height: 50,
               width:double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
+                color: Theme.of(context).cardColor,
+                border: Border.all(color: cs.primary),
                 borderRadius: BorderRadius.circular(30), //border corner radius
 
                 //you can set more BoxShadow() here
@@ -394,7 +396,7 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Süre (dk)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Süre (dk)',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -408,16 +410,16 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
 
                           decoration: InputDecoration(
 
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                         ),
@@ -431,7 +433,7 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Fiyat',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+                        child: Text('Fiyat',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
                       ),
                       SizedBox(height: 10,),
                       Container(
@@ -442,16 +444,16 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
                           onSubmitted: (text)=>print(_contentController.text),
                           decoration: InputDecoration(
                             enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                            focusColor: cs.primary,
+                            hoverColor: cs.primary,
+                            hintStyle: TextStyle(color: cs.primary),
                             contentPadding:  EdgeInsets.all(15.0),
                             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
                             border:
                             OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+                              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                         ),
@@ -464,7 +466,7 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
             SizedBox(height: 10,),
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Notlar',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+              child: Text('Notlar',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
             ),
             SizedBox(height: 10,),
             Container(
@@ -477,17 +479,17 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
 
                 decoration: InputDecoration(
 
-                  focusColor:Color(0xFF6A1B9A) ,
-                  hoverColor: Color(0xFF6A1B9A) ,
-                  hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+                  focusColor: cs.primary,
+                  hoverColor: cs.primary,
+                  hintStyle: TextStyle(color: cs.primary),
 
                   contentPadding:  EdgeInsets.all(15.0),
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                      color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                      color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
                   border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+                    borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
                   ),
                 ),
               ),
@@ -509,7 +511,8 @@ class _HizmetSatisiAdisyonState extends State<HizmetSatisiAdisyon> {
                 },
                   child: Text('Kaydet'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: ext.successColor,
+                      foregroundColor: Colors.white,
                       minimumSize: Size(90, 40)
                   ),
                 ),

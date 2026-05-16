@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'musteriliste.dart';
 
 
@@ -90,6 +91,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
 
     return  MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -100,10 +102,9 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           appBar: new AppBar(
-            title: const Text('Müşteri Düzenle',style: TextStyle(color: Colors.black),),
-            backgroundColor: Colors.white,
+            title: const Text('Müşteri Düzenle'),
             leading: IconButton(
-              icon: Icon(Icons.clear_rounded, color: Colors.black),
+              icon: Icon(Icons.clear_rounded),
               onPressed: () => Navigator.of(context).pop(),
             ),
 
@@ -129,12 +130,14 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
     );
   }
   Widget formUI(){
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Ad Soyad',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Ad Soyad',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         TextFormField(
@@ -154,23 +157,23 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
 
           decoration: InputDecoration(
 
-            focusColor:Color(0xFF6A1B9A) ,
-            hoverColor: Color(0xFF6A1B9A) ,
-            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+            focusColor: cs.primary,
+            hoverColor: cs.primary,
+            hintStyle: TextStyle(color: cs.primary),
             contentPadding:  EdgeInsets.all(15.0),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
             border:
             OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
             ),
           ),
         ),
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Telefon Numarası',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Telefon Numarası',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         TextFormField(
@@ -210,23 +213,23 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
 
           decoration: InputDecoration(
 
-            focusColor:Color(0xFF6A1B9A) ,
-            hoverColor: Color(0xFF6A1B9A) ,
-            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+            focusColor: cs.primary,
+            hoverColor: cs.primary,
+            hintStyle: TextStyle(color: cs.primary),
             contentPadding:  EdgeInsets.all(15.0),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
             border:
             OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
             ),
           ),
         ),
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('E-posta',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('E-posta',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         TextFormField(
@@ -243,16 +246,16 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
 
           decoration: InputDecoration(
 
-            focusColor:Color(0xFF6A1B9A) ,
-            hoverColor: Color(0xFF6A1B9A) ,
-            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+            focusColor: cs.primary,
+            hoverColor: cs.primary,
+            hintStyle: TextStyle(color: cs.primary),
             contentPadding:  EdgeInsets.all(15.0),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
+                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
             border:
             OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
+              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
             ),
           ),
         ),
@@ -260,7 +263,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Doğum Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Doğum Tarihi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         Container(
@@ -277,16 +280,16 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
             //editing controller of this TextField
             decoration: InputDecoration(
 
-              focusColor:Color(0xFF6A1B9A) ,
-              hoverColor: Color(0xFF6A1B9A) ,
-              hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+              focusColor: cs.primary,
+              hoverColor: cs.primary,
+              hintStyle: TextStyle(color: cs.primary),
               contentPadding:  EdgeInsets.all(15.0),
               enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
               border:
               OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
               ),
             ),
             readOnly: true,
@@ -319,7 +322,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
         SizedBox(height: 10,),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         Row(
           children: [
@@ -328,7 +331,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
                 leading: Radio<String>(
                   value: 'kadin',
                   groupValue: _selectedGender,
-                  activeColor: Colors.purple[800],
+                  activeColor: cs.primary,
                   onChanged: (value) {
                     setState(() {
                       _selectedGender = value!;
@@ -344,7 +347,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
                 leading: Radio<String>(
                   value: 'erkek',
                   groupValue: _selectedGender,
-                  activeColor: Colors.purple[800],
+                  activeColor: cs.primary,
                   onChanged: (value) {
                     setState(() {
                       _selectedGender = value!;
@@ -360,7 +363,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
         ),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Referans',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Referans',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         const SizedBox(
           height: 10.0,
@@ -371,8 +374,8 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
           height: 40,
           width:double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Color(0xFF6A1B9A)),
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: cs.primary),
             borderRadius: BorderRadius.circular(10), //border corner radius
 
             //you can set more BoxShadow() here
@@ -435,7 +438,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
         ),
         Padding(
           padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Notlar',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
+          child: Text('Notlar',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
         ),
         SizedBox(height: 10,),
         TextFormField(
@@ -453,16 +456,16 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
 
           decoration: InputDecoration(
             enabled:true,
-            focusColor:Color(0xFF6A1B9A) ,
-            hoverColor: Color(0xFF6A1B9A) ,
-            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
+            focusColor: cs.primary,
+            hoverColor: cs.primary,
+            hintStyle: TextStyle(color: cs.primary),
             contentPadding:  EdgeInsets.all(15.0),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(10.0),),
+                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
             border:
             OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
             ),
           ),
         ),
@@ -482,8 +485,8 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
             },
               child: Text('Kaydet'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+                  backgroundColor: ext.successColor,
+                  foregroundColor: cs.onPrimary,
                   minimumSize: Size(90, 40)
               ),
             ),
