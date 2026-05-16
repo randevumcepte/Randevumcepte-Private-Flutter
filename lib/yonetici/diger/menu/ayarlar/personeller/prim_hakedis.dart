@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeldetay.dart';
 
 // Prim & Hak Ediş sayfasi. Web'deki prim_hakedis_panel.blade.php'in mobile karsiligi.
@@ -19,19 +20,6 @@ class PrimHakedis extends StatefulWidget {
 }
 
 class _PrimHakedisState extends State<PrimHakedis> {
-  static const _p1 = Color(0xFF5C008E);
-  static const _p2 = Color(0xFF7B2FB8);
-  static const _p3 = Color(0xFF9D5DC8);
-  static const _purpleBg = Color(0xFFF7F1FB);
-  static const _border = Color(0xFFECE6F2);
-  static const _text = Color(0xFF2D1B3F);
-  static const _muted = Color(0xFF8A8295);
-  static const _grad = LinearGradient(
-    colors: [_p1, _p2, _p3],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
   static const _aylar = [
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
     'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
@@ -84,12 +72,14 @@ class _PrimHakedisState extends State<PrimHakedis> {
     final ay = _seciliAy.toString().padLeft(2, '0');
     final yil = _seciliYil.toString();
     final data = await primHakedisToplu(salonid: _salonid!, ay: ay, yil: yil);
-    if (data == null || data['basarili'] != true) {
+    if (data['basarili'] != true) {
       _personeller = [];
       _primler = {};
       _odenenler = {};
+      _hata = (data['_hata_mesaj'] ?? 'Veri alınamadı').toString();
       return;
     }
+    _hata = null;
     final list = (data['personeller'] as List?) ?? const [];
     _personeller = list.map((m) {
       final map = Map<String, dynamic>.from(m as Map);
@@ -222,24 +212,20 @@ class _PrimHakedisState extends State<PrimHakedis> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     return Scaffold(
-      backgroundColor: const Color(0xFFFBF9FD),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        iconTheme: const IconThemeData(color: _text),
-        title: const Text('Prim & Hak Ediş', style: TextStyle(color: _text, fontWeight: FontWeight.w600)),
+        title: const Text('Prim & Hak Ediş', style: TextStyle(fontWeight: FontWeight.w600)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: _p1),
+            icon: Icon(Icons.refresh, color: cs.primary),
             onPressed: _yukleniyor ? null : _refresh,
             tooltip: 'Yenile',
           ),
         ],
       ),
       body: RefreshIndicator(
-        color: _p1,
+        color: cs.primary,
         onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -250,9 +236,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
             _donemSecici(),
             const SizedBox(height: 14),
             if (_yukleniyor)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator(color: _p1)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48),
+                child: Center(child: CircularProgressIndicator(color: cs.primary)),
               )
             else if (_hata != null)
               _hataKarti(_hata!)
@@ -272,11 +258,13 @@ class _PrimHakedisState extends State<PrimHakedis> {
 
   // === Hero ===
   Widget _hero() {
+    final ext = context.appTheme;
+    final cs = context.colors;
     return Container(
       decoration: BoxDecoration(
-        gradient: _grad,
+        gradient: ext.heroGradient,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: _p1.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       child: Row(
@@ -309,20 +297,22 @@ class _PrimHakedisState extends State<PrimHakedis> {
 
   // === Donem secici ===
   Widget _donemSecici() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
-        boxShadow: [BoxShadow(color: _p1.withValues(alpha: 0.05), blurRadius: 8)],
+        border: Border.all(color: ext.borderSubtle),
+        boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Row(
         children: [
-          const Icon(Icons.event, color: _p2, size: 18),
+          Icon(Icons.event, color: cs.primary, size: 18),
           const SizedBox(width: 8),
-          const Text('Dönem',
-              style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 13.5)),
+          Text('Dönem',
+              style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 13.5)),
           const Spacer(),
           _drop<int>(
             value: _seciliAy,
@@ -348,12 +338,14 @@ class _PrimHakedisState extends State<PrimHakedis> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
   }) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: _purpleBg,
+        color: ext.surfaceMuted,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border),
+        border: Border.all(color: ext.borderSubtle),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
@@ -361,9 +353,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
           isDense: true,
           items: items,
           onChanged: onChanged,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _p1, size: 18),
-          style: const TextStyle(color: _text, fontSize: 13, fontWeight: FontWeight.w600),
-          dropdownColor: Colors.white,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: cs.primary, size: 18),
+          style: TextStyle(color: cs.onSurface, fontSize: 13, fontWeight: FontWeight.w600),
+          dropdownColor: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
         ),
       ),
@@ -372,26 +364,28 @@ class _PrimHakedisState extends State<PrimHakedis> {
 
   // === Toplam kartlari ===
   Widget _toplamKartlari() {
+    final ext = context.appTheme;
+    final cs = context.colors;
     final t = _toplamlar();
     return Row(
       children: [
         Expanded(child: _toplamKart(
           icon: Icons.account_balance_wallet_outlined,
-          renk: const Color(0xFF3B82F6),
+          renk: ext.infoColor,
           label: 'KALAN MAAŞ',
           tutar: t.kalanMaas,
         )),
         const SizedBox(width: 8),
         Expanded(child: _toplamKart(
           icon: Icons.trending_up,
-          renk: _p2,
+          renk: cs.primary,
           label: 'KALAN PRİM',
           tutar: t.kalanPrim,
         )),
         const SizedBox(width: 8),
         Expanded(child: _toplamKart(
           icon: Icons.payments,
-          renk: const Color(0xFF10B981),
+          renk: ext.successColor,
           label: 'BEKLEYEN ÖDEME',
           tutar: t.netBekleyen,
           vurgu: true,
@@ -407,21 +401,23 @@ class _PrimHakedisState extends State<PrimHakedis> {
     required double tutar,
     bool vurgu = false,
   }) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       decoration: BoxDecoration(
         gradient: vurgu
-            ? const LinearGradient(
-                colors: [Color(0xFF10B981), Color(0xFF34D399)],
+            ? LinearGradient(
+                colors: [ext.successColor, ext.successColor.withValues(alpha: 0.78)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
             : null,
-        color: vurgu ? null : Colors.white,
+        color: vurgu ? null : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: vurgu ? null : Border.all(color: _border),
+        border: vurgu ? null : Border.all(color: ext.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: (vurgu ? renk : _p1).withValues(alpha: vurgu ? 0.22 : 0.05),
+            color: (vurgu ? renk : cs.primary).withValues(alpha: vurgu ? 0.22 : 0.05),
             blurRadius: vurgu ? 12 : 8,
             offset: vurgu ? const Offset(0, 4) : Offset.zero,
           ),
@@ -435,7 +431,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
           const SizedBox(height: 6),
           Text(label,
               style: TextStyle(
-                color: vurgu ? Colors.white.withValues(alpha: 0.85) : _muted,
+                color: vurgu ? Colors.white.withValues(alpha: 0.85) : cs.onSurfaceVariant,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
@@ -444,7 +440,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
           Text(
             _fmtTl(tutar),
             style: TextStyle(
-              color: vurgu ? Colors.white : _text,
+              color: vurgu ? Colors.white : cs.onSurface,
               fontSize: 13.5,
               fontWeight: FontWeight.w800,
             ),
@@ -458,6 +454,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
 
   // === Personel karti ===
   Widget _personelKarti(Personel p) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final initial = p.personel_adi.trim().isEmpty
         ? '?'
         : p.personel_adi.trim().substring(0, 1).toUpperCase();
@@ -468,10 +466,10 @@ class _PrimHakedisState extends State<PrimHakedis> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
-        boxShadow: [BoxShadow(color: _p1.withValues(alpha: 0.04), blurRadius: 8)],
+        border: Border.all(color: ext.borderSubtle),
+        boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.04), blurRadius: 8)],
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
@@ -486,10 +484,10 @@ class _PrimHakedisState extends State<PrimHakedis> {
                     onTap: () => _detayAc(p),
                     child: Container(
                       width: 42, height: 42,
-                      decoration: const BoxDecoration(color: _purpleBg, shape: BoxShape.circle),
+                      decoration: BoxDecoration(color: ext.surfaceMuted, shape: BoxShape.circle),
                       alignment: Alignment.center,
                       child: Text(initial,
-                          style: const TextStyle(color: _p1, fontWeight: FontWeight.w700, fontSize: 16)),
+                          style: TextStyle(color: cs.primary, fontWeight: FontWeight.w700, fontSize: 16)),
                     ),
                   ),
                 ),
@@ -501,23 +499,23 @@ class _PrimHakedisState extends State<PrimHakedis> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(p.personel_adi,
-                            style: const TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 14),
+                            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14),
                             overflow: TextOverflow.ellipsis),
                         if (p.unvan.isNotEmpty && p.unvan != 'null')
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Text(p.unvan, style: TextStyle(color: _muted, fontSize: 11.5)),
+                            child: Text(p.unvan, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11.5)),
                           ),
                       ],
                     ),
                   ),
                 ),
                 if (yukleniyor)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
                     child: SizedBox(
                       width: 14, height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: _p1),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
                     ),
                   )
                 else
@@ -527,13 +525,13 @@ class _PrimHakedisState extends State<PrimHakedis> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       gradient: k.bekleyen > 0
-                          ? const LinearGradient(
-                              colors: [Color(0xFF10B981), Color(0xFF34D399)],
+                          ? LinearGradient(
+                              colors: [ext.successColor, ext.successColor.withValues(alpha: 0.78)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             )
-                          : const LinearGradient(
-                              colors: [Color(0xFF94A3B8), Color(0xFFCBD5E1)],
+                          : LinearGradient(
+                              colors: [cs.onSurfaceVariant, cs.outline],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -560,18 +558,18 @@ class _PrimHakedisState extends State<PrimHakedis> {
             ),
             if (!yukleniyor) ...[
               const SizedBox(height: 10),
-              Container(height: 1, color: _border),
+              Container(height: 1, color: ext.borderSubtle),
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: Row(
                   children: [
-                    Expanded(child: _kalanSatir('Maaş', k.kalanMaas, k.maasHam, _text)),
-                    Expanded(child: _kalanSatir('Prim', k.kalanPrim, k.primHam, _p1)),
+                    Expanded(child: _kalanSatir('Maaş', k.kalanMaas, k.maasHam, cs.onSurface)),
+                    Expanded(child: _kalanSatir('Prim', k.kalanPrim, k.primHam, cs.primary)),
                     Expanded(child: _ufakSatir('Bonus', _fmtTl(k.bonus),
-                        k.bonus > 0 ? const Color(0xFF15803D) : _muted)),
+                        k.bonus > 0 ? ext.successColor : cs.onSurfaceVariant)),
                     Expanded(child: _ufakSatir('Kesinti', _fmtTl(k.kesinti),
-                        k.kesinti > 0 ? const Color(0xFF991B1B) : _muted)),
+                        k.kesinti > 0 ? cs.error : cs.onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -587,12 +585,12 @@ class _PrimHakedisState extends State<PrimHakedis> {
                         icon: k.bekleyen > 0 ? Icons.payments_outlined : Icons.check_circle,
                         label: k.bekleyen > 0 ? 'Ödeme Yap' : 'Ödendi',
                         gradient: k.bekleyen > 0
-                            ? const LinearGradient(
-                                colors: [Color(0xFF10B981), Color(0xFF34D399)],
+                            ? LinearGradient(
+                                colors: [ext.successColor, ext.successColor.withValues(alpha: 0.78)],
                               )
                             : null,
-                        bg: k.bekleyen > 0 ? null : const Color(0xFFF3F4F6),
-                        fg: k.bekleyen > 0 ? null : const Color(0xFF6B7280),
+                        bg: k.bekleyen > 0 ? null : cs.surfaceContainerHighest,
+                        fg: k.bekleyen > 0 ? null : cs.onSurfaceVariant,
                         onTap: () => _odemeYapSheet(p),
                       ),
                     ),
@@ -601,8 +599,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
                       child: _aksiyonBtn(
                         icon: Icons.add_circle_outline,
                         label: 'Bonus',
-                        bg: const Color(0xFFFEF3C7),
-                        fg: const Color(0xFFB45309),
+                        bg: ext.warningColor.withValues(alpha: 0.18),
+                        fg: ext.warningColor,
                         onTap: () => _hareketSheet(p, tip: 'bonus'),
                       ),
                     ),
@@ -611,8 +609,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
                       child: _aksiyonBtn(
                         icon: Icons.remove_circle_outline,
                         label: 'Kesinti',
-                        bg: const Color(0xFFFEE2E2),
-                        fg: const Color(0xFF991B1B),
+                        bg: cs.error.withValues(alpha: 0.13),
+                        fg: cs.error,
                         onTap: () => _hareketSheet(p, tip: 'kesinti'),
                       ),
                     ),
@@ -643,6 +641,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
     Color? bg,
     Color? fg,
   }) {
+    final ext = context.appTheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -655,7 +654,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
             color: gradient == null ? bg : null,
             borderRadius: BorderRadius.circular(10),
             boxShadow: gradient != null
-                ? [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.22), blurRadius: 8, offset: const Offset(0, 3))]
+                ? [BoxShadow(color: ext.successColor.withValues(alpha: 0.22), blurRadius: 8, offset: const Offset(0, 3))]
                 : null,
           ),
           child: Row(
@@ -683,9 +682,10 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _kartMenu(Personel p) {
+    final cs = context.colors;
     return PopupMenuButton<String>(
       tooltip: 'İşlemler',
-      icon: const Icon(Icons.more_vert, color: _muted, size: 18),
+      icon: Icon(Icons.more_vert, color: cs.onSurfaceVariant, size: 18),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onSelected: (v) {
         switch (v) {
@@ -696,18 +696,18 @@ class _PrimHakedisState extends State<PrimHakedis> {
       itemBuilder: (_) => [
         PopupMenuItem<String>(
           value: 'odemeleri_gor',
-          child: Row(children: const [
-            Icon(Icons.history, size: 16, color: _p2),
-            SizedBox(width: 10),
-            Text('Ödeme Geçmişi', style: TextStyle(fontSize: 13.5)),
+          child: Row(children: [
+            Icon(Icons.history, size: 16, color: cs.primary),
+            const SizedBox(width: 10),
+            const Text('Ödeme Geçmişi', style: TextStyle(fontSize: 13.5)),
           ]),
         ),
         PopupMenuItem<String>(
           value: 'detay',
-          child: Row(children: const [
-            Icon(Icons.visibility_outlined, size: 16, color: _p2),
-            SizedBox(width: 10),
-            Text('Detaylar', style: TextStyle(fontSize: 13.5)),
+          child: Row(children: [
+            Icon(Icons.visibility_outlined, size: 16, color: cs.primary),
+            const SizedBox(width: 10),
+            const Text('Detaylar', style: TextStyle(fontSize: 13.5)),
           ]),
         ),
       ],
@@ -715,11 +715,12 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _ufakSatir(String label, String val, Color renk) {
+    final cs = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label.toUpperCase(),
-            style: TextStyle(color: _muted, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
         const SizedBox(height: 2),
         Text(val,
             style: TextStyle(color: renk, fontSize: 11, fontWeight: FontWeight.w700),
@@ -730,17 +731,19 @@ class _PrimHakedisState extends State<PrimHakedis> {
 
   // Kalan / Ham gosterim: ust satirda kalan tutar, alt satirda kucuk olarak "/ ham"
   Widget _kalanSatir(String label, double kalan, double ham, Color renk) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final tamOdendi = kalan <= 0.001 && ham > 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label.toUpperCase(),
-            style: TextStyle(color: _muted, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
         const SizedBox(height: 2),
         Text(
           tamOdendi ? '0,00 ₺' : _fmtTl(kalan),
           style: TextStyle(
-            color: tamOdendi ? const Color(0xFF15803D) : renk,
+            color: tamOdendi ? ext.successColor : renk,
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
@@ -749,7 +752,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
         if (ham > 0 && (kalan < ham - 0.001))
           Text(
             '/ ${_fmtTl(ham)}',
-            style: TextStyle(color: _muted, fontSize: 9),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9),
             maxLines: 1, overflow: TextOverflow.ellipsis,
           ),
       ],
@@ -760,6 +763,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
   // Ödeme Yap Sheet — kalan tutarlar otomatik, tip seçince auto-fill
   // ═══════════════════════════════════════════════════════════════
   Future<void> _odemeYapSheet(Personel p) async {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final donem = '${_seciliYil.toString()}-${_seciliAy.toString().padLeft(2, '0')}';
     final k = _kalanlar(p);
     // Default tip: kalan maas varsa maas, yoksa kalan prim varsa prim, yoksa diger
@@ -828,9 +833,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
             return Padding(
               padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -891,12 +896,12 @@ class _PrimHakedisState extends State<PrimHakedis> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: _purpleBg,
+                                        color: ext.surfaceMuted,
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text('Tümünü Öde (${_fmtTl(kalanGoster)})',
-                                          style: const TextStyle(
-                                              color: _p1, fontWeight: FontWeight.w700, fontSize: 11)),
+                                          style: TextStyle(
+                                              color: cs.primary, fontWeight: FontWeight.w700, fontSize: 11)),
                                     ),
                                   ),
                                 ),
@@ -927,13 +932,13 @@ class _PrimHakedisState extends State<PrimHakedis> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                   decoration: BoxDecoration(
-                                    gradient: sel ? _grad : null,
-                                    color: sel ? null : _purpleBg,
+                                    gradient: sel ? ext.heroGradient : null,
+                                    color: sel ? null : ext.surfaceMuted,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(y,
                                       style: TextStyle(
-                                        color: sel ? Colors.white : _p1,
+                                        color: sel ? Colors.white : cs.primary,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 12.5,
                                       )),
@@ -1000,6 +1005,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
 
   // Sheet üstünde 3 kutucuk: Hak Ediş / Ödenen / Kalan
   Widget _ozetBar(double ham, double odenen, double kalan, String tip) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     String ustLabel;
     if (tip == 'maas') {
       ustLabel = 'Maaş';
@@ -1011,9 +1018,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: _purpleBg.withValues(alpha: 0.6),
+        color: ext.surfaceMuted.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _border),
+        border: Border.all(color: ext.borderSubtle),
       ),
       child: Row(
         children: [
@@ -1023,15 +1030,15 @@ class _PrimHakedisState extends State<PrimHakedis> {
               children: [
                 Text(ustLabel.toUpperCase(),
                     style: TextStyle(
-                        color: _muted, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                        color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
                 const SizedBox(height: 2),
                 Text(_fmtTl(ham),
-                    style: const TextStyle(color: _text, fontSize: 13, fontWeight: FontWeight.w800),
+                    style: TextStyle(color: cs.onSurface, fontSize: 13, fontWeight: FontWeight.w800),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          Container(width: 1, height: 28, color: _border),
+          Container(width: 1, height: 28, color: ext.borderSubtle),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1040,17 +1047,17 @@ class _PrimHakedisState extends State<PrimHakedis> {
                 children: [
                   Text('ÖDENEN',
                       style: TextStyle(
-                          color: _muted, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                          color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
                   const SizedBox(height: 2),
                   Text(_fmtTl(odenen),
-                      style: const TextStyle(
-                          color: Color(0xFF15803D), fontSize: 13, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          color: ext.successColor, fontSize: 13, fontWeight: FontWeight.w800),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
           ),
-          Container(width: 1, height: 28, color: _border),
+          Container(width: 1, height: 28, color: ext.borderSubtle),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(left: 8),
@@ -1059,14 +1066,14 @@ class _PrimHakedisState extends State<PrimHakedis> {
                 children: [
                   Text('KALAN',
                       style: TextStyle(
-                          color: _muted, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                          color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
                   const SizedBox(height: 2),
                   Text(
                     tip == 'diger' ? '—' : _fmtTl(kalan),
                     style: TextStyle(
                       color: tip == 'diger'
-                          ? _muted
-                          : (kalan <= 0.001 ? const Color(0xFF15803D) : const Color(0xFFB45309)),
+                          ? cs.onSurfaceVariant
+                          : (kalan <= 0.001 ? ext.successColor : ext.warningColor),
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                     ),
@@ -1091,6 +1098,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
     required String secili,
     required ValueChanged<String> onTap,
   }) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final sel = v == secili;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
@@ -1099,18 +1108,18 @@ class _PrimHakedisState extends State<PrimHakedis> {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 6),
         decoration: BoxDecoration(
-          gradient: sel ? _grad : null,
-          color: sel ? null : const Color(0xFFFCFAFE),
+          gradient: sel ? ext.heroGradient : null,
+          color: sel ? null : ext.surfaceMuted.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: sel ? Colors.transparent : _border),
+          border: Border.all(color: sel ? Colors.transparent : ext.borderSubtle),
         ),
         child: Column(
           children: [
-            Icon(icon, color: sel ? Colors.white : _p2, size: 16),
+            Icon(icon, color: sel ? Colors.white : cs.primary, size: 16),
             const SizedBox(height: 3),
             Text(label,
                 style: TextStyle(
-                  color: sel ? Colors.white : _text,
+                  color: sel ? Colors.white : cs.onSurface,
                   fontWeight: FontWeight.w700,
                   fontSize: 11.5,
                 )),
@@ -1120,7 +1129,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
                   ? '${_fmtTl(kalan)} $kalanLabel'
                   : _fmtTl(kalan),
               style: TextStyle(
-                color: sel ? Colors.white.withValues(alpha: 0.85) : _muted,
+                color: sel ? Colors.white.withValues(alpha: 0.85) : cs.onSurfaceVariant,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -1137,12 +1146,14 @@ class _PrimHakedisState extends State<PrimHakedis> {
   // Bonus / Kesinti Sheet
   // ═══════════════════════════════════════════════════════════════
   Future<void> _hareketSheet(Personel p, {required String tip}) async {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final tutarCtrl = TextEditingController();
     final aciklamaCtrl = TextEditingController();
     DateTime tarih = DateTime.now();
     bool kaydediliyor = false;
     final isBonus = tip == 'bonus';
-    final accent = isBonus ? const Color(0xFFF59E0B) : const Color(0xFFDC2626);
+    final accent = isBonus ? ext.warningColor : cs.error;
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -1153,9 +1164,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
           builder: (ctx, setSt) => Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1244,6 +1255,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
   // Ödeme Listesi Sheet (dönem ödemeleri + hareketleri görüntüle/sil)
   // ═══════════════════════════════════════════════════════════════
   Future<void> _odemeListesiSheet(Personel p) async {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final donem = '${_seciliYil.toString()}-${_seciliAy.toString().padLeft(2, '0')}';
     Map<String, dynamic>? data;
     bool yukleniyor = true;
@@ -1273,9 +1286,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
               maxChildSize: 0.95,
               expand: false,
               builder: (_, scrollCtrl) => Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Column(
                   children: [
@@ -1286,7 +1299,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
                       subtitle: '${p.personel_adi} · $donem',
                     ),
                     if (yukleniyor)
-                      const Expanded(child: Center(child: CircularProgressIndicator(color: _p1)))
+                      Expanded(child: Center(child: CircularProgressIndicator(color: cs.primary)))
                     else
                       Expanded(
                         child: ListView(
@@ -1296,22 +1309,22 @@ class _PrimHakedisState extends State<PrimHakedis> {
                             // Donem ozeti
                             Row(
                               children: [
-                                Expanded(child: _ozetMini('Maaş', _fmtTl(_parseTrNumber(toplamlar['maas'])), _text)),
-                                Expanded(child: _ozetMini('Prim', _fmtTl(_parseTrNumber(toplamlar['prim'])), _p1)),
-                                Expanded(child: _ozetMini('Avans', _fmtTl(_parseTrNumber(toplamlar['diger'])), const Color(0xFFB45309))),
+                                Expanded(child: _ozetMini('Maaş', _fmtTl(_parseTrNumber(toplamlar['maas'])), cs.onSurface)),
+                                Expanded(child: _ozetMini('Prim', _fmtTl(_parseTrNumber(toplamlar['prim'])), cs.primary)),
+                                Expanded(child: _ozetMini('Avans', _fmtTl(_parseTrNumber(toplamlar['diger'])), ext.warningColor)),
                               ],
                             ),
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                Expanded(child: _ozetMini('Bonus', _fmtTl(_parseTrNumber(toplamlar['bonus'])), const Color(0xFF15803D))),
-                                Expanded(child: _ozetMini('Kesinti', _fmtTl(_parseTrNumber(toplamlar['kesinti'])), const Color(0xFF991B1B))),
+                                Expanded(child: _ozetMini('Bonus', _fmtTl(_parseTrNumber(toplamlar['bonus'])), ext.successColor)),
+                                Expanded(child: _ozetMini('Kesinti', _fmtTl(_parseTrNumber(toplamlar['kesinti'])), cs.error)),
                               ],
                             ),
                             const SizedBox(height: 14),
                             // Odemeler listesi
-                            const Text('Ödemeler',
-                                style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 13)),
+                            Text('Ödemeler',
+                                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 13)),
                             const SizedBox(height: 8),
                             if (odemeler.isEmpty)
                               _kucukBos('Bu dönemde ödeme yok')
@@ -1335,8 +1348,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
                                   )),
                             const SizedBox(height: 14),
                             // Bonus/Kesinti listesi
-                            const Text('Bonus & Kesinti',
-                                style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 13)),
+                            Text('Bonus & Kesinti',
+                                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 13)),
                             const SizedBox(height: 8),
                             if (hareketler.isEmpty)
                               _kucukBos('Bu dönemde bonus/kesinti yok')
@@ -1372,21 +1385,26 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   // ═══════════════ Sheet yardımcıları ═══════════════
-  Widget _sheetHandle() => Container(
-        margin: const EdgeInsets.only(top: 10),
-        width: 38, height: 4,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE5E7EB),
-          borderRadius: BorderRadius.circular(2),
-        ),
-      );
+  Widget _sheetHandle() {
+    final cs = context.colors;
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      width: 38, height: 4,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
 
   Widget _sheetHeader({
     required IconData icon,
     required String title,
     required String subtitle,
-    Color accent = _p1,
+    Color? accent,
   }) {
+    final cs = context.colors;
+    final acc = accent ?? cs.primary;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       child: Row(
@@ -1394,10 +1412,10 @@ class _PrimHakedisState extends State<PrimHakedis> {
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.13),
+              color: acc.withValues(alpha: 0.13),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: accent, size: 20),
+            child: Icon(icon, color: acc, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1405,13 +1423,13 @@ class _PrimHakedisState extends State<PrimHakedis> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 16)),
-                Text(subtitle, style: TextStyle(color: _muted, fontSize: 12)),
+                    style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
+                Text(subtitle, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: _muted, size: 22),
+            icon: Icon(Icons.close, color: cs.onSurfaceVariant, size: 22),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -1419,16 +1437,19 @@ class _PrimHakedisState extends State<PrimHakedis> {
     );
   }
 
-  Widget _sheetLabel(String s) => Padding(
-        padding: const EdgeInsets.only(bottom: 6, left: 2),
-        child: Text(s,
-            style: TextStyle(
-              color: _muted,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            )),
-      );
+  Widget _sheetLabel(String s) {
+    final cs = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6, left: 2),
+      child: Text(s,
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          )),
+    );
+  }
 
   Widget _sheetField({
     required TextEditingController controller,
@@ -1437,25 +1458,27 @@ class _PrimHakedisState extends State<PrimHakedis> {
     bool autofocus = false,
     int maxLines = 1,
   }) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return TextField(
       controller: controller,
       keyboardType: keyboard,
       autofocus: autofocus,
       maxLines: maxLines,
-      cursorColor: _p1,
-      style: const TextStyle(color: _text, fontSize: 14),
+      cursorColor: cs.primary,
+      style: TextStyle(color: cs.onSurface, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFFB8AEC7), fontSize: 13.5),
+        hintStyle: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.7), fontSize: 13.5),
         filled: true,
-        fillColor: const Color(0xFFFCFAFE),
+        fillColor: ext.surfaceMuted.withValues(alpha: 0.5),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: _border),
+          borderSide: BorderSide(color: ext.borderSubtle),
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: _p2, width: 1.6),
+          borderSide: BorderSide(color: cs.primary, width: 1.6),
           borderRadius: BorderRadius.circular(12),
         ),
       ),
@@ -1463,6 +1486,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _sheetTarihAlani({required DateTime tarih, required ValueChanged<DateTime> onChanged}) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () async {
@@ -1473,7 +1498,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
           initialDate: tarih,
           builder: (ctx, child) => Theme(
             data: Theme.of(ctx).copyWith(
-              colorScheme: const ColorScheme.light(primary: _p1, onPrimary: Colors.white),
+              colorScheme: ColorScheme.light(primary: cs.primary, onPrimary: cs.onPrimary),
             ),
             child: child!,
           ),
@@ -1483,18 +1508,18 @@ class _PrimHakedisState extends State<PrimHakedis> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFCFAFE),
+          color: ext.surfaceMuted.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _border),
+          border: Border.all(color: ext.borderSubtle),
         ),
         child: Row(
           children: [
-            const Icon(Icons.event, color: _p1, size: 16),
+            Icon(Icons.event, color: cs.primary, size: 16),
             const SizedBox(width: 8),
             Text(_fmtDate(tarih),
-                style: const TextStyle(color: _text, fontWeight: FontWeight.w600, fontSize: 13.5)),
+                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 13.5)),
             const Spacer(),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: _p1, size: 18),
+            Icon(Icons.keyboard_arrow_down_rounded, color: cs.primary, size: 18),
           ],
         ),
       ),
@@ -1507,15 +1532,15 @@ class _PrimHakedisState extends State<PrimHakedis> {
     required VoidCallback onTap,
     Color? overrideColor,
   }) {
+    final ext = context.appTheme;
+    final baseColor = overrideColor ?? ext.successColor;
     return Container(
       decoration: BoxDecoration(
-        gradient: overrideColor == null
-            ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF34D399)])
-            : LinearGradient(colors: [overrideColor, overrideColor.withValues(alpha: 0.85)]),
+        gradient: LinearGradient(colors: [baseColor, baseColor.withValues(alpha: 0.78)]),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: (overrideColor ?? const Color(0xFF10B981)).withValues(alpha: 0.3),
+            color: baseColor.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
@@ -1551,18 +1576,20 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _ozetMini(String label, String val, Color renk) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       margin: const EdgeInsets.all(3),
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       decoration: BoxDecoration(
-        color: _purpleBg.withValues(alpha: 0.6),
+        color: ext.surfaceMuted.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label.toUpperCase(),
-              style: TextStyle(color: _muted, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
           const SizedBox(height: 2),
           Text(val,
               style: TextStyle(color: renk, fontSize: 11, fontWeight: FontWeight.w700),
@@ -1573,16 +1600,22 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _odemeSatiri(Map<String, dynamic> o, {required VoidCallback onSil}) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final tip = (o['odeme_tipi'] ?? 'diger').toString();
-    final tipMap = {'maas': ('Maaş', _p1), 'prim': ('Prim', const Color(0xFF10B981)), 'diger': ('Avans', const Color(0xFFB45309))};
-    final tipBilgi = tipMap[tip] ?? ('Ödeme', _p2);
+    final tipMap = {
+      'maas': ('Maaş', cs.primary),
+      'prim': ('Prim', ext.successColor),
+      'diger': ('Avans', ext.warningColor),
+    };
+    final tipBilgi = tipMap[tip] ?? ('Ödeme', cs.primary);
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFCFAFE),
+        color: ext.surfaceMuted.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border),
+        border: Border.all(color: ext.borderSubtle),
       ),
       child: Row(
         children: [
@@ -1601,20 +1634,20 @@ class _PrimHakedisState extends State<PrimHakedis> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_fmtTl(_parseTrNumber(o['tutar'])),
-                    style: const TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 13)),
+                    style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 13)),
                 Text(
                   '${o['odeme_tarihi'] ?? '—'} · ${o['odeme_yontemi'] ?? '—'}',
-                  style: TextStyle(color: _muted, fontSize: 11),
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
                 ),
                 if ((o['aciklama'] ?? '').toString().isNotEmpty)
                   Text(o['aciklama'].toString(),
-                      style: TextStyle(color: _muted, fontSize: 11, fontStyle: FontStyle.italic),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontStyle: FontStyle.italic),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626), size: 18),
+            icon: Icon(Icons.delete_outline, color: cs.error, size: 18),
             onPressed: onSil,
             tooltip: 'Sil',
           ),
@@ -1624,13 +1657,15 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _hareketSatiri(Map<String, dynamic> h, {required VoidCallback onSil}) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     final isBonus = h['tip'] == 'bonus';
-    final accent = isBonus ? const Color(0xFF15803D) : const Color(0xFF991B1B);
+    final accent = isBonus ? ext.successColor : cs.error;
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
-        color: isBonus ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+        color: accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -1649,16 +1684,16 @@ class _PrimHakedisState extends State<PrimHakedis> {
                   style: TextStyle(color: accent, fontWeight: FontWeight.w700, fontSize: 13),
                 ),
                 Text(h['tarih']?.toString() ?? '—',
-                    style: TextStyle(color: _muted, fontSize: 11)),
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
                 if ((h['aciklama'] ?? '').toString().isNotEmpty)
                   Text(h['aciklama'].toString(),
-                      style: TextStyle(color: _muted, fontSize: 11, fontStyle: FontStyle.italic),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontStyle: FontStyle.italic),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626), size: 18),
+            icon: Icon(Icons.delete_outline, color: cs.error, size: 18),
             onPressed: onSil,
             tooltip: 'Sil',
           ),
@@ -1668,14 +1703,16 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _kucukBos(String mesaj) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: _purpleBg.withValues(alpha: 0.4),
+        color: ext.surfaceMuted.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Center(
-        child: Text(mesaj, style: TextStyle(color: _muted, fontSize: 12)),
+        child: Text(mesaj, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
       ),
     );
   }
@@ -1684,10 +1721,12 @@ class _PrimHakedisState extends State<PrimHakedis> {
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   void _snack(String msg, {required bool basari}) {
+    final cs = context.colors;
+    final ext = context.appTheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: basari ? const Color(0xFF15803D) : const Color(0xFFDC2626),
+        backgroundColor: basari ? ext.successColor : cs.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -1695,37 +1734,40 @@ class _PrimHakedisState extends State<PrimHakedis> {
   }
 
   Widget _bosKart() {
+    final cs = context.colors;
+    final ext = context.appTheme;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 16),
       padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+        border: Border.all(color: ext.borderSubtle),
       ),
       child: Column(
         children: [
-          Icon(Icons.people_outline, color: _muted.withValues(alpha: 0.5), size: 48),
+          Icon(Icons.people_outline, color: cs.onSurfaceVariant.withValues(alpha: 0.5), size: 48),
           const SizedBox(height: 10),
-          const Text('Aktif personel bulunamadı',
-              style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text('Aktif personel bulunamadı',
+              style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 14)),
         ],
       ),
     );
   }
 
   Widget _hataKarti(String mesaj) {
+    final cs = context.colors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEE2E2),
+        color: cs.error.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFF991B1B)),
+          Icon(Icons.error_outline, color: cs.error),
           const SizedBox(width: 10),
-          Expanded(child: Text(mesaj, style: const TextStyle(color: Color(0xFF991B1B)))),
+          Expanded(child: Text(mesaj, style: TextStyle(color: cs.error))),
         ],
       ),
     );

@@ -3818,22 +3818,35 @@ Future<dynamic>personelprimhesapla(BuildContext context, String personelid,Strin
 }
 
 // TOPLU prim hakedis: salondaki tum aktif personelin ay/yil ozeti tek istekte.
-// PrimHakedis sayfasi icin — N personel icin 2N+1 istek yerine 1.
-Future<Map<String, dynamic>?> primHakedisToplu({
+// Hata detayini yakalar; UI'da gosterilebilir.
+Future<Map<String, dynamic>> primHakedisToplu({
   required String salonid,
-  required String ay,    // "01".."12"
-  required String yil,   // "2026"
+  required String ay,
+  required String yil,
 }) async {
-  final response = await http.post(
-    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primHakedisToplu/$salonid'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'ay': ay, 'yil': yil}),
-  );
-  if (response.statusCode == 200) {
-    return json.decode(response.body) as Map<String, dynamic>;
+  try {
+    final response = await http.post(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primHakedisToplu/$salonid'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'ay': ay, 'yil': yil}),
+    );
+    debugPrint('primHakedisToplu status: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      try {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) return decoded;
+        return {'basarili': false, '_hata_mesaj': 'Beklenmeyen cevap formati'};
+      } catch (e) {
+        return {'basarili': false, '_hata_mesaj': 'JSON parse hatasi: $e'};
+      }
+    }
+    return {
+      'basarili': false,
+      '_hata_mesaj': 'HTTP ${response.statusCode}: ${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+    };
+  } catch (e) {
+    return {'basarili': false, '_hata_mesaj': 'Ag hatasi: $e'};
   }
-  debugPrint('primHakedisToplu failed: ${response.statusCode}');
-  return null;
 }
 
 // Ay/yil filtreli prim hesaplama (personeldetay sayfasi icin).
