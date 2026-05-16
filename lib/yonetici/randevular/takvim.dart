@@ -2334,10 +2334,16 @@ class _AppointmentCardState extends State<_AppointmentCard> {
         ? ((displayHeight / widget.slotHeight).round() * 15)
         : 0;
 
-    // Yukseklige gore adaptif render:
-    // - tiny  (<28px, ~10dk):       handle gizli, ucap padding, fontSize 8.5, tek satir "HH:MM isim"
-    // - short (28-44px, 15-20dk):   handle 8px, sik padding, fontSize 9, tek satir
-    // - normal(>=44px):             mevcut gorunum (handle 16px, fontSize 10, 2 satira kadar)
+    // Yukseklige gore adaptif render. Backend 'subject'i \n ile coklu satir gonderir:
+    //   [musteri (PAKET/ON GORUSME)]
+    //   [hizmet/paket adi veya On Gorusme Nedeni:...]
+    //   Olusturan:[Musteri (Web/Uygulama/Asistan) veya personel adi]
+    //   [RANDEVUYA GELECEK]  (opsiyonel)
+    // Tier'lar:
+    // - tiny  (<28px, ~10dk):      handle gizli, fontSize 8.5, sadece "HH:MM musteri"
+    // - short (28-44px, 15-20dk):  handle 8px, fontSize 9, "HH:MM-HH:MM musteri"
+    // - normal (>=44px):           handle 16px, fontSize 10, tum bilgi gosterilir
+    //                              (maxLines yukseklige gore hesaplanir)
     final bool isTiny = displayHeight < 28;
     final bool isShort = !isTiny && displayHeight < 44;
     final double handleHeight = isTiny ? 0 : (isShort ? 8 : 16);
@@ -2347,16 +2353,45 @@ class _AppointmentCardState extends State<_AppointmentCard> {
             ? const EdgeInsets.fromLTRB(3, 1, 3, 10)
             : const EdgeInsets.fromLTRB(4, 2, 4, 18));
     final double fontSize = isTiny ? 8.5 : (isShort ? 9 : 10);
-    final int maxLines = (isTiny || isShort) ? 1 : 2;
+
+    // Dinamik maxLines: padding harici alana kac satir sigarsa o kadar goster.
+    final double approxLineHeight = fontSize * 1.15;
+    final double availableTextHeight =
+        displayHeight - textPadding.top - textPadding.bottom;
+    final int dynamicMaxLines = isTiny
+        ? 1
+        : (isShort
+            ? 1
+            : (availableTextHeight / approxLineHeight).floor().clamp(2, 12));
 
     final String startTimeText = DateFormat.Hm().format(widget.appointment.startTime.toLocal());
     final String endTimeText = DateFormat.Hm().format(widget.appointment.endTime.toLocal());
+
+    // Backend'in coklu satirini ayir, "Olusturan:" prefix'ini kart icin kisalt
+    final List<String> subjectLines = widget.appointment.subject.split('\n');
+    final String musteriSatiri = subjectLines.isNotEmpty ? subjectLines[0] : '';
+    final String detayBlogu = subjectLines.length > 1
+        ? subjectLines
+            .skip(1)
+            .where((l) => l.trim().isNotEmpty)
+            .map((l) => l.startsWith('Oluşturan:')
+                ? '↳ ${l.substring('Oluşturan:'.length).trim()}'
+                : l)
+            .join('\n')
+        : '';
+
     final String contentText = _isResizing
         ? '$startTimeText • $resizeMinutes dk'
-        // Tiny'de yer az: saat aralik yerine sadece baslangic saati
         : (isTiny
-            ? '$startTimeText ${widget.appointment.subject}'
-            : '$startTimeText-$endTimeText ${widget.appointment.subject}');
+            // Tiny: sadece baslangic saati + musteri (paket etiketi dahil)
+            ? '$startTimeText $musteriSatiri'
+            : (isShort
+                // Short: saat araligi + musteri tek satir
+                ? '$startTimeText-$endTimeText $musteriSatiri'
+                // Normal+: ilk satir saat+musteri, alt satirlarda hizmet/olusturan
+                : (detayBlogu.isEmpty
+                    ? '$startTimeText-$endTimeText $musteriSatiri'
+                    : '$startTimeText-$endTimeText $musteriSatiri\n$detayBlogu')));
 
     // Kart dekorasyonu + icerik
     final cardBody = Container(
@@ -2391,7 +2426,7 @@ class _AppointmentCardState extends State<_AppointmentCard> {
               fontWeight: FontWeight.w500,
               height: 1.1,
             ),
-            maxLines: maxLines,
+            maxLines: dynamicMaxLines,
             overflow: TextOverflow.ellipsis,
           ),
         ),
