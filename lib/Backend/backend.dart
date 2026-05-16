@@ -4408,12 +4408,12 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   logyaz(200, 'firebase arkada dinleniyor');
 
 }
+String? _cachedAppBundle;
 Future<String> appBundleAl() async {
-  PackageInfo packageInfo = await PackageInfo.fromPlatform();
-
-
-  return packageInfo.packageName; // Bundle ID (Android’de applicationId, iOS’ta bundle identifier)
-
+  if (_cachedAppBundle != null) return _cachedAppBundle!;
+  final packageInfo = await PackageInfo.fromPlatform();
+  _cachedAppBundle = packageInfo.packageName;
+  return _cachedAppBundle!;
 }
 
 Future<Map<String, dynamic>> personelAdiminaGec(String salonid,String appbundle,String hizmetId) async {
