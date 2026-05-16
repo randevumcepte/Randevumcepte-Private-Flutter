@@ -2,7 +2,6 @@
 
 class RandevuHizmet {
   RandevuHizmet({
-
     required this.hizmetler,
     required this.hizmet_id,
     required this.personel_id,
@@ -17,12 +16,10 @@ class RandevuHizmet {
     required this.saat_bitis,
     required this.yardimci_personel,
     required this.birusttekiileaynisaat,
-
-
-
-
+    this.paket_adi,
+    this.adisyon_paket_id,
+    this.adisyon_hizmet_id,
   });
-
 
   dynamic hizmetler;
   late  String hizmet_id;
@@ -38,25 +35,30 @@ class RandevuHizmet {
   String saat_bitis;
   String yardimci_personel;
   String birusttekiileaynisaat;
+  // Paketten gelen randevu hizmetleri icin meta (UI'da rozet + backend referansi)
+  String? paket_adi;
+  dynamic adisyon_paket_id;
+  dynamic adisyon_hizmet_id;
 
-
-
+  bool get isPaket => (paket_adi != null && paket_adi!.isNotEmpty) ||
+      adisyon_paket_id != null ||
+      adisyon_hizmet_id != null;
 
   Map<String, dynamic> toJson() {
     return {
-
-
-      'hizmet_id':hizmet_id,
-      'personel_id':personel_id,
-      'oda_id':oda_id,
-      'cihaz_id':cihaz_id,
-      'yardimci_personel':yardimci_personel,
-      'sure_dk':sure_dk,
-      'fiyat':fiyat,
-      'birlestir':birusttekiileaynisaat,
-
-
-
+      'hizmet_id': hizmet_id,
+      'personel_id': personel_id,
+      'oda_id': oda_id,
+      'cihaz_id': cihaz_id,
+      'yardimci_personel': yardimci_personel,
+      'sure_dk': sure_dk,
+      'fiyat': fiyat,
+      'birlestir': birusttekiileaynisaat,
+      // Backend mevcut akista hizmet_id'den otomatik adisyon eslestirmesi yapiyor;
+      // yine de referans icin gonderiyoruz (ileride kullanilabilir).
+      if (paket_adi != null) 'paket_adi': paket_adi,
+      if (adisyon_paket_id != null) 'adisyon_paket_id': adisyon_paket_id,
+      if (adisyon_hizmet_id != null) 'adisyon_hizmet_id': adisyon_hizmet_id,
     };
   }
 

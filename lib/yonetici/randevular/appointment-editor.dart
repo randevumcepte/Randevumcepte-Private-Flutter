@@ -119,8 +119,9 @@ class AppointmentEditorState extends State<AppointmentEditor> {
         saat: '',
         saat_bitis: '',
         yardimci_personel: '',
-        birusttekiileaynisaat: ''
-    )
+        // chain default: ayni personele birden fazla hizmet ardisik dizilebilsin
+        birusttekiileaynisaat: '1',
+    ),
   ];
 
   List<RandevuTekrarSikligi> tekrarsikliklari = [
@@ -372,6 +373,16 @@ class AppointmentEditorState extends State<AppointmentEditor> {
 
       int eklenenSatir = 0;
       setState(() {
+        // Once mevcut son satir bos mu kontrol — bossa onu kullan, yeni satir acma.
+        // (Editor acildiginda 1 bos satir default ekleniyor; kullanici daha hicbir
+        //  hizmet secmemisse paket secimi o satirin uzerine yazsin.)
+        int? bosSatirIndex;
+        if (randevuhizmetleri.isNotEmpty &&
+            secilihizmet.isNotEmpty &&
+            secilihizmet.last == null) {
+          bosSatirIndex = randevuhizmetleri.length - 1;
+        }
+
         for (final secim in secilenler) {
           final hizmetIdStr = secim['hizmet_id']?.toString() ?? '';
           if (hizmetIdStr.isEmpty) {
@@ -379,10 +390,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             continue;
           }
 
-          // Once salon aktif hizmet listesinde ara — varsa tam metaveri (kategori,
-          // bolum vs.) ile kullan. Yoksa paket verisinden yapay IsletmeHizmet uret
-          // (musterinin gecmiste satin aldigi paket icindeki hizmet, salon
-          // listesinden cikartilmis olabilir; randevu yine kaydedilebilir).
+          // Once salon aktif hizmet listesinde ara — varsa tam metaveri ile kullan,
+          // yoksa paket verisinden yapay IsletmeHizmet uret.
           IsletmeHizmet hizmetObj;
           final eslesen = isletmehizmetliste
               .where((h) => h.hizmet_id == hizmetIdStr)
@@ -402,20 +411,18 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             );
           }
 
-          final sureStr = secim['sure']?.toString() ?? '';
-          // Paketten randevu — fiyat 0 (zaten odenmis). Kullanici isterse degistirir.
-          suredk.add(TextEditingController(text: sureStr));
-          fiyat.add(TextEditingController(text: '0'));
-          oda.add(TextEditingController());
-          cihaz.add(TextEditingController());
-          hizmet.add(TextEditingController(
-              text: secim['hizmet_adi']?.toString() ?? ''));
-          secilipersonel.add(null);
-          seciliyardimcipersonel.add([null]);
-          secilihizmet.add(hizmetObj);
-          secilioda.add(null);
-          secilicihaz.add(null);
-          randevuhizmetleri.add(RandevuHizmet(
+          final sureStr = (secim['sure']?.toString().isNotEmpty == true)
+              ? secim['sure'].toString()
+              : '30';
+          final hizmetAdi = secim['hizmet_adi']?.toString() ?? '';
+          final paketAdi = secim['paket_adi']?.toString();
+          final adisyonPaketId = secim['adisyon_paket_id'];
+          final adisyonHizmetId = secim['adisyon_hizmet_id'];
+
+          // chain: aynı personele birden fazla hizmet ardisik dizilebilsin diye
+          // backend'in birlestir='1' (=> chain) modunu kullaniyoruz. Aksi halde
+          // tum satirlar randevu_saati'nden paralel baslar ve self-conflict olur.
+          final yeniHizmet = RandevuHizmet(
             hizmetler: hizmetObj,
             hizmet_id: hizmetIdStr,
             personel_id: '',
@@ -424,13 +431,41 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             oda: null,
             cihaz_id: '',
             cihaz: null,
-            fiyat: '0',
+            fiyat: '0', // paket — zaten odenmis
             sure_dk: sureStr,
             saat: '',
             saat_bitis: '',
             yardimci_personel: '',
-            birusttekiileaynisaat: '',
-          ));
+            birusttekiileaynisaat: '1',
+            paket_adi: paketAdi,
+            adisyon_paket_id: adisyonPaketId,
+            adisyon_hizmet_id: adisyonHizmetId,
+          );
+
+          if (bosSatirIndex != null) {
+            // Bos satira yaz — yeni satir acma (kullanicinin "2 hizmet secmisim
+            // gibi" sikayetinin cozumu).
+            final i = bosSatirIndex;
+            hizmet[i].text = hizmetAdi;
+            suredk[i].text = sureStr;
+            fiyat[i].text = '0';
+            secilihizmet[i] = hizmetObj;
+            randevuhizmetleri[i] = yeniHizmet;
+            bosSatirIndex = null; // bir sonraki secim icin yeni satir
+          } else {
+            // Yeni satir
+            suredk.add(TextEditingController(text: sureStr));
+            fiyat.add(TextEditingController(text: '0'));
+            oda.add(TextEditingController());
+            cihaz.add(TextEditingController());
+            hizmet.add(TextEditingController(text: hizmetAdi));
+            secilipersonel.add(null);
+            seciliyardimcipersonel.add([null]);
+            secilihizmet.add(hizmetObj);
+            secilioda.add(null);
+            secilicihaz.add(null);
+            randevuhizmetleri.add(yeniHizmet);
+          }
           eklenenSatir++;
         }
       });
@@ -887,7 +922,10 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       saat: '',
                       saat_bitis: '',
                       yardimci_personel: '',
-                      birusttekiileaynisaat: '',
+                      // chain (ardisik) — ayni personele birden fazla hizmet
+                      // eklenebilsin diye '1'. Backend: birlestir='1' => bir
+                      // sonraki hizmet bu hizmetin bitis saatinden baslar.
+                      birusttekiileaynisaat: '1',
                     ));
                   });
                 },
@@ -898,21 +936,66 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           const SizedBox(height: 12),
 
           ...List.generate(randevuhizmetleri.length, (index) {
+            final bool isPaketSatir = randevuhizmetleri[index].isPaket;
+            final String? paketAdi = randevuhizmetleri[index].paket_adi;
+            const Color paketRenk = Color(0xFF6A1B9A);
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isPaketSatir
+                    ? const Color(0xFFF6F0FA)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                border: isPaketSatir
+                    ? Border.all(
+                        color: paketRenk.withValues(alpha: 0.35),
+                        width: 1.4,
+                      )
+                    : null,
                 boxShadow: [
                   BoxShadow(
-                    color: scheme.primary.withValues(alpha: 0.08),
+                    color: (isPaketSatir ? paketRenk : scheme.primary)
+                        .withValues(alpha: 0.08),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isPaketSatir) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: paketRenk,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.card_giftcard,
+                              size: 14, color: Colors.white),
+                          const SizedBox(width: 5),
+                          Text(
+                            paketAdi != null && paketAdi.isNotEmpty
+                                ? 'PAKET: $paketAdi'
+                                : 'PAKET',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Stack(
                 children: [
                   Column(
                     children: [
@@ -1366,7 +1449,9 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       ),
                     ),
                 ],
-              ),
+              ), // Stack
+                ],
+              ), // Column (paket badge + Stack)
             );
           }),
 
