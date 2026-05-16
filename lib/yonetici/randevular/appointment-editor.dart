@@ -374,12 +374,33 @@ class AppointmentEditorState extends State<AppointmentEditor> {
       setState(() {
         for (final secim in secilenler) {
           final hizmetIdStr = secim['hizmet_id']?.toString() ?? '';
-          // IsletmeHizmet listede karsilik yoksa atla (salonda artik o hizmet yok olabilir).
-          final hizmetObj = isletmehizmetliste
+          if (hizmetIdStr.isEmpty) {
+            log('paket secim atlandi: bos hizmet_id - $secim');
+            continue;
+          }
+
+          // Once salon aktif hizmet listesinde ara — varsa tam metaveri (kategori,
+          // bolum vs.) ile kullan. Yoksa paket verisinden yapay IsletmeHizmet uret
+          // (musterinin gecmiste satin aldigi paket icindeki hizmet, salon
+          // listesinden cikartilmis olabilir; randevu yine kaydedilebilir).
+          IsletmeHizmet hizmetObj;
+          final eslesen = isletmehizmetliste
               .where((h) => h.hizmet_id == hizmetIdStr)
-              .cast<IsletmeHizmet?>()
-              .firstWhere((h) => h != null, orElse: () => null);
-          if (hizmetObj == null) continue;
+              .toList();
+          if (eslesen.isNotEmpty) {
+            hizmetObj = eslesen.first;
+          } else {
+            log('paket hizmeti salon listesinde yok, fallback obje uretiliyor: '
+                'hizmet_id=$hizmetIdStr adi=${secim['hizmet_adi']}');
+            hizmetObj = IsletmeHizmet(
+              hizmet_id: hizmetIdStr,
+              hizmet: {'hizmet_adi': secim['hizmet_adi']?.toString() ?? ''},
+              hizmet_kategorisi: null,
+              sure: secim['sure']?.toString() ?? '0',
+              fiyat: '0',
+              bolum: '',
+            );
+          }
 
           final sureStr = secim['sure']?.toString() ?? '';
           // Paketten randevu — fiyat 0 (zaten odenmis). Kullanici isterse degistirir.
