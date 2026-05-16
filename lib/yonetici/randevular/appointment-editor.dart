@@ -119,8 +119,9 @@ class AppointmentEditorState extends State<AppointmentEditor> {
         saat: '',
         saat_bitis: '',
         yardimci_personel: '',
-        // chain default: ayni personele birden fazla hizmet ardisik dizilebilsin
-        birusttekiileaynisaat: '1',
+        // chain default (backend semantik): birlestir bos/yok => bir sonraki
+        // hizmet bu hizmetin bitis saatinden baslar. '1' = paralel (ayni saat).
+        birusttekiileaynisaat: '',
     ),
   ];
 
@@ -419,9 +420,11 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           final adisyonPaketId = secim['adisyon_paket_id'];
           final adisyonHizmetId = secim['adisyon_hizmet_id'];
 
-          // chain: aynı personele birden fazla hizmet ardisik dizilebilsin diye
-          // backend'in birlestir='1' (=> chain) modunu kullaniyoruz. Aksi halde
-          // tum satirlar randevu_saati'nden paralel baslar ve self-conflict olur.
+          // chain default (backend semantik):
+          // - randevuekleguncelle: birlestir bos => yenisaatbaslangic = saat_bitis (chain)
+          // - cakisan_randevu_kontrol: ayni semantik (bug fix sonrasi)
+          // '1' deger ise PARALEL anlamina gelir, kayitta tum hizmetler ayni
+          // saatten baslar ve takvimde ust uste binerek "kaybolur"lar.
           final yeniHizmet = RandevuHizmet(
             hizmetler: hizmetObj,
             hizmet_id: hizmetIdStr,
@@ -436,7 +439,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             saat: '',
             saat_bitis: '',
             yardimci_personel: '',
-            birusttekiileaynisaat: '1',
+            birusttekiileaynisaat: '',
             paket_adi: paketAdi,
             adisyon_paket_id: adisyonPaketId,
             adisyon_hizmet_id: adisyonHizmetId,
@@ -922,10 +925,9 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       saat: '',
                       saat_bitis: '',
                       yardimci_personel: '',
-                      // chain (ardisik) — ayni personele birden fazla hizmet
-                      // eklenebilsin diye '1'. Backend: birlestir='1' => bir
-                      // sonraki hizmet bu hizmetin bitis saatinden baslar.
-                      birusttekiileaynisaat: '1',
+                      // chain default (backend semantik): bos => bir sonraki
+                      // hizmet bu hizmetin bitis saatinden baslar. '1' = paralel.
+                      birusttekiileaynisaat: '',
                     ));
                   });
                 },
