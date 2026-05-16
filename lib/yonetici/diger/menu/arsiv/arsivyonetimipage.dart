@@ -3,16 +3,12 @@ import 'package:page_transition/page_transition.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 
-import 'beklenenformlar.dart';
+import 'arsiv_kart_liste.dart';
 import 'form_olustur.dart';
 import 'form_sablon_duzenle.dart';
 import 'form_sablonlari.dart';
-import 'haricibelge.dart';
 import 'haricibelgeekle.dart';
-import 'iptaledilenformlar.dart';
-import 'onaylananformlar.dart';
 import 'sozlesme_olustur.dart';
-import 'tumarsiv.dart';
 
 class ArsivYonetimiPage extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -159,11 +155,41 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   Expanded(
                     child: TabBarView(
                       children: <Widget>[
-                        TumArsiv(),
-                        OnaylananArsiv(),
-                        BeklenenArsiv(),
-                        IptalEdilenArsiv(),
-                        HariciArsiv(),
+                        const ArsivKartListe(
+                          durum: '',
+                          cevapladi: '',
+                          cevapladi2: '',
+                          bosMesaj: 'Henüz form yok',
+                          bosIkon: Icons.inbox_outlined,
+                        ),
+                        const ArsivKartListe(
+                          durum: '1',
+                          cevapladi: '1',
+                          cevapladi2: '1',
+                          bosMesaj: 'Onaylanmış form yok',
+                          bosIkon: Icons.check_circle_outline,
+                        ),
+                        const ArsivKartListe(
+                          durum: 'null',
+                          cevapladi: 'b',
+                          cevapladi2: 'b',
+                          bosMesaj: 'Bekleyen form yok',
+                          bosIkon: Icons.hourglass_empty_rounded,
+                        ),
+                        const ArsivKartListe(
+                          durum: '0',
+                          cevapladi: '',
+                          cevapladi2: '',
+                          bosMesaj: 'İptal edilmiş form yok',
+                          bosIkon: Icons.cancel_outlined,
+                        ),
+                        const ArsivKartListe(
+                          durum: 'null',
+                          cevapladi: 'null',
+                          cevapladi2: 'null',
+                          bosMesaj: 'Harici belge yok',
+                          bosIkon: Icons.upload_file_rounded,
+                        ),
                         FormSablonlari(isletmebilgi: widget.isletmebilgi),
                       ],
                     ),
