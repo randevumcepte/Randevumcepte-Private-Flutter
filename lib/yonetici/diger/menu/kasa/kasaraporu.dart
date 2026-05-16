@@ -859,6 +859,217 @@ class _TransactionList extends StatelessWidget {
     return null;
   }
 
+  double? _toDoubleOrNull(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    final s = v.toString().trim();
+    if (s.isEmpty) return null;
+    return double.tryParse(s);
+  }
+
+  /// Tahsilatın hangi hizmet/paket/ürünleri kapsadığını çıkarır.
+  /// Her satır: {tip, ad, tutar, adet}
+  List<Map<String, dynamic>> _satilanKalemler(Map<String, dynamic> item) {
+    final List<Map<String, dynamic>> kalemler = [];
+
+    // Hizmet ödemeleri
+    final hizmetOdemeleri = item['hizmet_odemeleri'];
+    if (hizmetOdemeleri is List) {
+      for (final h in hizmetOdemeleri) {
+        if (h is! Map) continue;
+        final adisyonHizmet = h['adisyon_hizmet'];
+        String? ad;
+        if (adisyonHizmet is Map) {
+          final hizmet = adisyonHizmet['hizmet'];
+          if (hizmet is Map) ad = _safeString(hizmet['hizmet_adi']);
+        }
+        kalemler.add({
+          'tip': 'Hizmet',
+          'ad': ad ?? 'Hizmet',
+          'tutar': _toDoubleOrNull(h['tutar']),
+        });
+      }
+    }
+
+    // Paket ödemeleri
+    final paketOdemeleri = item['paket_odemeleri'];
+    if (paketOdemeleri is List) {
+      for (final p in paketOdemeleri) {
+        if (p is! Map) continue;
+        final adisyonPaket = p['adisyon_paket'];
+        String? ad;
+        if (adisyonPaket is Map) {
+          final paket = adisyonPaket['paket'];
+          if (paket is Map) ad = _safeString(paket['paket_adi']);
+        }
+        kalemler.add({
+          'tip': 'Paket',
+          'ad': ad ?? 'Paket',
+          'tutar': _toDoubleOrNull(p['tutar']),
+        });
+      }
+    }
+
+    // Adisyon üzerinden ürün ödemeleri
+    final urunOdemeleri = item['urun_odemeleri'];
+    if (urunOdemeleri is List) {
+      for (final u in urunOdemeleri) {
+        if (u is! Map) continue;
+        final adisyonUrun = u['adisyon_urun'];
+        String? ad;
+        int? adet;
+        if (adisyonUrun is Map) {
+          final urun = adisyonUrun['urun'];
+          if (urun is Map) ad = _safeString(urun['urun_adi']);
+          final a = _toDoubleOrNull(adisyonUrun['adet']);
+          if (a != null) adet = a.toInt();
+        }
+        kalemler.add({
+          'tip': 'Ürün',
+          'ad': ad ?? 'Ürün',
+          'tutar': _toDoubleOrNull(u['tutar']),
+          'adet': adet,
+        });
+      }
+    }
+
+    // Direkt ürün satışı (adisyon dışı)
+    final urunSatisi = item['urun_satisi'];
+    if (urunSatisi is Map) {
+      final urun = urunSatisi['urunler'];
+      String? ad;
+      if (urun is Map) ad = _safeString(urun['urun_adi']);
+      final adet = _toDoubleOrNull(urunSatisi['adet'])?.toInt();
+      kalemler.add({
+        'tip': 'Ürün',
+        'ad': ad ?? 'Ürün',
+        'tutar': _toDoubleOrNull(urunSatisi['tutar'] ?? urunSatisi['fiyat']),
+        'adet': adet,
+      });
+    }
+
+    return kalemler;
+  }
+
+  IconData _kalemIkonu(String tip) {
+    switch (tip) {
+      case 'Paket':
+        return Icons.card_giftcard_rounded;
+      case 'Ürün':
+        return Icons.shopping_bag_outlined;
+      case 'Hizmet':
+      default:
+        return Icons.content_cut_rounded;
+    }
+  }
+
+  Widget _satilanlarBlogu(List<Map<String, dynamic>> kalemler, Color accent) {
+    final fmt = NumberFormat('#,##0.00', 'tr_TR');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.receipt_long_rounded, size: 15, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Satılan',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black.withValues(alpha: 0.45),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ...kalemler.map((k) {
+                  final tip = (k['tip'] as String?) ?? 'Hizmet';
+                  final ad = (k['ad'] as String?) ?? '-';
+                  final tutar = k['tutar'] as double?;
+                  final adet = k['adet'] as int?;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(_kalemIkonu(tip), size: 13, color: accent),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                adet != null && adet > 1
+                                    ? '$ad  ×$adet'
+                                    : ad,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                  height: 1.3,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: accent.withValues(alpha: 0.10),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      tip,
+                                      style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: accent,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ),
+                                  if (tutar != null) ...[
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${fmt.format(tutar)} ₺',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black
+                                            .withValues(alpha: 0.55),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDetayPopup(BuildContext context, Map<String, dynamic> item) {
     final isGelir = type == 'gelir';
     final tutar = item['tutar'] ?? item['miktar'];
@@ -874,6 +1085,7 @@ class _TransactionList extends StatelessWidget {
         : null;
     final kategori = _kategoriAdi(item);
     final kayitNo = _safeString(item['id']);
+    final kalemler = isGelir ? _satilanKalemler(item) : <Map<String, dynamic>>[];
 
     final Color accent = isGelir ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
     final IconData accentIcon =
@@ -929,6 +1141,8 @@ class _TransactionList extends StatelessWidget {
                             value: musteriAdi ?? 'Kasaya para ekleme',
                             accent: accent,
                           ),
+                        if (isGelir && kalemler.isNotEmpty)
+                          _satilanlarBlogu(kalemler, accent),
                         if (!isGelir && harcayanAdi != null)
                           _detaySatir(
                             icon: Icons.person_outline_rounded,
