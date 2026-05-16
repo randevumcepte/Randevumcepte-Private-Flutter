@@ -2367,7 +2367,7 @@ class _AppointmentCardState extends State<_AppointmentCard> {
     final String startTimeText = DateFormat.Hm().format(widget.appointment.startTime.toLocal());
     final String endTimeText = DateFormat.Hm().format(widget.appointment.endTime.toLocal());
 
-    // Backend'in coklu satirini ayir, "Olusturan:" prefix'ini kart icin kisalt
+    // Backend'in coklu satirini ayir. "Oluşturan:X" → "Oluşturan: X" (bosluk eksikti)
     final List<String> subjectLines = widget.appointment.subject.split('\n');
     final String musteriSatiri = subjectLines.isNotEmpty ? subjectLines[0] : '';
     final String detayBlogu = subjectLines.length > 1
@@ -2375,7 +2375,7 @@ class _AppointmentCardState extends State<_AppointmentCard> {
             .skip(1)
             .where((l) => l.trim().isNotEmpty)
             .map((l) => l.startsWith('Oluşturan:')
-                ? '↳ ${l.substring('Oluşturan:'.length).trim()}'
+                ? 'Oluşturan: ${l.substring('Oluşturan:'.length).trim()}'
                 : l)
             .join('\n')
         : '';
