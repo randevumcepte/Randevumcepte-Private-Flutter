@@ -99,13 +99,31 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
         widget.cevapladi2,
       );
       final data = (resp['data'] ?? []) as List;
-      final yeniler = data.map<Arsiv>((j) => Arsiv.fromJson(j)).toList();
+      final yeniler = <Arsiv>[];
+      int parseHata = 0;
+      for (final j in data) {
+        try {
+          // Arsiv.fromJson 'form' ve 'musteri' alanlarini Map bekler;
+          // bazi eski kayitlarda null/eksik olabilir — minimal default ile parse et.
+          final map = Map<String, dynamic>.from(j as Map);
+          map['form'] ??= {'form_adi': '-'};
+          map['musteri'] ??= {'name': '-'};
+          map['personel'] ??= <String, dynamic>{};
+          yeniler.add(Arsiv.fromJson(map));
+        } catch (_) {
+          parseHata++;
+        }
+      }
       if (mounted) {
         setState(() {
           _liste.addAll(yeniler);
           _toplamSayfa = (resp['last_page'] ?? 1) as int;
           _toplamKayit = (resp['total'] ?? 0) as int;
           _yukleniyor = false;
+          if (yeniler.isEmpty && parseHata > 0) {
+            _hataMesaji =
+                '$parseHata kayit parse edilemedi (eski format kayit olabilir).';
+          }
         });
       }
     } catch (e) {
