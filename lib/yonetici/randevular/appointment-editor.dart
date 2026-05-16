@@ -428,13 +428,24 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           return 30;
         }
 
+        // Oncelik: dialog'tan gelen paket_sure (paketin TOPLAM suresi, ornegin
+        // listede '90 dk' gosterilen deger). Yoksa kalem sureleri toplami,
+        // o da yoksa _hizmetSuresiCozumle ile 30 dk varsayim.
         final Map<String, int> paketToplamSure = {};
+        final Map<String, int> paketKalemToplam = {};
         for (final s in secilenler) {
           final pAdi = s['paket_adi']?.toString();
           if (pAdi == null || pAdi.isEmpty) continue;
           final pid = s['adisyon_paket_id']?.toString() ?? pAdi;
-          paketToplamSure[pid] =
-              (paketToplamSure[pid] ?? 0) + _hizmetSuresiCozumle(s);
+          final pSure = int.tryParse(s['paket_sure']?.toString() ?? '');
+          if (pSure != null && pSure > 0) {
+            paketToplamSure[pid] = pSure; // tek seferlik kesin deger
+          }
+          paketKalemToplam[pid] =
+              (paketKalemToplam[pid] ?? 0) + _hizmetSuresiCozumle(s);
+        }
+        for (final pid in paketKalemToplam.keys) {
+          paketToplamSure.putIfAbsent(pid, () => paketKalemToplam[pid]!);
         }
         final Set<String> paketIlkAtildi = {};
 

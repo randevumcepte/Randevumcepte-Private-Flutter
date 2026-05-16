@@ -206,6 +206,12 @@ Future<List<Map<String, dynamic>>?> showPaketSecimBottomSheet({
                                           'hizmet_adi':
                                               h['text']?.toString() ?? '',
                                           'sure': h['sure'],
+                                          // Paketin TOPLAM suresi (listede
+                                          // gosterilen item['sure']). Editor
+                                          // bunu pakete ait ilk satira
+                                          // yazip kalan satirlari 0 yapar.
+                                          'paket_sure':
+                                              isPaket ? item['sure'] : null,
                                           'paket_adi': isPaket
                                               ? item['adi']?.toString()
                                               : null,
