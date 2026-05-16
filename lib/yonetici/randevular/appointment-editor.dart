@@ -977,14 +977,18 @@ class AppointmentEditorState extends State<AppointmentEditor> {
               final int firstIndex = indices.first;
               final bool grupPaket =
                   indices.any((i) => randevuhizmetleri[i].isPaket);
-              final String? grupPaketAdi = grupPaket
-                  ? randevuhizmetleri
-                      .firstWhere((h) =>
-                          h.groupId == gid &&
-                          h.isPaket &&
-                          (h.paket_adi != null && h.paket_adi!.isNotEmpty))
-                      .paket_adi
-                  : null;
+              String? grupPaketAdi;
+              if (grupPaket) {
+                for (final i in indices) {
+                  final h = randevuhizmetleri[i];
+                  if (h.isPaket &&
+                      h.paket_adi != null &&
+                      h.paket_adi!.isNotEmpty) {
+                    grupPaketAdi = h.paket_adi;
+                    break;
+                  }
+                }
+              }
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
