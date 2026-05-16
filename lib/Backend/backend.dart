@@ -3261,7 +3261,8 @@ Future<void> randevuEkleGuncelle(
   showProgressLoading(context);
   SharedPreferences localStorage = await SharedPreferences.getInstance();
   log('randevu hizmet data ' + jsonEncode(randevuhizmetleri));
-  var user = jsonDecode(localStorage.getString('user')!);
+  final userStr = localStorage.getString('user');
+  final user = userStr != null ? jsonDecode(userStr) : null;
 
   Map<String, dynamic> formData = {
     'randevu_id': randevuid,
@@ -3277,7 +3278,7 @@ Future<void> randevuEkleGuncelle(
     'salonid': salonid,
     'cakisma_varmi': cakismavarmi,
     'cakisanrandevuekle': cakisanrandevuekle, // Burada string olarak gönder
-    'olusturan': kaynak == 'salon' ? user["id"] : null,
+    'olusturan': kaynak == 'salon' && user != null ? user["id"] : null,
     'olusturanMusteri': kaynak == 'uygulama' ? secilimusteridanisan.id : null,
     'randevuKaynak': kaynak,
     'durum': durum,

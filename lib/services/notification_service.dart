@@ -9,6 +9,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -216,6 +217,11 @@ class NotificationService {
       }
     } catch (_) {}
 
+    String appBundle = '';
+    try {
+      appBundle = (await PackageInfo.fromPlatform()).packageName;
+    } catch (_) {}
+
     final body = {
       'token': token,
       'platform': Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'web'),
@@ -225,7 +231,7 @@ class NotificationService {
       'yetkili_id': prefs.getString('notif_yetkili_id') ?? '',
       'salon_id': prefs.getString('notif_salon_id') ?? '',
       'cihaz': cihazId ?? '',
-      'app_bundle': prefs.getString('app_bundle') ?? '',
+      'app_bundle': appBundle,
     };
 
     try {
