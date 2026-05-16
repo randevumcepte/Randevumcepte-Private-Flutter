@@ -81,15 +81,16 @@ class _PrimHakedisState extends State<PrimHakedis> {
     }
     _hata = null;
     final list = (data['personeller'] as List?) ?? const [];
-    _personeller = list.map((m) {
-      final map = Map<String, dynamic>.from(m as Map);
-      return Personel.fromJson(map);
-    }).toList();
+    _personeller = [];
     _primler = {};
     _odenenler = {};
     for (final m in list) {
       final map = Map<String, dynamic>.from(m as Map);
-      final id = map['personel_id'].toString();
+      // Toplu API 'personel_id' donduruyor; Personel.fromJson 'id' bekliyor.
+      // Eslestirmezsek p.id == "null" olur ve kart sonsuza dek 'yukleniyor' kalir.
+      final id = (map['id'] ?? map['personel_id']).toString();
+      map['id'] = id;
+      _personeller.add(Personel.fromJson(map));
       _primler[id] = {
         'hizmet_toplam_numeric':  map['hizmet_toplam'],
         'urun_toplam_numeric':    map['urun_toplam'],
