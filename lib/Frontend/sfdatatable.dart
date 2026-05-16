@@ -44,7 +44,7 @@ import 'package:randevu_sistem/Models/tahsilatlar.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
 
 import 'package:randevu_sistem/Models/urunsatislari.dart';
-import 'package:randevu_sistem/yeni/calisan_secim.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/hizmetler/hizmet_duzenle.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/satislar/varolantahsilat.dart';
 import 'package:randevu_sistem/yonetici/dashboard/gunlukRaporlar/ongorduzenle.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ajanda/ajanda.dart';
@@ -9328,16 +9328,14 @@ class HizmetlerDataSource extends DataGridSource{
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: () {
-                                  List<Hizmet> secilihizmet = [hizmet];
                                   Navigator.of(context).pop();
 
                                   Navigator.of(context, rootNavigator: true).push(
                                     MaterialPageRoute(
-                                      builder: (_) => CalisanSecimi(
+                                      builder: (_) => HizmetDuzenle(
                                         isletmebilgi: isletmebilgi,
-                                        secilihizmetler: secilihizmet,
-                                        hizmetDataGridSource: this,
-                                        yeniEkleme: false,
+                                        hizmet: hizmet,
+                                        onSaved: () => fetchData('1', '', false),
                                       ),
                                     ),
                                   );

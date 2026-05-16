@@ -5,8 +5,8 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/hizmetler.dart';
-import 'package:randevu_sistem/yeni/calisan_secim.dart';
 import 'package:randevu_sistem/yeni/hizmet.dart';
+import 'hizmet_duzenle.dart';
 
 class Hizmetler extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -89,11 +89,10 @@ class _HizmetlerState extends State<Hizmetler> {
     if (_ds == null) return;
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
-        builder: (_) => CalisanSecimi(
+        builder: (_) => HizmetDuzenle(
           isletmebilgi: widget.isletmebilgi,
-          secilihizmetler: [h],
-          hizmetDataGridSource: _ds!,
-          yeniEkleme: false,
+          hizmet: h,
+          onSaved: () => _ds!.fetchData('1', '', false),
         ),
       ),
     );
@@ -317,50 +316,6 @@ class _HizmetlerState extends State<Hizmetler> {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(999),
-                  child: InkWell(
-                    onTap: _yeniHizmet,
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6FC8B1), Color(0xFF4CAF93)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _accent.withValues(alpha: 0.30),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.add_rounded,
-                              size: 16, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Yeni',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12.5,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ],
