@@ -913,14 +913,17 @@ class _HomeState extends State<DashBoard> {
     final ext = context.appTheme;
 
     // Gerçek backend verisi (cache'te) — yoksa bugünün ozet verisine düş
+    // KASA = bu periyot toplam cirosu (tahsil edilmiş)
+    // ALACAK = bu periyot bekleyen alacaklar
     final cache = _karsCache[_perfPeriod];
     double kasaReal;
     double alacakReal;
     if (cache != null) {
-      kasaReal = (cache['kasa'] as num?)?.toDouble() ?? 0;
+      // current.value = ciro (kasa - maliyet değil!) → kullanıcının görmek istediği
+      kasaReal = (cache['current']?['value'] as num?)?.toDouble() ?? 0;
       alacakReal = (cache['alacak'] as num?)?.toDouble() ?? 0;
     } else {
-      // Backend henüz yüklenmediyse: bugünkü kasa & alacak (ölçeklemesiz, GERÇEK değer)
+      // Backend henüz yüklenmediyse: bugünkü ciro & alacak
       kasaReal = _parseAmount(ozetsayfabilgi.toplamkasa.toString()).toDouble();
       alacakReal = _parseAmount(kullanicirolu < 5
               ? ozetsayfabilgi.kalantutar.toString()
@@ -929,11 +932,22 @@ class _HomeState extends State<DashBoard> {
     }
 
     // Donut: toplam (kasa+alacak) içindeki oran — anlamlı bir yüzde
-    // Kasa donut = tahsil edilen / (tahsil + bekleyen)
-    // Alacak donut = bekleyen / (tahsil + bekleyen)
+    // Kasa donut = tahsil edilen / (tahsil + bekleyen)  → tahsil yüzdesi
+    // Alacak donut = bekleyen / (tahsil + bekleyen)    → kalan yüzde
+    // Sadece alacak varsa ya da hiçbiri yoksa anlamsız → kasa varsa min %100
     final toplam = kasaReal + alacakReal;
-    final kasaProgress = toplam > 0 ? (kasaReal / toplam) : 0.0;
-    final alacakProgress = toplam > 0 ? (alacakReal / toplam) : 0.0;
+    double kasaProgress;
+    double alacakProgress;
+    if (toplam > 0) {
+      kasaProgress = kasaReal / toplam;
+      alacakProgress = alacakReal / toplam;
+    } else {
+      kasaProgress = 0.0;
+      alacakProgress = 0.0;
+    }
+    // Eğer kasa var ama hesaplama %0 verirse (alacak çok yüksek edge case),
+    // kullanıcı görsün diye min %15 göster
+    if (kasaReal > 0 && kasaProgress < 0.15) kasaProgress = 0.15;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
