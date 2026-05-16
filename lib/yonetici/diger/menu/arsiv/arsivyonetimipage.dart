@@ -23,6 +23,23 @@ class ArsivYonetimiPage extends StatefulWidget {
 }
 
 class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
+  /// Bottom sheet'ten sayfa acan helper. Sheet'i kapatir, kisa bir frame
+  /// gecikmesi ile push yapar — boylece pointer event sheet kapanir kapanmaz
+  /// yeni sayfanin altindaki bir butona dusmez (auto-tap bug fix).
+  Future<void> _acSayfa(BuildContext ctx, Widget sayfa) async {
+    Navigator.pop(ctx);
+    await Future.delayed(const Duration(milliseconds: 80));
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      PageTransition(
+        type: PageTransitionType.rightToLeft,
+        duration: const Duration(milliseconds: 300),
+        child: sayfa,
+      ),
+    );
+  }
+
   void _yeniSec(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
@@ -72,17 +89,8 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   baslik: 'Form Gönder',
                   altYazi: 'Müşteriye onam/anket formu gönder',
                   renk: const Color(0xFF16A34A),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      PageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        duration: const Duration(milliseconds: 300),
-                        child: FormOlustur(isletmebilgi: widget.isletmebilgi),
-                      ),
-                    );
-                  },
+                  onTap: () => _acSayfa(
+                      ctx, FormOlustur(isletmebilgi: widget.isletmebilgi)),
                 ),
                 const SizedBox(height: 8),
                 _SecimSatiri(
@@ -90,18 +98,10 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   baslik: 'Yeni Form Şablonu',
                   altYazi: 'Onam formu veya sözleşme şablonu oluştur',
                   renk: const Color(0xFFD97706),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      PageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        duration: const Duration(milliseconds: 300),
-                        child: FormSablonDuzenle(
-                            isletmebilgi: widget.isletmebilgi),
-                      ),
-                    );
-                  },
+                  onTap: () => _acSayfa(
+                      ctx,
+                      FormSablonDuzenle(
+                          isletmebilgi: widget.isletmebilgi)),
                 ),
                 const SizedBox(height: 8),
                 _SecimSatiri(
@@ -109,18 +109,9 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   baslik: 'Sözleşme Oluştur',
                   altYazi: 'Hizmet sözleşmesi hazırla ve gönder',
                   renk: const Color(0xFF0EA5E9),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      PageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        duration: const Duration(milliseconds: 300),
-                        child: SozlesmeOlustur(
-                            isletmebilgi: widget.isletmebilgi),
-                      ),
-                    );
-                  },
+                  onTap: () => _acSayfa(
+                      ctx,
+                      SozlesmeOlustur(isletmebilgi: widget.isletmebilgi)),
                 ),
                 const SizedBox(height: 8),
                 _SecimSatiri(
@@ -128,18 +119,10 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   baslik: 'Belge Ekle',
                   altYazi: 'Harici bir belgeyi sisteme yükle',
                   renk: const Color(0xFF7C3AED),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      PageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        duration: const Duration(milliseconds: 300),
-                        child: HariciBelgeEkle(
-                            isletmebilgi: widget.isletmebilgi),
-                      ),
-                    );
-                  },
+                  onTap: () => _acSayfa(
+                      ctx,
+                      HariciBelgeEkle(
+                          isletmebilgi: widget.isletmebilgi)),
                 ),
               ],
             ),
