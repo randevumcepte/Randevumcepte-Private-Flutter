@@ -109,7 +109,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
         navigator.pop();
         messenger.showSnackBar(
           SnackBar(
-            content: const Text('Randevu ayarları güncellendi'),
+            content: const Text('Online randevu ayarları güncellendi'),
             backgroundColor: _accent,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -160,7 +160,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          'Randevu Ayarları',
+          'Online Randevu Ayarları',
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.w800,
