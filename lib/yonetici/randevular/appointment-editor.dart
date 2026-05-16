@@ -390,6 +390,36 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           hedefGroupId = 'g-${DateTime.now().millisecondsSinceEpoch}';
         }
 
+        // Personel devralma: kullanici paket eklemeden once personel
+        // secmisse, paket satirlarinda da ayni personel kullanilsin.
+        // Once bos satirin personeli; yoksa son dolu satirin personeli.
+        Personel? hedefPersonel;
+        if (bosSatirIndex != null) {
+          hedefPersonel = secilipersonel[bosSatirIndex];
+        }
+        if (hedefPersonel == null && secilipersonel.isNotEmpty) {
+          for (int i = secilipersonel.length - 1; i >= 0; i--) {
+            if (secilipersonel[i] != null) {
+              hedefPersonel = secilipersonel[i];
+              break;
+            }
+          }
+        }
+        final String hedefPersonelId = hedefPersonel?.id ?? '';
+
+        // Paket-bazli toplam sure hesabi: ayni pakete ait tum hizmetlerin
+        // suresi PAKETTEKI ILK satira yazilir, geri kalanlar 0 dk olur ki
+        // takvimde tek slot kaplasin (chain'de toplam = paket suresi).
+        final Map<String, int> paketToplamSure = {};
+        for (final s in secilenler) {
+          final pAdi = s['paket_adi']?.toString();
+          if (pAdi == null || pAdi.isEmpty) continue;
+          final pid = s['adisyon_paket_id']?.toString() ?? pAdi;
+          final sd = int.tryParse(s['sure']?.toString() ?? '0') ?? 0;
+          paketToplamSure[pid] = (paketToplamSure[pid] ?? 0) + sd;
+        }
+        final Set<String> paketIlkAtildi = {};
+
         for (final secim in secilenler) {
           final hizmetIdStr = secim['hizmet_id']?.toString() ?? '';
           if (hizmetIdStr.isEmpty) {
@@ -424,13 +454,26 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             isletmehizmetliste.add(hizmetObj);
           }
 
-          final sureStr = (secim['sure']?.toString().isNotEmpty == true)
+          final hamSureStr = (secim['sure']?.toString().isNotEmpty == true)
               ? secim['sure'].toString()
               : '30';
           final hizmetAdi = secim['hizmet_adi']?.toString() ?? '';
           final paketAdi = secim['paket_adi']?.toString();
           final adisyonPaketId = secim['adisyon_paket_id'];
           final adisyonHizmetId = secim['adisyon_hizmet_id'];
+
+          // Paket icindeki ilk hizmet => paket toplam suresi; sonrakiler => 0
+          String sureStr = hamSureStr;
+          if (paketAdi != null && paketAdi.isNotEmpty) {
+            final pid = adisyonPaketId?.toString() ?? paketAdi;
+            if (!paketIlkAtildi.contains(pid)) {
+              sureStr = (paketToplamSure[pid] ?? int.tryParse(hamSureStr) ?? 30)
+                  .toString();
+              paketIlkAtildi.add(pid);
+            } else {
+              sureStr = '0';
+            }
+          }
 
           // chain default (backend semantik):
           // - randevuekleguncelle: birlestir bos => yenisaatbaslangic = saat_bitis (chain)
@@ -440,8 +483,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           final yeniHizmet = RandevuHizmet(
             hizmetler: hizmetObj,
             hizmet_id: hizmetIdStr,
-            personel_id: '',
-            personeller: null,
+            personel_id: hedefPersonelId,
+            personeller: hedefPersonel,
             oda_id: '',
             oda: null,
             cihaz_id: '',
@@ -469,13 +512,13 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             randevuhizmetleri[i] = yeniHizmet;
             bosSatirIndex = null; // bir sonraki secim icin yeni satir
           } else {
-            // Yeni satir
+            // Yeni satir — personel devralma: ust grup ile ayni personel
             suredk.add(TextEditingController(text: sureStr));
             fiyat.add(TextEditingController(text: '0'));
             oda.add(TextEditingController());
             cihaz.add(TextEditingController());
             hizmet.add(TextEditingController(text: hizmetAdi));
-            secilipersonel.add(null);
+            secilipersonel.add(hedefPersonel);
             seciliyardimcipersonel.add([null]);
             secilihizmet.add(hizmetObj);
             secilioda.add(null);
