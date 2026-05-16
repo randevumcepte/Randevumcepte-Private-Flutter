@@ -942,7 +942,7 @@ class _HomeState extends State<DashBoard> {
           Expanded(
             child: _premiumPerfCard(
               context,
-              title: kullanicirolu < 5 ? 'Toplam Kasa' : 'Toplam Satış',
+              title: kullanicirolu < 5 ? 'Kasa' : 'Satış',
               value: '${_formatAmount(kasaReal)} ₺',
               icon: Icons.account_balance_wallet_rounded,
               tint: ext.successColor,
@@ -3141,12 +3141,15 @@ class _HomeState extends State<DashBoard> {
       {required double progress, required Color tint}) {
     final scheme = Theme.of(context).colorScheme;
     final clamped = progress.clamp(0.0, 1.0);
+    // Key her periyot/değer değişiminde widget'ı yeniden mount eder
+    // → animasyon 0'dan başa sarılır, kullanıcı hareketi net görür
     return SizedBox(
       width: 48,
       height: 48,
       child: TweenAnimationBuilder<double>(
+        key: ValueKey('${_perfPeriod}_${clamped.toStringAsFixed(3)}'),
         tween: Tween<double>(begin: 0, end: clamped),
-        duration: const Duration(milliseconds: 900),
+        duration: const Duration(milliseconds: 1100),
         curve: Curves.easeOutCubic,
         builder: (context, value, _) {
           final pct = (value * 100).round();
