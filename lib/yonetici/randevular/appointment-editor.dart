@@ -410,13 +410,31 @@ class AppointmentEditorState extends State<AppointmentEditor> {
         // Paket-bazli toplam sure hesabi: ayni pakete ait tum hizmetlerin
         // suresi PAKETTEKI ILK satira yazilir, geri kalanlar 0 dk olur ki
         // takvimde tek slot kaplasin (chain'de toplam = paket suresi).
+        // Sure backend'den bos gelirse: salon hizmet listesinden cek,
+        // yoksa 30 dk varsay (her kalemin asgari katkisi).
+        int _hizmetSuresiCozumle(Map secim) {
+          final s1 = int.tryParse(secim['sure']?.toString() ?? '');
+          if (s1 != null && s1 > 0) return s1;
+          final hid = secim['hizmet_id']?.toString() ?? '';
+          if (hid.isNotEmpty) {
+            for (final h in isletmehizmetliste) {
+              if (h.hizmet_id == hid) {
+                final s2 = int.tryParse(h.sure.toString());
+                if (s2 != null && s2 > 0) return s2;
+                break;
+              }
+            }
+          }
+          return 30;
+        }
+
         final Map<String, int> paketToplamSure = {};
         for (final s in secilenler) {
           final pAdi = s['paket_adi']?.toString();
           if (pAdi == null || pAdi.isEmpty) continue;
           final pid = s['adisyon_paket_id']?.toString() ?? pAdi;
-          final sd = int.tryParse(s['sure']?.toString() ?? '0') ?? 0;
-          paketToplamSure[pid] = (paketToplamSure[pid] ?? 0) + sd;
+          paketToplamSure[pid] =
+              (paketToplamSure[pid] ?? 0) + _hizmetSuresiCozumle(s);
         }
         final Set<String> paketIlkAtildi = {};
 
@@ -454,9 +472,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             isletmehizmetliste.add(hizmetObj);
           }
 
-          final hamSureStr = (secim['sure']?.toString().isNotEmpty == true)
-              ? secim['sure'].toString()
-              : '30';
+          final hamSureStr = _hizmetSuresiCozumle(secim).toString();
           final hizmetAdi = secim['hizmet_adi']?.toString() ?? '';
           final paketAdi = secim['paket_adi']?.toString();
           final adisyonPaketId = secim['adisyon_paket_id'];
