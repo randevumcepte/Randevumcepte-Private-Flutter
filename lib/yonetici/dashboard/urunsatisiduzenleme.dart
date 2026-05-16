@@ -11,6 +11,7 @@ import 'package:randevu_sistem/Models/personel.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/stok/barkod_tarayici.dart';
 
 
 class UrunSatisiDuzenleme extends StatefulWidget {
@@ -56,6 +57,39 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
       isloading = false;
     });
   }
+
+  /// Barkod tara → eşleşen ürünü bul → mevcut ürünü değiştir (auto-submit YOK, edit modunda)
+  Future<void> _barkodTarayipDegistir() async {
+    final String? kod = await BarkodTarayici.tekSeferTara(context, baslik: 'Ürün Barkodu Tara');
+    if (kod == null || kod.isEmpty) return;
+    if (!mounted) return;
+
+    final String aranan = kod.trim();
+    Urun? eslesen;
+    for (final u in urun) {
+      if (u.barkod.trim() == aranan) {
+        eslesen = u;
+        break;
+      }
+    }
+
+    if (eslesen == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"$aranan" barkoduna kayıtlı ürün bulunamadı.'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      selectedUrun = eslesen;
+      adet.text = "1";
+      double f = double.tryParse(eslesen!.fiyat ?? "0") ?? 0;
+      fiyat.text = tryformat.format(f);
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,7 +119,65 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20,),
+            const SizedBox(height: 16,),
+            // BARKOD TARA CTA
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.purple.shade600, Colors.purple.shade800],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.purple.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _barkodTarayipDegistir,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('BARKOD TARA', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5)),
+                                SizedBox(height: 2),
+                                Text('Farklı ürünle değiştir', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20,),
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
               child: Text('Ürün',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),

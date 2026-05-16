@@ -9,6 +9,7 @@ import 'package:randevu_sistem/Models/personel.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/stok/barkod_tarayici.dart';
 
 class UrunSatisi extends StatefulWidget {
   final String musteriid;
@@ -101,6 +102,115 @@ class _HUrunSatisiState extends State<UrunSatisi> {
     }
   }
 
+  /// Ortak kaydetme: hem manuel KAYDET hem barkod auto-submit tarafından kullanılır.
+  /// Validasyonlar başarısızsa false döner; başarılıysa kalemi pop ile geri verir.
+  Future<bool> _kalemiKaydet({required bool sessizKayit}) async {
+    if (selectedUrun == null) {
+      if (!sessizKayit) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lütfen bir ürün seçin'), backgroundColor: Colors.red),
+        );
+      }
+      return false;
+    }
+    if (selectedSatici == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Satıcı seçmediğiniz için kaydedilemedi. Lütfen satıcı seçin.'), backgroundColor: Colors.orange),
+      );
+      return false;
+    }
+    // Stok kontrolü
+    int? stokMiktari = int.tryParse(selectedUrun!.stok_adedi ?? "0");
+    int adetMiktari = int.tryParse(adet.text) ?? 1;
+    if (stokMiktari != null && adetMiktari > stokMiktari) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Yetersiz stok! Mevcut stok: $stokMiktari, İstenen: $adetMiktari'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+
+    final AdisyonUrun urunKalemi = AdisyonUrun(
+      islem_tarihi: DateFormat("yyyy-MM-dd").format(DateTime.now()),
+      id: "",
+      adisyon_id: widget.mevcutadisyonId ?? "",
+      urun_id: selectedUrun!.id ?? "",
+      adet: adet.text,
+      fiyat: tlyirakamacevir(fiyat.text).toString(),
+      personel_id: selectedSatici!.id,
+      taksitli_tahsilat_id: "",
+      senet_id: "",
+      indirim_tutari: "",
+      hediye: "false",
+      aciklama: "",
+      urun: selectedUrun!.toJson(),
+      personel: selectedSatici!.toJson(),
+    );
+
+    if (!widget.senetlisatis) {
+      AdisyonUrun eklenenurun = await adisyonurunekle(
+        urunKalemi,
+        widget.musteriid,
+        context,
+        seciliisletme!,
+        true,
+      );
+      if (!mounted) return false;
+      Navigator.pop(context, eklenenurun);
+    } else {
+      Navigator.pop(context, urunKalemi);
+    }
+    return true;
+  }
+
+  /// Barkod tara → eşleşen ürünü bul → otomatik doldur → satıcı seçiliyse auto-submit
+  Future<void> _barkodTarayipEkle() async {
+    final String? kod = await BarkodTarayici.tekSeferTara(context, baslik: 'Ürün Barkodu Tara');
+    if (kod == null || kod.isEmpty) return;
+    if (!mounted) return;
+
+    final String aranan = kod.trim();
+    Urun? eslesen;
+    for (final u in urun) {
+      if (u.barkod.trim() == aranan) {
+        eslesen = u;
+        break;
+      }
+    }
+
+    if (eslesen == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"$aranan" barkoduna kayıtlı ürün bulunamadı.'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      selectedUrun = eslesen;
+      adet.text = "1";
+      double f = double.tryParse(eslesen!.fiyat ?? "0") ?? 0;
+      fiyat.text = formatFiyat(f.toString());
+    });
+
+    // Satıcı seçiliyse direkt tahsilata aktar
+    if (selectedSatici != null) {
+      await _kalemiKaydet(sessizKayit: true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${eslesen.urun_adi} eklendi. Satıcı seçip KAYDET\'e basın.'),
+          backgroundColor: Colors.orange.shade700,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -144,63 +254,86 @@ class _HUrunSatisiState extends State<UrunSatisi> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Başlık Kartı
+            // BARKOD TARA CTA — en hızlı yol
             Container(
-              margin: EdgeInsets.only(bottom: 16),
-              padding: EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.purple.shade600, Colors.purple.shade800],
+                ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
+                    color: Colors.purple.withValues(alpha: 0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.purple.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.shopping_bag_outlined,
-                      color: Colors.purple.shade700,
-                      size: 20,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: _barkodTarayipEkle,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
                       children: [
-                        Text(
-                          'Ürün Satışı',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade800,
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 26),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'BARKOD TARA',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Okutun, otomatik tahsilata eklensin',
+                                style: TextStyle(fontSize: 12, color: Colors.white70),
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          'Müşteriye yeni ürün ekleyin',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
+                        const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 22),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
+
+            // VEYA ayraç
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('veya manuel seç', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                ),
+                Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+              ],
+            ),
+
+            const SizedBox(height: 16),
 
             // Ürün Seçimi
             _buildInputCard(
@@ -514,75 +647,7 @@ class _HUrunSatisiState extends State<UrunSatisi> {
               margin: EdgeInsets.symmetric(horizontal: 16),
               child: ElevatedButton(
                 onPressed: () async {
-                  // Kontroller
-                  if (selectedUrun == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Lütfen bir ürün seçin'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  if (selectedSatici == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Lütfen bir satıcı seçin'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  // Stok kontrolü
-                  int? stokMiktari = int.tryParse(selectedUrun!.stok_adedi ?? "0");
-                  int adetMiktari = int.tryParse(adet.text) ?? 1;
-                  if (stokMiktari != null && adetMiktari > stokMiktari) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Yetersiz stok! Mevcut stok: $stokMiktari, İstenen: $adetMiktari'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  // Fiyat null kontrolü
-                  String fiyatDegeri = fiyat.text.replaceAll(',', '.');
-                  double? fiyatDouble = double.tryParse(fiyatDegeri) ?? 0;
-
-                  final AdisyonUrun urun = AdisyonUrun(
-                    islem_tarihi:
-                    DateFormat("yyyy-MM-dd").format(DateTime.now()),
-                    id: "",
-                    adisyon_id: widget.mevcutadisyonId ?? "",
-                    urun_id: selectedUrun!.id ?? "",
-                    adet: adet.text,
-                    fiyat: tlyirakamacevir(fiyat.text).toString(),
-                    personel_id: selectedSatici!.id,
-                    taksitli_tahsilat_id: "",
-                    senet_id: "",
-                    indirim_tutari: "",
-                    hediye: "false",
-                    aciklama: "",
-                    urun: selectedUrun!.toJson(),
-                    personel: selectedSatici!.toJson(),
-                  );
-
-                  if (!widget.senetlisatis) {
-                    AdisyonUrun eklenenurun = await adisyonurunekle(
-                      urun,
-                      widget.musteriid,
-                      context,
-                      seciliisletme!,
-                      true,
-                    );
-                    Navigator.pop(context, eklenenurun);
-                  } else {
-                    Navigator.pop(context, urun);
-                  }
+                  await _kalemiKaydet(sessizKayit: false);
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
