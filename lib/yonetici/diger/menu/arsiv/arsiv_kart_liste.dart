@@ -32,9 +32,11 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
   final List<Arsiv> _liste = [];
   int _sayfa = 1;
   int _toplamSayfa = 1;
+  int _toplamKayit = 0;
   bool _yukleniyor = true;
   bool _dahaYukleniyor = false;
   String _arama = '';
+  String? _hataMesaji;
   Timer? _debounce;
   final _aramaController = TextEditingController();
   final _scrollController = ScrollController();
@@ -83,6 +85,7 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
     if (reset) {
       _sayfa = 1;
       _liste.clear();
+      _hataMesaji = null;
       if (mounted) setState(() => _yukleniyor = true);
     }
     try {
@@ -101,11 +104,17 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
         setState(() {
           _liste.addAll(yeniler);
           _toplamSayfa = (resp['last_page'] ?? 1) as int;
+          _toplamKayit = (resp['total'] ?? 0) as int;
           _yukleniyor = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _yukleniyor = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _yukleniyor = false;
+          _hataMesaji = e.toString();
+        });
+      }
     }
   }
 
@@ -191,20 +200,52 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
                   child: _liste.isEmpty
                       ? ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
                           children: [
                             const SizedBox(height: 60),
-                            Icon(widget.bosIkon,
+                            Icon(
+                                _hataMesaji != null
+                                    ? Icons.error_outline_rounded
+                                    : widget.bosIkon,
                                 size: 64,
-                                color: scheme.primary.withValues(alpha: 0.4)),
+                                color: (_hataMesaji != null
+                                        ? Colors.red
+                                        : scheme.primary)
+                                    .withValues(alpha: 0.5)),
                             const SizedBox(height: 14),
                             Text(
-                              widget.bosMesaj,
+                              _hataMesaji != null
+                                  ? 'Veri çekilemedi'
+                                  : widget.bosMesaj,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: scheme.onSurface
                                     .withValues(alpha: 0.65),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  _DbgRow('Şube ID', _seciliSube ?? '-'),
+                                  _DbgRow('Filtre',
+                                      'durum=${widget.durum} | cvp=${widget.cevapladi} | cvp2=${widget.cevapladi2}'),
+                                  _DbgRow('Sayfa',
+                                      '$_sayfa / $_toplamSayfa (toplam $_toplamKayit)'),
+                                  if (_arama.isNotEmpty)
+                                    _DbgRow('Arama', _arama),
+                                  if (_hataMesaji != null)
+                                    _DbgRow('Hata', _hataMesaji!),
+                                ],
                               ),
                             ),
                           ],
@@ -415,6 +456,45 @@ class _DurumRozet extends StatelessWidget {
           color: renk,
           letterSpacing: 0.2,
         ),
+      ),
+    );
+  }
+}
+
+class _DbgRow extends StatelessWidget {
+  final String etiket;
+  final String deger;
+  const _DbgRow(this.etiket, this.deger);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 56,
+            child: Text(
+              etiket,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              deger,
+              style: const TextStyle(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
