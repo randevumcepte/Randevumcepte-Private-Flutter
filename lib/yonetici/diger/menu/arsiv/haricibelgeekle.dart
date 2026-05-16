@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -23,7 +24,6 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
   bool _gonderiliyor = false;
   String? _hataMesaji;
 
-  List<MusteriDanisan> _musteriler = [];
   List<Personel> _personeller = [];
 
   MusteriDanisan? _musteri;
@@ -48,12 +48,8 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
   Future<void> _baslat() async {
     try {
       _seciliSube = (await secilisalonid()) ?? '';
-      final results = await Future.wait([
-        musterilistegetir(_seciliSube),
-        personellistegetir(_seciliSube),
-      ]);
-      _musteriler = (results[0] as List).cast<MusteriDanisan>();
-      _personeller = (results[1] as List).cast<Personel>();
+      // Sadece personel listesi preload; musteri arama server-side yapilir
+      _personeller = await personellistegetir(_seciliSube);
     } catch (e) {
       _hataMesaji = 'Veriler yüklenemedi: $e';
     }
@@ -61,13 +57,14 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
   }
 
   Future<void> _musteriSec() async {
-    final s = await _picker_<MusteriDanisan>(
-      baslik: 'Müşteri Seç',
-      ogeler: _musteriler,
-      etiket: (m) => m.name,
-      altYazi: (m) => m.cep_telefon,
-      seciliId: _musteri?.id,
-      ogeId: (m) => m.id,
+    final s = await showModalBottomSheet<MusteriDanisan?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _MusteriPicker(
+        salonid: _seciliSube,
+        seciliId: _musteri?.id,
+      ),
     );
     if (s != null) setState(() => _musteri = s);
   }
@@ -877,6 +874,227 @@ class _PickerSheetState<T> extends State<_PickerSheet<T>> {
                           );
                         },
                       ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Server-side aramali musteri picker — `musterilistegetirSayfali` ile
+/// tum musteri tabanini gezer (default endpoint limit=50 sorununu giderir).
+class _MusteriPicker extends StatefulWidget {
+  final String salonid;
+  final String? seciliId;
+  const _MusteriPicker({required this.salonid, required this.seciliId});
+
+  @override
+  State<_MusteriPicker> createState() => _MusteriPickerState();
+}
+
+class _MusteriPickerState extends State<_MusteriPicker> {
+  final _aramaController = TextEditingController();
+  Timer? _debounce;
+  bool _yukleniyor = true;
+  String _arama = '';
+  List<MusteriDanisan> _liste = [];
+  String? _hata;
+
+  @override
+  void initState() {
+    super.initState();
+    _yukle('');
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _aramaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _yukle(String q) async {
+    if (mounted) setState(() => _yukleniyor = true);
+    try {
+      final liste = await musterilistegetirSayfali(
+          '', widget.salonid, q, '200', '0');
+      if (mounted) {
+        setState(() {
+          _liste = liste;
+          _yukleniyor = false;
+          _hata = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _yukleniyor = false;
+          _hata = e.toString();
+        });
+      }
+    }
+  }
+
+  void _aramaDegisti(String v) {
+    _arama = v;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () => _yukle(v));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (ctx, scroll) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 38,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Müşteri Seç',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                child: TextField(
+                  controller: _aramaController,
+                  onChanged: _aramaDegisti,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'İsim veya telefon ara...',
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    suffixIcon: _yukleniyor
+                        ? const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: scheme.primary.withValues(alpha: 0.05),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _hata != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: Text(
+                            'Hata: $_hata',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.red.shade700),
+                          ),
+                        ),
+                      )
+                    : (_liste.isEmpty && !_yukleniyor)
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                _arama.isEmpty
+                                    ? 'Müşteri bulunamadı'
+                                    : '"$_arama" için sonuç yok',
+                                style: TextStyle(
+                                    color: Colors.black
+                                        .withValues(alpha: 0.5),
+                                    fontSize: 13),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: scroll,
+                            itemCount: _liste.length,
+                            itemBuilder: (ctx, i) {
+                              final m = _liste[i];
+                              final aktif = widget.seciliId == m.id;
+                              return ListTile(
+                                dense: true,
+                                tileColor: aktif
+                                    ? scheme.primary
+                                        .withValues(alpha: 0.06)
+                                    : null,
+                                leading: CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: scheme.primary
+                                      .withValues(alpha: 0.15),
+                                  child: Text(
+                                    m.name.isNotEmpty
+                                        ? m.name
+                                            .trim()
+                                            .substring(0, 1)
+                                            .toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  m.name,
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: aktif
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: m.cep_telefon.isNotEmpty &&
+                                        m.cep_telefon != 'null'
+                                    ? Text(m.cep_telefon,
+                                        style: const TextStyle(
+                                            fontSize: 11.5))
+                                    : null,
+                                trailing: aktif
+                                    ? Icon(Icons.check_circle_rounded,
+                                        color: scheme.primary, size: 18)
+                                    : null,
+                                onTap: () =>
+                                    Navigator.pop<MusteriDanisan>(
+                                        context, m),
+                              );
+                            },
+                          ),
               ),
             ],
           ),
