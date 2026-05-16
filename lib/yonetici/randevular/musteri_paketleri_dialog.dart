@@ -1,125 +1,247 @@
-// Şimdilik kaldırıldı.
-//rial.dart';
+import 'package:flutter/material.dart';
 
-/// Müşterinin bekleyen paket/hizmetlerini listeler.
-/// Kullanıcı seçimleri onaylarsa seçili paket detaylarını döner; vazgeçerse null.
-/*Future<List<Map<String, dynamic>>?> showMusteriPaketleriDialog({
+/// Musterinin aktif paket/hizmetleri icin secim bottom sheet'i.
+/// Backend'in paketVarmiKontrolu response'undaki paketDetaylari listesini alir,
+/// secim sonucunda her bir hizmet icin tek bir satir (Map) doner:
+///   { hizmet_id, hizmet_adi, sure, paket_adi (null olabilir),
+///     adisyon_paket_id (null olabilir), adisyon_hizmet_id (null olabilir) }
+/// Vazgec'e basilirsa null doner.
+Future<List<Map<String, dynamic>>?> showPaketSecimBottomSheet({
   required BuildContext context,
   required String userName,
   required List<Map<String, dynamic>> paketDetaylari,
 }) {
   final secimler = List<bool>.filled(paketDetaylari.length, false);
 
-  return showDialog<List<Map<String, dynamic>>>(
+  return showModalBottomSheet<List<Map<String, dynamic>>>(
     context: context,
-    barrierDismissible: false,
-    builder: (BuildContext ctx) {
-      return StatefulBuilder(
-        builder: (BuildContext ctx, StateSetter setLocalState) {
-          final secilenSayisi = secimler.where((s) => s).length;
-          return AlertDialog(
-            insetPadding: const EdgeInsets.all(16),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Müşteri Paket/Hizmetleri',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 4),
-                Text(
-                  '$userName için bekleyen paket/hizmetler',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.normal),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: paketDetaylari.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final item = paketDetaylari[index];
-                  final isPaket = item['type'] == 'paket';
-                  final adi = item['adi']?.toString() ?? '';
-                  final seans = item['seans']?.toString() ?? '0';
-                  final sure = item['sure']?.toString() ?? '0';
-                  final icerik = (item['icerik'] as List?) ?? [];
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollController) {
+          return StatefulBuilder(
+            builder: (ctx, setLocalState) {
+              final secilenSayisi = secimler.where((s) => s).length;
 
-                  return CheckboxListTile(
-                    value: secimler[index],
-                    onChanged: (val) {
-                      setLocalState(() {
-                        secimler[index] = val ?? false;
-                      });
-                    },
-                    activeColor: const Color(0xFF6A1B9A),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: Row(
-                      children: [
-                        Text(isPaket ? '📦 ' : '✨ '),
-                        Expanded(
-                          child: Text(
-                            adi,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
+              return Column(
+                children: [
+                  // Drag handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 4),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    subtitle: Column(
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2.0),
-                          child: Wrap(
-                            spacing: 8,
-                            children: [
-                              _info('Kalan', '$seans seans'),
-                              if (sure != '0' && sure.isNotEmpty)
-                                _info('Süre', '$sure dk'),
-                              _info('Tür', isPaket ? 'Paket' : 'Tek Hizmet'),
-                            ],
+                        Row(
+                          children: const [
+                            Icon(Icons.card_giftcard, color: Color(0xFF6A1B9A)),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Müşteri Paket/Hizmetleri',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$userName için bekleyen paket/hizmetlerden seçim yap:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
                           ),
                         ),
-                        if (isPaket && icerik.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              icerik
-                                  .map((h) => '• ${h['text']} (${h['seans']})')
-                                  .join('\n'),
-                              style: TextStyle(fontSize: 11, color: Colors.grey[700]),
-                            ),
-                          ),
                       ],
                     ),
-                  );
-                },
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(null),
-                child: const Text('Vazgeç'),
-              ),
-              ElevatedButton(
-                onPressed: secilenSayisi == 0
-                    ? null
-                    : () {
-                        final secilenler = <Map<String, dynamic>>[];
-                        for (int i = 0; i < secimler.length; i++) {
-                          if (secimler[i]) {
-                            secilenler.add(Map<String, dynamic>.from(paketDetaylari[i]));
-                          }
-                        }
-                        Navigator.of(ctx).pop(secilenler);
+                  ),
+                  const Divider(height: 1),
+                  // Liste
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: paketDetaylari.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                      itemBuilder: (context, index) {
+                        final item = paketDetaylari[index];
+                        final isPaket = item['type'] == 'paket';
+                        final adi = item['adi']?.toString() ?? '';
+                        final seans = item['seans']?.toString() ?? '0';
+                        final sure = item['sure']?.toString() ?? '0';
+                        final icerik = (item['icerik'] as List?) ?? [];
+
+                        return CheckboxListTile(
+                          value: secimler[index],
+                          onChanged: (val) {
+                            setLocalState(() {
+                              secimler[index] = val ?? false;
+                            });
+                          },
+                          activeColor: const Color(0xFF6A1B9A),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: Row(
+                            children: [
+                              Text(isPaket ? '📦 ' : '✨ '),
+                              Expanded(
+                                child: Text(
+                                  adi,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: [
+                                    _infoChip('Kalan', '$seans seans'),
+                                    if (sure != '0' && sure.isNotEmpty)
+                                      _infoChip('Süre', '$sure dk'),
+                                    _infoChip(
+                                        'Tür', isPaket ? 'Paket' : 'Tek Hizmet'),
+                                  ],
+                                ),
+                              ),
+                              if (isPaket && icerik.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6.0),
+                                  child: Text(
+                                    icerik
+                                        .map((h) =>
+                                            '• ${h['text']} (${h['seans']} seans)')
+                                        .join('\n'),
+                                    style: TextStyle(
+                                        fontSize: 11, color: Colors.grey[700]),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
                       },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6A1B9A),
-                  foregroundColor: Colors.white,
-                ),
-                child: Text('Seçilenleri Ekle ($secilenSayisi)'),
-              ),
-            ],
+                    ),
+                  ),
+                  // Footer
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 6,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      12 + MediaQuery.of(ctx).viewPadding.bottom,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(ctx).pop(null),
+                            style: OutlinedButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('Vazgeç'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: secilenSayisi == 0
+                                ? null
+                                : () {
+                                    final hizmetSatirlari =
+                                        <Map<String, dynamic>>[];
+                                    for (int i = 0;
+                                        i < secimler.length;
+                                        i++) {
+                                      if (!secimler[i]) continue;
+                                      final item = paketDetaylari[i];
+                                      final isPaket = item['type'] == 'paket';
+                                      final icerik =
+                                          (item['icerik'] as List?) ?? [];
+                                      // Her paket icindeki her hizmet ayri satir.
+                                      // Tek hizmet ise icerik 1 elemanlidir.
+                                      for (final h in icerik) {
+                                        hizmetSatirlari.add({
+                                          'hizmet_id': h['id'],
+                                          'hizmet_adi':
+                                              h['text']?.toString() ?? '',
+                                          'sure': h['sure'],
+                                          'paket_adi': isPaket
+                                              ? item['adi']?.toString()
+                                              : null,
+                                          'adisyon_paket_id':
+                                              item['adisyon_paket_id'],
+                                          'adisyon_hizmet_id':
+                                              item['adisyon_hizmet_id'],
+                                        });
+                                      }
+                                    }
+                                    Navigator.of(ctx).pop(hizmetSatirlari);
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6A1B9A),
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              secilenSayisi == 0
+                                  ? 'Seçilenleri Ekle'
+                                  : 'Seçilenleri Ekle ($secilenSayisi)',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       );
@@ -127,16 +249,16 @@
   );
 }
 
-Widget _info(String label, String value) {
+Widget _infoChip(String label, String value) {
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
       color: Colors.grey[100],
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
       '$label: $value',
       style: const TextStyle(fontSize: 11),
     ),
   );
-}*/
+}

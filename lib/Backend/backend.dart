@@ -4792,7 +4792,30 @@ Future<List<dynamic>> paketMusteriListesiGetir(
     return [];
   }
 }
-// backend.dart dosyasına ekleyin
+/// Musterinin aktif paket/hizmetlerini kontrol eder.
+/// Bos liste donerse popup gosterme; doluysa popup ile secime izin ver.
+Future<Map<String, dynamic>> paketVarmiKontrolu(String userId, String salonId) async {
+  try {
+    final response = await http.post(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/paketVarmiKontrolu'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'sube': salonId,
+        'paketRandevuOnayiVar': false,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    log('paketVarmiKontrolu HTTP ${response.statusCode}: ${response.body}');
+    return {'paketVarMi': false, 'paketDetaylari': []};
+  } catch (e) {
+    log('paketVarmiKontrolu hatasi: $e');
+    return {'paketVarMi': false, 'paketDetaylari': []};
+  }
+}
+
 Future<Map<String, dynamic>> adisyonSil(String adisyonId) async {
   try {
     final response = await http.post(
