@@ -91,7 +91,6 @@ class _HomeState extends State<DashBoard> {
     });
 
     await initialize();
-    await _gunlukRandevulariGetir();
   }
 
   Future<void> _refreshPage() async {
@@ -102,7 +101,6 @@ class _HomeState extends State<DashBoard> {
   void initState() {
     super.initState();
     initialize();
-    _gunlukRandevulariGetir();
   }
 
   Future<void> initialize() async {
@@ -120,8 +118,16 @@ class _HomeState extends State<DashBoard> {
 
     int bugunYarinTimestamp = DateTime.now().millisecondsSinceEpoch;
 
-    OzetSayfasi ozet = await dashboardGunlukRapor(seciliisletme!);
-    var asistanVerileri = await easistandashboard(seciliisletme!, bugunYarinTimestamp);
+    // PARALEL — 3 network çağrısını eşzamanlı başlat (eskiden seri await idi)
+    final futures = await Future.wait([
+      dashboardGunlukRapor(seciliisletme!),
+      easistandashboard(seciliisletme!, bugunYarinTimestamp),
+      _gunlukRandevulariGetirInternal(),
+    ]);
+    final OzetSayfasi ozet = futures[0] as OzetSayfasi;
+    final asistanVerileri = futures[1];
+    final List<Map<String, dynamic>> randevulariBugun =
+        futures[2] as List<Map<String, dynamic>>;
 
     widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
       if (element['salon_id'] == seciliisletme.toString()) {
@@ -129,6 +135,7 @@ class _HomeState extends State<DashBoard> {
       }
     });
 
+    if (!mounted) return;
     setState(() {
       kullanicirolu = int.parse(widget.kullanici.yetkili_olunan_isletmeler
           .firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["role_id"]
@@ -142,54 +149,29 @@ class _HomeState extends State<DashBoard> {
           context: context,
           baslik: '');
       futureEAsistanData = Future.value(asistanVerileri);
+      randevuList = randevulariBugun;
+      randevularYukleniyor = false;
       isloading = false;
     });
   }
 
-  // Günlük randevuları getiren fonksiyon
-  Future<void> _gunlukRandevulariGetir() async {
+  /// Bugünkü randevuları çeken iç fonksiyon (Future.wait icin paralel).
+  Future<List<Map<String, dynamic>>> _gunlukRandevulariGetirInternal() async {
     try {
-      SharedPreferences localStorage = await SharedPreferences.getInstance();
-      var userData = jsonDecode(localStorage.getString('user')!);
-      String userId = userData['id'].toString();
-
-      // Bugünün tarihini al
-      final now = DateTime.now();
-      String bugunTarih = DateFormat('yyyy-MM-dd').format(now);
-
-      // Randevuları getir
-      Map<String, dynamic> randevuData = await randevularigetir(
-          '', // musteri_id
-          widget.isletmebilgi["id"].toString(), // salonid
-          'Tümü', // oluşturma
-          'Tümü', // durum
-          'Bugün', // tarih
-          '1', // currpage
-          '', // musteridanisanadi
-          '', // personelid
-          '', // cihazid
-          false // musteriMi
+      final data = await randevularigetir(
+        '', // musteri_id
+        widget.isletmebilgi["id"].toString(),
+        'Tümü', 'Tümü', 'Bugün', '1', '', '', '', false,
       );
-
-      if (randevuData.containsKey('data') && randevuData['data'] is List) {
-        setState(() {
-          randevuList = List<Map<String, dynamic>>.from(randevuData['data']);
-          randevularYukleniyor = false;
-        });
-      } else {
-        setState(() {
-          randevuList = [];
-          randevularYukleniyor = false;
-        });
+      if (data.containsKey('data') && data['data'] is List) {
+        return List<Map<String, dynamic>>.from(data['data']);
       }
     } catch (e) {
       print('Randevu getirme hatası: $e');
-      setState(() {
-        randevuList = [];
-        randevularYukleniyor = false;
-      });
     }
+    return <Map<String, dynamic>>[];
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1134,6 +1116,44 @@ class _HomeState extends State<DashBoard> {
     await _loadKarsilastirma(period);
   }
 
+  /// Skeleton placeholder — kart içi loading için (CircularProgressIndicator yerine)
+  Widget _shimmerLines(BuildContext context, ColorScheme scheme,
+      {int lineCount = 3}) {
+    Widget bar({double widthFactor = 1.0, double height = 12}) {
+      return FractionallySizedBox(
+        widthFactor: widthFactor,
+        alignment: Alignment.centerLeft,
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                scheme.primary.withValues(alpha: 0.06),
+                scheme.primary.withValues(alpha: 0.12),
+                scheme.primary.withValues(alpha: 0.06),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+      );
+    }
+
+    final widths = [1.0, 0.75, 0.85, 0.6, 0.9];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(lineCount, (i) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: i == lineCount - 1 ? 0 : 9),
+            child: bar(widthFactor: widths[i % widths.length], height: i == 0 ? 22 : 12),
+          );
+        }),
+      ),
+    );
+  }
+
   /// Aktif gap kampanyasi icin tum musterilere SMS bildirim gonderir.
   /// Onay -> backend bulk SMS -> snackbar feedback.
   Future<void> _gonderKampanyaBildirim(
@@ -1420,32 +1440,7 @@ class _HomeState extends State<DashBoard> {
               ),
               const SizedBox(height: 14),
               if (isLoading)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation(scheme.primary),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Yükleniyor...',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: scheme.onSurface.withValues(alpha: 0.50),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                _shimmerLines(context, scheme, lineCount: 3)
               else if (isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
@@ -1662,32 +1657,7 @@ class _HomeState extends State<DashBoard> {
                 ),
               ),
               if (isLoading)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor:
-                                AlwaysStoppedAnimation(scheme.primary),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Yükleniyor...',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: scheme.onSurface.withValues(alpha: 0.50),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                _shimmerLines(context, scheme, lineCount: 3)
               else
               for (int i = 0; i < rows.length; i++) ...[
                 if (i > 0)
