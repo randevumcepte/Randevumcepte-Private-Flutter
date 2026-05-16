@@ -3817,6 +3817,25 @@ Future<dynamic>personelprimhesapla(BuildContext context, String personelid,Strin
   }
 }
 
+// TOPLU prim hakedis: salondaki tum aktif personelin ay/yil ozeti tek istekte.
+// PrimHakedis sayfasi icin — N personel icin 2N+1 istek yerine 1.
+Future<Map<String, dynamic>?> primHakedisToplu({
+  required String salonid,
+  required String ay,    // "01".."12"
+  required String yil,   // "2026"
+}) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/primHakedisToplu/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'ay': ay, 'yil': yil}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  debugPrint('primHakedisToplu failed: ${response.statusCode}');
+  return null;
+}
+
 // Ay/yil filtreli prim hesaplama (personeldetay sayfasi icin).
 // Donus: hizmet/urun/paket toplam+hakedis (string + numeric), adisyon listesi.
 Future<Map<String, dynamic>?> personelPrimHesaplaAyYil({
