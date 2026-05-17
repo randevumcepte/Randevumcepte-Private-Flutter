@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:page_transition/page_transition.dart';
@@ -1035,19 +1037,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
                   child: Row(
                     children: [
-                      Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.casino_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
+                      const _SpinningWheelIcon(size: 58),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -1416,6 +1406,197 @@ class _AnimatedBadgeState extends State<_AnimatedBadge>
       ),
     );
   }
+}
+
+// ── DÖNEN MİNİ ÇARKIFELEK İKONU ─────────────────────────────────────────────
+// Web'deki /cark sayfasındaki çarkın küçük, sürekli yavaşça dönen versiyonu.
+class _SpinningWheelIcon extends StatefulWidget {
+  final double size;
+  const _SpinningWheelIcon({this.size = 54});
+
+  @override
+  State<_SpinningWheelIcon> createState() => _SpinningWheelIconState();
+}
+
+class _SpinningWheelIconState extends State<_SpinningWheelIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.size;
+    return SizedBox(
+      width: s,
+      height: s,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // Hafif glow halkası
+          Container(
+            width: s,
+            height: s,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+          // Dönen çark
+          RotationTransition(
+            turns: _ctrl,
+            child: CustomPaint(
+              size: Size(s, s),
+              painter: const _WheelPainter(),
+            ),
+          ),
+          // Üstte pointer pin (sabit, dönmüyor)
+          Positioned(
+            top: -3,
+            child: CustomPaint(
+              size: Size(s * 0.18, s * 0.22),
+              painter: const _WheelPinPainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WheelPainter extends CustomPainter {
+  const _WheelPainter();
+
+  // Web'deki çark renkleri (carkifelek/_cark_widget.blade.php → :root)
+  static const List<Color> _colors = [
+    Color(0xFF6C5CE7), // ck-purple
+    Color(0xFFFD79A8), // ck-pink
+    Color(0xFFFDCB6E), // ck-gold
+    Color(0xFF00B894), // ck-green
+    Color(0xFFA29BFE), // ck-purple-l
+    Color(0xFF74B9FF), // mavi
+    Color(0xFFE17055), // turuncu
+    Color(0xFFFFE66D), // sarı
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+    final n = _colors.length;
+    final sweep = 2 * math.pi / n;
+    final rect = Rect.fromCircle(center: c, radius: r);
+
+    // Dilimler
+    for (int i = 0; i < n; i++) {
+      final start = -math.pi / 2 + i * sweep;
+      final path = Path()
+        ..moveTo(c.dx, c.dy)
+        ..arcTo(rect, start, sweep, false)
+        ..close();
+      canvas.drawPath(path, Paint()..color = _colors[i]);
+    }
+
+    // Dilim ayraçları (beyaz ince çizgiler)
+    final lineP = Paint()
+      ..color = Colors.white.withValues(alpha: 0.75)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    for (int i = 0; i < n; i++) {
+      final a = -math.pi / 2 + i * sweep;
+      canvas.drawLine(
+        c,
+        Offset(c.dx + r * math.cos(a), c.dy + r * math.sin(a)),
+        lineP,
+      );
+    }
+
+    // Dış halka
+    canvas.drawCircle(
+      c,
+      r - 0.5,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4,
+    );
+
+    // Merkez göbek
+    canvas.drawCircle(
+      c,
+      r * 0.20,
+      Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(
+      c,
+      r * 0.20,
+      Paint()
+        ..color = const Color(0xFF6C5CE7).withValues(alpha: 0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+    canvas.drawCircle(
+      c,
+      r * 0.08,
+      Paint()..color = const Color(0xFF6C5CE7),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _WheelPainter oldDelegate) => false;
+}
+
+class _WheelPinPainter extends CustomPainter {
+  const _WheelPinPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Web'deki pin: kırmızı gradient üçgen + üstte küçük dikdörtgen
+    final w = size.width, h = size.height;
+    final triPath = Path()
+      ..moveTo(w / 2, h)
+      ..lineTo(0, h * 0.20)
+      ..lineTo(w, h * 0.20)
+      ..close();
+
+    canvas.drawPath(
+      triPath,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF7F1D1D), Color(0xFFEF4444), Color(0xFF7F1D1D)],
+        ).createShader(Rect.fromLTWH(0, 0, w, h)),
+    );
+
+    // Üstte tutucu
+    final capRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, w, h * 0.22),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(capRect, Paint()..color = const Color(0xFFEF4444));
+  }
+
+  @override
+  bool shouldRepaint(covariant _WheelPinPainter oldDelegate) => false;
 }
 
 // ── DATA HOLDERS ────────────────────────────────────────────────────────────
