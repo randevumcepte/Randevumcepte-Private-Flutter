@@ -66,7 +66,7 @@ class _WheelPageState extends State<WheelPage>
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn);
 
-    _confetti = ConfettiController(duration: const Duration(seconds: 3));
+    _confetti = ConfettiController(duration: const Duration(milliseconds: 1800));
     // Web'deki playCheer() ile aynı: white-noise alkış + envelope + modulation
     _cheerBytes = _generateCheerWav();
 
@@ -187,15 +187,14 @@ class _WheelPageState extends State<WheelPage>
 
   // Webteki playCheer() algoritmasının Flutter karşılığı: 3 sn mono PCM WAV.
   // White noise * envelope (attack/sustain/release) * tremolo modülasyon →
-  // alkış "shhh-shh" hissi. WAV header runtime üretilir, audioplayers ile
-  // BytesSource olarak oynatılır.
+  // Kısa, tatlı "tada!" — C major arpej (C5-E5-G5-A5-C6) saf sin tonlarla.
+  // White noise yok, ~1.5 sn, rahatsız etmez.
   Uint8List _generateCheerWav() {
     const sampleRate = 22050;
-    const seconds = 3;
+    const seconds = 2;
     const numSamples = sampleRate * seconds;
     const dataSize = numSamples * 2;
     const totalSize = 44 + dataSize;
-    final rand = Random(42);
 
     final bytes = Uint8List(totalSize);
     final bd = ByteData.view(bytes.buffer);
@@ -210,7 +209,6 @@ class _WheelPageState extends State<WheelPage>
     writeAscii(0, 'RIFF');
     bd.setUint32(4, 36 + dataSize, Endian.little);
     writeAscii(8, 'WAVE');
-    // fmt chunk
     writeAscii(12, 'fmt ');
     bd.setUint32(16, 16, Endian.little);
     bd.setUint16(20, 1, Endian.little); // PCM
@@ -219,23 +217,48 @@ class _WheelPageState extends State<WheelPage>
     bd.setUint32(28, sampleRate * 2, Endian.little); // byte rate
     bd.setUint16(32, 2, Endian.little); // block align
     bd.setUint16(34, 16, Endian.little); // bits per sample
-    // data chunk
     writeAscii(36, 'data');
     bd.setUint32(40, dataSize, Endian.little);
 
-    // Samples
+    // C major arpej — [startMs, frequencyHz]
+    const tones = <List<num>>[
+      [0,   523.25],  // C5
+      [130, 659.25],  // E5
+      [260, 783.99],  // G5
+      [390, 880.00],  // A5
+      [520, 1046.50], // C6 (uzun final)
+    ];
+
+    final samples = List<double>.filled(numSamples, 0.0);
+
+    for (var ti = 0; ti < tones.length; ti++) {
+      final startMs = tones[ti][0].toInt();
+      final freq = tones[ti][1].toDouble();
+      final isFinal = ti == tones.length - 1;
+      final attackS = (0.04 * sampleRate).round();
+      final decayS = ((isFinal ? 0.9 : 0.45) * sampleRate).round();
+      final total = attackS + decayS;
+      final startIdx = (startMs * sampleRate / 1000).round();
+      final peak = isFinal ? 0.32 : 0.22;
+
+      for (var i = 0; i < total; i++) {
+        final idx = startIdx + i;
+        if (idx < 0 || idx >= numSamples) continue;
+        final t = i / sampleRate;
+        double gain;
+        if (i < attackS) {
+          gain = (i / attackS) * peak;
+        } else {
+          final dt = (i - attackS) / decayS;
+          gain = peak * pow(0.001 / peak, dt).toDouble();
+        }
+        samples[idx] += sin(2 * pi * freq * t) * gain;
+      }
+    }
+
     for (var i = 0; i < numSamples; i++) {
-      final t = i / sampleRate;
-      // Envelope: 0..0.4s attack, 0.4..2.4s sustain, 2.4..3.0s release
-      final env = t < 0.4
-          ? t / 0.4
-          : (t < 2.4 ? 1.0 : pow(1.0 - (t - 2.4) / 0.6, 1.5).toDouble());
-      // Tremolo — kalabalık alkışının dalgalanması
-      final mod = 0.55 + 0.45 * sin(t * 7.5).abs();
-      final noise = rand.nextDouble() * 2 - 1;
-      final sample = noise * mod * env * 0.55;
-      final int16 = (sample * 32767).round().clamp(-32768, 32767);
-      bd.setInt16(44 + i * 2, int16, Endian.little);
+      final clamped = samples[i].clamp(-1.0, 1.0);
+      bd.setInt16(44 + i * 2, (clamped * 32767).round(), Endian.little);
     }
 
     return bytes;
@@ -460,28 +483,24 @@ class _WheelPageState extends State<WheelPage>
                             ),
                           ),
                         ),
-          // Kutlama: webteki konfeti+balon+fişek karşılığı
+          // Kutlama: sade konfeti yağmuru
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
               confettiController: _confetti,
-              blastDirection: pi / 2, // aşağı doğru
               blastDirectionality: BlastDirectionality.explosive,
-              maxBlastForce: 28,
-              minBlastForce: 12,
-              emissionFrequency: 0.05,
-              numberOfParticles: 24,
-              gravity: 0.25,
+              maxBlastForce: 18,
+              minBlastForce: 8,
+              emissionFrequency: 0.04,
+              numberOfParticles: 14,
+              gravity: 0.22,
               shouldLoop: false,
               colors: const [
                 Color(0xFF6C5CE7),
-                Color(0xFFA29BFE),
                 Color(0xFFFD79A8),
                 Color(0xFFFDCB6E),
                 Color(0xFF00B894),
-                Color(0xFFE17055),
                 Color(0xFF74B9FF),
-                Color(0xFFFAB1A0),
               ],
             ),
           ),
