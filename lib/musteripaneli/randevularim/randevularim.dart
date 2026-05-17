@@ -993,12 +993,6 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
                       icon: Icons.person_outline_rounded,
                       label: 'Personel',
                       value: personeller),
-                if (_safeText(r.toplam).isNotEmpty &&
-                    _safeText(r.toplam) != '0')
-                  _detailTile(ctx,
-                      icon: Icons.payments_outlined,
-                      label: 'Toplam Tutar',
-                      value: '${r.toplam} ₺'),
                 if (_safeText(r.musterinotu).isNotEmpty)
                   _detailTile(ctx,
                       icon: Icons.sticky_note_2_outlined,

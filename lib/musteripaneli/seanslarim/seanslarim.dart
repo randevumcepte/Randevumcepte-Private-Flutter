@@ -212,30 +212,6 @@ class _MusteriSeanslariState extends State<MusteriSeanslari> {
                         ],
 
                       ),
-                      Row(
-                        children: [
-                          Text('Toplam Ücret(₺)'),SizedBox(width: 8,),
-                          Text(':'),
-                          Text(' 1.000,00')
-                        ],
-
-                      ),
-                      Row(
-                        children: [
-                          Text('Ödenen(₺)'),SizedBox(width: 49,),
-                          Text(':'),
-                          Text(' 0,00')
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text('Kalan(₺)'),SizedBox(width: 45,),
-                          SizedBox(width: 18,),
-                          Text(':'),
-                          Text(' 1.000,00')
-                        ],
-
-                      ),
                       Divider(color: Colors.black,
                       ),
 

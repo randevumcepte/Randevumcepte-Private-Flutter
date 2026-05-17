@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
-import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonlar.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -12,7 +11,7 @@ class MusteriALinanPaketlerDashboard extends StatefulWidget {
   final dynamic isletmebilgi;
   final int kullanicirolu;
 
-  MusteriALinanPaketlerDashboard({
+  const MusteriALinanPaketlerDashboard({
     Key? key,
     required this.kullanici,
     required this.isletmebilgi,
@@ -20,98 +19,92 @@ class MusteriALinanPaketlerDashboard extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _MusteriAlinanPaketlerState createState() => _MusteriAlinanPaketlerState();
+  State<MusteriALinanPaketlerDashboard> createState() =>
+      _MusteriAlinanPaketlerState();
 }
 
-class _MusteriAlinanPaketlerState extends State<MusteriALinanPaketlerDashboard> {
-  bool _isLoading = true;
-  late SatisDataSource _satisDataGridSource;
+class _MusteriAlinanPaketlerState
+    extends State<MusteriALinanPaketlerDashboard> {
+  static const List<_TarihFiltre> _tarihOptions = [
+    _TarihFiltre(label: 'Tümü', from: '1970-09-01'),
+    _TarihFiltre(label: 'Bu ay', kind: _TarihKind.buAy),
+    _TarihFiltre(label: 'Geçen ay', kind: _TarihKind.gecenAy),
+    _TarihFiltre(label: 'Bu yıl', kind: _TarihKind.buYil),
+    _TarihFiltre(label: 'Son 1 yıl', kind: _TarihKind.son1Yil),
+  ];
 
-  final TextEditingController tarih1 =
-      TextEditingController(text: "1970-09-01");
-  final TextEditingController tarih2 = TextEditingController(
-      text: DateFormat("yyyy-MM-dd").format(DateTime.now()));
+  _TarihFiltre _selectedTarih = _tarihOptions[0];
+
+  SatisDataSource? _ds;
+  bool _initialized = false;
+
+  String get _tarih1 => _selectedTarih.range().$1;
+  String get _tarih2 => _selectedTarih.range().$2;
 
   @override
   void initState() {
     super.initState();
-    initialize();
-  }
-
-  Future<void> initialize() async {
-    setState(() {
-      _satisDataGridSource = SatisDataSource(
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ds = SatisDataSource(
         musteriMi: true,
         personelMi: false,
         isletmebilgi: widget.isletmebilgi,
         rowsPerPage: 10,
         salonid: widget.isletmebilgi['id'].toString(),
         context: context,
-        tarih1: tarih1.text,
-        tarih2: tarih2.text,
+        tarih1: _tarih1,
+        tarih2: _tarih2,
         musteriid: widget.kullanici.id,
         kullanicirolu: widget.kullanicirolu,
-        personelid: "",
+        personelid: '',
         userid: '',
-        tur: "2",
+        tur: '2',
       );
-      _satisDataGridSource.isLoadingNotifier
-          .addListener(_onLoadingStateChanged);
-      _isLoading = false;
+      _ds!.isLoadingNotifier.addListener(_onLoadChange);
+      setState(() => _initialized = true);
     });
   }
 
-  void _onLoadingStateChanged() {
-    if (mounted) setState(() {});
+  void _onLoadChange() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
   void dispose() {
-    _satisDataGridSource.isLoadingNotifier.removeListener(_onLoadingStateChanged);
+    _ds?.isLoadingNotifier.removeListener(_onLoadChange);
     super.dispose();
   }
 
-  Future<void> _refresh() async {
-    _satisDataGridSource.search(tarih1.text, tarih2.text, '', '2', false);
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+  void _applyFilter() {
+    _ds?.search(_tarih1, _tarih2, widget.kullanici.id, '2', true);
+  }
+
+  void _goToPage(int page) {
+    _ds?.setPage(page, _tarih1, _tarih2, widget.kullanici.id, '2');
+  }
+
+  bool get _isLoading =>
+      !_initialized || (_ds?.isLoadingNotifier.value ?? false);
+  List<Adisyon> get _items => _ds?.adisyon ?? const [];
+  int get _currentPage => _ds?.currentPage ?? 1;
+  int get _totalPages => _ds?.totalPages ?? 1;
+  int get _totalRows => _ds?.totalRows ?? 0;
+
+  DateTime? get _sonAlimDate {
+    DateTime? en;
+    for (final p in _items) {
+      final d = _parseTarih(p.acilis_tarihi);
+      if (d != null && (en == null || d.isAfter(en))) en = d;
+    }
+    return en;
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final paketler = _isLoading ? <Adisyon>[] : _satisDataGridSource.adisyon;
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: scheme.onSurface),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Aldığım Paketler',
-          style: TextStyle(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            letterSpacing: -0.2,
-          ),
-        ),
-        actions: [
-          if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10),
-              child: SizedBox(
-                width: 100,
-                child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
-              ),
-            ),
-        ],
-      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -119,576 +112,609 @@ class _MusteriAlinanPaketlerState extends State<MusteriALinanPaketlerDashboard> 
             end: Alignment.bottomRight,
             colors: [
               Color.alphaBlend(
-                scheme.primary.withValues(alpha: 0.10),
+                scheme.primary.withValues(alpha: 0.08),
                 Colors.white,
               ),
               Color.alphaBlend(
-                scheme.tertiary.withValues(alpha: 0.06),
+                scheme.tertiary.withValues(alpha: 0.04),
                 Colors.white,
               ),
             ],
           ),
         ),
         child: SafeArea(
-          top: false,
           bottom: false,
-          child: _isLoading
-              ? Center(child: CircularProgressIndicator(color: scheme.primary))
-              : RefreshIndicator(
-                  color: scheme.primary,
-                  backgroundColor: Colors.white,
-                  strokeWidth: 3,
-                  onRefresh: _refresh,
-                  child: paketler.isEmpty
-                      ? _emptyState(context)
-                      : ListView(
-                          physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
-                          ),
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-                          children: [
-                            _summaryCard(context, paketler),
-                            const SizedBox(height: 14),
-                            ...paketler.map((p) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _paketCard(context, p),
-                                )),
-                            _buildPaginationControls(context),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
-                ),
+          child: Column(
+            children: [
+              _topBar(context),
+              _heroSummary(context),
+              const SizedBox(height: 12),
+              _filterStrip(context),
+              const SizedBox(height: 6),
+              Expanded(child: _content(context)),
+              if (_totalPages > 1) _pagination(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── SUMMARY CARD ─────────────────────────────────────────────────────────
-  Widget _summaryCard(BuildContext context, List<Adisyon> paketler) {
+  Widget _topBar(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    double toplam = 0, odenen = 0, kalan = 0;
-    for (final p in paketler) {
-      toplam += double.tryParse(p.toplam_numeric) ?? 0;
-      odenen += double.tryParse(p.odenen_numeric) ?? 0;
-      kalan += double.tryParse(p.kalan_tutar_numeric) ?? 0;
-    }
-    final yuzde = toplam <= 0 ? 0.0 : (odenen / toplam).clamp(0.0, 1.0);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Row(
+        children: [
+          _circleIconBtn(
+            context,
+            icon: Icons.arrow_back_rounded,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Aldığım Paketler',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                    color: scheme.onSurface,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _isLoading
+                      ? 'Yükleniyor...'
+                      : (_items.isEmpty
+                          ? 'Kayıt bulunamadı'
+                          : '$_totalRows paket'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 44),
+        ],
+      ),
+    );
+  }
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            scheme.primary,
-            Color.lerp(scheme.primary, scheme.tertiary, 0.6) ?? scheme.primary,
+  Widget _circleIconBtn(
+    BuildContext context, {
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.12),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: scheme.primary, size: 20),
+        ),
+      ),
+    );
+  }
+
+  // ── HERO SUMMARY (fiyat YOK — paket sayisi + son alim tarihi) ───────────
+  Widget _heroSummary(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final son = _sonAlimDate;
+    final sonText = son == null
+        ? '—'
+        : '${son.day} ${_ayKisa(son.month)} ${son.year}';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              scheme.primary,
+              Color.alphaBlend(
+                scheme.tertiary.withValues(alpha: 0.5),
+                scheme.primary,
+              ),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.30),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        boxShadow: AppShadows.tinted(scheme.primary, strength: 1.2),
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: const Icon(
-                  Icons.card_giftcard_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(14),
               ),
-              const SizedBox(width: 10),
-              Text(
-                '${paketler.length} Paket',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  letterSpacing: -0.2,
-                ),
+              child: const Icon(
+                Icons.card_giftcard_rounded,
+                color: Colors.white,
+                size: 26,
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '%${(yuzde * 100).toStringAsFixed(0)} ödendi',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _summaryStat(
-                  label: 'Toplam',
-                  value: _formatTL(toplam),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 32,
-                color: Colors.white.withValues(alpha: 0.20),
-              ),
-              Expanded(
-                child: _summaryStat(
-                  label: 'Ödenen',
-                  value: _formatTL(odenen),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 32,
-                color: Colors.white.withValues(alpha: 0.20),
-              ),
-              Expanded(
-                child: _summaryStat(
-                  label: 'Kalan',
-                  value: _formatTL(kalan),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: yuzde,
-              minHeight: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.22),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.white),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryStat({required String label, required String value}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.85),
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.2,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-
-  // ── PAKET CARD ───────────────────────────────────────────────────────────
-  Widget _paketCard(BuildContext context, Adisyon p) {
-    final scheme = Theme.of(context).colorScheme;
-    final toplamN = double.tryParse(p.toplam_numeric) ?? 0;
-    final odenenN = double.tryParse(p.odenen_numeric) ?? 0;
-    final kalanN = double.tryParse(p.kalan_tutar_numeric) ?? 0;
-    final yuzde = toplamN <= 0 ? 0.0 : (odenenN / toplamN).clamp(0.0, 1.0);
-    final tamamen = kalanN <= 0;
-
-    final paketAdi = p.icerikKisaltilmis.isNotEmpty
-        ? p.icerikKisaltilmis
-        : (p.icerik.isNotEmpty ? p.icerik : 'Paket');
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.soft(scheme.primary),
-        border: Border.all(
-          color: scheme.primary.withValues(alpha: 0.06),
-          width: 1,
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      scheme.primary.withValues(alpha: 0.16),
-                      scheme.tertiary.withValues(alpha: 0.10),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(
-                  Icons.card_giftcard_rounded,
-                  color: scheme.primary,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      paketAdi,
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedTarih.label.toUpperCase(),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.80),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 12,
-                          color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '$_totalRows',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1,
+                          height: 1.0,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatTarih(p.acilis_tarihi),
+                      ),
+                      const SizedBox(width: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 5),
+                        child: Text(
+                          'paket',
                           style: TextStyle(
-                            color: scheme.onSurface.withValues(alpha: 0.65),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              _statusBadge(context, tamamen: tamamen),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _moneyStat(
-                  context,
-                  label: 'Toplam',
-                  value: p.toplam,
-                  color: scheme.primary,
-                  bg: scheme.primary.withValues(alpha: 0.08),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _moneyStat(
-                  context,
-                  label: 'Ödenen',
-                  value: p.odenen,
-                  color: Theme.of(context)
-                      .extension<AppThemeExtension>()
-                      ?.successColor ??
-                      Colors.green.shade600,
-                  bg: (Theme.of(context)
-                              .extension<AppThemeExtension>()
-                              ?.successColor ??
-                          Colors.green.shade600)
-                      .withValues(alpha: 0.10),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _moneyStat(
-                  context,
-                  label: 'Kalan',
-                  value: p.kalan_tutar,
-                  color: tamamen
-                      ? scheme.onSurface.withValues(alpha: 0.45)
-                      : Colors.red.shade500,
-                  bg: tamamen
-                      ? scheme.onSurface.withValues(alpha: 0.06)
-                      : Colors.red.shade500.withValues(alpha: 0.10),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: yuzde,
-                    minHeight: 6,
-                    backgroundColor:
-                        scheme.primary.withValues(alpha: 0.08),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      tamamen
-                          ? (Theme.of(context)
-                                  .extension<AppThemeExtension>()
-                                  ?.successColor ??
-                              Colors.green.shade600)
-                          : scheme.primary,
-                    ),
+                      ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.event_rounded,
+                        size: 14,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Son alım: $sonText',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Text(
-                '%${(yuzde * 100).toStringAsFixed(0)}',
-                style: TextStyle(
-                  color: scheme.onSurface.withValues(alpha: 0.75),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _statusBadge(BuildContext context, {required bool tamamen}) {
-    final scheme = Theme.of(context).colorScheme;
-    final success = Theme.of(context)
-            .extension<AppThemeExtension>()
-            ?.successColor ??
-        Colors.green.shade600;
-    final color = tamamen ? success : scheme.tertiary;
-    final label = tamamen ? 'Tamamlandı' : 'Devam Ediyor';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.1,
-            ),
-          ),
-        ],
+  Widget _filterStrip(BuildContext context) {
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _tarihOptions.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final v = _tarihOptions[i];
+          return _chip(
+            context,
+            label: v.label,
+            selected: _selectedTarih.label == v.label,
+            onTap: () {
+              if (_selectedTarih.label == v.label) return;
+              setState(() => _selectedTarih = v);
+              _applyFilter();
+            },
+          );
+        },
       ),
     );
   }
 
-  Widget _moneyStat(
+  Widget _chip(
     BuildContext context, {
     required String label,
-    required String value,
-    required Color color,
-    required Color bg,
+    required bool selected,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? scheme.primary : Colors.white,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? Colors.transparent
+                  : scheme.primary.withValues(alpha: 0.18),
+              width: 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.20),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
             label,
             style: TextStyle(
-              color: color.withValues(alpha: 0.85),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.1,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
+              color: selected ? Colors.white : scheme.onSurface,
               fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.1,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ],
+        ),
       ),
     );
   }
 
-  // ── EMPTY STATE ──────────────────────────────────────────────────────────
+  Widget _content(BuildContext context) {
+    if (_isLoading && _items.isEmpty) {
+      return Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
+    if (_items.isEmpty) {
+      return _emptyState(context);
+    }
+    return RefreshIndicator(
+      color: Theme.of(context).colorScheme.primary,
+      backgroundColor: Colors.white,
+      strokeWidth: 3,
+      onRefresh: () async {
+        _goToPage(_currentPage);
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      },
+      child: ListView.separated(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        itemCount: _items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) => _paketCard(context, _items[i]),
+      ),
+    );
+  }
+
   Widget _emptyState(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final filtered = _selectedTarih.label != 'Tümü';
     return ListView(
-      physics: const BouncingScrollPhysics(
-        parent: AlwaysScrollableScrollPhysics(),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      physics: const AlwaysScrollableScrollPhysics(),
       children: [
-        const SizedBox(height: 80),
+        const SizedBox(height: 60),
         Center(
           child: Container(
-            width: 96,
-            height: 96,
+            width: 92,
+            height: 92,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  scheme.primary.withValues(alpha: 0.14),
-                  scheme.tertiary.withValues(alpha: 0.08),
+                  scheme.primary.withValues(alpha: 0.18),
+                  scheme.tertiary.withValues(alpha: 0.18),
                 ],
               ),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.card_giftcard_rounded,
+              Icons.card_giftcard_outlined,
+              size: 42,
               color: scheme.primary,
-              size: 44,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: Text(
+            filtered ? 'Bu aralıkta paket yok' : 'Henüz paketin yok',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+              color: scheme.onSurface,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Text(
+            filtered
+                ? 'Seçtiğin tarih aralığında aldığın paket bulunmuyor.'
+                : 'Satın aldığın paketler burada listelenecek.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: scheme.onSurface.withValues(alpha: 0.6),
+              height: 1.4,
             ),
           ),
         ),
         const SizedBox(height: 20),
-        Text(
-          'Henüz paketin yok',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: scheme.onSurface,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.2,
+        if (filtered)
+          Center(
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() => _selectedTarih = _tarihOptions[0]);
+                _applyFilter();
+              },
+              icon: const Icon(Icons.filter_alt_off_rounded),
+              label: const Text('Filtreyi Sıfırla'),
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Satın aldığın paketler burada listelenecek.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: scheme.onSurface.withValues(alpha: 0.6),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            height: 1.4,
-          ),
-        ),
       ],
     );
   }
 
-  // ── PAGINATION ───────────────────────────────────────────────────────────
-  Widget _buildPaginationControls(BuildContext context) {
+  Widget _paketCard(BuildContext context, Adisyon p) {
     final scheme = Theme.of(context).colorScheme;
-    final totalPages = _satisDataGridSource.totalPages.ceil();
-    if (totalPages <= 1) return const SizedBox.shrink();
+    final dt = _parseTarih(p.acilis_tarihi);
+    final paketAdi = p.icerikKisaltilmis.isNotEmpty
+        ? _temizSatir(p.icerikKisaltilmis)
+        : (p.icerik.isNotEmpty ? _temizSatir(_ilkSatir(p.icerik)) : 'Paket');
+    final tumIcerik = _temizSatirlar(p.icerik);
 
-    final current = _satisDataGridSource.currentPage;
-    final canPrev = current > 1;
-    final canNext = current < totalPages;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openDetailSheet(p),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 76,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        scheme.primary.withValues(alpha: 0.16),
+                        scheme.primary.withValues(alpha: 0.06),
+                      ],
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        dt == null ? '--' : _gunAdi(dt.weekday),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        dt == null ? '--' : dt.day.toString(),
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                          color: scheme.onSurface,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        dt == null ? '' : _ayKisa(dt.month),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface.withValues(alpha: 0.7),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.card_giftcard_rounded,
+                              size: 14,
+                              color: scheme.primary.withValues(alpha: 0.85),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Paket',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.primary,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (dt != null)
+                              Text(
+                                '${_pad(dt.hour)}:${_pad(dt.minute)}',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: scheme.onSurface
+                                      .withValues(alpha: 0.55),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          paketAdi.isEmpty ? 'Paket' : paketAdi,
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            color: scheme.onSurface,
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (tumIcerik.length > 1) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '+${tumIcerik.length - 1} kalem daha',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  scheme.onSurface.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: scheme.onSurface.withValues(alpha: 0.35),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
+  Widget _pagination(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _pageButton(
+          _pageBtn(
             context,
             icon: Icons.chevron_left_rounded,
-            enabled: canPrev,
-            onTap: () {
-              setState(() {
-                _satisDataGridSource.setPage(
-                    current - 1, tarih1.text, tarih2.text, '', '2');
-              });
-            },
+            enabled: _currentPage > 1 && !_isLoading,
+            onTap: () => _goToPage(_currentPage - 1),
           ),
           const SizedBox(width: 12),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: scheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(999),
-              boxShadow: AppShadows.soft(scheme.primary),
             ),
             child: Text(
-              '$current / $totalPages',
+              '$_currentPage / $_totalPages',
               style: TextStyle(
-                color: scheme.onSurface,
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
+                color: scheme.primary,
               ),
             ),
           ),
           const SizedBox(width: 12),
-          _pageButton(
+          _pageBtn(
             context,
             icon: Icons.chevron_right_rounded,
-            enabled: canNext,
-            onTap: () {
-              setState(() {
-                _satisDataGridSource.setPage(
-                    current + 1, tarih1.text, tarih2.text, '', '2');
-              });
-            },
+            enabled: _currentPage < _totalPages && !_isLoading,
+            onTap: () => _goToPage(_currentPage + 1),
           ),
         ],
       ),
     );
   }
 
-  Widget _pageButton(
+  Widget _pageBtn(
     BuildContext context, {
     required IconData icon,
     required bool enabled,
@@ -696,56 +722,374 @@ class _MusteriAlinanPaketlerState extends State<MusteriALinanPaketlerDashboard> 
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.transparent,
+      color: enabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
+      shape: const CircleBorder(),
       child: InkWell(
         onTap: enabled ? onTap : null,
         customBorder: const CircleBorder(),
         child: Container(
-          width: 40,
-          height: 40,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
-            color: enabled
-                ? scheme.primary
-                : scheme.primary.withValues(alpha: 0.12),
             shape: BoxShape.circle,
-            boxShadow: enabled ? AppShadows.tinted(scheme.primary) : null,
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.10),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Icon(
             icon,
+            size: 20,
             color: enabled
-                ? Colors.white
-                : scheme.primary.withValues(alpha: 0.4),
-            size: 22,
+                ? scheme.primary
+                : scheme.onSurface.withValues(alpha: 0.3),
           ),
         ),
       ),
     );
   }
 
-  // ── HELPERS ──────────────────────────────────────────────────────────────
-  String _formatTL(double v) {
-    final isInt = v.truncateToDouble() == v;
-    final str = isInt
-        ? v.toInt().toString()
-        : v.toStringAsFixed(2).replaceAll('.', ',');
-    final parts = str.split(',');
-    final intPart = parts[0];
-    final buf = StringBuffer();
-    for (int i = 0; i < intPart.length; i++) {
-      if (i > 0 && (intPart.length - i) % 3 == 0) buf.write('.');
-      buf.write(intPart[i]);
-    }
-    final formatted = parts.length > 1 ? '${buf.toString()},${parts[1]}' : buf.toString();
-    return '$formatted ₺';
+  void _openDetailSheet(Adisyon p) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final dt = _parseTarih(p.acilis_tarihi);
+        final satirlar = _temizSatirlar(p.icerik);
+
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 14,
+            bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: scheme.onSurface.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.card_giftcard_rounded,
+                      color: scheme.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Paket #${p.id}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                            color: scheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          dt == null
+                              ? p.acilis_tarihi
+                              : '${_gunAdiUzun(dt.weekday)}, ${dt.day} ${_ayUzun(dt.month)} ${dt.year} • ${_pad(dt.hour)}:${_pad(dt.minute)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Text(
+                    'PAKET İÇERİĞİ',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: scheme.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${satirlar.length}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (satirlar.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Bilgi yok',
+                    style: TextStyle(
+                      color: scheme.onSurface.withValues(alpha: 0.55),
+                      fontSize: 13,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: scheme.primary.withValues(alpha: 0.10),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < satirlar.length; i++) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color:
+                                      scheme.primary.withValues(alpha: 0.14),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${i + 1}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  satirlar[i],
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurface,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (i < satirlar.length - 1)
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: scheme.primary.withValues(alpha: 0.08),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 14),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: scheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Kalan seans haklarını görmek için "Seanslarım" sayfasını kullan.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface.withValues(alpha: 0.7),
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Kapat'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  String _formatTarih(String raw) {
-    if (raw.isEmpty || raw == 'null') return '';
+  // ── HELPERS ──────────────────────────────────────────────────────────────
+  static String _ilkSatir(String s) {
+    final lines = s.split(RegExp(r'[\n\r]+'));
+    return lines.isNotEmpty ? lines.first : s;
+  }
+
+  static List<String> _temizSatirlar(String s) {
+    if (s.trim().isEmpty) return const [];
+    return s
+        .split(RegExp(r'[\n\r]+'))
+        .map(_temizSatir)
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  static String _temizSatir(String s) {
+    var t = s.trim();
+    t = t.replaceAll(
+      RegExp(r'\([^)]*(₺|TL|tl|tutar|fiyat|fıyat)[^)]*\)',
+          caseSensitive: false),
+      '',
+    );
+    t = t.replaceAll(RegExp(r'[-•]\s*₺\s*[\d.,]+'), '');
+    t = t.replaceAll(RegExp(r'₺\s*[\d.,]+'), '');
+    return t.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+  }
+
+  static DateTime? _parseTarih(String s) {
     try {
-      final dt = DateTime.parse(raw);
-      return DateFormat('dd.MM.yyyy').format(dt);
+      final clean = s.trim().replaceAll('T', ' ');
+      final parts = clean.split(' ');
+      if (parts.length >= 2) {
+        return DateTime.parse('${parts[0]} ${parts[1]}');
+      }
+      return DateTime.parse(parts[0]);
     } catch (_) {
-      return raw;
+      return null;
+    }
+  }
+
+  static String _pad(int n) => n.toString().padLeft(2, '0');
+
+  static String _gunAdi(int weekday) {
+    const g = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    return g[(weekday - 1).clamp(0, 6)];
+  }
+
+  static String _gunAdiUzun(int weekday) {
+    const g = [
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar',
+    ];
+    return g[(weekday - 1).clamp(0, 6)];
+  }
+
+  static String _ayKisa(int m) {
+    const a = [
+      'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
+      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara',
+    ];
+    return a[(m - 1).clamp(0, 11)];
+  }
+
+  static String _ayUzun(int m) {
+    const a = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    ];
+    return a[(m - 1).clamp(0, 11)];
+  }
+}
+
+enum _TarihKind { sabit, buAy, gecenAy, buYil, son1Yil }
+
+class _TarihFiltre {
+  final String label;
+  final _TarihKind kind;
+  final String from;
+
+  const _TarihFiltre({
+    required this.label,
+    this.kind = _TarihKind.sabit,
+    this.from = '1970-09-01',
+  });
+
+  (String, String) range() {
+    final now = DateTime.now();
+    final fmt = DateFormat('yyyy-MM-dd');
+    switch (kind) {
+      case _TarihKind.sabit:
+        return (from, fmt.format(now));
+      case _TarihKind.buAy:
+        return (fmt.format(DateTime(now.year, now.month, 1)), fmt.format(now));
+      case _TarihKind.gecenAy:
+        final ilk = DateTime(now.year, now.month - 1, 1);
+        final son = DateTime(now.year, now.month, 0);
+        return (fmt.format(ilk), fmt.format(son));
+      case _TarihKind.buYil:
+        return (fmt.format(DateTime(now.year, 1, 1)), fmt.format(now));
+      case _TarihKind.son1Yil:
+        final ilk = DateTime(now.year - 1, now.month, now.day);
+        return (fmt.format(ilk), fmt.format(now));
     }
   }
 }
