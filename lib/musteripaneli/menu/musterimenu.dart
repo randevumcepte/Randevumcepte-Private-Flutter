@@ -1,23 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/musteriprofilbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/siparislerim.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:randevu_sistem/Frontend/backroutes.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
-import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
-import '../anasayfa/anasayfa.dart';
-import '../anasayfa/carkifelek.dart';
-import '../anasayfa/odullerim.dart';
-import '../anasayfa/puan_odullerim.dart';
 import '../anasayfa/raporlar/seanslar.dart';
-import 'indirimler.dart';
 import 'musteriresimleri.dart';
-import 'musteriseans.dart';
 import 'musterisözlesmeleri.dart';
 
 class MenuPage extends StatefulWidget {
@@ -36,28 +29,13 @@ class MenuPage extends StatefulWidget {
   State<MenuPage> createState() => _MenuPageState();
 }
 
-class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
+class _MenuPageState extends State<MenuPage> {
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+  Color get _lightPurple =>
+      Theme.of(context).colorScheme.primary.withValues(alpha: 0.10);
+  Color get _textColor => Theme.of(context).colorScheme.onSurface;
+  Color get _borderColor =>
+      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10);
 
   void _logout(BuildContext context) async {
     try {
@@ -65,31 +43,36 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
         context: context,
         builder: (context) => AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Çıkış Yap',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: _textColor,
+            ),
           ),
           content: const Text('Çıkış yapmak istediğinize emin misiniz?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey,
+              child: Text(
+                'Hayır',
+                style: TextStyle(color: _primaryColor),
               ),
-              child: const Text('Hayır'),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
+              style: TextButton.styleFrom(
+                backgroundColor: _primaryColor,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Evet'),
+              child: const Text(
+                'Evet',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -106,122 +89,136 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) =>  OnBoardingPage()),
-              (Route<dynamic> route) => false,
+          PageTransition(
+            type: PageTransitionType.fade,
+            duration: const Duration(milliseconds: 300),
+            child: OnBoardingPage(),
+          ),
+          (Route<dynamic> route) => false,
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Bir hata oluştu: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
   }
 
-  Widget _buildMenuItem({
+  Widget _buildMenuButton({
     required IconData icon,
-    required String title,
+    required String label,
     required VoidCallback onTap,
-    Color? iconColor,
-    Widget? trailing,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: (iconColor ?? Colors.purple).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            icon,
-            color: iconColor ?? Colors.purple,
-            size: 22,
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2D2D2D),
-          ),
-        ),
-        trailing: trailing ??
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.purple,
-                size: 16,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          splashColor: _primaryColor.withValues(alpha: 0.10),
+          highlightColor: _primaryColor.withValues(alpha: 0.05),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _borderColor, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _lightPurple,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: _primaryColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _textColor,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: _borderColor,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.purple.shade400,
-            Colors.purple.shade600,
-            Colors.purple.shade800,
-          ],
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 2, left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: _textColor.withValues(alpha: 0.6),
+          letterSpacing: 0.5,
         ),
-        borderRadius: BorderRadius.circular(24),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
+              color: _lightPurple,
+              borderRadius: BorderRadius.circular(28),
             ),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 32,
+            child: Icon(
+              Icons.person_rounded,
+              color: _primaryColor,
+              size: 28,
             ),
           ),
           const SizedBox(width: 16),
@@ -230,89 +227,90 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hoş Geldiniz',
+                  widget.md.name.isNotEmpty ? widget.md.name : 'Müşteri',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: _textColor,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  widget.md.name ?? 'Müşteri',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  _profileSubtitle(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: _textColor.withValues(alpha: 0.6),
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          /*Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                  size: 20,
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                PageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  duration: const Duration(milliseconds: 300),
+                  child: MusteriProfilBilgileri(kullanici: widget.md),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '150 Puan',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),*/
+              );
+            },
+            icon: Icon(Icons.edit_rounded, color: _primaryColor, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
         ],
       ),
     );
   }
 
+  String _profileSubtitle() {
+    final email = widget.md.email;
+    if (email.isNotEmpty && email != 'null') return email;
+    final tel = widget.md.cep_telefon;
+    if (tel.isNotEmpty && tel != 'null') return tel;
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
-        appBar: AppBar(
-          title: const Text(
-            'Menü',
-            style: TextStyle(
-              color: Color(0xFF2D2D2D),
-              fontWeight: FontWeight.w600,
-              fontSize: 22,
-            ),
-          ),
-          toolbarHeight: 70,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-          leading: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.arrow_back,
-                color: Colors.purple,
-                size: 20,
-              ),
-            ),
-            onPressed: () => Navigator.pop(context),
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.white,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Menü',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: _textColor,
+            letterSpacing: -0.5,
           ),
         ),
-        body: FadeTransition(
-          opacity: _fadeAnimation,
+        toolbarHeight: 64,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        centerTitle: false,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.36), Colors.white),
+              Color.alphaBlend(
+                  scheme.tertiary.withValues(alpha: 0.08), Colors.white),
+            ],
+          ),
+        ),
+        child: SafeArea(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Container(
@@ -320,31 +318,19 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(),
+                  _buildProfileHeader(),
 
-                  const SizedBox(height: 8),
-
-                  // Ana Menü Başlığı
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(
-                      'Ana Menü',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                  ),
-
-                  _buildMenuItem(
-                    icon: Icons.date_range,
-                    title: "Seanslarım",
+                  _buildSectionTitle('İŞLEMLERİM'),
+                  _buildMenuButton(
+                    icon: Icons.event_available_rounded,
+                    label: 'Seanslarım',
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => SeanslarDashboard(
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: SeanslarDashboard(
                             isletmebilgi: widget.isletmebilgi,
                             md: widget.md,
                           ),
@@ -352,15 +338,16 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                       );
                     },
                   ),
-
-                  _buildMenuItem(
-                    icon: Icons.shopping_cart,
-                    title: "Satın Aldıklarım",
+                  _buildMenuButton(
+                    icon: Icons.shopping_bag_rounded,
+                    label: 'Satın Aldıklarım',
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => MusteriPaneliAdiayonlari(
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: MusteriPaneliAdiayonlari(
                             kullanici: widget.md,
                             isletmebilgi: widget.isletmebilgi,
                           ),
@@ -369,64 +356,49 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                     },
                   ),
 
-                  _buildMenuItem(
+                  const SizedBox(height: 12),
+                  _buildSectionTitle('BELGELERİM'),
+                  _buildMenuButton(
+                    icon: Icons.description_outlined,
+                    label: 'Sözleşme / Belgelerim',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: MusteriPaneliArsivDetay(
+                            md: widget.md,
+                            isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuButton(
                     icon: Icons.health_and_safety_outlined,
-                    title: "Sağlık Bilgilerim",
+                    label: 'Sağlık Bilgilerim',
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => MusteriPaneliSaglikBilgileri(
-                            md: widget.md,
-                          ),
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: MusteriPaneliSaglikBilgileri(md: widget.md),
                         ),
                       );
                     },
                   ),
-
-                  _buildMenuItem(
-                    icon: Icons.article_outlined,
-                    title: "Sözleşme/Belgelerim",
+                  _buildMenuButton(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Resimlerim',
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => MusteriPaneliArsivDetay(
-                            md: widget.md,
-                            isletmebilgi: widget.isletmebilgi,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // "Özel" bölümü (Çarkıfelek / Kuponlarım / Puan Ödüllerim) henüz tamamlanmadı, geçici olarak kapatıldı.
-                  /*
-                  const SizedBox(height: 8),
-
-                  // Özel Menü Başlığı
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(
-                      'Özel',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                  ),
-
-
-                  _buildMenuItem(
-                    icon: Icons.auto_awesome,
-                    title: "Çarkıfelek",
-                    iconColor: Colors.pink,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => WheelPage(
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: ImageGallery(
                             md: widget.md,
                             isletmebilgi: widget.isletmebilgi,
                           ),
@@ -435,145 +407,29 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                     },
                   ),
 
-                  _buildMenuItem(
-                    icon: Icons.card_giftcard,
-                    title: "Kuponlarım",
-                    iconColor: Colors.deepPurple,
+                  const SizedBox(height: 12),
+                  _buildSectionTitle('HESABIM'),
+                  _buildMenuButton(
+                    icon: Icons.person_pin_rounded,
+                    label: 'Profil Bilgilerim',
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => OdullerimPage(md: widget.md),
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: MusteriProfilBilgileri(kullanici: widget.md),
                         ),
                       );
                     },
                   ),
-
-                  _buildMenuItem(
-                    icon: Icons.stars,
-                    title: "Puan Ödüllerim",
-                    iconColor: Colors.amber,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PuanOdullerimPage(
-                            md: widget.md,
-                            salonId: widget.isletmebilgi != null
-                                ? widget.isletmebilgi['id'].toString()
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
+                  _buildMenuButton(
+                    icon: Icons.logout_rounded,
+                    label: 'Çıkış Yap',
+                    onTap: () => _logout(context),
                   ),
 
-                  const SizedBox(height: 8),
-                  */
-                  // Kişisel Menü Başlığı
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(
-                      'Kişisel',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                  ),
-
-                  _buildMenuItem(
-                    icon: Icons.photo_camera_back_outlined,
-                    title: "Resimlerim",
-                    iconColor: Colors.teal,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ImageGallery(
-                            md: widget.md,
-                            isletmebilgi: widget.isletmebilgi,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  _buildMenuItem(
-                    icon: Icons.person,
-                    title: "Profil Bilgilerim",
-                    iconColor: Colors.blue,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MusteriProfilBilgileri(
-                            kullanici: widget.md,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Çıkış Yap
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.1),
-                          spreadRadius: 1,
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.exit_to_app,
-                          color: Colors.red,
-                          size: 22,
-                        ),
-                      ),
-                      title: const Text(
-                        "Çıkış Yap",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.red,
-                        ),
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.red,
-                          size: 16,
-                        ),
-                      ),
-                      onTap: () => _logout(context),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
