@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
@@ -42,10 +42,9 @@ class _WheelPageState extends State<WheelPage>
   String _yarinSaat = '';
   List<_Dilim> _dilimler = [];
 
-  // Sound
-  final AudioPlayer _spinPlayer = AudioPlayer();
-  bool _isSoundLoaded = false;
-  bool _isSoundPlaying = false;
+  // Tick ses akümülatörü — her dilim geçişinde sistem tık sesi + haptik
+  double _lastTickAngle = 0.0;
+  double _tickAcc = 0.0;
 
   @override
   void initState() {
@@ -59,19 +58,7 @@ class _WheelPageState extends State<WheelPage>
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn);
 
-    _loadSounds();
     _yukle();
-  }
-
-  Future<void> _loadSounds() async {
-    try {
-      await _spinPlayer.setSource(AssetSource('sounds/carkifelek.mp3'));
-      await _spinPlayer.setReleaseMode(ReleaseMode.loop);
-      await _spinPlayer.setVolume(0.7);
-      _isSoundLoaded = true;
-    } catch (_) {
-      _isSoundLoaded = false;
-    }
   }
 
   Future<void> _yukle() async {
@@ -113,49 +100,33 @@ class _WheelPageState extends State<WheelPage>
     }
   }
 
-  void _playSpinSound() async {
-    if (!_isSoundLoaded || _isSoundPlaying) return;
-    try {
-      _isSoundPlaying = true;
-      await _spinPlayer.resume();
-    } catch (_) {
-      _isSoundPlaying = false;
-    }
-  }
-
-  void _stopSpinSound() async {
-    if (!_isSoundLoaded || !_isSoundPlaying) return;
-    try {
-      _isSoundPlaying = false;
-      await _spinPlayer.pause().timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {},
-      );
-      try {
-        await _spinPlayer.seek(Duration.zero).timeout(
-          const Duration(seconds: 2),
-          onTimeout: () {},
-        );
-      } catch (_) {}
-    } catch (_) {
-      _isSoundPlaying = false;
+  // Çark dönerken her dilim sınırını geçince webteki "tık" hissini ver.
+  void _maybeTick() {
+    if (!_isSpinning) return;
+    final n = _dilimler.length;
+    if (n < 2) return;
+    final sector = (2 * pi) / n;
+    final delta = (_angle - _lastTickAngle).abs();
+    _lastTickAngle = _angle;
+    _tickAcc += delta;
+    while (_tickAcc >= sector) {
+      _tickAcc -= sector;
+      SystemSound.play(SystemSoundType.click);
+      HapticFeedback.selectionClick();
     }
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    try {
-      _spinPlayer.stop();
-      _spinPlayer.dispose();
-    } catch (_) {}
     super.dispose();
   }
 
   Future<void> _spinWheel() async {
     if (_isSpinning) return;
     if (!_aktif || _dilimler.length < 2) return;
-    if (_kalanHak < 1 || _bugunCevirdi) return;
+    // TEST MODU: günlük sınır ve hak kontrolü geçici olarak kaldırıldı.
+    // if (_kalanHak < 1 || _bugunCevirdi) return;
 
     setState(() {
       _isSpinning = true;
@@ -185,8 +156,6 @@ class _WheelPageState extends State<WheelPage>
         ? data['kalanHak'] as int
         : int.tryParse(data['kalanHak'].toString()) ?? 0;
 
-    _playSpinSound();
-
     // Hedef açı — pointer üstte (top), 0 derece sağda; "yukarıyı" -pi/2 hedefine çek
     final n = _dilimler.length;
     final sectorAngle = 2 * pi / n;
@@ -199,6 +168,10 @@ class _WheelPageState extends State<WheelPage>
     final extraSpins = (12 + random.nextInt(5)) * 2 * pi;
     final endAngle = extraSpins + (2 * pi - targetSectorMid) + jitter;
 
+    // Tick akümülatörünü spin başında sıfırla
+    _lastTickAngle = _angle;
+    _tickAcc = 0.0;
+
     _controller.reset();
     _animation = Tween<double>(begin: _angle, end: _angle + endAngle).animate(
       CurvedAnimation(
@@ -208,15 +181,19 @@ class _WheelPageState extends State<WheelPage>
     )
       ..addListener(() {
         setState(() => _angle = _animation.value);
+        _maybeTick();
       })
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          _stopSpinSound();
+          // Bitiş: webteki "kutlama" karşılığı — güçlü haptik + sistem alert
+          HapticFeedback.heavyImpact();
+          SystemSound.play(SystemSoundType.alert);
           Future.delayed(const Duration(milliseconds: 400), () {
             if (!mounted) return;
             setState(() {
               _kalanHak = kalanHak;
-              _bugunCevirdi = true;
+              // TEST MODU: bugün çevirdi flag'i set edilmiyor, sürekli çevrilebilsin.
+              // _bugunCevirdi = true;
               _isSpinning = false;
             });
             _showWinDialog(dilim, odulKodu);
@@ -521,12 +498,9 @@ class _WheelPageState extends State<WheelPage>
   }
 
   Widget _buildSpinButton() {
-    final disabled = _isSpinning || _kalanHak < 1 || _bugunCevirdi;
-    final label = _bugunCevirdi
-        ? '✓ Bugün Çevirdiniz'
-        : _isSpinning
-            ? 'Çevriliyor...'
-            : '🎲 Çarkı Çevir';
+    // TEST MODU: _kalanHak < 1 ve _bugunCevirdi engelleri kaldırıldı, buton hep aktif.
+    final disabled = _isSpinning;
+    final label = _isSpinning ? 'Çevriliyor...' : '🎲 Çarkı Çevir';
 
     return SizedBox(
       width: double.infinity,
