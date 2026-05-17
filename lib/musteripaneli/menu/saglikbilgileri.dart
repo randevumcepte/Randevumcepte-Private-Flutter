@@ -646,12 +646,6 @@ class _MusteriPaneliSaglikBilgileriState
                 borderSide: const BorderSide(color: Colors.redAccent),
               ),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Bu alan zorunludur';
-              }
-              return null;
-            },
           ),
         ],
       ),
