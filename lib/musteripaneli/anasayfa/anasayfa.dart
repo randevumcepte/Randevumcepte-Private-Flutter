@@ -110,17 +110,39 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   }
 
   String _resolveSalonAdi() {
+    final b = widget.isletmebilgi;
+    if (b == null) return 'Salon';
+
+    if (b is Map) {
+      for (final k in const [
+        'salon_adi',
+        'isletme_adi',
+        'salonadi',
+        'isletmeadi',
+        'adi',
+        'name',
+      ]) {
+        final v = b[k];
+        if (v != null && v.toString().trim().isNotEmpty) {
+          return v.toString();
+        }
+      }
+      return 'Salon';
+    }
+
     try {
-      final b = widget.isletmebilgi;
-      if (b == null) return 'Salon';
       final candidates = [
+        b.salon_adi,
+        b.isletme_adi,
         b.isletmeadi,
         b.salonadi,
         b.adi,
         b.name,
       ];
       for (final c in candidates) {
-        if (c is String && c.trim().isNotEmpty) return c;
+        if (c != null && c.toString().trim().isNotEmpty) {
+          return c.toString();
+        }
       }
     } catch (_) {}
     return 'Salon';
@@ -672,7 +694,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
             child: MusteriRandevulari(
               md: widget.md,
               isletmebilgi: widget.isletmebilgi,
-              geriButonu: false,
+              geriButonu: true,
             ),
           ),
         ),
