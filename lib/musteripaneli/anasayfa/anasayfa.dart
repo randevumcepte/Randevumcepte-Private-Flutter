@@ -191,7 +191,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       const SizedBox(height: 18),
                       _heroRandevuCard(context),
                       const SizedBox(height: 16),
-                      _statusPills(context),
+                      _membershipCard(context),
                       const SizedBox(height: 22),
                       _sectionHeader(context, 'Hızlı Erişim'),
                       const SizedBox(height: 10),
@@ -560,103 +560,184 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     );
   }
 
-  // ── STATUS PILLS ─────────────────────────────────────────────────────────
-  Widget _statusPills(BuildContext context) {
+  // ── MEMBERSHIP + SADAKAT KARTI ───────────────────────────────────────────
+  Widget _membershipCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
+
+    final kategori = ozetsayfabilgi?.kategori ?? 'pasif';
+    final kategoriLabel = ozetsayfabilgi?.kategoriLabel ?? 'Pasif Müşteri';
+    final tahsilatSayisi = ozetsayfabilgi?.tahsilatSayisi ?? 0;
+    final sadakatPuani = ozetsayfabilgi?.sadakatPuani ?? 0;
+
+    // Kategoriye göre ikon + renk + alt yazı
+    final IconData kategoriIcon;
+    final Color kategoriTint;
+    final String kategoriAlt;
+    switch (kategori) {
+      case 'sadik':
+        kategoriIcon = Icons.workspace_premium_rounded;
+        kategoriTint = scheme.tertiary;
+        kategoriAlt = '$tahsilatSayisi+ alışveriş';
+        break;
+      case 'aktif':
+        kategoriIcon = Icons.verified_rounded;
+        kategoriTint = ext.successColor;
+        kategoriAlt = '$tahsilatSayisi alışveriş';
+        break;
+      default:
+        kategoriIcon = Icons.person_outline_rounded;
+        kategoriTint = scheme.onSurface.withValues(alpha: 0.45);
+        kategoriAlt = 'Henüz alışveriş yok';
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: _statusPill(
-              context,
-              icon: Icons.verified_rounded,
-              label: 'Üyelik',
-              value: 'Aktif',
-              tint: ext.successColor,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _statusPill(
-              context,
-              icon: Icons.workspace_premium_rounded,
-              label: 'Sadakat',
-              value: 'Standart',
-              tint: scheme.primary,
+          ],
+        ),
+        child: Row(
+          children: [
+            // SOL — kategori
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: kategoriTint.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(kategoriIcon, size: 20, color: kategoriTint),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          kategoriLabel,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                            letterSpacing: -0.2,
+                            height: 1.1,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          kategoriAlt,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            // Ayraç
+            Container(
+              width: 1,
+              height: 36,
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              color: scheme.onSurface.withValues(alpha: 0.08),
+            ),
+            // SAĞ — sadakat puanı
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        scheme.primary,
+                        Color.lerp(scheme.primary, scheme.tertiary, 0.6) ??
+                            scheme.primary,
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.stars_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatPuan(sadakatPuani),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.4,
+                        height: 1.05,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'sadakat puanı',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _statusPill(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color tint,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withValues(alpha: 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: tint.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 17, color: tint),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.onSurface,
-                    height: 1.1,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: scheme.onSurface.withValues(alpha: 0.55),
-                    height: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  String _formatPuan(int v) {
+    if (v >= 1000) {
+      final k = v / 1000.0;
+      final s = k.toStringAsFixed(k >= 10 ? 0 : 1);
+      return '${s}K';
+    }
+    return v.toString();
   }
 
   // ── SECTION HEADER ───────────────────────────────────────────────────────
