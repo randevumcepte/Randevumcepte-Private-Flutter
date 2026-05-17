@@ -190,90 +190,6 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  Widget _buildProfileHeader() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: _lightPurple,
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Icon(
-              Icons.person_rounded,
-              color: _primaryColor,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.md.name.isNotEmpty ? widget.md.name : 'Müşteri',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: _textColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _profileSubtitle(),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _textColor.withValues(alpha: 0.6),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                PageTransition(
-                  type: PageTransitionType.rightToLeft,
-                  duration: const Duration(milliseconds: 300),
-                  child: MusteriProfilBilgileri(kullanici: widget.md),
-                ),
-              );
-            },
-            icon: Icon(Icons.edit_rounded, color: _primaryColor, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _profileSubtitle() {
-    final email = widget.md.email;
-    if (email.isNotEmpty && email != 'null') return email;
-    final tel = widget.md.cep_telefon;
-    if (tel.isNotEmpty && tel != 'null') return tel;
-    return '';
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -318,8 +234,6 @@ class _MenuPageState extends State<MenuPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildProfileHeader(),
-
                   _buildSectionTitle('İŞLEMLERİM'),
                   _buildMenuButton(
                     icon: Icons.event_available_rounded,
