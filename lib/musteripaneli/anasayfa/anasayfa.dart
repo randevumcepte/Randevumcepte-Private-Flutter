@@ -11,6 +11,7 @@ import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridashboard.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanpaketler.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanurunler.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/seanslar.dart';
@@ -199,6 +200,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       const SizedBox(height: 22),
                       _sectionHeader(context, 'Sana Özel'),
                       const SizedBox(height: 10),
+                      _carkPromoCard(context),
+                      const SizedBox(height: 12),
                       _duyurularCard(context),
                       const SizedBox(height: 22),
                       _sectionHeader(context, 'İletişim'),
@@ -952,6 +955,160 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── ÇARK-I FELEK PROMO CARD ──────────────────────────────────────────────
+  Widget _carkPromoCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: () => Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 400),
+              child: WheelPage(
+                md: widget.md,
+                isletmebilgi: widget.isletmebilgi,
+              ),
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  scheme.tertiary,
+                  Color.lerp(scheme.tertiary, scheme.primary, 0.55) ??
+                      scheme.tertiary,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.tertiary.withValues(alpha: 0.30),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -28,
+                  top: -28,
+                  child: Container(
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.10),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 24,
+                  bottom: -34,
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.casino_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Çark-ı Felek',
+                              style: TextStyle(
+                                color:
+                                    Colors.white.withValues(alpha: 0.85),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Çevir & Kazan 🎁',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                                height: 1.1,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Onaylı randevuna özel ödüller seni bekliyor',
+                              style: TextStyle(
+                                color:
+                                    Colors.white.withValues(alpha: 0.85),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                                height: 1.25,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: scheme.tertiary,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

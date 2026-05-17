@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/musteriprofilbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/siparislerim.dart';
@@ -263,6 +264,23 @@ class _MenuPageState extends State<MenuPage> {
                           duration: const Duration(milliseconds: 300),
                           child: MusteriPaneliAdiayonlari(
                             kullanici: widget.md,
+                            isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuButton(
+                    icon: Icons.casino_outlined,
+                    label: 'Çark-ı Felek',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: WheelPage(
+                            md: widget.md,
                             isletmebilgi: widget.isletmebilgi,
                           ),
                         ),
