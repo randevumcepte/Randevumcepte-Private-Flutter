@@ -322,13 +322,19 @@ class _ImageGalleryState extends State<ImageGallery> {
       );
 
       final streamed = await req.send();
+      final body = await streamed.stream.bytesToString();
+      debugPrint('upload ${streamed.statusCode}: $body');
+
       if (streamed.statusCode == 200) {
         _bildirim('Fotoğraf eklendi');
         await fetchImages();
       } else {
-        final body = await streamed.stream.bytesToString();
-        debugPrint('upload fail ${streamed.statusCode}: $body');
-        _bildirim('Yükleme başarısız');
+        String mesaj = 'Yükleme başarısız';
+        try {
+          final j = jsonDecode(body) as Map<String, dynamic>;
+          if (j['error'] is String) mesaj = j['error'] as String;
+        } catch (_) {}
+        _bildirim('$mesaj (${streamed.statusCode})');
       }
     } catch (e) {
       debugPrint('upload exception: $e');
