@@ -230,8 +230,9 @@ class _WheelPageState extends State<WheelPage>
 
   Future<void> _spinWheel() async {
     if (_isSpinning) return;
-    if (!_aktif || _dilimler.length < 2) return;
-    // TEST MODU: günlük sınır ve hak kontrolü geçici olarak kaldırıldı.
+    if (_dilimler.length < 2) return;
+    // TEST MODU: _aktif ve günlük sınır engelleri geçici kaldırıldı.
+    // if (!_aktif) return;
     // if (_kalanHak < 1 || _bugunCevirdi) return;
 
     setState(() {
@@ -402,9 +403,8 @@ class _WheelPageState extends State<WheelPage>
               ? const Center(child: CircularProgressIndicator())
               : _loadError != null
                   ? _buildError()
-                  : !_aktif
-                      ? _buildPasif()
-                      : RefreshIndicator(
+                  // TEST MODU: !_aktif → _buildPasif() bypass'lı
+                  : RefreshIndicator(
                           onRefresh: _yukle,
                           color: const Color(0xFF6C5CE7),
                           child: SingleChildScrollView(
