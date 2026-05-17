@@ -1,5 +1,8 @@
 import 'dart:math';
 import 'dart:async';
+import 'dart:typed_data';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -46,6 +49,11 @@ class _WheelPageState extends State<WheelPage>
   double _lastTickAngle = 0.0;
   double _tickAcc = 0.0;
 
+  // Kutlama
+  late final ConfettiController _confetti;
+  final AudioPlayer _cheerPlayer = AudioPlayer();
+  Uint8List? _cheerBytes;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +65,10 @@ class _WheelPageState extends State<WheelPage>
       vsync: this,
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn);
+
+    _confetti = ConfettiController(duration: const Duration(seconds: 3));
+    // Web'deki playCheer() ile aynı: white-noise alkış + envelope + modulation
+    _cheerBytes = _generateCheerWav();
 
     _yukle();
   }
@@ -173,9 +185,80 @@ class _WheelPageState extends State<WheelPage>
     }
   }
 
+  // Webteki playCheer() algoritmasının Flutter karşılığı: 3 sn mono PCM WAV.
+  // White noise * envelope (attack/sustain/release) * tremolo modülasyon →
+  // alkış "shhh-shh" hissi. WAV header runtime üretilir, audioplayers ile
+  // BytesSource olarak oynatılır.
+  Uint8List _generateCheerWav() {
+    const sampleRate = 22050;
+    const seconds = 3;
+    const numSamples = sampleRate * seconds;
+    const dataSize = numSamples * 2;
+    const totalSize = 44 + dataSize;
+    final rand = Random(42);
+
+    final bytes = Uint8List(totalSize);
+    final bd = ByteData.view(bytes.buffer);
+
+    void writeAscii(int offset, String s) {
+      for (var i = 0; i < s.length; i++) {
+        bytes[offset + i] = s.codeUnitAt(i);
+      }
+    }
+
+    // RIFF header
+    writeAscii(0, 'RIFF');
+    bd.setUint32(4, 36 + dataSize, Endian.little);
+    writeAscii(8, 'WAVE');
+    // fmt chunk
+    writeAscii(12, 'fmt ');
+    bd.setUint32(16, 16, Endian.little);
+    bd.setUint16(20, 1, Endian.little); // PCM
+    bd.setUint16(22, 1, Endian.little); // mono
+    bd.setUint32(24, sampleRate, Endian.little);
+    bd.setUint32(28, sampleRate * 2, Endian.little); // byte rate
+    bd.setUint16(32, 2, Endian.little); // block align
+    bd.setUint16(34, 16, Endian.little); // bits per sample
+    // data chunk
+    writeAscii(36, 'data');
+    bd.setUint32(40, dataSize, Endian.little);
+
+    // Samples
+    for (var i = 0; i < numSamples; i++) {
+      final t = i / sampleRate;
+      // Envelope: 0..0.4s attack, 0.4..2.4s sustain, 2.4..3.0s release
+      final env = t < 0.4
+          ? t / 0.4
+          : (t < 2.4 ? 1.0 : pow(1.0 - (t - 2.4) / 0.6, 1.5).toDouble());
+      // Tremolo — kalabalık alkışının dalgalanması
+      final mod = 0.55 + 0.45 * sin(t * 7.5).abs();
+      final noise = rand.nextDouble() * 2 - 1;
+      final sample = noise * mod * env * 0.55;
+      final int16 = (sample * 32767).round().clamp(-32768, 32767);
+      bd.setInt16(44 + i * 2, int16, Endian.little);
+    }
+
+    return bytes;
+  }
+
+  Future<void> _celebrate() async {
+    _confetti.play();
+    HapticFeedback.heavyImpact();
+    if (_cheerBytes != null) {
+      try {
+        await _cheerPlayer.stop();
+        await _cheerPlayer.play(BytesSource(_cheerBytes!));
+      } catch (e) {
+        debugPrint('Cheer play error: $e');
+      }
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
+    _confetti.dispose();
+    _cheerPlayer.dispose();
     super.dispose();
   }
 
@@ -240,9 +323,15 @@ class _WheelPageState extends State<WheelPage>
       })
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          // Bitiş: webteki "kutlama" karşılığı — güçlü haptik + sistem alert
-          HapticFeedback.heavyImpact();
-          SystemSound.play(SystemSoundType.alert);
+          final tip = (dilim['tip'] ?? '').toString();
+          final kazandi = tip != 'bos' && tip != 'tekrar_dene';
+          if (kazandi) {
+            // Webteki playCheer() + konfeti/balon/fişek karşılığı
+            _celebrate();
+          } else {
+            HapticFeedback.mediumImpact();
+            SystemSound.play(SystemSoundType.alert);
+          }
           Future.delayed(const Duration(milliseconds: 400), () {
             if (!mounted) return;
             setState(() {
@@ -339,36 +428,65 @@ class _WheelPageState extends State<WheelPage>
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _loadError != null
-              ? _buildError()
-              : !_aktif
-                  ? _buildPasif()
-                  : RefreshIndicator(
-                      onRefresh: _yukle,
-                      color: const Color(0xFF6C5CE7),
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isSmall ? 12 : 20,
-                          vertical: 16,
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _loadError != null
+                  ? _buildError()
+                  : !_aktif
+                      ? _buildPasif()
+                      : RefreshIndicator(
+                          onRefresh: _yukle,
+                          color: const Color(0xFF6C5CE7),
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmall ? 12 : 20,
+                              vertical: 16,
+                            ),
+                            child: Column(
+                              children: [
+                                _buildHero(isSmall),
+                                const SizedBox(height: 16),
+                                _buildWheel(isSmall),
+                                const SizedBox(height: 20),
+                                _buildSpinButton(),
+                                const SizedBox(height: 16),
+                                _buildHakInfo(),
+                                const SizedBox(height: 16),
+                                _buildLinks(),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Column(
-                          children: [
-                            _buildHero(isSmall),
-                            const SizedBox(height: 16),
-                            _buildWheel(isSmall),
-                            const SizedBox(height: 20),
-                            _buildSpinButton(),
-                            const SizedBox(height: 16),
-                            _buildHakInfo(),
-                            const SizedBox(height: 16),
-                            _buildLinks(),
-                          ],
-                        ),
-                      ),
-                    ),
+          // Kutlama: webteki konfeti+balon+fişek karşılığı
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confetti,
+              blastDirection: pi / 2, // aşağı doğru
+              blastDirectionality: BlastDirectionality.explosive,
+              maxBlastForce: 28,
+              minBlastForce: 12,
+              emissionFrequency: 0.05,
+              numberOfParticles: 24,
+              gravity: 0.25,
+              shouldLoop: false,
+              colors: const [
+                Color(0xFF6C5CE7),
+                Color(0xFFA29BFE),
+                Color(0xFFFD79A8),
+                Color(0xFFFDCB6E),
+                Color(0xFF00B894),
+                Color(0xFFE17055),
+                Color(0xFF74B9FF),
+                Color(0xFFFAB1A0),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -784,89 +902,141 @@ class _WheelPainter extends CustomPainter {
     int n,
   ) {
     final midAngle = startAngle + sectorAngle / 2;
+    // Web ile birebir: scale = R / 130 (web SVG R = 130)
+    final scale = radius / 130.0;
     final hasDeger = d.rakamEtiket != null;
 
+    // Web'deki textRot — saat 12'den ölçülen açıya göre teğet
+    // (üst yarıda upright, alt yarıda flip-180 — okunabilirlik).
+    final tAngDeg = midAngle * 180 / pi + 90; // web tAng
+    final tAngNorm = (tAngDeg % 360 + 360) % 360;
+    final textRotDeg = tAngNorm <= 180 ? tAngNorm - 90 : tAngNorm - 270;
+    final textRotRad = textRotDeg * pi / 180;
+
     if (hasDeger) {
-      // Rakam — dış kenara, teğet hizalı, beyaz
-      final numFs = n <= 8 ? 17.0 : 14.0;
-      final catFs = n <= 8 ? 11.0 : 9.0;
-      final numDist = radius - (n <= 8 ? 18 : 15);
+      final numFs = (n <= 8 ? 17.0 : 14.0) * scale;
+      final catFs = (n <= 8 ? 11.0 : 9.0) * scale;
+      final numDist = radius - (n <= 8 ? 16 : 13) * scale;
       final nx = center.dx + numDist * cos(midAngle);
       final ny = center.dy + numDist * sin(midAngle);
 
+      // Rakam — dış kenara, RADYAL (web'de rotate(tAng))
       canvas.save();
       canvas.translate(nx, ny);
       canvas.rotate(midAngle + pi / 2);
-      _paintText(
+      _paintStrokedText(
         canvas,
         d.rakamEtiket!,
         Offset.zero,
-        TextStyle(
-          color: Colors.white,
-          fontSize: numFs,
-          fontWeight: FontWeight.w900,
-          shadows: const [
-            Shadow(color: Color(0xCC000000), blurRadius: 3, offset: Offset(1, 1)),
-          ],
-        ),
+        fontSize: numFs,
+        fontWeight: FontWeight.w900,
+        fillColor: Colors.white,
+        strokeColor: const Color(0xBF000000),
+        strokeWidth: 3.5 * scale,
       );
       canvas.restore();
 
-      // Kategori
-      final catDist = n <= 8 ? radius * 0.45 : radius * 0.4;
+      // Kategori — iç bölgede, TEĞET (web'de rotate(textRot))
+      final catDist = (n <= 8 ? 68.0 : 60.0) * scale;
       final cx = center.dx + catDist * cos(midAngle);
       final cy = center.dy + catDist * sin(midAngle);
       canvas.save();
       canvas.translate(cx, cy);
-      canvas.rotate(midAngle + pi / 2);
-      _paintText(
+      canvas.rotate(textRotRad);
+      _paintStrokedText(
         canvas,
         d.kisaEtiket,
         Offset.zero,
-        TextStyle(
-          color: Colors.white.withOpacity(0.92),
-          fontSize: catFs,
-          fontWeight: FontWeight.w700,
-          shadows: const [
-            Shadow(color: Color(0x99000000), blurRadius: 2, offset: Offset(0.5, 0.5)),
-          ],
-        ),
+        fontSize: catFs,
+        fontWeight: FontWeight.w700,
+        fillColor: const Color(0xEBFFFFFF),
+        strokeColor: const Color(0x80000000),
+        strokeWidth: 2.0 * scale,
       );
       canvas.restore();
     } else {
-      final dist = n <= 8 ? radius * 0.55 : radius * 0.48;
-      final fs = n <= 8 ? 12.0 : 10.0;
+      final dist = (n <= 8 ? 76.0 : 68.0) * scale;
+      final fs = (n <= 8 ? 12.0 : 10.0) * scale;
       final tx = center.dx + dist * cos(midAngle);
       final ty = center.dy + dist * sin(midAngle);
+
+      // Metin ödülü — TEĞET
       canvas.save();
       canvas.translate(tx, ty);
-      canvas.rotate(midAngle + pi / 2);
-      _paintText(
+      canvas.rotate(textRotRad);
+      _paintStrokedText(
         canvas,
         d.kisaEtiket,
         Offset.zero,
-        TextStyle(
-          color: Colors.white,
-          fontSize: fs,
-          fontWeight: FontWeight.w700,
-          shadows: const [
-            Shadow(color: Color(0x99000000), blurRadius: 2, offset: Offset(0.5, 0.5)),
-          ],
-        ),
+        fontSize: fs,
+        fontWeight: FontWeight.w700,
+        fillColor: Colors.white,
+        strokeColor: const Color(0x8C000000),
+        strokeWidth: 2.5 * scale,
       );
       canvas.restore();
     }
   }
 
-  void _paintText(Canvas canvas, String text, Offset offset, TextStyle style) {
-    final tp = TextPainter(
-      text: TextSpan(text: text, style: style),
+  // Web'deki SVG paint-order: stroke karşılığı — önce siyah stroke, sonra
+  // beyaz fill üstüne. İki TextPainter çağrısı aynı koordinatta çizer.
+  void _paintStrokedText(
+    Canvas canvas,
+    String text,
+    Offset offset, {
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color fillColor,
+    required Color strokeColor,
+    required double strokeWidth,
+  }) {
+    final maxWidth = fontSize * 7; // ~ 7 karakter genişliği
+
+    final strokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = strokeWidth
+      ..color = strokeColor;
+
+    final tpStroke = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          foreground: strokePaint,
+        ),
+      ),
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
       maxLines: 2,
       ellipsis: '…',
-    )..layout(maxWidth: 100);
-    tp.paint(canvas, Offset(offset.dx - tp.width / 2, offset.dy - tp.height / 2));
+    )..layout(maxWidth: maxWidth);
+    tpStroke.paint(
+      canvas,
+      Offset(offset.dx - tpStroke.width / 2,
+          offset.dy - tpStroke.height / 2),
+    );
+
+    final tpFill = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: fillColor,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      ellipsis: '…',
+    )..layout(maxWidth: maxWidth);
+    tpFill.paint(
+      canvas,
+      Offset(offset.dx - tpFill.width / 2,
+          offset.dy - tpFill.height / 2),
+    );
   }
 
   @override
