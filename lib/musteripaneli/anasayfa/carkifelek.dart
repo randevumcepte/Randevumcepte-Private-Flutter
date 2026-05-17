@@ -82,22 +82,79 @@ class _WheelPageState extends State<WheelPage>
           .toList();
 
       setState(() {
-        _aktif = aktif;
+        // TEST MODU: aktif değilse ya da dilim yoksa lokal mock setiyle aç
+        _aktif = aktif || list.length < 2 ? true : aktif;
         _salonAdi = (salon['salon_adi'] ?? _salonAdi).toString();
         _kalanHak = (res['kalanHak'] ?? 0) is int
             ? res['kalanHak']
             : int.tryParse(res['kalanHak'].toString()) ?? 0;
         _bugunCevirdi = res['bugunCevirdi'] == true;
         _yarinSaat = (res['yarinSaat'] ?? '').toString();
-        _dilimler = list;
+        _dilimler = list.length < 2 ? _mockDilimler() : list;
         _isLoading = false;
       });
     } catch (e) {
+      // TEST MODU: bağlantı yoksa bile çark çalışsın
       setState(() {
+        _aktif = true;
+        _dilimler = _mockDilimler();
         _isLoading = false;
-        _loadError = 'Bağlantı hatası: $e';
+        _loadError = null;
       });
     }
+  }
+
+  // TEST MODU: backend pasif veya yetersiz dilim döndürürse fallback
+  List<_Dilim> _mockDilimler() {
+    const colors = [
+      0xFF6C5CE7, 0xFFFD79A8, 0xFFFDCB6E, 0xFF00B894,
+      0xFFE17055, 0xFF74B9FF, 0xFFA29BFE, 0xFFFAB1A0,
+    ];
+    const tipler = [
+      'puan', 'hizmet_indirimi', 'bos', 'tekrar_dene',
+      'urun_indirimi', 'puan', 'hizmet_indirimi', 'bos',
+    ];
+    const isimler = [
+      '100 Puan', '%10 Hizmet', 'Boş', 'Tekrar Dene',
+      '%5 Ürün', '50 Puan', '%20 Hizmet', 'Boş',
+    ];
+    return List.generate(8, (i) {
+      final tip = tipler[i];
+      double? deger;
+      if (tip == 'hizmet_indirimi' || tip == 'urun_indirimi') {
+        deger = i == 1 ? 10 : (i == 4 ? 5 : 20);
+      } else if (tip == 'puan') {
+        deger = i == 0 ? 100 : 50;
+      }
+      return _Dilim(
+        id: i + 1,
+        ismi: isimler[i],
+        renk: Color(colors[i]),
+        tip: tip,
+        deger: deger,
+        sira: i,
+      );
+    });
+  }
+
+  // TEST MODU: backend reddederse lokal random sonuç üret
+  Map<String, dynamic> _mockSpinResult() {
+    final random = Random();
+    final idx = random.nextInt(_dilimler.length);
+    final d = _dilimler[idx];
+    return {
+      'success': true,
+      'dilimIndex': idx,
+      'dilim': {
+        'tip': d.tip,
+        'baslik': d.ismi,
+        'ismi': d.ismi,
+      },
+      'odulKodu': (d.tip == 'bos' || d.tip == 'tekrar_dene')
+          ? null
+          : 'TEST-${random.nextInt(99999).toString().padLeft(5, '0')}',
+      'kalanHak': _kalanHak,
+    };
   }
 
   // Çark dönerken her dilim sınırını geçince webteki "tık" hissini ver.
@@ -124,7 +181,8 @@ class _WheelPageState extends State<WheelPage>
 
   Future<void> _spinWheel() async {
     if (_isSpinning) return;
-    if (!_aktif || _dilimler.length < 2) return;
+    // TEST MODU: _aktif kontrolü kaldırıldı (mock dilimlerle her durumda dönsün)
+    if (_dilimler.length < 2) return;
     // TEST MODU: günlük sınır ve hak kontrolü geçici olarak kaldırıldı.
     // if (_kalanHak < 1 || _bugunCevirdi) return;
 
@@ -135,16 +193,13 @@ class _WheelPageState extends State<WheelPage>
     Map<String, dynamic> data;
     try {
       data = await carkCevir(_salonId, widget.md.id.toString());
+      // TEST MODU: backend reddederse lokal random sonuç ile devam
+      if (data['success'] != true) {
+        data = _mockSpinResult();
+      }
     } catch (e) {
-      setState(() => _isSpinning = false);
-      _showSnack('Bağlantı hatası');
-      return;
-    }
-
-    if (data['success'] != true) {
-      setState(() => _isSpinning = false);
-      _showSnack(data['message']?.toString() ?? 'Çevirme başarısız');
-      return;
+      // TEST MODU: bağlantı hatasında lokal mock
+      data = _mockSpinResult();
     }
 
     final dilimIndex = (data['dilimIndex'] is int)
