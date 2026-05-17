@@ -517,7 +517,7 @@ class _MusteriAlinanPaketlerState
     final scheme = Theme.of(context).colorScheme;
     final dt = _parseTarih(p.acilis_tarihi);
     final paketAdi = p.icerikKisaltilmis.isNotEmpty
-        ? _temizSatir(p.icerikKisaltilmis)
+        ? _temizSatir(_ilkSatir(p.icerikKisaltilmis))
         : (p.icerik.isNotEmpty ? _temizSatir(_ilkSatir(p.icerik)) : 'Paket');
     final tumIcerik = _temizSatirlar(p.icerik);
 
@@ -1000,13 +1000,17 @@ class _MusteriAlinanPaketlerState
 
   static String _temizSatir(String s) {
     var t = s.trim();
+    // Backend formati: "Paket Adi (P)  Personel Adi  400,00 ₺"
+    // (Ü)/(H)/(P)/(K) etiketinden itibaren personel+fiyat — satir sonuna kadar sil
+    t = t.replaceAll(RegExp(r'\s*\([HÜPKhüpk]\).*$'), '');
     t = t.replaceAll(
       RegExp(r'\([^)]*(₺|TL|tl|tutar|fiyat|fıyat)[^)]*\)',
           caseSensitive: false),
       '',
     );
-    t = t.replaceAll(RegExp(r'[-•]\s*₺\s*[\d.,]+'), '');
+    t = t.replaceAll(RegExp(r'[\d.,]+\s*₺'), '');
     t = t.replaceAll(RegExp(r'₺\s*[\d.,]+'), '');
+    t = t.replaceAll(RegExp(r'[\d.,]+\s*TL', caseSensitive: false), '');
     return t.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   }
 

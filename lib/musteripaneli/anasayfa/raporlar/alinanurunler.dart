@@ -984,15 +984,19 @@ class _MusteriALinanUrunlerDashboardState
 
   static String _temizSatir(String s) {
     var t = s.trim();
-    // (₺250), (250 TL), (₺250.00), (250,50) gibi parantez içlerini kaldır
+    // Backend formati: "Urun Adi (Ü)  Personel Adi  400,00 ₺"
+    // (Ü)/(H)/(P)/(K) etiketinden itibaren personel+fiyat — satir sonuna kadar sil
+    t = t.replaceAll(RegExp(r'\s*\([HÜPKhüpk]\).*$'), '');
+    // Yedek: parantez ici ₺/TL/fiyat
     t = t.replaceAll(
       RegExp(r'\([^)]*(₺|TL|tl|tutar|fiyat|fıyat)[^)]*\)',
           caseSensitive: false),
       '',
     );
-    // " - ₺250" veya " ₺250" gibi takıları kaldır
-    t = t.replaceAll(RegExp(r'[-•]\s*₺\s*[\d.,]+'), '');
+    // Yedek: "250,00 ₺" veya "₺ 250" gibi standalone fiyat
+    t = t.replaceAll(RegExp(r'[\d.,]+\s*₺'), '');
     t = t.replaceAll(RegExp(r'₺\s*[\d.,]+'), '');
+    t = t.replaceAll(RegExp(r'[\d.,]+\s*TL', caseSensitive: false), '');
     return t.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   }
 

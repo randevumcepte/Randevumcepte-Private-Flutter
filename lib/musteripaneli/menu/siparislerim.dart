@@ -838,13 +838,17 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
 
   static String _temizSatir(String s) {
     var t = s.trim();
+    // Backend formati: "{ad} (Ü|H|P)  Personel Adi  400,00 ₺"
+    // Etiketten itibaren personel+fiyat — satir sonuna kadar sil
+    t = t.replaceAll(RegExp(r'\s*\([HÜPKhüpk]\).*$'), '');
     t = t.replaceAll(
       RegExp(r'\([^)]*(₺|TL|tl|tutar|fiyat|fıyat)[^)]*\)',
           caseSensitive: false),
       '',
     );
-    t = t.replaceAll(RegExp(r'[-•]\s*₺\s*[\d.,]+'), '');
+    t = t.replaceAll(RegExp(r'[\d.,]+\s*₺'), '');
     t = t.replaceAll(RegExp(r'₺\s*[\d.,]+'), '');
+    t = t.replaceAll(RegExp(r'[\d.,]+\s*TL', caseSensitive: false), '');
     return t.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   }
 
