@@ -241,6 +241,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                   child: MusteriBildirimlerScreen(
                     isletmebilgi: widget.isletmebilgi,
                     md: widget.md,
+                    onNotificationRead: initialize,
                   ),
                 ),
               );
@@ -970,11 +971,16 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
               label: 'Salonu Ara',
               tint: scheme.primary,
               onTap: () async {
-                final phone = _resolveSalonPhone();
-                if (phone == null || phone.isEmpty) return;
+                final phone = _resolveCallPhone();
+                if (phone == null || phone.isEmpty) {
+                  _showSnack('Salonun arama numarası tanımlı değil.');
+                  return;
+                }
                 final uri = Uri.parse('tel:$phone');
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri);
+                } else {
+                  _showSnack('Arama başlatılamadı.');
                 }
               },
             ),
@@ -986,13 +992,20 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
               icon: Icons.chat_rounded,
               label: 'WhatsApp',
               tint: const Color(0xFF25D366),
-              onTap: () {
-                final phone = _resolveSalonPhone();
-                if (phone == null || phone.isEmpty) return;
-                WhatsAppOpener.openWhatsApp(
-                  phone,
-                  'Merhaba, bilgi / randevu almak istiyorum.',
-                );
+              onTap: () async {
+                final wp = _resolveWhatsappNumber();
+                if (wp == null || wp.isEmpty) {
+                  _showSnack('Salonun WhatsApp numarası tanımlı değil.');
+                  return;
+                }
+                try {
+                  await WhatsAppOpener.openWhatsApp(
+                    wp,
+                    'Merhaba, bilgi / randevu almak istiyorum.',
+                  );
+                } catch (_) {
+                  _showSnack('WhatsApp açılamadı.');
+                }
               },
             ),
           ),
@@ -1060,22 +1073,55 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     );
   }
 
-  String? _resolveSalonPhone() {
-    try {
-      final b = widget.isletmebilgi;
-      if (b == null) return null;
-      final candidates = [
-        b.telefon,
-        b.telefonno,
-        b.phone,
-        b.whatsappPhone,
-        b.whatsapp,
-      ];
-      for (final c in candidates) {
-        if (c is String && c.trim().isNotEmpty) return c;
+  String? _readField(List<String> keys) {
+    final b = widget.isletmebilgi;
+    if (b is! Map) return null;
+    for (final k in keys) {
+      final v = b[k];
+      if (v != null && v.toString().trim().isNotEmpty) {
+        return v.toString().trim();
       }
-    } catch (_) {}
+    }
     return null;
+  }
+
+  String? _resolveCallPhone() {
+    return _readField(const [
+      'telefon_1',
+      'telefon',
+      'telefonno',
+      'telefon_2',
+      'phone',
+    ]);
+  }
+
+  String? _resolveWhatsappNumber() {
+    final raw = _readField(const [
+      'whatsapp',
+      'whatsapp_numara',
+      'whatsappPhone',
+      'telefon_1',
+      'telefon',
+      'telefonno',
+    ]);
+    if (raw == null) return null;
+    return _normalizeForWhatsApp(raw);
+  }
+
+  String _normalizeForWhatsApp(String raw) {
+    var digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return digits;
+    if (digits.startsWith('00')) digits = digits.substring(2);
+    if (digits.startsWith('0')) digits = '90${digits.substring(1)}';
+    if (!digits.startsWith('90') && digits.length == 10) digits = '90$digits';
+    return digits;
+  }
+
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 }
 
