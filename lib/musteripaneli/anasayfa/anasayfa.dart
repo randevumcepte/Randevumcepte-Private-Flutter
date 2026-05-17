@@ -13,7 +13,9 @@ import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridashboard.dart';
+import 'package:randevu_sistem/Models/salonyorumlarozet.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/salon_yorumlari.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanpaketler.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanurunler.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/seanslar.dart';
@@ -44,14 +46,25 @@ class MusteriAnsayfa extends StatefulWidget {
 
 class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   MusteriOzet? ozetsayfabilgi;
+  SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
 
   Future<void> initialize() async {
     try {
       setState(() => isloading = true);
-      final ozet = await dashboardGunlukRaporMusteri();
+      final results = await Future.wait([
+        dashboardGunlukRaporMusteri(),
+        salonYorumlariGetir().catchError((_) => SalonYorumlarOzet(
+              ortalama: 0,
+              toplamPuan: 0,
+              toplamYorum: 0,
+              dagilim: const {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+              yorumlar: const [],
+            )),
+      ]);
       setState(() {
-        ozetsayfabilgi = ozet;
+        ozetsayfabilgi = results[0] as MusteriOzet;
+        yorumOzeti = results[1] as SalonYorumlarOzet;
         isloading = false;
       });
     } catch (e) {
@@ -203,6 +216,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       _sectionHeader(context, 'Sana Özel'),
                       const SizedBox(height: 10),
                       _carkPromoCard(context),
+                      const SizedBox(height: 12),
+                      _yorumlarCard(context),
                       const SizedBox(height: 12),
                       _duyurularCard(context),
                       const SizedBox(height: 22),
@@ -1098,6 +1113,144 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── MÜŞTERİ YORUMLARI CARD ───────────────────────────────────────────────
+  Widget _yorumlarCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+
+    final ortalama = yorumOzeti?.ortalama ?? 0;
+    final toplamYorum = yorumOzeti?.toplamYorum ?? 0;
+    final toplamPuan = yorumOzeti?.toplamPuan ?? 0;
+    final ortStr = ortalama.toStringAsFixed(1).replaceAll('.', ',');
+    final tam = ortalama.floor();
+    final yarim = (ortalama - tam) >= 0.5;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: () => Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 350),
+              child: const SalonYorumlariSayfasi(),
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(
+                color: ext.borderSubtle,
+                width: 1,
+              ),
+              boxShadow: AppShadows.soft(scheme.primary),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFFFB400), Color(0xFFFF8A00)],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x33FFB400),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    ortStr,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Müşteri Yorumları',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurface,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (int i = 1; i <= 5; i++) ...[
+                            if (i > 1) const SizedBox(width: 1.5),
+                            Icon(
+                              i <= tam
+                                  ? Icons.star_rounded
+                                  : (i == tam + 1 && yarim
+                                      ? Icons.star_half_rounded
+                                      : Icons.star_outline_rounded),
+                              size: 14,
+                              color: const Color(0xFFFFB400),
+                            ),
+                          ],
+                          const SizedBox(width: 6),
+                          Text(
+                            toplamYorum > 0
+                                ? '$toplamYorum yorum · $toplamPuan puan'
+                                : 'Henüz yorum yok',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.onSurface.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: scheme.primary,
+                    size: 16,
                   ),
                 ),
               ],

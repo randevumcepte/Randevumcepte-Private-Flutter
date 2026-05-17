@@ -28,6 +28,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:randevu_sistem/Models/e_asistan.dart';
 import 'package:randevu_sistem/Models/musteridashboard.dart';
+import 'package:randevu_sistem/Models/salonyorumlarozet.dart';
 import 'package:randevu_sistem/Models/hizmetkategorisi.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
@@ -4267,6 +4268,22 @@ Future<MusteriOzet> dashboardGunlukRaporMusteri() async{
 
   return MusteriOzet.fromJson(jsonresponse);
 
+}
+
+Future<SalonYorumlarOzet> salonYorumlariGetir() async {
+  final Map<String, dynamic> formData = {
+    'appBundle': await appBundleAl(),
+  };
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/salonyorumlari'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+  if (response.statusCode != 200) {
+    throw Exception('Yorumlar yuklenemedi: ${response.statusCode}');
+  }
+  final jsonresponse = json.decode(response.body) as Map<String, dynamic>;
+  return SalonYorumlarOzet.fromJson(jsonresponse);
 }
 
 Future<Map<String, dynamic>> easistan(String salonid, String currpage, int bugunYarin) async {
