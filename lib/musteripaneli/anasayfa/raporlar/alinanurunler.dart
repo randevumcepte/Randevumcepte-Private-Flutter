@@ -97,15 +97,15 @@ class _MusteriALinanUrunlerDashboardState
   List<Adisyon> get _items => _ds?.adisyon ?? const [];
   int get _currentPage => _ds?.currentPage ?? 1;
   int get _totalPages => _ds?.totalPages ?? 1;
+  int get _totalRows => _ds?.totalRows ?? 0;
 
-  ({double toplam, double odenen, double kalan}) get _pageTotals {
-    double t = 0, o = 0, k = 0;
+  DateTime? get _sonAlisverisDate {
+    DateTime? en;
     for (final a in _items) {
-      t += double.tryParse(a.toplam_numeric) ?? 0;
-      o += double.tryParse(a.odenen_numeric) ?? 0;
-      k += double.tryParse(a.kalan_tutar_numeric) ?? 0;
+      final d = _parseTarih(a.acilis_tarihi);
+      if (d != null && (en == null || d.isAfter(en))) en = d;
     }
-    return (toplam: t, odenen: o, kalan: k);
+    return en;
   }
 
   @override
@@ -181,7 +181,7 @@ class _MusteriALinanUrunlerDashboardState
                       ? 'Yükleniyor...'
                       : (_items.isEmpty
                           ? 'Kayıt bulunamadı'
-                          : '${_ds?.totalRows ?? _items.length} satış kaydı'),
+                          : '$_totalRows alışveriş'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -229,14 +229,18 @@ class _MusteriALinanUrunlerDashboardState
     );
   }
 
-  // ── HERO SUMMARY ─────────────────────────────────────────────────────────
+  // ── HERO SUMMARY (fiyat YOK — sadece sayım/tarih) ────────────────────────
   Widget _heroSummary(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final totals = _pageTotals;
+    final son = _sonAlisverisDate;
+    final sonText = son == null
+        ? '—'
+        : '${son.day} ${_ayKisa(son.month)} ${son.year}';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           gradient: LinearGradient(
@@ -258,126 +262,88 @@ class _MusteriALinanUrunlerDashboardState
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(12),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.shopping_bag_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedTarih.label.toUpperCase(),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.80),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.shopping_bag_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'Sayfa özeti',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.78),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _selectedTarih.label,
+                        '$_totalRows',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: 32,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2,
+                          letterSpacing: -1,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 5),
+                        child: Text(
+                          _totalRows == 1 ? 'alışveriş' : 'alışveriş',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _heroStat(
-                    context,
-                    label: 'Toplam',
-                    value: _fmt(totals.toplam),
-                    color: Colors.white,
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.event_rounded,
+                        size: 14,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Son alışveriş: $sonText',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Container(
-                  width: 1,
-                  height: 34,
-                  color: Colors.white.withValues(alpha: 0.25),
-                ),
-                Expanded(
-                  child: _heroStat(
-                    context,
-                    label: 'Ödenen',
-                    value: _fmt(totals.odenen),
-                    color: Colors.white,
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 34,
-                  color: Colors.white.withValues(alpha: 0.25),
-                ),
-                Expanded(
-                  child: _heroStat(
-                    context,
-                    label: 'Kalan',
-                    value: _fmt(totals.kalan),
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _heroStat(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.78),
-            fontSize: 10.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '$value ₺',
-          style: TextStyle(
-            color: color,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-          ),
-        ),
-      ],
     );
   }
 
@@ -558,14 +524,11 @@ class _MusteriALinanUrunlerDashboardState
     );
   }
 
-  // ── URUN CARD ────────────────────────────────────────────────────────────
+  // ── URUN CARD (fiyat YOK — sadece urun + tarih) ──────────────────────────
   Widget _urunCard(BuildContext context, Adisyon a) {
     final scheme = Theme.of(context).colorScheme;
-    final ext = context.appTheme;
     final dt = _parseTarih(a.acilis_tarihi);
-    final kalan = double.tryParse(a.kalan_tutar_numeric) ?? 0;
-    final hasBorc = kalan > 0.0001;
-    final accent = hasBorc ? ext.warningColor : ext.successColor;
+    final urunler = _urunSatirlari(a.icerik);
 
     return Container(
       decoration: BoxDecoration(
@@ -590,14 +553,14 @@ class _MusteriALinanUrunlerDashboardState
               children: [
                 // SOL: tarih bloğu
                 Container(
-                  width: 72,
+                  width: 76,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        accent.withValues(alpha: 0.18),
-                        accent.withValues(alpha: 0.06),
+                        scheme.primary.withValues(alpha: 0.16),
+                        scheme.primary.withValues(alpha: 0.06),
                       ],
                     ),
                   ),
@@ -609,8 +572,8 @@ class _MusteriALinanUrunlerDashboardState
                         dt == null ? '--' : _gunAdi(dt.weekday),
                         style: TextStyle(
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: accent,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
                           letterSpacing: 0.4,
                         ),
                       ),
@@ -618,7 +581,7 @@ class _MusteriALinanUrunlerDashboardState
                       Text(
                         dt == null ? '--' : dt.day.toString(),
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 28,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
                           color: scheme.onSurface,
@@ -638,153 +601,88 @@ class _MusteriALinanUrunlerDashboardState
                     ],
                   ),
                 ),
-                // SAĞ: bilgi
+                // SAĞ: ürün
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                    padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: Text(
-                                _temizIcerik(a.icerik),
-                                style: TextStyle(
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.2,
-                                  color: scheme.onSurface,
-                                  height: 1.25,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            Icon(
+                              Icons.shopping_bag_outlined,
+                              size: 14,
+                              color: scheme.primary.withValues(alpha: 0.75),
                             ),
-                            const SizedBox(width: 8),
-                            _statusBadge(
-                              context,
-                              hasBorc: hasBorc,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _moneyChip(
-                                context,
-                                label: 'Toplam',
-                                value: a.toplam,
+                            const SizedBox(width: 4),
+                            Text(
+                              urunler.length > 1
+                                  ? '${urunler.length} ürün'
+                                  : 'Ürün',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
                                 color: scheme.primary,
+                                letterSpacing: 0.3,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: _moneyChip(
-                                context,
-                                label: 'Ödenen',
-                                value: a.odenen,
-                                color: ext.successColor,
+                            const Spacer(),
+                            if (dt != null)
+                              Text(
+                                '${_pad(dt.hour)}:${_pad(dt.minute)}',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.55),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: _moneyChip(
-                                context,
-                                label: 'Kalan',
-                                value: a.kalan_tutar,
-                                color: hasBorc
-                                    ? ext.warningColor
-                                    : scheme.onSurface
-                                        .withValues(alpha: 0.45),
-                              ),
-                            ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        Text(
+                          urunler.isEmpty
+                              ? 'Ürün bilgisi yok'
+                              : urunler.first,
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            color: scheme.onSurface,
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (urunler.length > 1) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '+${urunler.length - 1} ürün daha',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: scheme.onSurface.withValues(alpha: 0.35),
                   ),
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _statusBadge(BuildContext context, {required bool hasBorc}) {
-    final ext = context.appTheme;
-    final c = hasBorc ? ext.warningColor : ext.successColor;
-    final label = hasBorc ? 'Borçlu' : 'Ödendi';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              color: c,
-              letterSpacing: 0.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _moneyChip(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: color.withValues(alpha: 0.85),
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '$value ₺',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: color,
-              letterSpacing: -0.2,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
       ),
     );
   }
@@ -871,7 +769,7 @@ class _MusteriALinanUrunlerDashboardState
     );
   }
 
-  // ── DETAY BOTTOM SHEET ───────────────────────────────────────────────────
+  // ── DETAY BOTTOM SHEET (fiyat YOK — ürün listesi) ────────────────────────
   void _openDetailSheet(Adisyon a) {
     showModalBottomSheet(
       context: context,
@@ -882,10 +780,8 @@ class _MusteriALinanUrunlerDashboardState
       ),
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
-        final ext = context.appTheme;
         final dt = _parseTarih(a.acilis_tarihi);
-        final kalan = double.tryParse(a.kalan_tutar_numeric) ?? 0;
-        final hasBorc = kalan > 0.0001;
+        final urunler = _urunSatirlari(a.icerik);
 
         return Padding(
           padding: EdgeInsets.only(
@@ -930,7 +826,7 @@ class _MusteriALinanUrunlerDashboardState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Satış #${a.id}',
+                          'Alışveriş #${a.id}',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -952,99 +848,112 @@ class _MusteriALinanUrunlerDashboardState
                       ],
                     ),
                   ),
-                  _statusBadge(context, hasBorc: hasBorc),
                 ],
               ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(
-                    color: scheme.primary.withValues(alpha: 0.12),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Text(
+                    'ÜRÜNLER',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: scheme.onSurface.withValues(alpha: 0.55),
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ürünler',
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${urunler.length}',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                        color: scheme.onSurface.withValues(alpha: 0.6),
+                        color: scheme.primary,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _temizIcerik(a.icerik),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _detailMoney(
-                      context,
-                      label: 'Toplam',
-                      value: a.toplam,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _detailMoney(
-                      context,
-                      label: 'Ödenen',
-                      value: a.odenen,
-                      color: ext.successColor,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _detailMoney(
-                      context,
-                      label: 'Kalan',
-                      value: a.kalan_tutar,
-                      color: hasBorc
-                          ? ext.warningColor
-                          : scheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
               ),
-              if (a.son_tahsilat_tarihi.isNotEmpty &&
-                  a.son_tahsilat_tarihi != 'null') ...[
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.payments_outlined,
-                      size: 16,
-                      color: scheme.onSurface.withValues(alpha: 0.6),
+              const SizedBox(height: 10),
+              if (urunler.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Ürün bilgisi yok',
+                    style: TextStyle(
+                      color: scheme.onSurface.withValues(alpha: 0.55),
+                      fontSize: 13,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Son tahsilat: ${a.son_tahsilat_tarihi}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface.withValues(alpha: 0.65),
-                      ),
+                  ),
+                )
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: scheme.primary.withValues(alpha: 0.10),
                     ),
-                  ],
+                  ),
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < urunler.length; i++) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color:
+                                      scheme.primary.withValues(alpha: 0.14),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${i + 1}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  urunler[i],
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurface,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (i < urunler.length - 1)
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: scheme.primary.withValues(alpha: 0.08),
+                          ),
+                      ],
+                    ],
+                  ),
                 ),
-              ],
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -1060,54 +969,31 @@ class _MusteriALinanUrunlerDashboardState
     );
   }
 
-  Widget _detailMoney(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: color.withValues(alpha: 0.85),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$value ₺',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: color,
-              letterSpacing: -0.2,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── HELPERS ──────────────────────────────────────────────────────────────
-  static String _temizIcerik(String s) {
-    return s.replaceAll('\n', ' • ').trim();
+  /// icerik alanından satır satır ürün isimlerini çıkarır.
+  /// Backend genelde "Ürün Adı x 1" veya "Ürün Adı (₺250) x 1\nÜrün Adı 2..."
+  /// gibi formatlarda dönüyor. Parantez içindeki fiyat varsa siler.
+  static List<String> _urunSatirlari(String s) {
+    if (s.trim().isEmpty) return const [];
+    final lines = s.split(RegExp(r'[\n\r]+'));
+    return lines
+        .map((e) => _temizSatir(e))
+        .where((e) => e.isNotEmpty)
+        .toList();
   }
 
-  static String _fmt(double v) {
-    final f = NumberFormat('#,##0.##', 'tr_TR');
-    return f.format(v);
+  static String _temizSatir(String s) {
+    var t = s.trim();
+    // (₺250), (250 TL), (₺250.00), (250,50) gibi parantez içlerini kaldır
+    t = t.replaceAll(
+      RegExp(r'\([^)]*(₺|TL|tl|tutar|fiyat|fıyat)[^)]*\)',
+          caseSensitive: false),
+      '',
+    );
+    // " - ₺250" veya " ₺250" gibi takıları kaldır
+    t = t.replaceAll(RegExp(r'[-•]\s*₺\s*[\d.,]+'), '');
+    t = t.replaceAll(RegExp(r'₺\s*[\d.,]+'), '');
+    return t.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   }
 
   static DateTime? _parseTarih(String s) {
