@@ -355,20 +355,176 @@ class _ImageGalleryState extends State<ImageGallery> {
   }
 
   // ── FULL-SCREEN VIEWER ───────────────────────────────────────────────────
-  void _acGoruntuleyici(List<String> urls, int index) {
+  void _acGoruntuleyici(List<String> paths, int index) {
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false,
         barrierDismissible: true,
         barrierColor: Colors.black.withValues(alpha: 0.92),
         pageBuilder: (_, __, ___) => _FullScreenGallery(
-          urls: urls,
+          paths: paths,
+          baseUrl: _baseUrl,
           initialIndex: index,
+          onDelete: (p) async {
+            final ok = await _silmeIste();
+            if (!ok) return false;
+            return _resimSil(p);
+          },
         ),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
       ),
     );
+  }
+
+  // ── DELETE ───────────────────────────────────────────────────────────────
+  Future<bool> _silmeIste() async {
+    final scheme = Theme.of(context).colorScheme;
+    final res = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        margin: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: scheme.onSurface.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.delete_outline_rounded,
+                  color: Colors.red.shade600, size: 26),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Fotoğrafı sil?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Bu fotoğraf hem senin panelinden hem de\nsalonun panelinden kaldırılır.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: scheme.onSurface.withValues(alpha: 0.6),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      side: BorderSide(
+                          color: scheme.onSurface.withValues(alpha: 0.15)),
+                      foregroundColor: scheme.onSurface,
+                    ),
+                    child: const Text(
+                      'İptal',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    child: const Text(
+                      'Sil',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    return res == true;
+  }
+
+  Future<bool> _resimSil(String path) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/v1/musteriresimsil'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'user_id': widget.md.id,
+          'path': path,
+        }),
+      );
+      if (res.statusCode == 200) {
+        // local'de hızlı kaldır + arka planda yeniden çek
+        if (mounted) {
+          setState(() {
+            for (final entry in _gruplar.entries) {
+              entry.value.remove(path);
+            }
+            _gruplar.removeWhere((_, v) => v.isEmpty);
+            _siraliGruplar = _gruplar.keys.toList()
+              ..sort((a, b) => b.compareTo(a));
+          });
+        }
+        _bildirim('Fotoğraf silindi');
+        fetchImages();
+        return true;
+      } else {
+        debugPrint('sil ${res.statusCode}: ${res.body}');
+        String mesaj = 'Silinemedi';
+        try {
+          final j = jsonDecode(res.body) as Map<String, dynamic>;
+          if (j['error'] is String) mesaj = j['error'] as String;
+        } catch (_) {}
+        _bildirim('$mesaj (${res.statusCode})');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('sil exception: $e');
+      _bildirim('Silme sırasında bir hata oluştu');
+      return false;
+    }
   }
 
   // ── BUILD ─────────────────────────────────────────────────────────────────
@@ -620,11 +776,17 @@ class _ImageGalleryState extends State<ImageGallery> {
             childAspectRatio: 1,
           ),
           itemBuilder: (_, i) {
-            final url = '$_baseUrl/${images[i]}';
-            return _resimKart(context, url, () {
-              final urls = images.map((p) => '$_baseUrl/$p').toList();
-              _acGoruntuleyici(urls, i);
-            });
+            final path = images[i];
+            final url = '$_baseUrl/$path';
+            return _resimKart(
+              context,
+              url,
+              onTap: () => _acGoruntuleyici(images, i),
+              onLongPress: () async {
+                final ok = await _silmeIste();
+                if (ok) await _resimSil(path);
+              },
+            );
           },
         ),
       ],
@@ -632,12 +794,17 @@ class _ImageGalleryState extends State<ImageGallery> {
   }
 
   Widget _resimKart(
-      BuildContext context, String url, VoidCallback onTap) {
+    BuildContext context,
+    String url, {
+    required VoidCallback onTap,
+    VoidCallback? onLongPress,
+  }) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: Container(
           decoration: BoxDecoration(
@@ -770,12 +937,16 @@ class _ImageGalleryState extends State<ImageGallery> {
 
 // ─── FULL-SCREEN GALLERY VIEWER ───────────────────────────────────────────
 class _FullScreenGallery extends StatefulWidget {
-  final List<String> urls;
+  final List<String> paths;
+  final String baseUrl;
   final int initialIndex;
+  final Future<bool> Function(String path) onDelete;
 
   const _FullScreenGallery({
-    required this.urls,
+    required this.paths,
+    required this.baseUrl,
     required this.initialIndex,
+    required this.onDelete,
   });
 
   @override
@@ -785,10 +956,12 @@ class _FullScreenGallery extends StatefulWidget {
 class _FullScreenGalleryState extends State<_FullScreenGallery> {
   late final PageController _controller;
   late int _current;
+  late List<String> _paths;
 
   @override
   void initState() {
     super.initState();
+    _paths = List<String>.from(widget.paths);
     _current = widget.initialIndex;
     _controller = PageController(initialPage: widget.initialIndex);
   }
@@ -797,6 +970,22 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _delete() async {
+    if (_paths.isEmpty) return;
+    final path = _paths[_current];
+    final ok = await widget.onDelete(path);
+    if (!ok) return;
+    if (!mounted) return;
+    setState(() {
+      _paths.removeAt(_current);
+      if (_paths.isEmpty) {
+        Navigator.of(context).pop();
+      } else if (_current >= _paths.length) {
+        _current = _paths.length - 1;
+      }
+    });
   }
 
   @override
@@ -809,7 +998,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
             onTap: () => Navigator.of(context).pop(),
             child: PageView.builder(
               controller: _controller,
-              itemCount: widget.urls.length,
+              itemCount: _paths.length,
               onPageChanged: (i) => setState(() => _current = i),
               itemBuilder: (_, i) {
                 return InteractiveViewer(
@@ -817,7 +1006,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                   maxScale: 4,
                   child: Center(
                     child: Image.network(
-                      widget.urls[i],
+                      '${widget.baseUrl}/${_paths[i]}',
                       fit: BoxFit.contain,
                       loadingBuilder: (_, child, progress) {
                         if (progress == null) return child;
@@ -861,7 +1050,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '${_current + 1} / ${widget.urls.length}',
+                    '${_current + 1} / ${_paths.length}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -869,7 +1058,12 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 48),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      color: Colors.white, size: 26),
+                  tooltip: 'Sil',
+                  onPressed: _delete,
+                ),
               ],
             ),
           ),
