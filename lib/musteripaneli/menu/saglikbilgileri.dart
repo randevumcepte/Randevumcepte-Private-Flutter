@@ -69,7 +69,10 @@ class _MusteriPaneliSaglikBilgileriState
   void initState() {
     super.initState();
     musteriid = TextEditingController(text: widget.md.id);
-    eksaglik = TextEditingController(text: widget.md.ek_saglik_sorunu);
+    final rawNot = widget.md.ek_saglik_sorunu;
+    eksaglik = TextEditingController(
+      text: (rawNot.isEmpty || rawNot.toLowerCase() == 'null') ? '' : rawNot,
+    );
     selectedhemofili = _matchEvetHayir(widget.md.hemofili_hastaligi_var);
     selectedseker = _matchEvetHayir(widget.md.seker_hastaligi_var);
     selectedhamile = _matchEvetHayir(widget.md.hamile);
