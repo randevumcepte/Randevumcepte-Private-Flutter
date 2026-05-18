@@ -20,7 +20,11 @@ import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'anasayfa/anasayfa.dart';
+import 'anasayfa/carkifelek.dart';
+import 'anasayfa/musteribildirimleri/musteribildirimleri.dart';
+import 'menu/indirimler.dart';
 import 'menu/musterimenu.dart';
 
 
@@ -194,6 +198,41 @@ class _MusteriAltBarState  extends State<MusteriAltBar> {
 
     ];
 
+    // Bildirim tıklamasından gelen yönlendirme niyetlerini dinle.
+    NotificationNavigationBus.current.addListener(_handleNotificationIntent);
+    // Cold-start: bus'ta önceden konmuş bir intent varsa altbar tam mount
+    // olduktan sonra tüket.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationIntent());
+  }
+
+  void _handleNotificationIntent() {
+    final intent = NotificationNavigationBus.current.value;
+    if (intent == null || !mounted) return;
+    NotificationNavigationBus.consume();
+
+    switch (intent.target) {
+      case NotificationIntent.wheel:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => WheelPage(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.appointments:
+        try {
+          Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(1);
+        } catch (_) {}
+        setState(() => _selectedTab = 1);
+        break;
+      case NotificationIntent.discounts:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => KazanilanIndirimlerPage(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.notifications:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => MusteriBildirimlerScreen(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+    }
   }
   bool _showBottomNavigationBar = true;
 
@@ -201,6 +240,7 @@ class _MusteriAltBarState  extends State<MusteriAltBar> {
   @override
   void dispose() {
     //keyboardSubscription.cancel();
+    NotificationNavigationBus.current.removeListener(_handleNotificationIntent);
 
     super.dispose();
   }

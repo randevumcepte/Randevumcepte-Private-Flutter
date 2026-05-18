@@ -14,7 +14,9 @@ import 'package:randevu_sistem/yeni/yeni_page.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/adisyonpage.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
 
+import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
+import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler.dart';
 import 'package:randevu_sistem/yonetici/diger/diger_page.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ajanda/ajanda.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/arsiv/arsivyonetimipage.dart';
@@ -125,6 +127,34 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         dialPadManager.showDialPad(context,false,"",widget.kullanici,personelId);
       });
+    }
+
+    // Bildirim tıklamasından gelen yönlendirme niyetlerini dinle.
+    NotificationNavigationBus.current.addListener(_handleNotificationIntent);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationIntent());
+  }
+
+  void _handleNotificationIntent() {
+    final intent = NotificationNavigationBus.current.value;
+    if (intent == null || !mounted) return;
+    NotificationNavigationBus.consume();
+
+    switch (intent.target) {
+      case NotificationIntent.adminCalendar:
+        // Takvim sekmesi (index 1)
+        try {
+          Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(1);
+        } catch (_) {}
+        setState(() => _selectedTab = 1);
+        break;
+      case NotificationIntent.adminNotifications:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => BildirimlerScreen(
+            isletmebilgi: widget.isletmebilgi,
+            kullanicirolu: kullanicirolu,
+          ),
+        ));
+        break;
     }
   }
 
@@ -242,6 +272,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     }
     Yetki.versiyon.removeListener(_onYetkiDegisti);
     Yetki.yetkiAyarlariDegisti.removeListener(_onYetkiAyarlariDegisti);
+    NotificationNavigationBus.current.removeListener(_handleNotificationIntent);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -305,8 +336,13 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       case 1: return Yetki.varMi('randevu.takvim_gor');     // Randevular
       case 2: return true;                                  // FAB delik
       case 3:                                               // Satis Takibi / Ongorusmeler
+        // Satis Takibi: satis akisina dahil olan herkes (adisyon olusturma /
+        // tahsilat alma / tum satis gorme) gorur. Yetki yoksa icerideki liste
+        // adisyonpage tarafindan kendi user_id'si ile filtrelenir.
         return widget.uyelikturu > 1
-            ? Yetki.varMi('satis.tum_satis_gor')
+            ? (Yetki.varMi('satis.adisyon_olustur') ||
+                Yetki.varMi('satis.tahsilat_al') ||
+                Yetki.varMi('satis.tum_satis_gor'))
             : Yetki.varMi('gorusme.liste_gor');
       case 4: return true;                                  // Menu (hub)
       default: return true;
@@ -508,7 +544,11 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
                                       crossAxisCount: crossAxisCount,
                                       mainAxisSpacing: isLandscape ? 8 : 10,
                                       crossAxisSpacing: isLandscape ? 8 : 10,
-                                      childAspectRatio: isLandscape ? 1.0 : 1.2,
+                                      // 3+ sütunda kart daralıyor — ikon+başlık
+                                      // dikey sığsın diye oran 1.0'a çekildi
+                                      childAspectRatio: isLandscape
+                                          ? 1.0
+                                          : (crossAxisCount >= 3 ? 1.0 : 1.2),
                                     ),
                                     itemCount: menuItems.length,
                                     itemBuilder: (context, index) {
