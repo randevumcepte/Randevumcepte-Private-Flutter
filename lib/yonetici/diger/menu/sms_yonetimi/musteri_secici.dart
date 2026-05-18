@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 
 /// Sayfalanmış müşteri listesi seçici.
 /// SMS Yönetimi sayfasındaki "Müşterileri Seçiniz" alanı ile aynı işi yapar.
@@ -251,7 +252,7 @@ class MusteriSeciciState extends State<MusteriSecici> {
                         final m = _musteriler[index];
                         final id = int.tryParse(m['id'].toString()) ?? 0;
                         final ad = (m['name'] ?? '').toString();
-                        final tel = (m['telefon'] ?? '').toString();
+                        final tel = Yetki.telefonGoster((m['telefon'] ?? '').toString());
                         final secili = _hepsiSecili || _seciliIdler.contains(id);
                         return CheckboxListTile(
                           dense: true,

@@ -801,7 +801,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
 
     String telefon = '';
     try {
-      telefon = r.musteri?["cep_telefon"]?.toString() ?? '';
+      telefon = Yetki.telefonGoster(r.musteri?["cep_telefon"]?.toString());
     } catch (_) {}
 
     String olusturanAdi = '';

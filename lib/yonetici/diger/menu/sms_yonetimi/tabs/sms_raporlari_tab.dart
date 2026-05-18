@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 
 import '../sms_yonetimi_state.dart';
 
@@ -172,7 +173,7 @@ class _SmsRaporlariTabState extends State<SmsRaporlariTab>
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
-                            '${k['telefon'] ?? ''} • ${k['operator'] ?? ''}\n'
+                            '${Yetki.telefonGoster((k['telefon'] ?? '').toString())} • ${k['operator'] ?? ''}\n'
                             '${k['durum'] ?? ''} • ${k['iletim_tarihi'] ?? ''}',
                             style: TextStyle(fontSize: 12),
                           ),

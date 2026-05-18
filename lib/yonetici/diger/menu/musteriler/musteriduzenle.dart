@@ -2,560 +2,820 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'package:dropdown_model_list/drop_down/model.dart';
-import 'package:dropdown_model_list/drop_down/search_drop_list.dart';
-import 'package:dropdown_model_list/drop_down/select_drop_list.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
-import 'package:randevu_sistem/theme/app_tokens.dart';
+
 import 'musteriliste.dart';
-
-
 
 class MusteriDuzenle extends StatefulWidget {
   final MusteriDanisan md;
   final dynamic isletmebilgi;
   final int kullanicirolu;
-  const MusteriDuzenle({Key? key,required this.md,required this.isletmebilgi,required this.kullanicirolu}) : super(key: key);
+  const MusteriDuzenle({
+    Key? key,
+    required this.md,
+    required this.isletmebilgi,
+    required this.kullanicirolu,
+  }) : super(key: key);
 
   @override
   _MusteriDuzenleState createState() => _MusteriDuzenleState();
 }
 
-
 class _MusteriDuzenleState extends State<MusteriDuzenle> {
-  final _formKey = GlobalKey<FormState>();
-
-  late String seciliisletme;
-  AutovalidateMode _autoValidate = AutovalidateMode.disabled;
-  late TextEditingController musteriid;
-  late TextEditingController musteriadi;
-  late TextEditingController musteritelefon;
-  late TextEditingController musteritarih;
-  late TextEditingController musteriemail;
-  late TextEditingController musterinotlar;
-  late TextEditingController cinsiyet;
   final phoneMask = MaskTextInputFormatter(
     mask: '0### ### ## ##',
-    filter: { "#": RegExp(r'[0-9]') },
+    filter: {"#": RegExp(r'[0-9]')},
   );
 
-  String _selectedGender = '';
   final List<Referans> musterireferans = [
     Referans(id: " ", referans: "Yok"),
     Referans(id: "1", referans: "İnternet"),
     Referans(id: "2", referans: "Reklam"),
     Referans(id: "3", referans: "Instagram"),
     Referans(id: "4", referans: "Facebook"),
-    Referans(id: "5", referans: "Tanıdık")
-
-
+    Referans(id: "5", referans: "Tanıdık"),
   ];
+
+  late String seciliisletme;
   Referans? selectedmusterireferans;
-  final TextEditingController musterireferanscontroller = TextEditingController();
+
+  late TextEditingController musteriid;
+  late TextEditingController adsoyad;
+  late TextEditingController telefon;
+  late TextEditingController dogumtarihi;
+  late TextEditingController eposta;
+  late TextEditingController notlar;
+
+  final TextEditingController musterireferanscontroller =
+      TextEditingController();
+
+  String selectedcinsiyet = '';
+  bool yukleniyor = true;
+
+  // Personel yetkisi yoksa musteri telefonu hic gosterilmez ve duzenlenemez
+  bool get _telGor => Yetki.varMi('musteri.telefon_gor');
+
+  final _formKey = GlobalKey<FormState>();
+
+  @override
   void initState() {
     super.initState();
 
     if (widget.md.cinsiyet == '0') {
-      _selectedGender = 'kadin';
+      selectedcinsiyet = '0';
     } else if (widget.md.cinsiyet == '1') {
-      _selectedGender = 'erkek';
+      selectedcinsiyet = '1';
     }
 
-    musteriid=TextEditingController(text:widget.md.id);
-    musteriadi=TextEditingController(text:widget.md.name != 'null' ? widget.md.name : '');
-    musteritelefon=TextEditingController(text:widget.md.cep_telefon != 'null' ? '0'+widget.md.cep_telefon : '');
-    musteritarih=TextEditingController(text:widget.md.dogum_tarihi != 'null' ? widget.md.dogum_tarihi : '');
-    musteriemail=TextEditingController(text:widget.md.eposta != 'null' ? widget.md.eposta : '');
-    musterinotlar=TextEditingController(text:widget.md.ozel_notlar!= 'null' ? widget.md.ozel_notlar : '');
+    musteriid = TextEditingController(text: widget.md.id);
+    adsoyad = TextEditingController(
+        text: widget.md.name != 'null' ? widget.md.name : '');
+    telefon = TextEditingController(
+        text: widget.md.cep_telefon != 'null'
+            ? (_telGor ? '0${widget.md.cep_telefon}'
+                       : Yetki.telefonGoster('0${widget.md.cep_telefon}'))
+            : '0');
+    dogumtarihi = TextEditingController(
+        text: widget.md.dogum_tarihi != 'null' ? widget.md.dogum_tarihi : '');
+    eposta = TextEditingController(
+        text: widget.md.eposta != 'null' ? widget.md.eposta : '');
+    notlar = TextEditingController(
+        text: widget.md.ozel_notlar != 'null' ? widget.md.ozel_notlar : '');
+
     selectedmusterireferans = musterireferans.firstWhere(
-          (item) => item.id == widget.md.musteri_tipi,
-      orElse: () => musterireferans.first, // return the first element if no match
+      (item) => item.id == widget.md.musteri_tipi,
+      orElse: () => musterireferans.first,
     );
 
     initialize();
   }
-  Future<void> initialize() async
-  {
-    seciliisletme = (await secilisalonid())!;
 
+  Future<void> initialize() async {
+    seciliisletme = (await secilisalonid())!;
+    if (!mounted) return;
+    setState(() {
+      yukleniyor = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    musteriid.dispose();
+    adsoyad.dispose();
+    telefon.dispose();
+    dogumtarihi.dispose();
+    eposta.dispose();
+    notlar.dispose();
+    musterireferanscontroller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = context.colors;
+    final scheme = Theme.of(context).colorScheme;
+    final primary = scheme.primary;
 
-    return  MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus(); // Hide the keyboard
-        },
-        child: Scaffold(
-          resizeToAvoidBottomInset: false,
-          appBar: new AppBar(
-            title: const Text('Müşteri Düzenle'),
-            leading: IconButton(
-              icon: Icon(Icons.clear_rounded),
-              onPressed: () => Navigator.of(context).pop(),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            Color.alphaBlend(primary.withValues(alpha: 0.36), Colors.white),
+            Color.alphaBlend(
+                scheme.tertiary.withValues(alpha: 0.08), Colors.white),
+          ],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          centerTitle: false,
+          title: Text(
+            'Müşteri Düzenle',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+              letterSpacing: -0.3,
             ),
-
-
           ),
-
-          body: SafeArea(
-            child: SingleChildScrollView(
-              reverse: true,
-              child: Container(
-                margin: const EdgeInsets.all(15.0),
-                child: Form(
-                    key: _formKey,
-                    autovalidateMode: _autoValidate,
-                    child: formUI()
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: primary, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          toolbarHeight: 72,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: yukleniyor
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: primary,
+                  strokeWidth: 2.5,
                 ),
-              ),
+              )
+            : _buildForm(primary),
+        bottomNavigationBar: yukleniyor ? null : _buildSaveBar(primary),
+      ),
+    );
+  }
+
+  Widget _buildForm(Color primary) {
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _avatarBlock(primary),
+                const SizedBox(height: 24),
+                _sectionTitle(
+                    'Kişisel Bilgiler', Icons.person_outline_rounded, primary),
+                _buildField(
+                  label: 'Ad Soyad',
+                  icon: Icons.badge_outlined,
+                  controller: adsoyad,
+                  primary: primary,
+                  onChanged: (_) => setState(() {}),
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Bu alan zorunludur';
+                    }
+                    return null;
+                  },
+                ),
+                _buildField(
+                  label: 'Doğum Tarihi',
+                  icon: Icons.cake_outlined,
+                  controller: dogumtarihi,
+                  primary: primary,
+                  readOnly: true,
+                  hint: 'yyyy-aa-gg',
+                  onTap: _pickDate,
+                ),
+                _genderSelector(),
+                const SizedBox(height: 18),
+                _sectionTitle(
+                    'İletişim', Icons.contact_mail_outlined, primary),
+                _buildField(
+                  label: 'Telefon Numarası',
+                  icon: Icons.phone_outlined,
+                  controller: telefon,
+                  primary: primary,
+                  keyboardType: TextInputType.phone,
+                  readOnly: !_telGor,
+                  inputFormatters: _telGor ? [phoneMask] : null,
+                  onTap: _telGor
+                      ? () {
+                          if (telefon.text.length < 2) {
+                            telefon.text = "0";
+                          }
+                          telefon.selection = TextSelection.fromPosition(
+                            TextPosition(offset: telefon.text.length),
+                          );
+                        }
+                      : null,
+                  onChanged: _telGor
+                      ? (value) {
+                          if (!value.startsWith("0")) {
+                            telefon.text = "0";
+                            telefon.selection = TextSelection.fromPosition(
+                              TextPosition(offset: telefon.text.length),
+                            );
+                          }
+                        }
+                      : null,
+                  validator: (value) {
+                    if (!_telGor) return null; // maskeli; duzenleme kapali
+                    if (value == null ||
+                        value.trim().isEmpty ||
+                        value.trim() == '0') {
+                      return 'Bu alan zorunludur';
+                    }
+                    return null;
+                  },
+                ),
+                _buildField(
+                  label: 'E-posta',
+                  icon: Icons.email_outlined,
+                  controller: eposta,
+                  primary: primary,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 18),
+                _sectionTitle('Diğer', Icons.tune_rounded, primary),
+                _referansSelector(primary),
+                const SizedBox(height: 12),
+                _buildField(
+                  label: 'Notlar',
+                  icon: Icons.notes_rounded,
+                  controller: notlar,
+                  primary: primary,
+                  maxLines: 3,
+                  hint: 'Müşteriyle ilgili özel notlar...',
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
           ),
-
         ),
       ),
     );
   }
-  Widget formUI(){
-    final cs = context.colors;
-    final ext = context.appTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Ad Soyad',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        TextFormField(
 
-          keyboardType: TextInputType.text,
-          controller: musteriadi,
-          onSaved: (value) {
+  Widget _avatarBlock(Color primary) {
+    final name = adsoyad.text.trim();
+    String initials = '?';
+    if (name.isNotEmpty) {
+      final parts =
+          name.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+      if (parts.length == 1) {
+        initials = parts.first.substring(0, 1).toUpperCase();
+      } else {
+        initials = (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+            .toUpperCase();
+      }
+    }
 
-            musteriadi.text = value!;
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Bu alan zorunludur!';
-            }
-            return null;
-          },
+    final pr = widget.md.profil_resim;
+    final hasImage = pr != null && pr.isNotEmpty && pr != 'null';
 
-          decoration: InputDecoration(
-
-            focusColor: cs.primary,
-            hoverColor: cs.primary,
-            hintStyle: TextStyle(color: cs.primary),
-            contentPadding:  EdgeInsets.all(15.0),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
-            ),
-          ),
-        ),
-        SizedBox(height: 10,),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Telefon Numarası',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        TextFormField(
-
-          keyboardType: TextInputType.phone,
-          inputFormatters: [phoneMask],
-          controller: musteritelefon,
-          onSaved: (value) {
-
-            musteritelefon.text = value!;
-          },
-          onTap: () {
-            // Cursor daima +90'ın sonuna gelsin
-            if (musteritelefon.text.length < 2) {
-              musteritelefon.text = "0";
-            }
-            musteritelefon.selection = TextSelection.fromPosition(
-              TextPosition(offset: musteritelefon.text.length),
-            );
-          },
-
-          onChanged: (value) {
-            // Kullanıcı +90 kısmını silmeye çalışırsa düzelt
-            if (!value.startsWith("0")) {
-              musteritelefon.text = "0";
-              musteritelefon.selection = TextSelection.fromPosition(
-                TextPosition(offset: musteritelefon.text.length),
-              );
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Bu alan zorunludur!';
-            }
-            return null;
-          },
-
-          decoration: InputDecoration(
-
-            focusColor: cs.primary,
-            hoverColor: cs.primary,
-            hintStyle: TextStyle(color: cs.primary),
-            contentPadding:  EdgeInsets.all(15.0),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
-            ),
-          ),
-        ),
-        SizedBox(height: 10,),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('E-posta',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        TextFormField(
-
-          keyboardType: TextInputType.emailAddress,
-          controller: musteriemail,
-          onSaved: (value) {
-
-            musteriemail.text = value!;
-
-          },
-
-
-
-          decoration: InputDecoration(
-
-            focusColor: cs.primary,
-            hoverColor: cs.primary,
-            hintStyle: TextStyle(color: cs.primary),
-            contentPadding:  EdgeInsets.all(15.0),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: cs.primary),borderRadius: BorderRadius.circular(50.0),),
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(50.0),
-            ),
-          ),
-        ),
-
-        SizedBox(height: 10,),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Doğum Tarihi',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        Container(
-          height: 40,
-          padding: EdgeInsets.only(left:20,right: 20),
-          child: TextFormField(
-
-            controller:musteritarih,
-            enabled:true,
-            onSaved: (value) {
-              musteritarih.text=value!;
-            },
-
-            //editing controller of this TextField
-            decoration: InputDecoration(
-
-              focusColor: cs.primary,
-              hoverColor: cs.primary,
-              hintStyle: TextStyle(color: cs.primary),
-              contentPadding:  EdgeInsets.all(15.0),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                  color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
-              border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: hasImage
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        primary.withValues(alpha: 0.22),
+                        primary.withValues(alpha: 0.08),
+                      ],
+                    ),
+              image: hasImage
+                  ? DecorationImage(
+                      image: NetworkImage(pr),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              border: Border.all(
+                color: primary.withValues(alpha: 0.28),
+                width: 2,
               ),
-            ),
-            readOnly: true,
-            //set it true, so that user will not able to edit text
-
-            onTap: () async {
-              DateTime? pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(1950),
-                  //DateTime.now() - not to allow to choose before today.
-                  lastDate: DateTime(2100));
-
-              if (pickedDate != null) {
-                print(
-                    pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
-                String formattedDate =
-                DateFormat('yyyy-MM-dd').format(pickedDate);
-                print(
-                    formattedDate); //formatted date output using intl package =>  2021-03-16
-                setState(() {
-                  musteritarih.text =
-                      formattedDate; //set output date to TextField value.
-                });
-              } else {}
-            },
-          ),
-
-        ),
-        SizedBox(height: 10,),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Cinsiyet',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: ListTile(
-                leading: Radio<String>(
-                  value: 'kadin',
-                  groupValue: _selectedGender,
-                  activeColor: cs.primary,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedGender = value!;
-
-                    });
-                  },
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withValues(alpha: 0.10),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
                 ),
-                title: const Text('Kadın'),
-              ),
+              ],
             ),
-            Expanded(
-              child: ListTile(
-                leading: Radio<String>(
-                  value: 'erkek',
-                  groupValue: _selectedGender,
-                  activeColor: cs.primary,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedGender = value!;
-
-                    });
-                  },
-                ),
-                title: const Text('Erkek'),
-              ),
-            ),
-
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Referans',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
-        ),
-        const SizedBox(
-          height: 10.0,
-        ),
-        Container(
-          alignment: Alignment.center,
-
-          height: 40,
-          width:double.infinity,
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            border: Border.all(color: cs.primary),
-            borderRadius: BorderRadius.circular(10), //border corner radius
-
-            //you can set more BoxShadow() here
-
-          ),
-          child: DropdownButtonHideUnderline(
-
-              child: DropdownButton2<Referans>(
-
-                isExpanded: true,
-                hint: Text(
-                  'Referans Seç',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).hintColor,
+            child: hasImage
+                ? null
+                : Center(
+                    child: Text(
+                      initials,
+                      style: TextStyle(
+                        color: primary,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
                   ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            name.isEmpty ? 'Müşteri Düzenle' : name,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: Colors.grey[800],
+              letterSpacing: -0.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String text, IconData icon, Color primary) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 0, 0, 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: primary),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 14.5,
+              color: Colors.grey[800],
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildField({
+    required String label,
+    required IconData icon,
+    required TextEditingController controller,
+    required Color primary,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    VoidCallback? onTap,
+    ValueChanged<String>? onChanged,
+    bool readOnly = false,
+    String? hint,
+    int maxLines = 1,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    String? Function(String?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey[200]!, width: 1),
+            ),
+            child: TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
+              readOnly: readOnly,
+              onTap: onTap,
+              onChanged: onChanged,
+              maxLines: maxLines,
+              textCapitalization: textCapitalization,
+              cursorColor: primary,
+              validator: validator,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[900],
+              ),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13.5,
+                ),
+                prefixIcon: Icon(icon, color: primary, size: 19),
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _genderSelector() {
+    Widget pill(String value, String label, IconData icon, Color color) {
+      final selected = selectedcinsiyet == value;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => selectedcinsiyet = value),
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            decoration: BoxDecoration(
+              color:
+                  selected ? color.withValues(alpha: 0.12) : Colors.grey[50],
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: selected
+                    ? color.withValues(alpha: 0.5)
+                    : Colors.grey[200]!,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon,
+                    size: 18, color: selected ? color : Colors.grey[500]),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                    color: selected ? color : Colors.grey[600],
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(
+              'Cinsiyet',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              pill('0', 'Kadın', Icons.female_rounded,
+                  const Color(0xFFE91E63)),
+              const SizedBox(width: 10),
+              pill('1', 'Erkek', Icons.male_rounded,
+                  const Color(0xFF2196F3)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _referansSelector(Color primary) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(
+              'Referans',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey[200]!, width: 1),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton2<Referans>(
+                isExpanded: true,
+                hint: Row(
+                  children: [
+                    Icon(Icons.share_outlined, color: primary, size: 19),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Referans Seç',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
                 items: musterireferans
                     .map((item) => DropdownMenuItem(
-                  value: item,
-                  child: Text(
-                    item.referans,
-                    style: const TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
-                ))
+                          value: item,
+                          child: Text(
+                            item.referans,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ))
                     .toList(),
                 value: selectedmusterireferans,
-                onChanged: (value) {
-                  setState(() {
-                    selectedmusterireferans = value;
-                  });
-                },
+                onChanged: (value) =>
+                    setState(() => selectedmusterireferans = value),
+                selectedItemBuilder: (context) => musterireferans
+                    .map((item) => Row(
+                          children: [
+                            Icon(Icons.share_outlined,
+                                color: primary, size: 19),
+                            const SizedBox(width: 12),
+                            Text(
+                              item.referans,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[900],
+                              ),
+                            ),
+                          ],
+                        ))
+                    .toList(),
                 buttonStyleData: const ButtonStyleData(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  height: 50,
-                  width: 400,
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  height: 52,
                 ),
-
-                dropdownStyleData: const DropdownStyleData(
-                  maxHeight: 200,
-
+                dropdownStyleData: DropdownStyleData(
+                  maxHeight: 240,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.white,
+                  ),
+                  elevation: 6,
+                  offset: const Offset(0, -4),
                 ),
-                menuItemStyleData: const MenuItemStyleData(
-                  height: 40,
-                ),
-
-                //This to clear the search value when you close the menu
+                menuItemStyleData: const MenuItemStyleData(height: 42),
                 onMenuStateChange: (isOpen) {
-                  if (!isOpen) {
-                    musterireferanscontroller.clear();
-                  }
+                  if (!isOpen) musterireferanscontroller.clear();
                 },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              )),
-        ),
-        const SizedBox(
-          height: 10.0,
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text('Notlar',style: TextStyle(fontSize: 16,color: cs.onSurface,fontWeight: FontWeight.bold),),
-        ),
-        SizedBox(height: 10,),
-        TextFormField(
-
-          keyboardType: TextInputType.text,
-
-          controller: musterinotlar,
-          onSaved: (value) {
-
-            musterinotlar.text = value!;
-          },
-          maxLines: 3,
-
-
-
-          decoration: InputDecoration(
-            enabled:true,
-            focusColor: cs.primary,
-            hoverColor: cs.primary,
-            hintStyle: TextStyle(color: cs.primary),
-            contentPadding:  EdgeInsets.all(15.0),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                color: cs.primary),borderRadius: BorderRadius.circular(10.0),),
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(10.0),),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: cs.primary,), borderRadius: BorderRadius.circular(10.0),
+  Widget _buildSaveBar(Color primary) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: primary.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Material(
+          color: primary,
+          borderRadius: BorderRadius.circular(16),
+          elevation: 0,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: _onKaydet,
+            child: Container(
+              height: 52,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.check_circle_rounded,
+                      color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Değişiklikleri Kaydet',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-
-        const SizedBox(
-          height: 20.0,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(onPressed: (){
-              log(_formKey.currentState!.toString());
-              if (_formKey.currentState!.validate()) {
-                _formKey.currentState!.save();
-                submitForm(widget.isletmebilgi,musteriid.text,seciliisletme,musteriadi.text,musteritelefon.text,musteriemail.text,musteritarih.text,_selectedGender == 'kadin' ? '0' : '1',selectedmusterireferans?.id ?? "",musterinotlar.text,context);
-              }
-            },
-              child: Text('Kaydet'),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: ext.successColor,
-                  foregroundColor: cs.onPrimary,
-                  minimumSize: Size(90, 40)
-              ),
-            ),
-          ],
-        ),
-        Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom))
-      ],
+      ),
     );
   }
 
-
-  String? validateName(String? value) {
-    if (value!.isEmpty) {
-      return 'İsmi boş bırakmayınız';
-    }
-    if (value.length < 3) {
-      return '2 karakterden fazla olmalıdır';
-    } else {
-      return null;
+  Future<void> _pickDate() async {
+    DateTime initial = DateTime.now();
+    try {
+      if (dogumtarihi.text.isNotEmpty) {
+        initial = DateTime.parse(dogumtarihi.text);
+      }
+    } catch (_) {}
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1950),
+      lastDate: DateTime(2100),
+    );
+    if (pickedDate != null) {
+      setState(() {
+        dogumtarihi.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+      });
     }
   }
-  Future<void> submitForm(dynamic isletmebilgi,String musteri_id,String salonid,String musteriad,String telefon,String e_posta,String dogumtarihi,String cinsiyet,String referans,String notlar,context)async {
-    SharedPreferences localStorage = await SharedPreferences.getInstance();
-    log('müşteri adı : '+musteriad);
 
-    Map<String,dynamic> formData={
-      'ad_soyad':musteriad,
-      'telefon':telefon,
-      'email':e_posta,
-      'dogum_tarihi':dogumtarihi,
-      'cinsiyet':cinsiyet,
-      'musteri_tipi':referans,
-      'ozel_notlar':notlar,
-      'musteri_id':musteri_id
+  Future<void> _onKaydet() async {
+    if (_formKey.currentState == null) return;
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
 
+    // Yetki yoksa kullanici telefonu degistirememeli — orijinali geri gonder
+    final tel = _telGor
+        ? telefon.text
+        : (widget.md.cep_telefon != 'null' ? '0${widget.md.cep_telefon}' : '');
 
+    try {
+      await submitForm(
+        widget.isletmebilgi,
+        musteriid.text,
+        seciliisletme,
+        adsoyad.text,
+        tel,
+        eposta.text,
+        dogumtarihi.text,
+        selectedcinsiyet,
+        selectedmusterireferans?.id ?? "",
+        notlar.text,
+        context,
+      );
+    } catch (e, st) {
+      log('musteri guncelle hata: $e');
+      log('stack: $st');
+    }
+  }
+
+  Future<void> submitForm(
+      dynamic isletmebilgi,
+      String musteri_id,
+      String salonid,
+      String musteriad,
+      String telefon,
+      String e_posta,
+      String dogumtarihi,
+      String cinsiyet,
+      String referans,
+      String notlar,
+      context) async {
+    showProgressLoading(context);
+
+    Map<String, dynamic> formData = {
+      'ad_soyad': musteriad,
+      'telefon': telefon,
+      'email': e_posta,
+      'dogum_tarihi': dogumtarihi,
+      'cinsiyet': cinsiyet,
+      'musteri_tipi': referans,
+      'ozel_notlar': notlar,
+      'musteri_id': musteri_id,
     };
 
-    final response = await http.post(
-      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/'+salonid.toString()),
-
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(formData),
-    );
-    log('Response status: ${response.statusCode}');
-    log('Response body: ${response.body}');
-    log(dogumtarihi);
-    if (response.statusCode == 200) {
-      log('müşteri ekleme : '+response.body);
-      if (response.body.isNotEmpty) {
-        log('Response body: ${response.body}');
-      } else {
-        log('Response body is empty');
-      }
-      Navigator.of(context).pop();
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => MusteriListesi(kullanicirolu: widget.kullanicirolu ,isletmebilgi:isletmebilgi)),
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/' +
+                salonid.toString()),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(formData),
       );
 
-    } else {
+      log('musteri guncelle response status: ${response.statusCode}');
+      log('musteri guncelle response body: ${response.body}');
+
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (_) {}
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MusteriListesi(
+              kullanicirolu: widget.kullanicirolu,
+              isletmebilgi: isletmebilgi,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Müşteri güncellenirken bir hata oluştu! Hata kodu : ' +
+                    response.statusCode.toString()),
+          ),
+        );
+      }
+    } catch (e) {
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (_) {}
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Müşteri eklenirken bir hata oluştu! Hata kodu : '+response.statusCode.toString()),
+          content: Text('Müşteri güncellenemedi: ${e.toString()}'),
         ),
       );
-      debugPrint('Error: ${response.body}');
+      rethrow;
     }
   }
-
 }

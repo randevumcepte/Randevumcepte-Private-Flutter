@@ -13,6 +13,7 @@ import 'package:randevu_sistem/Models/ongorusmenedeni.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/sehirler.dart';
@@ -57,6 +58,8 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	final TextEditingController ongorusmesebepcontroller = TextEditingController();
 	final TextEditingController adsoyad = TextEditingController();
 	final TextEditingController telefon = TextEditingController();
+	String _telOrijinal = '';
+	bool get _telGor => Yetki.varMi('musteri.telefon_gor');
 	final TextEditingController meslek = TextEditingController();
 	final TextEditingController ongorusmetarihi = TextEditingController();
 	final TextEditingController ongorusmesaati = TextEditingController();
@@ -259,6 +262,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 						controller: telefon,
 						hint: '5xx xxx xx xx',
 						keyboardType: TextInputType.phone,
+						readOnly: !_telGor,
 					),
 					const SizedBox(height: 12),
 					_rowLabel('Cinsiyet', Icons.wc_outlined),
@@ -458,7 +462,8 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 					setState(() {
 						selectedMusteri = value;
 						adsoyad.text = value.name;
-						telefon.text = value.cep_telefon;
+						_telOrijinal = value.cep_telefon;
+						telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
 						if (value.cinsiyet == "0") _selectedGender = "kadin";
 						if (value.cinsiyet == "1") _selectedGender = "erkek";
 						if (value.il_id != "null") {
@@ -829,7 +834,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 			"",
 			selectedMusteri?.id ?? "",
 			adsoyad.text,
-			telefon.text,
+			_telGor ? telefon.text : _telOrijinal,
 			"", // email kaldirildi
 			_selectedGender,
 			context,
@@ -1033,7 +1038,8 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 																			setState(() {
 																				selectedMusteri = m;
 																				adsoyad.text = m.name;
-																				telefon.text = m.cep_telefon;
+																				_telOrijinal = m.cep_telefon;
+																				telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
 																				if (qGender.isNotEmpty) {
 																					_selectedGender = qGender;
 																				}

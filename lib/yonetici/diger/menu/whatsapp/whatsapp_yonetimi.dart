@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 
 class WhatsappYonetimiPage extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -621,7 +622,7 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                 children: [
                   Row(
                     children: [
-                      Expanded(child: Text(l['telefon']?.toString() ?? '-', style: TextStyle(fontWeight: FontWeight.w700))),
+                      Expanded(child: Text(Yetki.telefonGoster(l['telefon']?.toString()).isEmpty ? '-' : Yetki.telefonGoster(l['telefon']?.toString()), style: TextStyle(fontWeight: FontWeight.w700))),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: dInfo.color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
@@ -745,7 +746,8 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
     final info = _durumInfo(d);
     final mesaj = l['mesaj']?.toString() ?? '';
     final hata = l['hata']?.toString() ?? '';
-    final telefon = l['telefon']?.toString() ?? '-';
+    final telefonRaw = l['telefon']?.toString() ?? '';
+    final telefon = telefonRaw.isEmpty ? '-' : Yetki.telefonGoster(telefonRaw);
     final musteri = l['musteri_adi']?.toString() ?? '';
     final tarih = l['created_at']?.toString() ?? '';
     final randevuId = l['randevu_id'];
@@ -1038,7 +1040,7 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                                     children: [
                                       if (musteri.isNotEmpty)
                                         Text(musteri, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                      Text(a['telefon']?.toString() ?? '-',
+                                      Text(Yetki.telefonGoster(a['telefon']?.toString()).isEmpty ? '-' : Yetki.telefonGoster(a['telefon']?.toString()),
                                           style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
                                       SizedBox(height: 6),
                                       Wrap(
@@ -1107,7 +1109,7 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                         SizedBox(height: 12),
                         if (musteri.isNotEmpty)
                           Text(musteri, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                        Text(telefon,
+                        Text(Yetki.telefonGoster(telefon),
                             style: TextStyle(
                               fontWeight: musteri.isNotEmpty ? FontWeight.w500 : FontWeight.w800,
                               fontSize: musteri.isNotEmpty ? 13 : 18,

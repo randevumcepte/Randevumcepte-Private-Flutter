@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 
 import '../sms_yonetimi_state.dart';
 
@@ -127,7 +128,7 @@ class _SmsKaraListeTabState extends State<SmsKaraListeTab>
                                       setStateDialog(() => secilen = m),
                                   title: Text((m['name'] ?? '').toString()),
                                   subtitle: Text(
-                                      (m['telefon'] ?? '').toString()),
+                                      Yetki.telefonGoster((m['telefon'] ?? '').toString())),
                                   dense: true,
                                 );
                               },
@@ -288,7 +289,7 @@ class _SmsKaraListeTabState extends State<SmsKaraListeTab>
                           ),
                           title: Text((m['ad_soyad'] ?? '').toString()),
                           subtitle: Text(
-                              '${m['telefon'] ?? ''}\nEklenme: ${m['eklenme_tarihi'] ?? ''}'),
+                              '${Yetki.telefonGoster((m['telefon'] ?? '').toString())}\nEklenme: ${m['eklenme_tarihi'] ?? ''}'),
                           isThreeLine: true,
                           trailing: TextButton.icon(
                             onPressed: () => _kaldir(m),

@@ -32,6 +32,8 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
   Paket? _paket;
 
   final _telefon = TextEditingController();
+  String _telOrijinal = '';
+  bool get _telGor => Yetki.varMi('musteri.telefon_gor');
   final _seans = TextEditingController(text: '1');
   final _toplam = TextEditingController();
   final _kapora = TextEditingController(text: '0');
@@ -104,14 +106,15 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
       baslik: 'Müşteri Seç',
       ogeler: _musteriler,
       etiket: (m) => m.name,
-      altYazi: (m) => m.cep_telefon,
+      altYazi: (m) => Yetki.telefonGoster(m.cep_telefon),
       seciliId: _musteri?.id,
       ogeId: (m) => m.id,
     );
     if (secilen != null) {
       setState(() {
         _musteri = secilen;
-        _telefon.text = secilen.cep_telefon;
+        _telOrijinal = secilen.cep_telefon;
+        _telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
       });
     }
   }
@@ -214,7 +217,7 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
       final body = {
         'sube': _seciliSube,
         'user_id': _musteri!.id,
-        'cep_telefon': _telefon.text.trim(),
+        'cep_telefon': _telGor ? _telefon.text.trim() : _telOrijinal,
         'hizmet_id': _hizmet?.hizmet_id ?? '',
         'paket_id': _paket?.id ?? '',
         'seans_sayisi': int.tryParse(_seans.text) ?? 1,
@@ -356,7 +359,7 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
               const _Etiket('Müşteri *'),
               _SecimAlani(
                 etiket: _musteri?.name ?? 'Müşteri seçin',
-                altYazi: _musteri?.cep_telefon,
+                altYazi: Yetki.telefonGoster(_musteri?.cep_telefon),
                 ikon: Icons.person_outline_rounded,
                 bos: _musteri == null,
                 onTap: _musteriSec,
@@ -366,8 +369,9 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
               TextField(
                 controller: _telefon,
                 keyboardType: TextInputType.phone,
+                readOnly: !_telGor,
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9 *]')),
                 ],
                 decoration: _inputDeko('Müşteri seçince otomatik dolar', scheme),
               ),

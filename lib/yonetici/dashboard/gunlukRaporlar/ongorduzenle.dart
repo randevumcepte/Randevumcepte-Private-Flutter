@@ -15,6 +15,7 @@ import 'package:randevu_sistem/theme/app_tokens.dart';
 
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
 import 'package:randevu_sistem/Models/ongorusmeler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
@@ -62,6 +63,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
   final TextEditingController ongorusmesebepcontroller = TextEditingController();
   final TextEditingController adsoyad = TextEditingController();
   final TextEditingController telefon = TextEditingController();
+  String _telOrijinal = '';
+  bool get _telGor => Yetki.varMi('musteri.telefon_gor');
   final TextEditingController email = TextEditingController();
   final TextEditingController meslek = TextEditingController();
   final TextEditingController ongorusmetarihi = TextEditingController();
@@ -100,7 +103,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
       yukleniyor = false;
       selectedongorusmereferans = ongorusmereferans.firstWhere((item) => item.id == widget.ongorusme.musteri_tipi);
       adsoyad.text = widget.ongorusme.ad_soyad;
-      telefon.text = widget.ongorusme.cep_telefon != "null" ? widget.ongorusme.cep_telefon : "";
+      _telOrijinal = widget.ongorusme.cep_telefon != "null" ? widget.ongorusme.cep_telefon : "";
+      telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
       email.text = widget.ongorusme.email!="null" ? widget.ongorusme.email : "";
       meslek.text = widget.ongorusme.meslek!="null" ? widget.ongorusme.meslek : "";
       ongorusmetarihi.text = widget.ongorusme.tarih!= "null" ? widget.ongorusme.tarih : "";
@@ -230,7 +234,8 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
                     selectedMusteri = value;
                     adsoyad.text = value?.name ??'';
 
-                    telefon.text = value?.cep_telefon ??'';
+                    _telOrijinal = value?.cep_telefon ?? '';
+                    telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
 
                     email.text = value?.email ??'';
                     if(value?.cinsiyet == "0")
@@ -341,6 +346,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
 
             keyboardType: TextInputType.phone,
             controller: telefon,
+            readOnly: !_telGor,
 
 
             decoration: InputDecoration(
@@ -1027,7 +1033,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
                 paketid = selectedongorusmesebep?.getId() ?? "";
               if(paketurun.contains("Ürün"))
                 urunid = selectedongorusmesebep?.getId() ?? "";
-              widget.ongorusmedatasource.onGorusmeEkleGuncelle2(widget.ongorusme.id.toString(), selectedMusteri?.id ?? "", adsoyad.text, telefon.text, email.text, _selectedGender, context, seciliisletme, selectedongorusmesehir?.id ?? "", selectedongorusmereferans?.id ?? "", meslek.text, urunid, paketid, ongorusmetarihi.text, ongorusmesaati.text, ongorusmeaciklama.text, selectedongorusmeyapan?.id ?? "","");
+              widget.ongorusmedatasource.onGorusmeEkleGuncelle2(widget.ongorusme.id.toString(), selectedMusteri?.id ?? "", adsoyad.text, _telGor ? telefon.text : _telOrijinal, email.text, _selectedGender, context, seciliisletme, selectedongorusmesehir?.id ?? "", selectedongorusmereferans?.id ?? "", meslek.text, urunid, paketid, ongorusmetarihi.text, ongorusmesaati.text, ongorusmeaciklama.text, selectedongorusmeyapan?.id ?? "","");
 
             },
               child: Text('Kaydet'),

@@ -3734,10 +3734,13 @@ class ListCardRandevular extends StatelessWidget {
         randevu["musteri_adi"]?.toString() ??
         "Müşteri Adı Yok";
 
-    final telefon = musteriler?['cep_telefon']?.toString() ??
+    final telefonRaw = musteriler?['cep_telefon']?.toString() ??
         users?['cep_telefon']?.toString() ??
         randevu["telefon"]?.toString() ??
-        "Belirtilmemiş";
+        "";
+    final telefon = telefonRaw.isEmpty
+        ? "Belirtilmemiş"
+        : Yetki.telefonGoster(telefonRaw);
 
     // Hizmetleri güvenli şekilde alalım - düzeltildi
     final hizmetler = randevu["hizmetler"];

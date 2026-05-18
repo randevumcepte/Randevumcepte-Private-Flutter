@@ -17,6 +17,7 @@ import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
@@ -635,7 +636,7 @@ class _CDRState extends State<CDRRaporlari> {
             },
             leading: _buildCallTypeIcon(cdr.durum),
             title: Text(
-              cdr.musteri.isNotEmpty ? cdr.musteri : cdr.telefon,
+              cdr.musteri.isNotEmpty ? cdr.musteri : Yetki.telefonGoster(cdr.telefon),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -826,7 +827,7 @@ class _CDRState extends State<CDRRaporlari> {
           _buildDetailRow(
             icon: Icons.phone,
             title: 'Telefon',
-            value: cdr.telefon,
+            value: Yetki.telefonGoster(cdr.telefon),
           ),
 
           SizedBox(height: 8),
@@ -852,7 +853,7 @@ class _CDRState extends State<CDRRaporlari> {
                   color: Colors.deepPurple,
                   onPressed: () => seskaydiniindir(
                     cdr.seskaydi,
-                    '${cdr.musteri.isNotEmpty ? cdr.musteri : cdr.telefon}_${cdr.tarih}.wav',
+                    '${cdr.musteri.isNotEmpty ? cdr.musteri : Yetki.telefonGoster(cdr.telefon)}_${cdr.tarih}.wav',
                     context,
 
                   ),
@@ -870,8 +871,8 @@ class _CDRState extends State<CDRRaporlari> {
                 },
               ),
 
-              // Müşteri ekle (sadece müşteri adı yoksa)
-              if (cdr.musteri.isEmpty)
+              // Müşteri ekle (sadece müşteri adı yoksa VE telefonu görme yetkisi varsa)
+              if (cdr.musteri.isEmpty && Yetki.varMi('musteri.telefon_gor'))
                 _buildActionButtonSmall(
                   icon: Icons.person_add,
                   label: 'Müşteri Ekle',

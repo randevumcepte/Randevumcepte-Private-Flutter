@@ -14,6 +14,7 @@ import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/lazyload.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Frontend/tryInputFormat.dart';
@@ -57,6 +58,8 @@ class _FormEkleState extends State<FormEkle> {
   TextEditingController mustericinsController = TextEditingController();
 
   TextEditingController musteritelefon = TextEditingController();
+  String _telOrijinal = '';
+  bool get _telGor => Yetki.varMi('musteri.telefon_gor');
   TextEditingController musteritc = TextEditingController();
   TextEditingController musteridotarih = TextEditingController();
   TextEditingController personeltelefon = TextEditingController();
@@ -244,8 +247,10 @@ class _FormEkleState extends State<FormEkle> {
                           selectedmusteri = value;
                           if(value?.dogum_tarihi != 'null')
                             musteridotarih.text = value?.dogum_tarihi ??'';
-                          if(value?.cep_telefon != 'null')
-                            musteritelefon.text = value?.cep_telefon ?? '';
+                          if(value?.cep_telefon != 'null') {
+                            _telOrijinal = value?.cep_telefon ?? '';
+                            musteritelefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
+                          }
                           if(value?.tc_kimlik_no != 'null')
                             musteritc.text = value?.tc_kimlik_no ?? '';
                           if(value?.cinsiyet == '0')
@@ -276,6 +281,7 @@ class _FormEkleState extends State<FormEkle> {
                         onSubmitted: (text)=>print(musteritelefon.text),
                         keyboardType: TextInputType.text,
                         enabled:true,
+                        readOnly: !_telGor,
                         decoration: InputDecoration(
                           focusColor: cs.primary,
                           hoverColor: cs.primary,
@@ -806,7 +812,7 @@ class _FormEkleState extends State<FormEkle> {
       'personel_id': selectedpersonel?.id,
       'cinsiyet': selectedmustericins ?? '',
       'dogumtarihi': musteridotarih.text,
-      'cep_telefon': musteritelefon.text,
+      'cep_telefon': _telGor ? musteritelefon.text : _telOrijinal,
       'personel_cep': personeltelefon.text,
       'tc_kimlik_no': musteritc.text,
       'salon_id': seciliisletme,

@@ -12,6 +12,7 @@ import 'package:randevu_sistem/Models/ongorusmenedeni.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
 import 'package:randevu_sistem/Models/ongorusmeler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
@@ -57,6 +58,9 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 	final TextEditingController ongorusmesebepcontroller = TextEditingController();
 	final TextEditingController adsoyad = TextEditingController();
 	final TextEditingController telefon = TextEditingController();
+	// Personel "musteri.telefon_gor" yetkisi yoksa telefon maskelenir; save'de orijinal gonderilir
+	String _telOrijinal = '';
+	bool get _telGor => Yetki.varMi('musteri.telefon_gor');
 	final TextEditingController meslek = TextEditingController();
 	final TextEditingController ongorusmetarihi = TextEditingController();
 	final TextEditingController ongorusmesaati = TextEditingController();
@@ -120,9 +124,10 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 				// Alanları doldur
 				adsoyad.text =
 						widget.ongorusme.ad_soyad != 'null' ? widget.ongorusme.ad_soyad : '';
-				telefon.text = widget.ongorusme.cep_telefon != 'null'
+				_telOrijinal = widget.ongorusme.cep_telefon != 'null'
 						? widget.ongorusme.cep_telefon
 						: '';
+				telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
 				meslek.text =
 						widget.ongorusme.meslek != 'null' ? widget.ongorusme.meslek : '';
 				ongorusmetarihi.text =
@@ -365,6 +370,7 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 						controller: telefon,
 						hint: '5xx xxx xx xx',
 						keyboardType: TextInputType.phone,
+						readOnly: !_telGor,
 					),
 					const SizedBox(height: 12),
 					_rowLabel('Cinsiyet', Icons.wc_outlined),
@@ -566,7 +572,8 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 					setState(() {
 						selectedMusteri = value;
 						adsoyad.text = value.name;
-						telefon.text = value.cep_telefon;
+						_telOrijinal = value.cep_telefon;
+						telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
 						if (value.cinsiyet == "0") _selectedGender = "kadin";
 						if (value.cinsiyet == "1") _selectedGender = "erkek";
 						if (value.il_id != "null") {
@@ -939,7 +946,7 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 			widget.ongorusme.id.toString(),
 			selectedMusteri?.id ?? "",
 			adsoyad.text,
-			telefon.text,
+			_telGor ? telefon.text : _telOrijinal,
 			"", // email kaldirildi
 			_selectedGender,
 			context,
@@ -1142,7 +1149,8 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 																			setState(() {
 																				selectedMusteri = m;
 																				adsoyad.text = m.name;
-																				telefon.text = m.cep_telefon;
+																				_telOrijinal = m.cep_telefon;
+																				telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
 																				if (qGender.isNotEmpty) {
 																					_selectedGender = qGender;
 																				}

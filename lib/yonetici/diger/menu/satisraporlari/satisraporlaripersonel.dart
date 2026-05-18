@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import '../musteriler/musteridetaylar.dart';
@@ -1449,7 +1450,8 @@ class _CustomerListSheetState extends State<_CustomerListSheet> {
     final scheme = Theme.of(context).colorScheme;
     final name = (musteri['name'] ?? 'Müşteri').toString();
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    final phone = musteri['cep_telefon']?.toString();
+    final phoneRaw = musteri['cep_telefon']?.toString();
+    final phone = (phoneRaw == null || phoneRaw.isEmpty) ? phoneRaw : Yetki.telefonGoster(phoneRaw);
     final email = musteri['email']?.toString();
 
     return Container(

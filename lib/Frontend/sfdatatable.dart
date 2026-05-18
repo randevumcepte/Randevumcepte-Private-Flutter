@@ -15,6 +15,7 @@ import 'package:randevu_sistem/yonetici/diger/diger_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/adisyonkalemleri.dart';
 import 'package:randevu_sistem/Models/adisyonlar.dart';
 import 'package:randevu_sistem/Models/ajanda.dart';
@@ -1604,7 +1605,7 @@ class KatilimciDataSource extends DataGridSource {
       _katilimciRows = _katilimcilar
           .map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
       ]))
@@ -1616,7 +1617,7 @@ class KatilimciDataSource extends DataGridSource {
       _katilimciRows = _katilimcilar.where((element) => element['durum']=='1')
           .map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
 
@@ -1627,7 +1628,7 @@ class KatilimciDataSource extends DataGridSource {
     if(durum == '0')
       _katilimciRows = _katilimcilar.where((element) => element['durum']=='0').map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
 
@@ -1636,7 +1637,7 @@ class KatilimciDataSource extends DataGridSource {
     if(durum == 'null')
       _katilimciRows = _katilimcilar.where((element) => element['durum']==null).map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
       ]))
@@ -1685,7 +1686,7 @@ class KatilimciDataSource extends DataGridSource {
       _katilimciRows = newKatilimcilar
           .map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
       ]))
@@ -1697,7 +1698,7 @@ class KatilimciDataSource extends DataGridSource {
       _katilimciRows = newKatilimcilar.where((element) => element['durum']==1)
           .map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
 
@@ -1708,7 +1709,7 @@ class KatilimciDataSource extends DataGridSource {
     if(durum == '0')
       _katilimciRows = newKatilimcilar.where((element) => element['durum']==0).map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
 
@@ -1717,7 +1718,7 @@ class KatilimciDataSource extends DataGridSource {
     if(durum == 'null')
       _katilimciRows = newKatilimcilar.where((element) => element['durum']==null).map<DataGridRow>((e) =>  DataGridRow(cells: [
         DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: e['musteri']['cep_telefon']),
+        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
         DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
 
       ]))
@@ -2478,7 +2479,7 @@ class RandevuDataSource extends DataGridSource {
     });
 
     String icerik = "Durum : "+durumstr +
-        (!musteri  ? "\n" +"Telefon : "+  randevudetay.musteri["cep_telefon"] : '') +
+        (!musteri  ? "\n" +"Telefon : "+  Yetki.telefonGoster(randevudetay.musteri["cep_telefon"]?.toString()) : '') +
         "\n" +"Hizmet(-ler) : "+hizmetlerStr+
         "\n" +"Tarih & Saat : "+randevudetay.tarih+
         "\n" +"Oluşturan : "+randevudetay.olusturan["name"]+
@@ -6395,7 +6396,7 @@ class MusteriDanisanDataSource extends DataGridSource {
       DataGridCell(columnName: 'musteripar', value: e),
       DataGridCell(columnName:'id', value:e.id.toString()),
       DataGridCell(columnName: 'musteridanisanadi', value: e.name),
-      DataGridCell(columnName: 'ceptelefon', value: e.cep_telefon),
+      DataGridCell(columnName: 'ceptelefon', value: Yetki.telefonGoster(e.cep_telefon)),
       DataGridCell(columnName: 'randevusayisi', value: e.randevu_sayisi),
     ])));
 
@@ -6624,7 +6625,7 @@ class MusteriDanisanDataSource extends DataGridSource {
                         children: [
                           Text('Telefon'), SizedBox(width: 58,),
                           Text(':'),
-                          Text(md.cep_telefon.toString())
+                          Text(Yetki.telefonGoster(md.cep_telefon.toString()))
                         ],
                       ),
                       Row(

@@ -649,7 +649,7 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 												const SizedBox(width: 4),
 												Flexible(
 													child: Text(
-														e.cep_telefon,
+														Yetki.telefonGoster(e.cep_telefon),
 														maxLines: 1,
 														overflow: TextOverflow.ellipsis,
 														style: TextStyle(

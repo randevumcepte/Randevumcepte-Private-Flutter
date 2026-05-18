@@ -236,7 +236,16 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => _ds!.showDetailsDialog(context, m),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MusteriDetaylari(
+              kullanicirolu: widget.kullanicirolu,
+              isletmebilgi: widget.isletmebilgi,
+              md: m,
+            ),
+          ),
+        ),
         child: Container(
           padding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

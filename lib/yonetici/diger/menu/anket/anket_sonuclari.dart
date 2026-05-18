@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 /// Anket / Reputation Booster sonuc sayfasi.
@@ -504,7 +505,7 @@ class _AnketSonuclariPageState extends State<AnketSonuclariPage> {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
     final ad = (k['ad_soyad'] ?? 'İsimsiz').toString();
-    final tel = (k['telefon'] ?? '').toString();
+    final tel = Yetki.telefonGoster((k['telefon'] ?? '').toString());
     final nps = k['nps_skoru'] as int?;
     final csat = k['csat_skoru'] as num?;
     final yorum = (k['genel_yorum'] ?? '').toString();

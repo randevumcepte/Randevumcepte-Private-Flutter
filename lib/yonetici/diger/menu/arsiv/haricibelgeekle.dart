@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -335,7 +336,7 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
                           const _Etiket('Müşteri *'),
                           _SecimAlani(
                             etiket: _musteri?.name ?? 'Müşteri seçin',
-                            altYazi: _musteri?.cep_telefon,
+                            altYazi: Yetki.telefonGoster(_musteri?.cep_telefon),
                             ikon: Icons.person_outline_rounded,
                             bos: _musteri == null,
                             onTap: _musteriSec,
@@ -1081,7 +1082,7 @@ class _MusteriPickerState extends State<_MusteriPicker> {
                                 ),
                                 subtitle: m.cep_telefon.isNotEmpty &&
                                         m.cep_telefon != 'null'
-                                    ? Text(m.cep_telefon,
+                                    ? Text(Yetki.telefonGoster(m.cep_telefon),
                                         style: const TextStyle(
                                             fontSize: 11.5))
                                     : null,

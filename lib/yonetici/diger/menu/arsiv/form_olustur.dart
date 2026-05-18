@@ -84,7 +84,7 @@ class _FormOlusturState extends State<FormOlustur> {
       baslik: 'Müşteri Seç',
       ogeler: _musteriler,
       etiket: (m) => m.name,
-      altYazi: (m) => m.cep_telefon,
+      altYazi: (m) => Yetki.telefonGoster(m.cep_telefon),
       seciliId: _musteri?.id,
       ogeId: (m) => m.id,
     );
@@ -289,7 +289,7 @@ class _FormOlusturState extends State<FormOlustur> {
               const _Etiket('Müşteri *'),
               _SecimAlani(
                 etiket: _musteri?.name ?? 'Müşteri seçin',
-                altYazi: _musteri?.cep_telefon,
+                altYazi: Yetki.telefonGoster(_musteri?.cep_telefon),
                 ikon: Icons.person_outline_rounded,
                 bos: _musteri == null,
                 onTap: _musteriSec,
