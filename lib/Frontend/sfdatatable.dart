@@ -7778,25 +7778,21 @@ class OdaDataSource extends DataGridSource {
     );
   }
   Future<void> odaekle(String odaadi,String salonId,
-      BuildContext context) async {
+      BuildContext context, {List<String>? personelIds, String? odaId}) async {
     final Map<String, dynamic> formData = {
-      'isletme_id': salonId,
-      'oda_adi':odaadi,
-
-
-
-
+      'oda_adi': odaadi,
     };
-    final queryParameters = formData.entries.map((e) => '${e.key}=${e.value}')
-        .join('&');
+    if (odaId != null && odaId.isNotEmpty) {
+      formData['oda_id'] = odaId;
+    }
+    final ids = personelIds ?? const <String>[];
+    formData['oda_personeli'] = jsonEncode(ids);
 
-    final response = await http.get(
+    final response = await http.post(
       Uri.parse(
-          'https://apptest.randevumcepte.com.tr/api/v1/odaekleduzenle/$salonId?$queryParameters'),
-
-      headers: {'Content-Type': 'application/json'},
-
-
+          'https://apptest.randevumcepte.com.tr/api/v1/odaekleduzenle/$salonId'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: formData.map((k, v) => MapEntry(k, v.toString())),
     );
     debugPrint('Response status: ${response.statusCode}');
     debugPrint('Response body: ${response.body}');

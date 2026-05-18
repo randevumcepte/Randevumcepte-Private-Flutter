@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/depo.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
 import 'package:randevu_sistem/Models/urun_kategorisi.dart';
@@ -28,10 +29,15 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
   List<Urun> _urunler = [];
   bool _yukleniyor = true;
 
+  // 'urun.tedarikci_yonet' yetkisi yoksa Tedarikciler tab'i gizlenir;
+  // TabController length de buna gore ayarlanir.
+  late final bool _tedarikciGoster;
+
   @override
   void initState() {
     super.initState();
-    _tabCtl = TabController(length: 4, vsync: this);
+    _tedarikciGoster = Yetki.varMi('urun.tedarikci_yonet');
+    _tabCtl = TabController(length: _tedarikciGoster ? 4 : 3, vsync: this);
     _yukle();
   }
 
@@ -75,11 +81,11 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
           unselectedLabelColor: Colors.black54,
           indicatorColor: _mor,
           isScrollable: true,
-          tabs: const [
-            Tab(text: 'Kategoriler'),
-            Tab(text: 'Depolar'),
-            Tab(text: 'Tedarikçiler'),
-            Tab(text: 'Transfer'),
+          tabs: [
+            const Tab(text: 'Kategoriler'),
+            const Tab(text: 'Depolar'),
+            if (_tedarikciGoster) const Tab(text: 'Tedarikçiler'),
+            const Tab(text: 'Transfer'),
           ],
         ),
       ),
@@ -90,7 +96,7 @@ class _AyarYonetimiState extends State<AyarYonetimi> with SingleTickerProviderSt
               children: [
                 _kategoriTab(),
                 _depoTab(),
-                _tedarikciTab(),
+                if (_tedarikciGoster) _tedarikciTab(),
                 _transferTab(),
               ],
             ),

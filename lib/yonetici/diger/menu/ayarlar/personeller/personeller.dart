@@ -349,30 +349,39 @@ class _PersonellerState extends State<Personeller> {
           : RefreshIndicator(
               color: _p1,
               onRefresh: _refreshAll,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-                children: [
-                  _hero(),
-                  const SizedBox(height: 10),
-                  _tabNavi(),
-                  const SizedBox(height: 12),
-                  _statlar(),
-                  const SizedBox(height: 14),
-                  _aramaVeYeniBtn(),
-                  const SizedBox(height: 10),
-                  if (_listLoading && _liste.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Center(child: CircularProgressIndicator(color: _p1)),
-                    )
-                  else if (_liste.isEmpty)
-                    _bosKart()
-                  else
-                    ..._liste.map(_personelKarti),
-                  if (_totalPages > 1) _pagination(),
-                ],
-              ),
+              child: Builder(builder: (context) {
+                final bool isTabletLandscape =
+                    MediaQuery.of(context).size.width >= 900 &&
+                        MediaQuery.of(context).orientation ==
+                            Orientation.landscape;
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
+                  children: [
+                    _hero(),
+                    const SizedBox(height: 10),
+                    _tabNavi(),
+                    const SizedBox(height: 12),
+                    _statlar(),
+                    const SizedBox(height: 14),
+                    _aramaVeYeniBtn(),
+                    const SizedBox(height: 10),
+                    if (_listLoading && _liste.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child:
+                            Center(child: CircularProgressIndicator(color: _p1)),
+                      )
+                    else if (_liste.isEmpty)
+                      _bosKart()
+                    else if (isTabletLandscape)
+                      _personelListesi2Col()
+                    else
+                      ..._liste.map(_personelKarti),
+                    if (_totalPages > 1) _pagination(),
+                  ],
+                );
+              }),
             ),
     );
   }
@@ -586,6 +595,26 @@ class _PersonellerState extends State<Personeller> {
     );
   }
 
+  // Tablet yatay: personel kartlarini 2 sutuna boler
+  Widget _personelListesi2Col() {
+    final rows = <Widget>[];
+    for (int i = 0; i < _liste.length; i += 2) {
+      final left = _personelKarti(_liste[i]);
+      final right = i + 1 < _liste.length
+          ? _personelKarti(_liste[i + 1])
+          : const SizedBox.shrink();
+      rows.add(Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: left),
+          const SizedBox(width: 10),
+          Expanded(child: right),
+        ],
+      ));
+    }
+    return Column(children: rows);
+  }
+
   // === Personel karti ===
   Widget _personelKarti(Personel p) {
     final aktif = p.durum == '1' || p.durum == 'true';
@@ -604,7 +633,11 @@ class _PersonellerState extends State<Personeller> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _detayAc(p),
+        // Personel detay sayfasi prim/hakedis bilgisi gosteriyor — bu yetki
+        // yoksa kart tikina kapali.
+        onTap: Yetki.varMi('personel.prim_hakedis_gor')
+            ? () => _detayAc(p)
+            : null,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
           child: Row(
@@ -735,8 +768,9 @@ class _PersonellerState extends State<Personeller> {
         final duzenleVar = Yetki.varMi('personel.ekle_duzenle');
         final yetkiYonet = Yetki.varMi('personel.yetki_yonet');
         final silVar = Yetki.varMi('personel.sil');
+        final detayVar = Yetki.varMi('personel.prim_hakedis_gor');
         return [
-          _menuItem('detay', Icons.visibility_outlined, 'Detaylar'),
+          if (detayVar) _menuItem('detay', Icons.visibility_outlined, 'Detaylar'),
           if (duzenleVar) _menuItem('duzenle', Icons.edit_outlined, 'Düzenle'),
           _menuItem('satislar', Icons.shopping_bag_outlined, 'Satışlar'),
           if (yetkiYonet) _menuItem('yetki', Icons.shield_outlined, 'Yetkileri Düzenle'),

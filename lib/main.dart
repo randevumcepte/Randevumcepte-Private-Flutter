@@ -13,6 +13,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Frontend/no_internet_screen.dart';
+import 'package:randevu_sistem/Frontend/route_observer.dart';
 import 'package:randevu_sistem/Frontend/randevuguncellemeprovider.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
@@ -65,6 +67,7 @@ class MyApp extends StatelessWidget {
               platformBrightness: platformBrightness,
             ),
             navigatorKey: navigatorKey,
+            navigatorObservers: [appRouteObserver],
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -88,36 +91,65 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   double _opacity = 0.0;
   bool _forceUpdateShown = false;
-  @override
+  bool _offline = false;
   @override
   void initState() {
     super.initState();
     print("1️⃣ initState çalıştı"); // Bu logu görmelisiniz
 
     Future.delayed(Duration(milliseconds: 100), () {
+      if (!mounted) return;
       setState(() {
         _opacity = 1.0;
       });
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      print("2️⃣ addPostFrameCallback çalıştı"); // Bu logu görüyor musunuz?
-
-      print("3️⃣ checkVersion çağrılıyor...");
-      await checkVersion(context);
-      print("4️⃣ checkVersion tamamlandı");
-
-      if (!_forceUpdateShown) {
-        print("5️⃣ Splash timer başlıyor");
-        Future.delayed(Duration(seconds: 3), () {
-          print("6️⃣ Navigate to CheckAuth");
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => CheckAuth()),
-          );
-        });
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrap();
     });
+  }
+
+  Future<void> _bootstrap() async {
+    print("2️⃣ addPostFrameCallback çalıştı");
+
+    // Once internet baglantisini dogrula. Yoksa preloader'i kes, modern
+    // "internet yok" ekranini goster.
+    final online = await hasInternetConnection();
+    if (!online) {
+      print("📡 Internet yok — NoInternetScreen gosteriliyor");
+      if (mounted) setState(() => _offline = true);
+      return;
+    }
+
+    print("3️⃣ checkVersion çağrılıyor...");
+    await checkVersion(context);
+    print("4️⃣ checkVersion tamamlandı");
+
+    if (!_forceUpdateShown) {
+      print("5️⃣ Splash timer başlıyor");
+      Future.delayed(Duration(seconds: 3), () {
+        if (!mounted) return;
+        print("6️⃣ Navigate to CheckAuth");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => CheckAuth()),
+        );
+      });
+    }
+  }
+
+  Future<void> _retryFromOffline() async {
+    final online = await hasInternetConnection();
+    if (!online) return; // hala yok — NoInternetScreen acik kalsin
+    if (!mounted) return;
+    setState(() => _offline = false);
+    // Splash akisini bastan baslat (opacity tekrar fade in olsun).
+    setState(() => _opacity = 0.0);
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      setState(() => _opacity = 1.0);
+    });
+    await _bootstrap();
   }
   Future<void> checkVersion(BuildContext context) async {
     print("🚀🚀🚀 checkVersion METODUNA GİRİLDİ 🚀🚀🚀");
@@ -289,6 +321,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   @override
   Widget build(BuildContext context) {
+    if (_offline) {
+      return NoInternetScreen(onRetry: _retryFromOffline);
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(

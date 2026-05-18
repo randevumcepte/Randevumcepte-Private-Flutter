@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 
 // Personel granular yetki yonetimi sayfasi.
@@ -147,6 +148,10 @@ class _PersonelYetkiState extends State<PersonelYetki> {
     if (ok) {
       _orijinalSablon = _seciliSablon;
       _orijinalAyarlar = Map.of(_ayarlar);
+      // Eger duzenlenen personel = giris yapan kullanici ise, giris yapanin
+      // yetki cache'i de tazelensin ki UI hemen yansisin. Farkli personel
+      // ise cagri zarar vermez (kendi yetkilerini cekiyor).
+      Yetki.tazele(salonid: widget.salonid);
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

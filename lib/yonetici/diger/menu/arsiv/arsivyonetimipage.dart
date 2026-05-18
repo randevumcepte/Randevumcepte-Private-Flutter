@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 
@@ -80,46 +81,53 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                 ),
-                _SecimSatiri(
-                  icon: Icons.send_rounded,
-                  baslik: 'Form Gönder',
-                  altYazi: 'Müşteriye onam/anket formu gönder',
-                  renk: const Color(0xFF16A34A),
-                  onTap: () => _acSayfa(
-                      ctx, FormOlustur(isletmebilgi: widget.isletmebilgi)),
-                ),
-                const SizedBox(height: 8),
-                _SecimSatiri(
-                  icon: Icons.dashboard_customize_rounded,
-                  baslik: 'Yeni Form Şablonu',
-                  altYazi: 'Onam formu veya sözleşme şablonu oluştur',
-                  renk: const Color(0xFFD97706),
-                  onTap: () => _acSayfa(
-                      ctx,
-                      FormSablonDuzenle(
-                          isletmebilgi: widget.isletmebilgi)),
-                ),
-                const SizedBox(height: 8),
-                _SecimSatiri(
-                  icon: Icons.handshake_outlined,
-                  baslik: 'Sözleşme Oluştur',
-                  altYazi: 'Hizmet sözleşmesi hazırla ve gönder',
-                  renk: const Color(0xFF0EA5E9),
-                  onTap: () => _acSayfa(
-                      ctx,
-                      SozlesmeOlustur(isletmebilgi: widget.isletmebilgi)),
-                ),
-                const SizedBox(height: 8),
-                _SecimSatiri(
-                  icon: Icons.upload_file_rounded,
-                  baslik: 'Belge Ekle',
-                  altYazi: 'Harici bir belgeyi sisteme yükle',
-                  renk: const Color(0xFF7C3AED),
-                  onTap: () => _acSayfa(
-                      ctx,
-                      HariciBelgeEkle(
-                          isletmebilgi: widget.isletmebilgi)),
-                ),
+                // Form Gönder: 'form.olustur' veya 'form.gonder' acikken gozukur.
+                // 'form.gonder' kapaliysa icerideki "Gonder" butonu pasif olur,
+                // sadece "Olustur/Kaydet" calisir.
+                if (Yetki.varMi('form.olustur') || Yetki.varMi('form.gonder')) ...[
+                  _SecimSatiri(
+                    icon: Icons.send_rounded,
+                    baslik: 'Form Gönder',
+                    altYazi: 'Müşteriye onam/anket formu gönder',
+                    renk: const Color(0xFF16A34A),
+                    onTap: () => _acSayfa(
+                        ctx, FormOlustur(isletmebilgi: widget.isletmebilgi)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (Yetki.varMi('form.olustur')) ...[
+                  _SecimSatiri(
+                    icon: Icons.dashboard_customize_rounded,
+                    baslik: 'Yeni Form Şablonu',
+                    altYazi: 'Onam formu veya sözleşme şablonu oluştur',
+                    renk: const Color(0xFFD97706),
+                    onTap: () => _acSayfa(
+                        ctx,
+                        FormSablonDuzenle(
+                            isletmebilgi: widget.isletmebilgi)),
+                  ),
+                  const SizedBox(height: 8),
+                  _SecimSatiri(
+                    icon: Icons.handshake_outlined,
+                    baslik: 'Sözleşme Oluştur',
+                    altYazi: 'Hizmet sözleşmesi hazırla ve gönder',
+                    renk: const Color(0xFF0EA5E9),
+                    onTap: () => _acSayfa(
+                        ctx,
+                        SozlesmeOlustur(isletmebilgi: widget.isletmebilgi)),
+                  ),
+                  const SizedBox(height: 8),
+                  _SecimSatiri(
+                    icon: Icons.upload_file_rounded,
+                    baslik: 'Belge Ekle',
+                    altYazi: 'Harici bir belgeyi sisteme yükle',
+                    renk: const Color(0xFF7C3AED),
+                    onTap: () => _acSayfa(
+                        ctx,
+                        HariciBelgeEkle(
+                            isletmebilgi: widget.isletmebilgi)),
+                  ),
+                ],
               ],
             ),
           ),

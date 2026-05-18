@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/theme/theme_picker_screen.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/isletmebilgileri.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/odalar/odalar.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/calisma_saatleri.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeller.dart';
@@ -26,61 +28,77 @@ class _AyarlarState extends State<Ayarlar> {
   @override
   void initState() {
     super.initState();
-    _ayarlarListesi.addAll([
-      AyarlarItem(
+    // Her ayar kutusu kendi yetkisine bagli:
+    //  - Isletme Bilgileri / Calisma Saatleri -> ayar.salon_bilgi
+    //  - Cihazlar / Odalar                    -> ayar.cihaz_oda_yonet
+    //  - Online Randevu                       -> randevu.online_ayar
+    //  - Hizmetler / Musteri Indirimleri / Gorunum -> herkese acik
+    if (Yetki.varMi('ayar.salon_bilgi')) {
+      _ayarlarListesi.add(AyarlarItem(
+        title: 'İşletme Bilgileri',
+        icon: Icons.business_rounded,
+        iconColor: const Color(0xFF5C008E),
+        gradientColors: [const Color(0xFF8B5CF6), const Color(0xFF5C008E)],
+        route: IsletmeBilgileri(isletmebilgi: widget.isletmebilgi),
+      ));
+      _ayarlarListesi.add(AyarlarItem(
         title: 'Çalışma Saatleri',
         icon: Icons.access_time_rounded,
         iconColor: const Color(0xFF4A6FA5),
         gradientColors: [const Color(0xFF6A8BC2), const Color(0xFF4A6FA5)],
         route: CalismaSaatleri(isletmebilgi: widget.isletmebilgi),
-      ),
-
-      AyarlarItem(
+      ));
+    }
+    if (Yetki.varMi('hizmet.tanim_olustur') || Yetki.varMi('hizmet.kategori_yonet')) {
+      _ayarlarListesi.add(AyarlarItem(
         title: 'Hizmetler',
         icon: Icons.spa_rounded,
         iconColor: const Color(0xFF4CAF93),
         gradientColors: [const Color(0xFF6FC8B1), const Color(0xFF4CAF93)],
         route: Hizmetler(isletmebilgi: widget.isletmebilgi),
-      ),
-      AyarlarItem(
+      ));
+    }
+    if (Yetki.varMi('ayar.cihaz_oda_yonet')) {
+      _ayarlarListesi.add(AyarlarItem(
         title: 'Cihazlar',
         icon: Icons.devices_rounded,
         iconColor: const Color(0xFFF57C51),
         gradientColors: [const Color(0xFFF79A77), const Color(0xFFF57C51)],
         route: Cihazlar(isletmebilgi: widget.isletmebilgi),
-      ),
-      AyarlarItem(
+      ));
+      _ayarlarListesi.add(AyarlarItem(
         title: 'Odalar',
         icon: Icons.meeting_room_rounded,
         iconColor: const Color(0xFF9B6CA7),
         gradientColors: [const Color(0xFFB38BC1), const Color(0xFF9B6CA7)],
         route: Odalar(isletmebilgi: widget.isletmebilgi),
-      ),
-      AyarlarItem(
+      ));
+    }
+    if (Yetki.varMi('randevu.online_ayar')) {
+      _ayarlarListesi.add(AyarlarItem(
         title: 'Online Randevu',
         icon: Icons.calendar_today_rounded,
         iconColor: const Color(0xFF42A5F5),
         gradientColors: [const Color(0xFF64B5F6), const Color(0xFF42A5F5)],
         route: RandevuAyarlari(isletmebilgi: widget.isletmebilgi),
+      ));
+    }
+    _ayarlarListesi.add(AyarlarItem(
+      title: 'Müşteri İndirimleri',
+      icon: Icons.discount_rounded,
+      iconColor: const Color(0xFFF44336),
+      gradientColors: [const Color(0xFFEF5350), const Color(0xFFF44336)],
+      route: MusteriIndirimleri(isletmebilgi: widget.isletmebilgi),
+    ));
+    _ayarlarListesi.add(AyarlarItem(
+      title: 'Görünüm',
+      icon: Icons.palette_rounded,
+      iconColor: const Color(0xFF7C3AED),
+      gradientColors: [const Color(0xFFA78BFA), const Color(0xFF7C3AED)],
+      route: ThemePickerScreen(
+        canEditServer: widget.kullanicirolu < 4,
       ),
-      AyarlarItem(
-        title: 'Müşteri İndirimleri',
-        icon: Icons.discount_rounded,
-        iconColor: const Color(0xFFF44336),
-        gradientColors: [const Color(0xFFEF5350), const Color(0xFFF44336)],
-        route: MusteriIndirimleri(isletmebilgi: widget.isletmebilgi),
-      ),
-      AyarlarItem(
-        title: 'Görünüm',
-        icon: Icons.palette_rounded,
-        iconColor: const Color(0xFF7C3AED),
-        gradientColors: [const Color(0xFFA78BFA), const Color(0xFF7C3AED)],
-        route: ThemePickerScreen(
-          canEditServer: widget.kullanicirolu < 4,
-        ),
-      ),
-
-    ]);
+    ));
   }
 
   @override
@@ -149,6 +167,8 @@ class _AyarlarState extends State<Ayarlar> {
 
   Widget _buildBody(bool isTablet, bool isDesktop) {
     final scheme = Theme.of(context).colorScheme;
+    final bool isTabletLandscape =
+        isTablet && MediaQuery.of(context).orientation == Orientation.landscape;
     return Padding(
       padding: EdgeInsets.all(isDesktop ? 24 : isTablet ? 20 : 16),
       child: Column(
@@ -186,10 +206,17 @@ class _AyarlarState extends State<Ayarlar> {
           Expanded(
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isDesktop ? 4 : isTablet ? 3 : 2,
+                crossAxisCount:
+                    isDesktop ? 4 : isTabletLandscape ? 4 : isTablet ? 3 : 2,
                 crossAxisSpacing: isDesktop ? 20 : isTablet ? 16 : 12,
                 mainAxisSpacing: isDesktop ? 20 : isTablet ? 16 : 12,
-                childAspectRatio: isDesktop ? 1.1 : isTablet ? 1.05 : 1.0,
+                childAspectRatio: isDesktop
+                    ? 1.1
+                    : isTabletLandscape
+                        ? 1.4
+                        : isTablet
+                            ? 1.05
+                            : 1.0,
               ),
               itemCount: _ayarlarListesi.length,
               itemBuilder: (context, index) {
@@ -316,6 +343,8 @@ class _AyarlarState extends State<Ayarlar> {
 
   String _getDescription(String title) {
     switch (title) {
+      case 'İşletme Bilgileri':
+        return 'İşletme kimliği, iletişim ve fatura bilgileri';
       case 'Çalışma Saatleri':
         return 'Çalışma saatlerinizi düzenleyin';
       case 'Personeller':

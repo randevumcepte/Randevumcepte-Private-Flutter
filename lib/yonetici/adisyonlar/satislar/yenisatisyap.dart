@@ -6,6 +6,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
@@ -1335,39 +1336,52 @@ class _SatisEkraniState extends State<SatisEkrani> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Expanded(
-            child: _buildActionButton(
-              text: 'Hizmet Ekle',
-              color: _primaryColor,
-              onPressed: () => hizmetsatisi(null),
-              icon: Icons.spa_outlined,
-              isSmall: true,
-            ),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: _buildActionButton(
-              text: 'Ürün Ekle',
-              color: context.appTheme.infoColor,
-              onPressed: () => urunsatisi(null),
-              icon: Icons.shopping_bag_rounded,
-              isSmall: true,
-            ),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: _buildActionButton(
-              text: 'Paket Ekle',
-              color: _successColor,
-              onPressed: () => paketsatisi(null),
-              icon: Icons.card_membership_rounded,
-              isSmall: true,
-            ),
-          ),
-        ],
+      child: Builder(
+        builder: (_) {
+          final hizmetYet = Yetki.varMi('satis.adisyon_olustur');
+          final urunYet = Yetki.varMi('urun.sat');
+          final paketYet = Yetki.varMi('paket.sat');
+          final btns = <Widget>[];
+          if (hizmetYet) {
+            btns.add(Expanded(
+              child: _buildActionButton(
+                text: 'Hizmet Ekle',
+                color: _primaryColor,
+                onPressed: () => hizmetsatisi(null),
+                icon: Icons.spa_outlined,
+                isSmall: true,
+              ),
+            ));
+          }
+          if (urunYet) {
+            if (btns.isNotEmpty) btns.add(SizedBox(width: 8));
+            btns.add(Expanded(
+              child: _buildActionButton(
+                text: 'Ürün Ekle',
+                color: context.appTheme.infoColor,
+                onPressed: () => urunsatisi(null),
+                icon: Icons.shopping_bag_rounded,
+                isSmall: true,
+              ),
+            ));
+          }
+          if (paketYet) {
+            if (btns.isNotEmpty) btns.add(SizedBox(width: 8));
+            btns.add(Expanded(
+              child: _buildActionButton(
+                text: 'Paket Ekle',
+                color: _successColor,
+                onPressed: () => paketsatisi(null),
+                icon: Icons.card_membership_rounded,
+                isSmall: true,
+              ),
+            ));
+          }
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: btns,
+          );
+        },
       ),
     );
   }

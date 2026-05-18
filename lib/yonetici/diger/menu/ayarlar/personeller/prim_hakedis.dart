@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeldetay.dart';
@@ -439,7 +440,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
               )),
           const SizedBox(height: 3),
           Text(
-            _fmtTl(tutar),
+            Yetki.tutarGoster(_fmtTl(tutar), 'personel.maas_tutar_gor'),
             style: TextStyle(
               color: vurgu ? Colors.white : cs.onSurface,
               fontSize: 13.5,
@@ -547,7 +548,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          k.bekleyen > 0 ? _fmtTl(k.bekleyen) : 'Ödendi',
+                          k.bekleyen > 0
+                              ? Yetki.tutarGoster(_fmtTl(k.bekleyen), 'personel.maas_tutar_gor')
+                              : 'Ödendi',
                           style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
                         ),
@@ -567,57 +570,62 @@ class _PrimHakedisState extends State<PrimHakedis> {
                   children: [
                     Expanded(child: _kalanSatir('Maaş', k.kalanMaas, k.maasHam, cs.onSurface)),
                     Expanded(child: _kalanSatir('Prim', k.kalanPrim, k.primHam, cs.primary)),
-                    Expanded(child: _ufakSatir('Bonus', _fmtTl(k.bonus),
+                    Expanded(child: _ufakSatir('Bonus',
+                        Yetki.tutarGoster(_fmtTl(k.bonus), 'personel.maas_tutar_gor'),
                         k.bonus > 0 ? ext.successColor : cs.onSurfaceVariant)),
-                    Expanded(child: _ufakSatir('Kesinti', _fmtTl(k.kesinti),
+                    Expanded(child: _ufakSatir('Kesinti',
+                        Yetki.tutarGoster(_fmtTl(k.kesinti), 'personel.maas_tutar_gor'),
                         k.kesinti > 0 ? cs.error : cs.onSurfaceVariant)),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
               // Aksiyon butonlari: Ödeme Yap (ana) + Bonus / Kesinti (kucuk)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: _aksiyonBtn(
-                        icon: k.bekleyen > 0 ? Icons.payments_outlined : Icons.check_circle,
-                        label: k.bekleyen > 0 ? 'Ödeme Yap' : 'Ödendi',
-                        gradient: k.bekleyen > 0
-                            ? LinearGradient(
-                                colors: [ext.successColor, ext.successColor.withValues(alpha: 0.78)],
-                              )
-                            : null,
-                        bg: k.bekleyen > 0 ? null : cs.surfaceContainerHighest,
-                        fg: k.bekleyen > 0 ? null : cs.onSurfaceVariant,
-                        onTap: () => _odemeYapSheet(p),
+              // — Tum aksiyonlar 'personel.odeme_yap' yetkisine bagli.
+              if (Yetki.varMi('personel.odeme_yap')) ...[
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _aksiyonBtn(
+                          icon: k.bekleyen > 0 ? Icons.payments_outlined : Icons.check_circle,
+                          label: k.bekleyen > 0 ? 'Ödeme Yap' : 'Ödendi',
+                          gradient: k.bekleyen > 0
+                              ? LinearGradient(
+                                  colors: [ext.successColor, ext.successColor.withValues(alpha: 0.78)],
+                                )
+                              : null,
+                          bg: k.bekleyen > 0 ? null : cs.surfaceContainerHighest,
+                          fg: k.bekleyen > 0 ? null : cs.onSurfaceVariant,
+                          onTap: () => _odemeYapSheet(p),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _aksiyonBtn(
-                        icon: Icons.add_circle_outline,
-                        label: 'Bonus',
-                        bg: ext.warningColor.withValues(alpha: 0.18),
-                        fg: ext.warningColor,
-                        onTap: () => _hareketSheet(p, tip: 'bonus'),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _aksiyonBtn(
+                          icon: Icons.add_circle_outline,
+                          label: 'Bonus',
+                          bg: ext.warningColor.withValues(alpha: 0.18),
+                          fg: ext.warningColor,
+                          onTap: () => _hareketSheet(p, tip: 'bonus'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _aksiyonBtn(
-                        icon: Icons.remove_circle_outline,
-                        label: 'Kesinti',
-                        bg: cs.error.withValues(alpha: 0.13),
-                        fg: cs.error,
-                        onTap: () => _hareketSheet(p, tip: 'kesinti'),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _aksiyonBtn(
+                          icon: Icons.remove_circle_outline,
+                          label: 'Kesinti',
+                          bg: cs.error.withValues(alpha: 0.13),
+                          fg: cs.error,
+                          onTap: () => _hareketSheet(p, tip: 'kesinti'),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ],
         ),
@@ -695,14 +703,16 @@ class _PrimHakedisState extends State<PrimHakedis> {
         }
       },
       itemBuilder: (_) => [
-        PopupMenuItem<String>(
-          value: 'odemeleri_gor',
-          child: Row(children: [
-            Icon(Icons.history, size: 16, color: cs.primary),
-            const SizedBox(width: 10),
-            const Text('Ödeme Geçmişi', style: TextStyle(fontSize: 13.5)),
-          ]),
-        ),
+        // Ödeme geçmişi sadece 'personel.odeme_yap' yetkisi varken gorunur.
+        if (Yetki.varMi('personel.odeme_yap'))
+          PopupMenuItem<String>(
+            value: 'odemeleri_gor',
+            child: Row(children: [
+              Icon(Icons.history, size: 16, color: cs.primary),
+              const SizedBox(width: 10),
+              const Text('Ödeme Geçmişi', style: TextStyle(fontSize: 13.5)),
+            ]),
+          ),
         PopupMenuItem<String>(
           value: 'detay',
           child: Row(children: [
@@ -735,6 +745,11 @@ class _PrimHakedisState extends State<PrimHakedis> {
     final cs = context.colors;
     final ext = context.appTheme;
     final tamOdendi = kalan <= 0.001 && ham > 0;
+    // 'personel.maas_tutar_gor' yetkisi yoksa tutarlar **** ile maskelenir.
+    final anaDeger = Yetki.tutarGoster(
+      tamOdendi ? '0,00 ₺' : _fmtTl(kalan),
+      'personel.maas_tutar_gor',
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -742,7 +757,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
             style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
         const SizedBox(height: 2),
         Text(
-          tamOdendi ? '0,00 ₺' : _fmtTl(kalan),
+          anaDeger,
           style: TextStyle(
             color: tamOdendi ? ext.successColor : renk,
             fontSize: 11,
@@ -752,7 +767,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
         ),
         if (ham > 0 && (kalan < ham - 0.001))
           Text(
-            '/ ${_fmtTl(ham)}',
+            '/ ${Yetki.tutarGoster(_fmtTl(ham), 'personel.maas_tutar_gor')}',
             style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9),
             maxLines: 1, overflow: TextOverflow.ellipsis,
           ),
@@ -847,7 +862,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
                       title: 'Ödeme Yap',
                       subtitle: '${p.personel_adi} · $donem',
                     ),
-                    Padding(
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -988,6 +1005,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
                         ],
                       ),
                     ),
+                    ),
+                    ),
                   ],
                 ),
               ),
@@ -996,8 +1015,10 @@ class _PrimHakedisState extends State<PrimHakedis> {
         );
       },
     );
-    tutarCtrl.dispose();
-    aciklamaCtrl.dispose();
+    Future.delayed(const Duration(milliseconds: 400), () {
+      tutarCtrl.dispose();
+      aciklamaCtrl.dispose();
+    });
     if (result == true && mounted) {
       _snack('Ödeme kaydedildi', basari: true);
       await _refresh();
@@ -1179,7 +1200,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
                     subtitle: p.personel_adi,
                     accent: accent,
                   ),
-                  Padding(
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1237,6 +1260,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
                       ],
                     ),
                   ),
+                  ),
+                  ),
                 ],
               ),
             ),
@@ -1244,8 +1269,12 @@ class _PrimHakedisState extends State<PrimHakedis> {
         );
       },
     );
-    tutarCtrl.dispose();
-    aciklamaCtrl.dispose();
+    // Sheet kapanma animasyonu bitmeden controller dispose edilirse
+    // animasyon icinde rebuild olan TextField "used after disposed" atar.
+    Future.delayed(const Duration(milliseconds: 400), () {
+      tutarCtrl.dispose();
+      aciklamaCtrl.dispose();
+    });
     if (result == true && mounted) {
       _snack(isBonus ? 'Bonus eklendi' : 'Kesinti eklendi', basari: true);
       await _refresh();

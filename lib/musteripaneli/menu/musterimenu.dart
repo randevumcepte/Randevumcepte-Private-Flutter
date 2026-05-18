@@ -7,6 +7,7 @@ import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/siparislerim.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -87,6 +88,7 @@ class _MenuPageState extends State<MenuPage> {
         await prefs.remove('musteri');
         await prefs.remove('user_type');
         await prefs.remove('token');
+        await Yetki.temizle();
 
         Navigator.pushAndRemoveUntil(
           context,

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'musteribilgileri/arsivdetay.dart';
 import 'islemlerveseanslar.dart';
@@ -338,11 +339,12 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 							),
 						),
 					),
-					IconButton(
-						icon: Icon(Icons.edit_outlined, color: scheme.onSurface),
-						tooltip: 'Düzenle',
-						onPressed: _openDuzenle,
-					),
+					if (Yetki.varMi('musteri.ekle_duzenle'))
+						IconButton(
+							icon: Icon(Icons.edit_outlined, color: scheme.onSurface),
+							tooltip: 'Düzenle',
+							onPressed: _openDuzenle,
+						),
 				],
 			),
 		);
@@ -434,7 +436,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 								if (m.cep_telefon.isNotEmpty &&
 										m.cep_telefon != 'null') ...[
 									const SizedBox(height: 8),
-									_heroChip(Icons.phone, m.cep_telefon),
+									_heroChip(Icons.phone, Yetki.telefonGoster(m.cep_telefon)),
 								],
 								if (m.email.isNotEmpty && m.email != 'null') ...[
 									const SizedBox(height: 4),
@@ -467,52 +469,65 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	Widget _buildQuickActions() {
 		final tel = widget.md.cep_telefon;
 		final hasTel = tel.isNotEmpty && tel != 'null';
+		// Ara/Mesaj/WhatsApp ve SMS musteri.telefon_gor yetkisine ve pazarlama
+		// yetkilerine bagimli. Yetki yoksa butonu hic gosterme.
+		final telGor = Yetki.varMi('musteri.telefon_gor');
+		final smsYet = Yetki.varMi('pazarlama.sms_gonder');
+		final waYet = Yetki.varMi('pazarlama.whatsapp_gonder');
+		final duzenleYet = Yetki.varMi('musteri.ekle_duzenle');
+		final actions = <Widget>[];
+		if (telGor) {
+			actions.add(Expanded(
+				child: _actionBtn(
+					Icons.call,
+					'Ara',
+					const Color(0xFF43A047),
+					enabled: hasTel,
+					onTap: hasTel ? _onCallPressed : null,
+				),
+			));
+		}
+		if (telGor && smsYet) {
+			if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+			actions.add(Expanded(
+				child: _actionBtn(
+					Icons.sms_outlined,
+					'Mesaj',
+					const Color(0xFF1E88E5),
+					enabled: hasTel,
+					onTap: hasTel ? () => _launch('sms:${_localNumber()}') : null,
+				),
+			));
+		}
+		if (telGor && waYet) {
+			if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+			actions.add(Expanded(
+				child: _actionBtn(
+					Icons.chat_bubble_outline,
+					'WhatsApp',
+					const Color(0xFF25D366),
+					enabled: hasTel,
+					onTap: hasTel
+							? () => _launch('https://wa.me/${_waNumber()}')
+							: null,
+				),
+			));
+		}
+		if (duzenleYet) {
+			if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+			actions.add(Expanded(
+				child: _actionBtn(
+					Icons.edit_outlined,
+					'Düzenle',
+					_primary,
+					onTap: _openDuzenle,
+				),
+			));
+		}
+		if (actions.isEmpty) return const SizedBox.shrink();
 		return Padding(
 			padding: const EdgeInsets.fromLTRB(12, 16, 12, 0),
-			child: Row(
-				children: [
-					Expanded(
-						child: _actionBtn(
-							Icons.call,
-							'Ara',
-							const Color(0xFF43A047),
-							enabled: hasTel,
-							onTap: hasTel ? _onCallPressed : null,
-						),
-					),
-					const SizedBox(width: 8),
-					Expanded(
-						child: _actionBtn(
-							Icons.sms_outlined,
-							'Mesaj',
-							const Color(0xFF1E88E5),
-							enabled: hasTel,
-							onTap: hasTel ? () => _launch('sms:${_localNumber()}') : null,
-						),
-					),
-					const SizedBox(width: 8),
-					Expanded(
-						child: _actionBtn(
-							Icons.chat_bubble_outline,
-							'WhatsApp',
-							const Color(0xFF25D366),
-							enabled: hasTel,
-							onTap: hasTel
-									? () => _launch('https://wa.me/${_waNumber()}')
-									: null,
-						),
-					),
-					const SizedBox(width: 8),
-					Expanded(
-						child: _actionBtn(
-							Icons.edit_outlined,
-							'Düzenle',
-							_primary,
-							onTap: _openDuzenle,
-						),
-					),
-				],
-			),
+			child: Row(children: actions),
 		);
 	}
 
@@ -646,7 +661,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 					[
 						_kvSatir('ID', _safe(m.id)),
 						_kvSatir('Ad Soyad', _safe(m.name)),
-						_kvSatir('Telefon', _safe(m.cep_telefon)),
+						_kvSatir('Telefon', Yetki.telefonGoster(_safe(m.cep_telefon))),
 						_kvSatir('E-posta', _safe(m.email)),
 						_kvSatir('Doğum Tarihi', _formatDate(m.dogum_tarihi)),
 						_kvSatir('TC Kimlik No', _safe(m.tc_kimlik_no)),
@@ -673,8 +688,9 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	}
 
 	Widget _buildSectionsGrid() {
-		final items = <_ActionItem>[
-			_ActionItem(
+		final items = <_ActionItem>[];
+		if (Yetki.varMi('randevu.takvim_gor')) {
+			items.add(_ActionItem(
 				'Randevular',
 				Icons.calendar_today_outlined,
 				const Color(0xFF1E88E5),
@@ -688,8 +704,10 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 						),
 					),
 				),
-			),
-			_ActionItem(
+			));
+		}
+		if (Yetki.varMi('paket.seans_takip')) {
+			items.add(_ActionItem(
 				'Seanslar',
 				Icons.spa_outlined,
 				const Color(0xFF8E24AA),
@@ -702,8 +720,10 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 						),
 					),
 				),
-			),
-			_ActionItem(
+			));
+		}
+		if (Yetki.varMi('form.olustur') || Yetki.varMi('form.gonder')) {
+			items.add(_ActionItem(
 				'Sözleşmeler',
 				Icons.description_outlined,
 				const Color(0xFF00897B),
@@ -716,8 +736,10 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 						),
 					),
 				),
-			),
-			_ActionItem(
+			));
+		}
+		if (Yetki.varMi('musteri.gecmis_satis_gor')) {
+			items.add(_ActionItem(
 				'Satışlar',
 				Icons.shopping_bag_outlined,
 				const Color(0xFFFB8C00),
@@ -731,19 +753,19 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 						),
 					),
 				),
-			),
-			_ActionItem(
-				'Sağlık Bilgileri',
-				Icons.health_and_safety_outlined,
-				const Color(0xFFE53935),
-				() => Navigator.push(
-					context,
-					MaterialPageRoute(
-						builder: (_) => MusteriSaglikBilgileri(md: widget.md),
-					),
+			));
+		}
+		items.add(_ActionItem(
+			'Sağlık Bilgileri',
+			Icons.health_and_safety_outlined,
+			const Color(0xFFE53935),
+			() => Navigator.push(
+				context,
+				MaterialPageRoute(
+					builder: (_) => MusteriSaglikBilgileri(md: widget.md),
 				),
 			),
-		];
+		));
 		return LayoutBuilder(
 			builder: (context, c) {
 				final cols = c.maxWidth >= 700 ? 5 : (c.maxWidth >= 500 ? 4 : 3);

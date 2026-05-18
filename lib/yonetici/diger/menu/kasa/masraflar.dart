@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/masrafkategorileri.dart';
@@ -152,13 +153,14 @@ class _KasaState extends State<Masraflar> {
                               child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
                           ),
                       ),
-                      IconButton(onPressed: (){
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MasrafEkle(personeller: harcayan,masrafkategorileri: masrafturu,seciliisletme: seciliisletme!,giderDataSource: _giderDataGridSource,isletmebilgi: widget.isletmebilgi,)),
-                          );
-                      }, icon:  Icon(Icons.add,color:Colors.black,),iconSize: 26,),
+                      if (Yetki.varMi('finans.masraf_ekle'))
+                        IconButton(onPressed: (){
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => MasrafEkle(personeller: harcayan,masrafkategorileri: masrafturu,seciliisletme: seciliisletme!,giderDataSource: _giderDataGridSource,isletmebilgi: widget.isletmebilgi,)),
+                            );
+                        }, icon:  Icon(Icons.add,color:Colors.black,),iconSize: 26,),
 
 
                   ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
@@ -207,6 +208,9 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
 
     setState(() => _gonderiliyor = true);
     try {
+      // form.gonder yetkisi yoksa: sozlesmeyi olustur ve arsive kaydet,
+      // ama musteriye SMS atma.
+      final sadeceKaydet = !Yetki.varMi('form.gonder');
       final body = {
         'sube': _seciliSube,
         'user_id': _musteri!.id,
@@ -218,6 +222,7 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
         'kapora': double.tryParse(_kapora.text.replaceAll(',', '.')) ?? 0,
         'sozlesme_metni': _metin.text,
         'sozlesme_notu': _not.text,
+        'sadece_kaydet': sadeceKaydet,
       };
       final resp = await http.post(
         Uri.parse(
@@ -230,8 +235,10 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
         if (j is Map && j['basarili'] == true) {
           if (mounted) {
             await showPremiumWarning(context,
-                title: 'Sözleşme Gönderildi',
-                message: 'Müşteriye SMS ile sözleşme gönderildi.',
+                title: sadeceKaydet ? 'Sözleşme Kaydedildi' : 'Sözleşme Gönderildi',
+                message: sadeceKaydet
+                    ? 'Sözleşme arşive eklendi. Gönderme yetkiniz olmadığı için müşteriye SMS atılmadı.'
+                    : 'Müşteriye SMS ile sözleşme gönderildi.',
                 tone: 'success');
           }
           if (mounted) Navigator.pop(context, true);
@@ -527,11 +534,18 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
                     : Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.send_rounded,
-                              color: scheme.onPrimary, size: 18),
+                          Icon(
+                            Yetki.varMi('form.gonder')
+                                ? Icons.send_rounded
+                                : Icons.save_outlined,
+                            color: scheme.onPrimary,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            'Oluştur ve Müşteriye Gönder',
+                            Yetki.varMi('form.gonder')
+                                ? 'Oluştur ve Müşteriye Gönder'
+                                : 'Sadece Oluştur',
                             style: TextStyle(
                               color: scheme.onPrimary,
                               fontWeight: FontWeight.w800,

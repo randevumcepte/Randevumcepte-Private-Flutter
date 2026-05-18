@@ -167,6 +167,38 @@ Future<Map<String,dynamic>> odagetir(String salonid,String currpage,String basli
   }
 }
 
+Future<List<Map<String, String>>> odaPersonelListesi(String salonid) async {
+  final response = await http.get(
+    Uri.parse(
+        'https://apptest.randevumcepte.com.tr/api/v1/oda_personel_listesi/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+  );
+  if (response.statusCode != 200) {
+    throw Exception(response.reasonPhrase);
+  }
+  final body = json.decode(response.body);
+  final List list = (body is Map && body['data'] is List)
+      ? body['data'] as List
+      : (body is List ? body : const []);
+  return list
+      .map<Map<String, String>>((e) => {
+            'id': (e['id'] ?? '').toString(),
+            'personel_adi': (e['personel_adi'] ?? '').toString(),
+          })
+      .toList();
+}
+
+Future<Map<String, dynamic>> odaDetayGetir(String odaId) async {
+  final response = await http.get(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/oda_detay/$odaId'),
+    headers: {'Content-Type': 'application/json'},
+  );
+  if (response.statusCode != 200) {
+    throw Exception(response.reasonPhrase);
+  }
+  return Map<String, dynamic>.from(json.decode(response.body) as Map);
+}
+
 Future<List<MusteriDanisan>> musterilistegetir(String salonid) async {
   final response = await http.get(
       Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteriler/'+salonid.toString())
@@ -3467,6 +3499,77 @@ Future<void> randevuEkleGuncelle(
     );
   }
 }
+// Takvimde saat kapama (Laravel sistemdeki saat-kapama tab'inin mobil karsiligi).
+// personelId bos olabilir (genel kapama). tarih yyyy-MM-dd, saat HH:mm (bos -> tum gun, sunucuda calisma saatleri uygulanir).
+Future<Map<String, dynamic>> saatKapamaEkle({
+  required String salonId,
+  required String tarih,
+  String saat = '',
+  String saatBitis = '',
+  String personelId = '',
+  String odaId = '',
+  String cihazId = '',
+  String personelNotu = '',
+  bool tekrarlayan = false,
+  String tekrarSikligi = '+1 day',
+  int tekrarSayisi = 0,
+}) async {
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  final userStr = localStorage.getString('user');
+  final user = userStr != null ? jsonDecode(userStr) : null;
+
+  final Map<String, dynamic> formData = {
+    'salonid': salonId,
+    'tarih': tarih,
+    'saat': saat,
+    'saat_bitis': saatBitis,
+    'personel': personelId,
+    'oda': odaId,
+    'cihaz': cihazId,
+    'personel_notu': personelNotu,
+    'tekrarlayan': tekrarlayan ? 1 : 0,
+    'tekrar_sikligi': tekrarSikligi,
+    'tekrar_sayisi': tekrarSayisi,
+    'olusturan_personel_id': user != null ? user['id'] : null,
+  };
+
+  final response = await http
+      .post(
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/saatkapamaekle'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(formData),
+      )
+      .timeout(const Duration(seconds: 30));
+
+  Map<String, dynamic> body = {};
+  try {
+    body = jsonDecode(response.body) as Map<String, dynamic>;
+  } catch (_) {
+    body = {'message': response.body};
+  }
+  if (response.statusCode == 200) {
+    return {'ok': true, ...body};
+  }
+  return {'ok': false, 'status': response.statusCode, ...body};
+}
+
+Future<Map<String, dynamic>> kapaliSaatSil(String randevuId) async {
+  final response = await http
+      .post(
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kapalisaatsil'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'randevu_id': randevuId}),
+      )
+      .timeout(const Duration(seconds: 30));
+  Map<String, dynamic> body = {};
+  try {
+    body = jsonDecode(response.body) as Map<String, dynamic>;
+  } catch (_) {
+    body = {'message': response.body};
+  }
+  return {'ok': response.statusCode == 200, 'status': response.statusCode, ...body};
+}
+
 Future<dynamic> satisyapilmadi(BuildContext context, String ongorusmeid,String aciklama,String currentPage,String aramaterimi,bool showprogress) async {
 
 
@@ -4463,6 +4566,33 @@ Future<String> appBundleAl() async {
   final packageInfo = await PackageInfo.fromPlatform();
   _cachedAppBundle = packageInfo.packageName;
   return _cachedAppBundle!;
+}
+
+Future<Map<String, dynamic>> salonAyarlariByBundle(String appBundle) async {
+  final response = await http.post(
+    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/salonAyarlariByBundle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'appBundle': appBundle}),
+  );
+  if (response.statusCode == 200) {
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) return decoded;
+    return {};
+  }
+  throw Exception('Salon ayarlari alinamadi: ${response.reasonPhrase}');
+}
+
+bool musteriOnlineRandevuAktifMi(dynamic kaynak) {
+  if (kaynak == null) return false;
+  dynamic v;
+  if (kaynak is Map) {
+    v = kaynak['musteri_online_randevu_aktif'];
+  } else {
+    v = kaynak;
+  }
+  if (v == null) return false;
+  final s = v.toString().trim().toLowerCase();
+  return s == '1' || s == 'true';
 }
 
 Future<Map<String, dynamic>> personelAdiminaGec(String salonid,String appbundle,String hizmetId) async {

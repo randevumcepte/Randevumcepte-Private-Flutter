@@ -12,6 +12,7 @@ import 'package:randevu_sistem/yonetici/dashboard/scaffold_layout_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
@@ -186,6 +187,11 @@ class _SubeSecimiState extends State<SubeSecimi> {
                             kullaniciTipi: 'yetkili',
                             yetkiliId: widget.kullanici.id,
                             salonId: isletme['salon_id'].toString(),
+                          );
+                          // Yetki cache'i bu (kullanici, sube) icin tazele.
+                          await Yetki.tazele(
+                            salonid: isletme['salon_id'].toString(),
+                            yetkiliId: widget.kullanici.id.toString(),
                           );
                           if (!context.mounted) return;
                           Navigator.of(context).pop();

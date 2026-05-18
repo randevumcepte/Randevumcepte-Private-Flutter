@@ -7,6 +7,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/musteriler/sadikmusteriler.da
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
 // import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteri_toplu_ocr.dart'; // TODO: Toplu OCR tamamlanınca aç
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musterisayilari.dart';
 import 'rehberdekimusteriler.dart';
 import 'aktifmusteriler.dart';
@@ -238,6 +239,7 @@ class _MusteriListesiState extends State<MusteriListesi> {
             ),
             actions: <Widget>[
 
+              if (Yetki.varMi('musteri.ekle_duzenle'))
               Container(
                 margin: EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
@@ -304,7 +306,9 @@ class _MusteriListesiState extends State<MusteriListesi> {
               //     },
               //   ),
               // ),
-              Platform.isIOS ? SizedBox():
+              if (Platform.isIOS || !Yetki.varMi('musteri.ekle_duzenle'))
+                SizedBox()
+              else
               Container(
                 margin: EdgeInsets.only(right: 16),
                 decoration: BoxDecoration(

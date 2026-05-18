@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 
 class KasaRaporu extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -567,7 +568,10 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                   Text(
-                    '${toplam >= 0 ? '+' : '-'} ${NumberFormat('#,##0.00', 'tr_TR').format(toplam.abs())} ₺',
+                    Yetki.tutarGoster(
+                      '${toplam >= 0 ? '+' : '-'} ${NumberFormat('#,##0.00', 'tr_TR').format(toplam.abs())} ₺',
+                      'rapor.ciro_kar_gor',
+                    ),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

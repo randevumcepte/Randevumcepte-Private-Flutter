@@ -17,6 +17,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/kasa/kasaraporu.dart';
 import 'package:sticky_headers/sticky_headers/widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/ajanda.dart';
@@ -94,13 +95,32 @@ class _HomeState extends State<DashBoard> {
   }
 
   Future<void> _refreshPage() async {
+    // Pull-to-refresh: ONCE yetki cache'ini tazele, SONRA dashboard verisi.
+    // Paralel calistirsak yetki cache guncellenmeden randevu fetch oluyor
+    // ve eski yetkiye gore filtre uygulaniyor (kullanici "tersine isliyor"
+    // hissi aliyor). Siralama kritik.
+    if (seciliisletme != null && seciliisletme!.isNotEmpty) {
+      await Yetki.tazele(salonid: seciliisletme!);
+    }
     await _refreshDashboardData();
+  }
+
+  void _onYetkiDegisti() {
+    if (mounted) setState(() {});
   }
 
   @override
   void initState() {
     super.initState();
     initialize();
+    // Yetki tazelendiginde dashboard bolumleri yeniden cizilsin.
+    Yetki.versiyon.addListener(_onYetkiDegisti);
+  }
+
+  @override
+  void dispose() {
+    Yetki.versiyon.removeListener(_onYetkiDegisti);
+    super.dispose();
   }
 
   Future<void> initialize() async {
@@ -114,6 +134,13 @@ class _HomeState extends State<DashBoard> {
       context.read<ThemeProvider>().bindSalon(seciliisletme!);
       // Karşılaştırma verisini de yükle (background, fallback'li)
       _loadKarsilastirma(_perfPeriod);
+    }
+
+    // ONEMLI: Randevu fetch'ten ONCE yetki cache'i tazele. Boylece
+    // _gunlukRandevulariGetirInternal icinde 'randevu.tum_personel_gor'
+    // yetkisi guncel okunur ve personel_id filtresi dogru uygulanir.
+    if (seciliisletme != null && seciliisletme!.isNotEmpty) {
+      await Yetki.tazele(salonid: seciliisletme!);
     }
 
     int bugunYarinTimestamp = DateTime.now().millisecondsSinceEpoch;
@@ -158,10 +185,24 @@ class _HomeState extends State<DashBoard> {
   /// Bugünkü randevuları çeken iç fonksiyon (Future.wait icin paralel).
   Future<List<Map<String, dynamic>>> _gunlukRandevulariGetirInternal() async {
     try {
-      final data = await randevularigetir(
+      // Personel rolundeki kullanici 'randevu.tum_personel_gor' yetkisi
+      // YOKSA: sadece kendi personel_id'sine ait randevular listelenir.
+      // Salon sahibi / yonetici / yetkili personel ise '' (filtre yok).
+      String personelidFiltre = '';
+      if (widget.kullanicirolu == 5 &&
+          !Yetki.varMi('randevu.tum_personel_gor')) {
+        for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
+          if (e['salon_id'].toString() ==
+              widget.isletmebilgi['id'].toString()) {
+            personelidFiltre = e['id'].toString();
+            break;
+          } 
+        }   
+      }
+      final data = await randevularigetir( 
         '', // musteri_id
         widget.isletmebilgi["id"].toString(),
-        'Tümü', 'Tümü', 'Bugün', '1', '', '', '', false,
+        'Tümü', 'Tümü', 'Bugün', '1', '', personelidFiltre, '', false,
       );
       if (data.containsKey('data') && data['data'] is List) {
         return List<Map<String, dynamic>>.from(data['data']);
@@ -218,44 +259,63 @@ class _HomeState extends State<DashBoard> {
               const SizedBox(height: 16),
               _premiumQuickStrip(context),
               const SizedBox(height: 18),
-              _premiumSectionHeader(context, 'Bugünün Özeti', null),
-              const SizedBox(height: 10),
-              _premiumDailyGrid(context),
-              if (kullanicirolu != 4) ...[
+              // Bugunun Ozeti — her kutu kendi yetkisinde
+              //  Randevular -> randevu.takvim_gor
+              //  On Gorusme -> gorusme.liste_gor
+              //  Paket/Urun Satis -> rapor.satis
+              // En az bir yetki acikken section gosterilir.
+              if (Yetki.varMi('randevu.takvim_gor') ||
+                  Yetki.varMi('gorusme.liste_gor') ||
+                  Yetki.varMi('rapor.satis')) ...[
+                _premiumSectionHeader(context, 'Bugünün Özeti', null),
+                const SizedBox(height: 10),
+                _premiumDailyGrid(context),
+              ],
+              // Performans / Karsilastirma — rapor.satis + kullanicirolu kontrolu
+              if (kullanicirolu != 4 && Yetki.varMi('rapor.satis')) ...[
                 const SizedBox(height: 18),
                 _periodChips(context),
                 const SizedBox(height: 10),
                 _premiumPerformanceRow(context),
                 const SizedBox(height: 12),
                 _comparisonCard(context),
-                const SizedBox(height: 12),
-                _topPerformersCard(context),
-                const SizedBox(height: 12),
-                _hourlyDensityCard(context),
-                const SizedBox(height: 12),
-                _emptySlotOpportunitiesCard(context),
+                // Top Performers — personel performans yetkisi
+                if (Yetki.varMi('rapor.personel_performans')) ...[
+                  const SizedBox(height: 12),
+                  _topPerformersCard(context),
+                ],
+                // Saatlik yogunluk + bos slot — randevu.takvim_gor yetkisi
+                if (Yetki.varMi('randevu.takvim_gor')) ...[
+                  const SizedBox(height: 12),
+                  _hourlyDensityCard(context),
+                  const SizedBox(height: 12),
+                  _emptySlotOpportunitiesCard(context),
+                ],
                 if (widget.kullanici.yetkili_olunan_isletmeler.length > 1) ...[
                   const SizedBox(height: 12),
                   _branchPerformanceCard(context),
                 ],
               ],
+              // Santral — ozel yetki yok, kullanicirolu < 5 kalsin
               if (kullanicirolu < 5) ...[
                 const SizedBox(height: 18),
                 _premiumSectionHeader(context, 'Santral Aktivitesi', null),
                 const SizedBox(height: 10),
                 _premiumSantralRow(context),
               ],
-              const SizedBox(height: 18),
-              _premiumSectionHeader(
-                  context,
-                  kullanicirolu == 5
-                      ? 'Bugünün Randevuları'
-                      : 'Asistanım',
-                  null),
-              const SizedBox(height: 10),
-              kullanicirolu == 5
-                  ? _premiumTodayAppointments(context)
-                  : _premiumEAsistan(context),
+              // Bugunun Randevulari (personel icin) — randevu.takvim_gor
+              // Asistanim (yonetici icin) — yetki gerekmez
+              if (kullanicirolu == 5 && Yetki.varMi('randevu.takvim_gor')) ...[
+                const SizedBox(height: 18),
+                _premiumSectionHeader(context, 'Bugünün Randevuları', null),
+                const SizedBox(height: 10),
+                _premiumTodayAppointments(context),
+              ] else if (kullanicirolu != 5) ...[
+                const SizedBox(height: 18),
+                _premiumSectionHeader(context, 'Asistanım', null),
+                const SizedBox(height: 10),
+                _premiumEAsistan(context),
+              ],
               const SizedBox(height: 16),
             ],
           ),
@@ -430,27 +490,34 @@ class _HomeState extends State<DashBoard> {
 
   Widget _premiumQuickStrip(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // SMS pill: pazarlama.sms_gonder veya pazarlama.toplu_sms yetkisinden
+    // biri acikken gosterilir; ikisi de kapaliysa gizlenir.
+    final smsGoster = Yetki.varMi('pazarlama.sms_gonder') ||
+        Yetki.varMi('pazarlama.toplu_sms');
+    final pills = <Widget>[];
+    if (smsGoster) {
+      pills.add(_quickPill(
+        context,
+        icon: Icons.sms_outlined,
+        value: ozetsayfabilgi.kalansms,
+        label: 'SMS',
+        tint: scheme.primary,
+      ));
+    }
+    if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
+    pills.add(_quickPill(
+      context,
+      icon: Icons.account_balance_wallet_outlined,
+      // rapor.ciro_kar_gor yetkisi yoksa "****" goster.
+      value: Yetki.tutarGoster('${ozetsayfabilgi.toplamkasa} ₺', 'rapor.ciro_kar_gor'),
+      label: kullanicirolu < 5 ? 'Bugünkü Kasa' : 'Toplam Satış',
+      tint: const Color(0xFF10B981),
+    ));
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _quickPill(
-            context,
-            icon: Icons.sms_outlined,
-            value: ozetsayfabilgi.kalansms,
-            label: 'SMS',
-            tint: scheme.primary,
-          ),
-          const SizedBox(width: 10),
-          _quickPill(
-            context,
-            icon: Icons.account_balance_wallet_outlined,
-            value: '${ozetsayfabilgi.toplamkasa} ₺',
-            label: kullanicirolu < 5 ? 'Bugünkü Kasa' : 'Toplam Satış',
-            tint: const Color(0xFF10B981),
-          ),
-        ],
+        children: pills,
       ),
     );
   }
@@ -562,8 +629,13 @@ class _HomeState extends State<DashBoard> {
   Widget _premiumDailyGrid(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
-    final items = [
-      _DashItem(
+    // Her kutu kendi yetkisine bagli:
+    //  - Randevular   -> randevu.takvim_gor
+    //  - On Gorusme   -> gorusme.liste_gor
+    //  - Paket/Urun S -> rapor.satis
+    final items = <_DashItem>[];
+    if (Yetki.varMi('randevu.takvim_gor')) {
+      items.add(_DashItem(
         icon: Icons.calendar_month_rounded,
         title: 'Randevular',
         value: ozetsayfabilgi.randevusayisi.toString(),
@@ -578,8 +650,10 @@ class _HomeState extends State<DashBoard> {
                 isletmebilgi: widget.isletmebilgi),
           ),
         ),
-      ),
-      _DashItem(
+      ));
+    }
+    if (Yetki.varMi('gorusme.liste_gor')) {
+      items.add(_DashItem(
         icon: Icons.chat_bubble_outline_rounded,
         title: 'Ön Görüşme',
         value: ozetsayfabilgi.ongorusmesayisi.toString(),
@@ -592,8 +666,10 @@ class _HomeState extends State<DashBoard> {
             child: OnGorusmelerDashboard(isletmebilgi: widget.isletmebilgi),
           ),
         ),
-      ),
-      _DashItem(
+      ));
+    }
+    if (Yetki.varMi('rapor.satis')) {
+      items.add(_DashItem(
         icon: Icons.shopping_bag_outlined,
         title: 'Paket Satışı',
         value: ozetsayfabilgi.paketsatissayisi.toString(),
@@ -609,8 +685,8 @@ class _HomeState extends State<DashBoard> {
             ),
           ),
         ),
-      ),
-      _DashItem(
+      ));
+      items.add(_DashItem(
         icon: Icons.inventory_2_outlined,
         title: 'Ürün Satışı',
         value: ozetsayfabilgi.urunsatissayisi.toString(),
@@ -626,29 +702,43 @@ class _HomeState extends State<DashBoard> {
             ),
           ),
         ),
-      ),
-    ];
+      ));
+    }
+    if (items.isEmpty) return const SizedBox.shrink();
+
     // GridView yerine manuel Row of Rows — shrinkWrap içinde GridView
     // ListView'in scroll perf'ini ciddi şekilde bozuyor. Bu daha akışkan.
     final width = MediaQuery.of(context).size.width;
-    final cardW = (width - 50) / 2; // 20+20 padding + 10 spacing
-    final cardH = cardW / 1.75;
-    Widget row(_DashItem a, _DashItem b) => Row(
-          children: [
-            SizedBox(width: cardW, height: cardH, child: _premiumStatCard(context, a)),
-            const SizedBox(width: 10),
-            SizedBox(width: cardW, height: cardH, child: _premiumStatCard(context, b)),
-          ],
+    final bool isTabletLandscape = width >= 900 &&
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final int perRow = isTabletLandscape ? 4 : 2;
+    final cardW = (width - 40 - (perRow - 1) * 10) / perRow;
+    final cardH = cardW / (isTabletLandscape ? 2.6 : 1.75);
+    final cardFullW = width - 40; // tek kalan kutu icin tam genislik
+    Widget cardSized(_DashItem it, {bool full = false}) => SizedBox(
+          width: full ? cardFullW : cardW,
+          height: cardH,
+          child: _premiumStatCard(context, it),
         );
+    // Items'i perRow'a bol — son satirda eksik varsa olduğu gibi bırak
+    final rows = <Widget>[];
+    for (int i = 0; i < items.length; i += perRow) {
+      final remaining = items.length - i;
+      if (remaining == 1 && perRow == 2) {
+        rows.add(cardSized(items[i], full: true));
+      } else {
+        final rowChildren = <Widget>[];
+        for (int j = 0; j < perRow && i + j < items.length; j++) {
+          if (j > 0) rowChildren.add(const SizedBox(width: 10));
+          rowChildren.add(cardSized(items[i + j]));
+        }
+        rows.add(Row(children: rowChildren));
+      }
+      if (i + perRow < items.length) rows.add(const SizedBox(height: 10));
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          row(items[0], items[1]),
-          const SizedBox(height: 10),
-          row(items[2], items[3]),
-        ],
-      ),
+      child: Column(children: rows),
     );
   }
 

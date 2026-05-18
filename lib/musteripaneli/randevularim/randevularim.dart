@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 
+import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
@@ -54,6 +55,9 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
 
   RandevuDataSource? _ds;
   bool _initialized = false;
+
+  bool get _onlineRandevuAktif =>
+      musteriOnlineRandevuAktifMi(widget.isletmebilgi);
 
   @override
   void initState() {
@@ -148,7 +152,7 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
           ),
         ),
       ),
-      floatingActionButton: _fab(context),
+      floatingActionButton: _onlineRandevuAktif ? _fab(context) : null,
     );
   }
 
@@ -421,7 +425,9 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
           child: Text(
             _activeFilterCount > 0
                 ? 'Seçili filtrelere uyan randevu bulunamadı. Filtreleri sıfırlamayı dene.'
-                : 'İlk randevunu oluşturmak için aşağıdaki butona dokun.',
+                : (_onlineRandevuAktif
+                    ? 'İlk randevunu oluşturmak için aşağıdaki butona dokun.'
+                    : 'Henüz randevun bulunmuyor.'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -446,7 +452,7 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
               label: const Text('Filtreleri Sıfırla'),
             ),
           )
-        else
+        else if (_onlineRandevuAktif)
           Center(
             child: FilledButton.icon(
               onPressed: _goToRandevuAl,

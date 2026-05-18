@@ -19,6 +19,7 @@ class OnBoardingPage extends StatefulWidget {
 
 class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
   late VideoPlayerController _controller;
+  bool _onlineRandevuAktif = false;
 
   @override
   void initState() {
@@ -31,6 +32,21 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
         _controller.play();
       });
     _controller.setLooping(true); // Loop the video
+    _loadOnlineRandevuAyari();
+  }
+
+  Future<void> _loadOnlineRandevuAyari() async {
+    try {
+      final bundle = await appBundleAl();
+      final ayar = await salonAyarlariByBundle(bundle);
+      if (!mounted) return;
+      setState(() {
+        _onlineRandevuAktif = musteriOnlineRandevuAktifMi(ayar);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _onlineRandevuAktif = false);
+    }
   }
 
   @override
@@ -157,29 +173,30 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
                         ),
                       ),
 
-                      OutlinedButton(
-                        onPressed: () {
-                          _pauseVideo();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => RandevuAl()),
-                          ).then((_) {
-                            // Geri dönüldüğünde video tekrar başlasın
-                            _resumeVideo();
-                          });
-                        },
-                        child: Text('Randevu Al',style: TextStyle(color: Colors.white,fontSize: 20),),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(width: 2.0,color: Colors.white),
-                          minimumSize: Size(150, 50),
-                          elevation: 20,
-                          shape: RoundedRectangleBorder(
+                      if (_onlineRandevuAktif)
+                        OutlinedButton(
+                          onPressed: () {
+                            _pauseVideo();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => RandevuAl()),
+                            ).then((_) {
+                              // Geri dönüldüğünde video tekrar başlasın
+                              _resumeVideo();
+                            });
+                          },
+                          child: Text('Randevu Al',style: TextStyle(color: Colors.white,fontSize: 20),),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(width: 2.0,color: Colors.white),
+                            minimumSize: Size(150, 50),
+                            elevation: 20,
+                            shape: RoundedRectangleBorder(
 
-                            borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(12),
 
+                            ),
                           ),
-                        ),
-                      )
+                        )
                     ],
                   ),
                 ),

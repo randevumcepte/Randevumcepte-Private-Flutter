@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/takvimturu.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -19,6 +20,7 @@ import 'package:randevu_sistem/Models/randevular.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
+import 'package:randevu_sistem/Frontend/route_observer.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/ongorusmeler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
@@ -46,7 +48,7 @@ class Takvim extends StatefulWidget {
   TakvimState createState() => TakvimState();
 }
 
-class TakvimState extends State<Takvim> {
+class TakvimState extends State<Takvim> with RouteAware {
 
   double _savedVerticalScrollPosition = 0.0;
   double _savedHorizontalScrollPosition = 0.0;
@@ -112,13 +114,31 @@ class TakvimState extends State<Takvim> {
             (element) => element.id == widget.isletmebilgi["randevu_takvim_turu"].toString()
     );
 
-    getUpdatedAppointments(
+    // ONCE yetki cache'i tazele, SONRA randevu fetch. Yoksa
+    // 'randevu.tum_personel_gor' kontrolu eski cache'le yapilir,
+    // personel_id filtresi yanlis uygulanir.
+    () async {
+      await Yetki.tazele(salonid: widget.isletmebilgi['id'].toString());
+      if (!mounted) return;
+      await getUpdatedAppointments(
         DateFormat('yyyy-MM-dd').format(seciliTarih),
         DateFormat('yyyy-MM-dd').format(seciliTarih),
-        false
-    );
+        false,
+      );
+    }();
 
     _loadGapKampanyalari();
+  }
+
+  /// Tab'a her geri donuste cagrilir: o an seçili tarih icin randevulari
+  /// ve aktif kampanyalari yeniden cek. Yetki filtresi
+  /// getUpdatedAppointments icinde uygulanir.
+  Future<void> reloadCurrent() async {
+    if (!mounted) return;
+    final tarihStr = DateFormat('yyyy-MM-dd').format(seciliTarih);
+    await getUpdatedAppointments(tarihStr, tarihStr, false);
+    if (!mounted) return;
+    await _loadGapKampanyalari();
   }
 
   Future<void> _loadGapKampanyalari() async {
@@ -446,7 +466,28 @@ class TakvimState extends State<Takvim> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Route stack'in degisebilecegi her durumda RouteAware aboneligini
+    // mevcut PageRoute'a yeniden bagla. didPopNext bir alt sayfadan geri
+    // donulduginde tetiklenir ve takvimi tazeler.
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.unsubscribe(this);
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // Alt sayfadan (randevu duzenle, satis vs.) bu route'a donulduginde
+    // takvimi guncel veriyle sessizce yeniden yukle.
+    reloadCurrent();
+  }
+
+  @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _timer?.cancel();
      _topHorizontalController.dispose();
     _gridHorizontalController.dispose();
@@ -470,7 +511,11 @@ class TakvimState extends State<Takvim> {
       _savedHorizontalScrollPosition = _gridHorizontalController.offset;
     }
 
-    if (widget.kullanicirolu == 5) {
+    // Personel rolundeki kullanici 'randevu.tum_personel_gor' yetkisi YOKSA
+    // kendi randevulari filtrelenir. Yetki acikken filtre uygulanmaz (tum
+    // randevular gelir). Yetkili rollerde de filtre yok.
+    if (widget.kullanicirolu == 5 &&
+        !Yetki.varMi('randevu.tum_personel_gor')) {
       widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
         if (element["salon_id"].toString() == widget.isletmebilgi["id"].toString()) {
           setState(() {
@@ -478,6 +523,13 @@ class TakvimState extends State<Takvim> {
           });
         }
       });
+    } else {
+      // Yetki acildiysa eski personelid filtresini temizle.
+      if (personelid.isNotEmpty) {
+        setState(() {
+          personelid = "";
+        });
+      }
     }
 
     final randevudata = await fetchRandevular(
@@ -625,28 +677,43 @@ class TakvimState extends State<Takvim> {
               ),
             ),
           IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AppointmentEditor(
-                    kullanicirolu: widget.kullanicirolu,
-                    isletmebilgi: widget.isletmebilgi,
-                    tarihsaat: "",
-                    personel_id: (widget.kullanicirolu == 5 ? personelid : ""),
-                  ),
-                ),
-              ).then((value) {
-                getUpdatedAppointments(
-                  DateFormat('yyyy-MM-dd').format(seciliTarih),
-                  DateFormat('yyyy-MM-dd').format(seciliTarih),
-                  true,
-                );
-              });
+            tooltip: 'Yenile',
+            onPressed: () async {
+              // Yetki cache'ini tazele + takvimi yeniden cek.
+              await Yetki.tazele(salonid: widget.isletmebilgi['id'].toString());
+              await getUpdatedAppointments(
+                DateFormat('yyyy-MM-dd').format(seciliTarih),
+                DateFormat('yyyy-MM-dd').format(seciliTarih),
+                true,
+              );
             },
-            icon: const Icon(Icons.add),
-            iconSize: 26,
+            icon: const Icon(Icons.refresh),
+            iconSize: 24,
           ),
+          if (Yetki.varMi('randevu.olustur'))
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AppointmentEditor(
+                      kullanicirolu: widget.kullanicirolu,
+                      isletmebilgi: widget.isletmebilgi,
+                      tarihsaat: "",
+                      personel_id: (widget.kullanicirolu == 5 ? personelid : ""),
+                    ),
+                  ),
+                ).then((value) {
+                  getUpdatedAppointments(
+                    DateFormat('yyyy-MM-dd').format(seciliTarih),
+                    DateFormat('yyyy-MM-dd').format(seciliTarih),
+                    true,
+                  );
+                });
+              },
+              icon: const Icon(Icons.add),
+              iconSize: 26,
+            ),
         ],
         toolbarHeight: 60,
       ),
@@ -1571,6 +1638,15 @@ List<Widget> _buildAppointmentsForResource(
       return;
     }*/
 
+    final tt = selectedTakvimTuru?.id ?? '1';
+    final String resType = tt == '2'
+        ? 'cihaz'
+        : tt == '3'
+            ? 'oda'
+            : tt == '0'
+                ? 'hizmet'
+                : 'personel';
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1578,7 +1654,9 @@ List<Widget> _buildAppointmentsForResource(
           kullanicirolu: widget.kullanicirolu,
           isletmebilgi: widget.isletmebilgi,
           tarihsaat: tarih.toString(),
-          personel_id: resourceId,
+          personel_id: resType == 'personel' ? resourceId : '',
+          resourceId: resourceId,
+          resourceType: resType,
         ),
       ),
     ).then((_) {
@@ -1591,7 +1669,63 @@ List<Widget> _buildAppointmentsForResource(
   }
 
   void _appointmentDetayGoster(Appointment appointment) {
+    // Saat kapama kaydina tiklandiysa: normal randevu detayini gostermek yerine
+    // "Bu kapali saat kaydini silmek istediginize emin misiniz?" onay
+    // penceresi cikar. Onaylanirsa kapaliSaatSil ile silinir.
+    final ilkSatir = appointment.subject.split('\n').first.trim();
+    if (ilkSatir == 'Kapalı Saat' || ilkSatir == 'Kapali Saat') {
+      _kapaliSaatSilOnayi(appointment);
+      return;
+    }
     RandevuDetayGoster(context, appointment);
+  }
+
+  Future<void> _kapaliSaatSilOnayi(Appointment appointment) async {
+    final cs = Theme.of(context).colorScheme;
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Onayla', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Bu kapalı saat kaydını silmek istediğinize emin misiniz?'),
+        actionsAlignment: MainAxisAlignment.end,
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Sil'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+        ],
+      ),
+    );
+    if (onay != true) return;
+
+    try {
+      final sonuc = await kapaliSaatSil(appointment.id.toString());
+      if (!mounted) return;
+      if (sonuc['ok'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(sonuc['message']?.toString() ?? 'Saat kapama kaldırıldı')),
+        );
+        await getUpdatedAppointments(
+          DateFormat('yyyy-MM-dd').format(seciliTarih),
+          DateFormat('yyyy-MM-dd').format(seciliTarih),
+          true,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(sonuc['error']?.toString() ?? sonuc['message']?.toString() ?? 'Silme başarısız')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Silme başarısız: $e')),
+      );
+    }
   }
 
   void RandevuDetayGoster(BuildContext context, Appointment randevudetay) {
@@ -1670,15 +1804,15 @@ List<Widget> _buildAppointmentsForResource(
                           ],
                         ),
 
-                        randevudurum![0] == "0" || randevudurum![0] == "1" ? Divider(color: cs.outlineVariant,
+                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Divider(color: cs.outlineVariant,
                           height: 30,): SizedBox.shrink(),
-                        randevudurum![0] == "0" || randevudurum![0] == "1" ? Row(
+                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Row(
                           children: [
                             Expanded(
                               child: ElevatedButton(onPressed: () {
                                 Navigator.of(context,rootNavigator: true).pop();
 
-  
+
                                 Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
                                   getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
 
@@ -1697,10 +1831,10 @@ List<Widget> _buildAppointmentsForResource(
                                     minimumSize: Size(0, 30)
                                 ),
                               ),
-                            ) 
+                            )
                           ],
                         ) : SizedBox.shrink(),
-                        (randevudurum![0] == "0" || randevudurum![0] == "1") && widget.kullanicirolu != 5 ? Wrap(
+                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Wrap(
                           spacing: 10,
                           runSpacing: 10,
                           alignment: WrapAlignment.start,
@@ -1838,12 +1972,12 @@ List<Widget> _buildAppointmentsForResource(
                           ],
                         ):SizedBox.shrink(),
 
-                        (randevudurum![0] == "0" || randevudurum![0] == "1" ) && widget.kullanicirolu != 5 && randevudurum![3] != '1' && !randevutitle[0].contains("ÖN GÖRÜŞME")   ? Wrap(
+                        (randevudurum![0] == "0" || randevudurum![0] == "1" ) && randevudurum![3] != '1' && !randevutitle[0].contains("ÖN GÖRÜŞME") && (Yetki.varMi('satis.tahsilat_al') || Yetki.varMi('randevu.duzenle_iptal'))  ? Wrap(
                           spacing: 10,
                           runSpacing: 10,
                           alignment: WrapAlignment.start,
                           children: [
-                            if (randevudurum![0] != "0" && !randevutitle[0].contains("PAKET") && widget.kullanicirolu!=5)
+                            if (randevudurum![0] != "0" && !randevutitle[0].contains("PAKET") && Yetki.varMi('satis.tahsilat_al'))
                               ElevatedButton(onPressed: () async{
                                 if(randevudurum![2]!='1')
                                   await randevudantahsilatagit(context,randevudetay.id.toString());
@@ -1865,7 +1999,7 @@ List<Widget> _buildAppointmentsForResource(
                                     minimumSize: Size(130, 30)
                                 ),
                               ),
-                            if (randevudurum![0] != '0')
+                            if (randevudurum![0] != '0' && Yetki.varMi('randevu.duzenle_iptal'))
                               ElevatedButton(onPressed: () {
                                 showDialog<bool>(
                                   context: context,
@@ -2568,3 +2702,4 @@ class _AppointmentCardState extends State<_AppointmentCard> {
     );
   }
 }
+

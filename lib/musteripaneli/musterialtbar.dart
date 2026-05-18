@@ -15,6 +15,7 @@ import 'package:randevu_sistem/musteripaneli/randevularim/randevularim.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
@@ -132,6 +133,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> {
   void _handleLogout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('userToken');
+    await Yetki.temizle();
 
     Navigator.pushAndRemoveUntil(
       context,

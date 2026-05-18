@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/ongorusmeler.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
@@ -262,24 +263,25 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 							],
 						),
 					),
-					PremiumGradientPill(
-						icon: Icons.add_rounded,
-						label: 'Yeni',
-						onTap: () {
-							Navigator.push(
-								context,
-								PageTransition(
-									type: PageTransitionType.rightToLeft,
-									duration: const Duration(milliseconds: 350),
-									child: YeniOnGorusme(
-										kullanicirolu: widget.kullanicirolu,
-										ongorusmedatasource: _ongorusmeDataGridSource,
-										isletmebilgi: widget.isletmebilgi,
+					if (Yetki.varMi('gorusme.ekle_duzenle'))
+						PremiumGradientPill(
+							icon: Icons.add_rounded,
+							label: 'Yeni',
+							onTap: () {
+								Navigator.push(
+									context,
+									PageTransition(
+										type: PageTransitionType.rightToLeft,
+										duration: const Duration(milliseconds: 350),
+										child: YeniOnGorusme(
+											kullanicirolu: widget.kullanicirolu,
+											ongorusmedatasource: _ongorusmeDataGridSource,
+											isletmebilgi: widget.isletmebilgi,
+										),
 									),
-								),
-							);
-						},
-					),
+								);
+							},
+						),
 				],
 			),
 		);
@@ -954,33 +956,36 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 								Divider(
 										height: 1,
 										color: scheme.onSurface.withValues(alpha: 0.08)),
-								_sheetItem(
-									icon: Icons.edit_outlined,
-									label: 'Düzenle',
-									color: scheme.primary,
-									onTap: () {
-										Navigator.pop(ctx);
-										_openEdit(e);
-									},
-								),
-								_sheetItem(
-									icon: Icons.check_circle_rounded,
-									label: 'Satış Yapıldı',
-									color: const Color(0xFF16A34A),
-									onTap: () {
-										Navigator.pop(ctx);
-										_satisYapildi(e);
-									},
-								),
-								_sheetItem(
-									icon: Icons.cancel_rounded,
-									label: 'Satış Yapılmadı',
-									color: const Color(0xFFDC2626),
-									onTap: () {
-										Navigator.pop(ctx);
-										_satisYapilmadi(e);
-									},
-								),
+								if (Yetki.varMi('gorusme.ekle_duzenle'))
+									_sheetItem(
+										icon: Icons.edit_outlined,
+										label: 'Düzenle',
+										color: scheme.primary,
+										onTap: () {
+											Navigator.pop(ctx);
+											_openEdit(e);
+										},
+									),
+								if (Yetki.varMi('gorusme.ekle_duzenle')) ...[
+									_sheetItem(
+										icon: Icons.check_circle_rounded,
+										label: 'Satış Yapıldı',
+										color: const Color(0xFF16A34A),
+										onTap: () {
+											Navigator.pop(ctx);
+											_satisYapildi(e);
+										},
+									),
+									_sheetItem(
+										icon: Icons.cancel_rounded,
+										label: 'Satış Yapılmadı',
+										color: const Color(0xFFDC2626),
+										onTap: () {
+											Navigator.pop(ctx);
+											_satisYapilmadi(e);
+										},
+									),
+								],
 								const SizedBox(height: 6),
 							],
 						),

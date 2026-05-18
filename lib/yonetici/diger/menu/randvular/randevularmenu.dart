@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/colorandtext.dart';
@@ -106,8 +107,24 @@ class _RandevularMenuState extends State<RandevularMenu> {
     super.dispose();
   }
 
+  // Yetki cache'e gore filtre personel_id'sini hesapla.
+  // - Personel rolu + 'randevu.tum_personel_gor' KAPALI -> kendi id'si filtre
+  // - Aksi durumda -> bos (filtre yok, tum randevular)
+  String get _yetkiyeGorePersonelid {
+    if (widget.kullanicirolu == 5 &&
+        !Yetki.varMi('randevu.tum_personel_gor')) {
+      return widget.personelid;
+    }
+    return '';
+  }
+
   Future<void> initialize() async {
     seciliisletme = await secilisalonid();
+    if (!mounted) return;
+    // Yetki cache'i hazir degilse tazele; sonra dogru personelid ile fetch.
+    if (seciliisletme != null && seciliisletme!.isNotEmpty) {
+      await Yetki.tazele(salonid: seciliisletme!);
+    }
     if (!mounted) return;
     setState(() {
       _randevuDataGridSource = RandevuDataSource(
@@ -120,7 +137,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
         tarih: selectedrandevutarih,
         context: context,
         musteriid: "",
-        personelid: widget.personelid,
+        personelid: _yetkiyeGorePersonelid,
         cihazid: widget.cihazid,
         musteriMi: false,
       );
@@ -214,6 +231,17 @@ class _RandevularMenuState extends State<RandevularMenu> {
             ),
           ),
           const SizedBox(width: 12),
+          PremiumCircleAction(
+            icon: Icons.refresh_rounded,
+            onTap: () async {
+              // Yetki cache'ini tazele, sonra listeyi yeniden cek.
+              if (seciliisletme != null && seciliisletme!.isNotEmpty) {
+                await Yetki.tazele(salonid: seciliisletme!);
+              }
+              await _applyFilters(page: 1);
+            },
+          ),
+          const SizedBox(width: 8),
           PremiumCircleAction(
             icon: Icons.tune_rounded,
             onTap: _openFilterSheet,
@@ -1108,7 +1136,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
       selectedrandevuolusturma,
       selectedrandevudurum,
       selectedrandevutarih,
-      widget.personelid,
+      _yetkiyeGorePersonelid,
       widget.cihazid,
     );
     if (mounted) setState(() {});

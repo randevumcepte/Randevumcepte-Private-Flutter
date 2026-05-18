@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'filedownloader.dart'; // Import the FileDownloader class
 
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/colorandtext.dart';
 import 'package:randevu_sistem/Models/form.dart';
 import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
@@ -64,7 +65,9 @@ void ArsivDetayGosterDialog(BuildContext context, Arsiv arsiv) {
                         Expanded(
 
                             child: Text(
-                                arsiv.form["form_adi"] != 'harici' ? arsiv.form["form_adi"] : arsiv.sozlesme_adi))
+                                (arsiv.form?["form_adi"] != null && arsiv.form?["form_adi"] != 'harici')
+                                    ? arsiv.form["form_adi"].toString()
+                                    : (arsiv.sozlesme_adi?.toString() ?? '-')))
                       ],
                     ),
                     Row(
@@ -80,7 +83,7 @@ void ArsivDetayGosterDialog(BuildContext context, Arsiv arsiv) {
                         Text('İşlem Yapan Personel'),
                         SizedBox(width: 2,),
                         Text(': '),
-                        Expanded(child: Text(arsiv.personel["personel_adi"]))
+                        Expanded(child: Text(arsiv.personel?["personel_adi"]?.toString() ?? '-'))
                       ],
                     ),
                     Divider(color: Colors.black, height: 20,),
@@ -89,31 +92,40 @@ void ArsivDetayGosterDialog(BuildContext context, Arsiv arsiv) {
                       crossAxisAlignment:CrossAxisAlignment.center,
                       children: [
                         SizedBox(width: 5,),
-                        ElevatedButton(
-                          onPressed: () {
-                            // Handle form resend action
-                          },
-                          child: Text('Formu Tekrar Gönder'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple[800],
-                            foregroundColor: Colors.white,
-                            elevation: 5,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5.0),
+                        if (Yetki.varMi('form.gonder'))
+                          ElevatedButton(
+                            onPressed: () {
+                              // Handle form resend action
+                            },
+                            child: Text('Formu Tekrar Gönder'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple[800],
+                              foregroundColor: Colors.white,
+                              elevation: 5,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5.0),
+                              ),
+                              minimumSize: Size(110, 30),
                             ),
-                            minimumSize: Size(110, 30),
                           ),
-                        ),
                         SizedBox(width: 10,),
                         ElevatedButton(
                           onPressed: () async {
                             String formadi = arsiv.form["form_adi"] == "Harici Belge" ? arsiv.sozlesme_adi : arsiv.form["form_adi"];
+                            // Backend 'uzanti'yi "./dosya.pdf" veya
+                            // "public/formlar/dosya.pdf" formatinda donduruyor.
+                            // Laravel'de public/ klasoru web koku oldugu icin
+                            // URL'de yer almaz; ayrica "./" prefix'i de gecersiz.
+                            String uzanti = (arsiv.uzanti)
+                                .replaceFirst(RegExp(r'^\.\/'), '')
+                                .replaceFirst(RegExp(r'^public/'), '')
+                                .replaceFirst(RegExp(r'^/'), '');
                             String fileName = '${arsiv.musteridanisan["name"]}_${arsiv.tarih_saat}_$formadi.${path.extension(arsiv.uzanti)}';
                             final fileDownloader = FileDownloader();
 
                             try {
                               final filePath = await fileDownloader.downloadFile(
-                                'https://apptest.randevumcepte.com.tr/${arsiv.uzanti}',
+                                'https://apptest.randevumcepte.com.tr/$uzanti',
                                 fileName,
                               );
                               log('File downloaded to: $filePath');

@@ -12,6 +12,7 @@
   import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
   import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
   import 'package:randevu_sistem/Backend/backend.dart';
+  import 'package:randevu_sistem/Backend/yetki.dart';
   import 'package:randevu_sistem/Frontend/lazyload.dart';
   import 'package:randevu_sistem/Models/adisyonlar.dart';
   import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -691,40 +692,42 @@
                           ],
                         ),
                         if (!isFullPaid) ...[
-                          SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 38,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TahsilatEkrani(
-                                      kullanicirolu: widget.kullanicirolu,
-                                      isletmebilgi: widget.isletmebilgi,
-                                      musteridanisanid: adisyon.user_id,
-                                      adisyonId: adisyon.id,
+                          if (Yetki.varMi('satis.tahsilat_al')) ...[
+                            SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 38,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TahsilatEkrani(
+                                        kullanicirolu: widget.kullanicirolu,
+                                        isletmebilgi: widget.isletmebilgi,
+                                        musteridanisanid: adisyon.user_id,
+                                        adisyonId: adisyon.id,
+                                      ),
                                     ),
+                                  ).then((_) async {
+                                    await _refreshAdisyonAfterPayment(
+                                        adisyon, isOpenTab);
+                                  });
+                                },
+                                icon: Icon(Icons.payment_outlined, size: 16),
+                                label: Text('Tahsilat Yap',
+                                    style: TextStyle(fontSize: 13)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purple.shade700,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
-                                ).then((_) async {
-                                  await _refreshAdisyonAfterPayment(
-                                      adisyon, isOpenTab);
-                                });
-                              },
-                              icon: Icon(Icons.payment_outlined, size: 16),
-                              label: Text('Tahsilat Yap',
-                                  style: TextStyle(fontSize: 13)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple.shade700,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ],
                     ),
@@ -964,45 +967,49 @@
           },
           itemBuilder: (context) => [
             if (!isKapali) ...[
-              PopupMenuItem(
-                value: 'hizmet',
-                child: Row(children: [
-                  Icon(Icons.spa_outlined,
-                      size: 18, color: Colors.purple.shade700),
-                  SizedBox(width: 10),
-                  Text('Hizmet Ekle'),
-                ]),
-              ),
-              PopupMenuItem(
-                value: 'urun',
-                child: Row(children: [
-                  Icon(Icons.shopping_bag_outlined,
-                      size: 18, color: Colors.purple.shade700),
-                  SizedBox(width: 10),
-                  Text('Ürün Ekle'),
-                ]),
-              ),
-              PopupMenuItem(
-                value: 'paket',
-                child: Row(children: [
-                  Icon(Icons.inventory_2_outlined,
-                      size: 18, color: Colors.purple.shade700),
-                  SizedBox(width: 10),
-                  Text('Paket Ekle'),
-                ]),
-              ),
+              if (Yetki.varMi('satis.adisyon_olustur'))
+                PopupMenuItem(
+                  value: 'hizmet',
+                  child: Row(children: [
+                    Icon(Icons.spa_outlined,
+                        size: 18, color: Colors.purple.shade700),
+                    SizedBox(width: 10),
+                    Text('Hizmet Ekle'),
+                  ]),
+                ),
+              if (Yetki.varMi('urun.sat'))
+                PopupMenuItem(
+                  value: 'urun',
+                  child: Row(children: [
+                    Icon(Icons.shopping_bag_outlined,
+                        size: 18, color: Colors.purple.shade700),
+                    SizedBox(width: 10),
+                    Text('Ürün Ekle'),
+                  ]),
+                ),
+              if (Yetki.varMi('paket.sat'))
+                PopupMenuItem(
+                  value: 'paket',
+                  child: Row(children: [
+                    Icon(Icons.inventory_2_outlined,
+                        size: 18, color: Colors.purple.shade700),
+                    SizedBox(width: 10),
+                    Text('Paket Ekle'),
+                  ]),
+                ),
               PopupMenuDivider(),
             ],
-            PopupMenuItem(
-              value: 'sil',
-              child: Row(children: [
-                Icon(Icons.delete_outline,
-                    size: 18, color: Colors.red.shade600),
-                SizedBox(width: 10),
-                Text('Sil',
-                    style: TextStyle(color: Colors.red.shade700)),
-              ]),
-            ),
+            if (Yetki.varMi('satis.adisyon_sil'))
+              PopupMenuItem(
+                value: 'sil',
+                child: Row(children: [
+                  Icon(Icons.delete_outline,
+                      size: 18, color: Colors.red.shade600),
+                  SizedBox(width: 10),
+                  Text('Sil',
+                      style: TextStyle(color: Colors.red.shade700)),
+                ]),
+              ),
           ],
         ),
       );

@@ -12,6 +12,7 @@ import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';
 import 'dart:developer';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/backroutes.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
@@ -132,9 +133,21 @@ class _MenuState extends State<Menu> {
   Color get _borderColor =>
       Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10);
 
+  void _yetkiDegisti() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    // Yetki tazelendiginde menu listesi yeniden cizilsin.
+    Yetki.versiyon.addListener(_yetkiDegisti);
+  }
+
+  @override
+  void dispose() {
+    Yetki.versiyon.removeListener(_yetkiDegisti);
+    super.dispose();
   }
 
   void _logout(BuildContext context) async {
@@ -495,7 +508,7 @@ class _MenuState extends State<Menu> {
 
                 // İşlemler Bölümü
                 _buildSectionTitle('İŞLEMLER'),
-                if (widget.uyelikturu > 2 && kullanicirolu < 5)
+                if (widget.uyelikturu > 2)
                   _buildMenuButton(
                     icon: Icons.assistant_rounded,
                     label: 'Asistanım',
@@ -510,7 +523,7 @@ class _MenuState extends State<Menu> {
                       );
                     },
                   ),
-                if (widget.uyelikturu > 2 && kullanicirolu < 5)
+                if (widget.uyelikturu > 2)
                   _buildMenuButton(
                     icon: Icons.phone,
                     label: 'Santral',
@@ -526,7 +539,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (widget.uyelikturu > 2)
+                if (widget.uyelikturu > 2 && Yetki.varMi('gorusme.liste_gor'))
                   _buildMenuButton(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'Ön Görüşmeler',
@@ -545,7 +558,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (kullanicirolu < 5)
+                if (Yetki.varMi('pazarlama.anket_yonet'))
                   _buildMenuButton(
                     icon: Icons.poll_outlined,
                     label: 'Anket Yönetimi',
@@ -564,7 +577,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (kullanicirolu < 5)
+                if (Yetki.varMi('pazarlama.cark_yonet'))
                   _buildMenuButton(
                     icon: Icons.casino_outlined,
                     label: 'Çark-ı Felek',
@@ -583,7 +596,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (kullanicirolu < 5)
+                if (Yetki.varMi('pazarlama.whatsapp_gonder'))
                   _buildMenuButton(
                     icon: Icons.chat_bubble_outline,
                     label: 'WhatsApp',
@@ -602,13 +615,17 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (widget.uyelikturu > 2)
+                if (widget.uyelikturu > 2 && Yetki.varMi('randevu.takvim_gor'))
                   _buildMenuButton(
                     icon: Icons.calendar_today_rounded,
                     label: 'Randevular',
                     onTap: () {
                       String personelid = "";
-                      if (kullanicirolu == 5) {
+                      // Personel rolu + 'tum_personel_gor' KAPALI ise kendi id'si
+                      // gonderilir (sadece kendi randevular). Yetki acikken bos
+                      // gonderilir (backend tum randevular doner).
+                      if (kullanicirolu == 5 &&
+                          !Yetki.varMi('randevu.tum_personel_gor')) {
                         widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
                           if (element["salon_id"].toString() == widget.isletmebilgi["id"].toString())
                             personelid = element["id"].toString();
@@ -632,7 +649,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (kullanicirolu < 5)
+                if (Yetki.varMi('musteri.liste_gor'))
                   _buildMenuButton(
                     icon: Icons.group_rounded,
                     label: 'Müşteriler',
@@ -650,7 +667,7 @@ class _MenuState extends State<Menu> {
                       );
                     },
                   ),
-                if(widget.uyelikturu>1 && kullanicirolu<5)
+                if(widget.uyelikturu>1 && Yetki.varMi('personel.liste_gor'))
                   _buildMenuButton(
                       icon: Icons.supervised_user_circle_outlined,
                       label: 'Personeller',
@@ -668,7 +685,7 @@ class _MenuState extends State<Menu> {
 
                 // Yönetim Bölümü
                 _buildSectionTitle('YÖNETİM'),
-                if (widget.uyelikturu > 1 && kullanicirolu < 5)
+                if (widget.uyelikturu > 1 && Yetki.varMi('form.olustur'))
                   _buildMenuButton(
                     icon: Icons.description_outlined,
                     label: 'Form Yönetimi',
@@ -686,7 +703,7 @@ class _MenuState extends State<Menu> {
                   ),
 
 
-                if (widget.uyelikturu > 1 && kullanicirolu < 5)
+                if (widget.uyelikturu > 1 && Yetki.varMi('paket.seans_takip'))
                   _buildMenuButton(
                     icon: Icons.checklist_rtl_rounded,
                     label: 'Seans Takibi',
@@ -702,6 +719,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
+                if (Yetki.varMi('rapor.satis'))
                 _buildMenuButton(
                   icon: Icons.analytics_rounded,
                   label: 'Satış Raporları',
@@ -725,7 +743,7 @@ class _MenuState extends State<Menu> {
                   },
                 ),
 
-                if (widget.uyelikturu > 1 && kullanicirolu < 5)
+                if (widget.uyelikturu > 1 && Yetki.varMi('paket.tanim_olustur'))
                   _buildMenuButton(
                     icon: Icons.widgets_rounded,
                     label: 'Paket Yönetimi',
@@ -746,7 +764,14 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (widget.uyelikturu > 1 && kullanicirolu < 5)
+                // Stok Yonetimi sayfasi urun ile ilgili her seyi kapsiyor
+                // (tanim, stok girisi, sayim, tedarikci) — bu yetkilerden
+                // herhangi biri acikken gosterilir.
+                if (widget.uyelikturu > 1 &&
+                    (Yetki.varMi('urun.tanim_olustur') ||
+                        Yetki.varMi('urun.stok_giris') ||
+                        Yetki.varMi('urun.stok_sayim') ||
+                        Yetki.varMi('urun.tedarikci_yonet')))
                   _buildMenuButton(
                     icon: Icons.inventory_2_rounded,
                     label: 'Stok Yönetimi',
@@ -764,7 +789,12 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (widget.uyelikturu > 1 && kullanicirolu < 4)
+                if (widget.uyelikturu > 1 &&
+                    (Yetki.varMi('rapor.kasa') ||
+                        Yetki.varMi('finans.kasa_giris_cikis') ||
+                        Yetki.varMi('finans.masraf_gor') ||
+                        Yetki.varMi('finans.masraf_ekle') ||
+                        Yetki.varMi('finans.alacak_yonet')))
                   _buildMenuButton(
                     icon: Icons.account_balance_wallet_rounded,
                     label: 'Kasa Raporu',
@@ -780,7 +810,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (kullanicirolu < 5)
+                if (Yetki.varMi('pazarlama.sms_gonder'))
                   _buildMenuButton(
                     icon: Icons.message_rounded,
                     label: 'SMS Yönetimi',
@@ -801,7 +831,14 @@ class _MenuState extends State<Menu> {
 
                 // Ayarlar Bölümü
                 _buildSectionTitle('AYARLAR'),
-                if (kullanicirolu < 4)
+                // Sistem Ayarlari menusu: ayarlar sayfasinda gosterilen
+                // herhangi bir kutu icin yetki acikken gorulur. Icerde her
+                // kutu kendi yetkisine gore filtrelenir.
+                if (Yetki.varMi('ayar.salon_bilgi') ||
+                    Yetki.varMi('ayar.cihaz_oda_yonet') ||
+                    Yetki.varMi('randevu.online_ayar') ||
+                    Yetki.varMi('hizmet.tanim_olustur') ||
+                    Yetki.varMi('hizmet.kategori_yonet'))
                   _buildMenuButton(
                     icon: Icons.settings_rounded,
                     label: 'Sistem Ayarları',

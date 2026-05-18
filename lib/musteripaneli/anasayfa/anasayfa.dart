@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -48,6 +49,9 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   MusteriOzet? ozetsayfabilgi;
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
+
+  bool get _onlineRandevuAktif =>
+      musteriOnlineRandevuAktifMi(widget.isletmebilgi);
 
   Future<void> initialize() async {
     try {
@@ -111,6 +115,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
         await prefs.remove('musteri');
         await prefs.remove('user_type');
         await prefs.remove('token');
+        await Yetki.temizle();
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -205,8 +210,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       _premiumTopBar(context),
                       _premiumGreeting(context),
                       const SizedBox(height: 18),
-                      _heroRandevuCard(context),
-                      const SizedBox(height: 16),
+                      if (_onlineRandevuAktif) ...[
+                        _heroRandevuCard(context),
+                        const SizedBox(height: 16),
+                      ],
                       _membershipCard(context),
                       const SizedBox(height: 22),
                       _sectionHeader(context, 'Hızlı Erişim'),
@@ -857,14 +864,22 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     ];
 
     final width = MediaQuery.of(context).size.width;
-    final cardW = (width - 50) / 2;
-    final cardH = cardW / 1.45;
+    final bool isTabletLandscape = width >= 900 &&
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final int perRow = isTabletLandscape ? 4 : 2;
+    final cardW = (width - 40 - (perRow - 1) * 10) / perRow;
+    final cardH = cardW / (isTabletLandscape ? 2.2 : 1.45);
 
-    Widget row(_QuickAccessItem a, _QuickAccessItem b) => Row(
+    Widget rowOf(List<_QuickAccessItem> list) => Row(
           children: [
-            SizedBox(width: cardW, height: cardH, child: _quickAccessCard(context, a)),
-            const SizedBox(width: 10),
-            SizedBox(width: cardW, height: cardH, child: _quickAccessCard(context, b)),
+            for (int i = 0; i < list.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              SizedBox(
+                width: cardW,
+                height: cardH,
+                child: _quickAccessCard(context, list[i]),
+              ),
+            ],
           ],
         );
 
@@ -872,9 +887,13 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          row(items[0], items[1]),
-          const SizedBox(height: 10),
-          row(items[2], items[3]),
+          if (isTabletLandscape)
+            rowOf(items)
+          else ...[
+            rowOf([items[0], items[1]]),
+            const SizedBox(height: 10),
+            rowOf([items[2], items[3]]),
+          ],
         ],
       ),
     );

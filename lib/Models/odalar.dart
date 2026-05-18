@@ -5,6 +5,7 @@
     required this.durum,
     required this.aciklama,
     required this.aktifmi,
+    this.personeller = const [],
 
 
 
@@ -17,6 +18,7 @@
   final String durum;
   final String aciklama;
   final String aktifmi;
+  final List<Map<String, String>> personeller;
 
 
 
@@ -44,12 +46,27 @@
   }
   factory Oda.fromJson(Map<String, dynamic> jsonvar) {
 
+    final rawPersoneller = jsonvar["personeller"];
+    final List<Map<String, String>> personeller =
+        (rawPersoneller is List)
+            ? rawPersoneller
+                .map<Map<String, String>>((e) => {
+                      'id': (e is Map && e['id'] != null)
+                          ? e['id'].toString()
+                          : '',
+                      'personel_adi': (e is Map && e['personel_adi'] != null)
+                          ? e['personel_adi'].toString()
+                          : '',
+                    })
+                .toList()
+            : const [];
     return Oda(
       id: jsonvar["id"].toString(),
       oda_adi: jsonvar["oda_adi"].toString(),
       durum: jsonvar["durum"].toString(),
       aciklama: jsonvar["aciklama"].toString(),
       aktifmi: jsonvar["aktifmi"].toString(),
+      personeller: personeller,
     );
   }
   @override

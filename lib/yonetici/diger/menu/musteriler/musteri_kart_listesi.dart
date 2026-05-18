@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
@@ -427,9 +428,11 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
       },
       itemBuilder: (context) => [
         _menuItem('bilgi', Icons.info_outline_rounded, 'Detaylı Bilgi'),
-        _menuItem('duzenle', Icons.edit_outlined, 'Düzenle'),
-        _menuItem('sil', Icons.delete_outline_rounded, 'Sil',
-            danger: true),
+        if (Yetki.varMi('musteri.ekle_duzenle'))
+          _menuItem('duzenle', Icons.edit_outlined, 'Düzenle'),
+        if (Yetki.varMi('musteri.sil'))
+          _menuItem('sil', Icons.delete_outline_rounded, 'Sil',
+              danger: true),
       ],
     );
   }
@@ -474,7 +477,8 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
 
   String _phoneText(String raw) {
     if (raw.isEmpty || raw == 'null') return 'Telefon yok';
-    return raw;
+    // musteri.telefon_gor yetkisi yoksa maske: "0532 *** ** 47"
+    return Yetki.telefonGoster(raw);
   }
 
   String _safeNum(String s) {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/sozlesme.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
@@ -133,6 +134,9 @@ class _FormOlusturState extends State<FormOlustur> {
       final userJson = prefs.getString('user');
       final user = userJson != null ? jsonDecode(userJson) : {};
 
+      // form.gonder yetkisi yoksa: arsive kaydet ama musteriye SMS gonderme.
+      final sadeceKaydet = !Yetki.varMi('form.gonder');
+
       final body = {
         'user_id': _musteri!.id,
         'form_id': _form!.id,
@@ -146,6 +150,7 @@ class _FormOlusturState extends State<FormOlustur> {
         'olusturan': user["id"],
         'hizmet': '',
         'ucret': '',
+        'sadece_kaydet': sadeceKaydet,
       };
 
       final resp = await http.post(
@@ -158,8 +163,10 @@ class _FormOlusturState extends State<FormOlustur> {
       if (resp.statusCode == 200) {
         if (mounted) {
           await showPremiumWarning(context,
-              title: 'Form Gönderildi',
-              message: 'Müşteriye SMS ile form linki gönderildi.',
+              title: sadeceKaydet ? 'Form Kaydedildi' : 'Form Gönderildi',
+              message: sadeceKaydet
+                  ? 'Form arşive eklendi. Gönderme yetkiniz olmadığı için müşteriye SMS atılmadı.'
+                  : 'Müşteriye SMS ile form linki gönderildi.',
               tone: 'success');
         }
         if (mounted) Navigator.pop(context, true);
@@ -335,11 +342,18 @@ class _FormOlusturState extends State<FormOlustur> {
                     : Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.send_rounded,
-                              color: scheme.onPrimary, size: 18),
+                          Icon(
+                            Yetki.varMi('form.gonder')
+                                ? Icons.send_rounded
+                                : Icons.save_outlined,
+                            color: scheme.onPrimary,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            'Müşteriye Gönder',
+                            Yetki.varMi('form.gonder')
+                                ? 'Müşteriye Gönder'
+                                : 'Sadece Kaydet',
                             style: TextStyle(
                               color: scheme.onPrimary,
                               fontWeight: FontWeight.w800,

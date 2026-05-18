@@ -13,6 +13,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
 import 'package:randevu_sistem/services/notification_popup.dart';
 import 'package:randevu_sistem/services/notification_router.dart';
@@ -279,6 +280,14 @@ class NotificationService {
     log('🔔 [FG] ${message.notification?.title} data=${message.data}');
     final payload = NotificationPayload.fromMap(message.data);
 
+    // Yetki degisti → Yetki.tazele tetiklenir; eski cache ile fark varsa
+    // Yetki.yetkiAyarlariDegisti notifier'i true olur ve bottom_nav
+    // listener'i otomatik popup + logout akisini calistirir.
+    if (payload.type == NotificationTypes.yetkiDegisti) {
+      _handleYetkiDegisti();
+      return;
+    }
+
     // Promosyon tipleri → büyük popup
     if (NotificationTypes.isPopup(payload.type)) {
       final ctx = navigatorKey.currentContext;
@@ -307,6 +316,12 @@ class NotificationService {
     final ctx = navigatorKey.currentContext;
     if (ctx == null) return;
 
+    // Yetki guncellendi → tazele + dialog + logout otomatik calisir.
+    if (payload.type == NotificationTypes.yetkiDegisti) {
+      _handleYetkiDegisti();
+      return;
+    }
+
     // Popup tipleri tıklamada da popup'la açılır
     if (NotificationTypes.isPopup(payload.type)) {
       showPromoNotificationPopup(ctx, payload: payload);
@@ -314,6 +329,27 @@ class NotificationService {
     }
 
     NotificationRouter.route(ctx, payload);
+  }
+
+  /// Push: yetki ayarlari guncellendi. Salonid'yi mevcut secili subeden alip
+  /// Yetki.tazele cagirir. Yetki cache eski ile karsilastirilir; fark varsa
+  /// Yetki.yetkiAyarlariDegisti notifier'i tetiklenir ve bottom_nav'deki
+  /// listener popup + zorla logout akisini baslatir.
+  Future<void> _handleYetkiDegisti() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? salonid = prefs.getString('sube');
+      salonid = (salonid != null && salonid.isNotEmpty) ? salonid : null;
+      if (salonid != null) {
+        await Yetki.tazele(salonid: salonid);
+      } else {
+        // Sube bilinmiyorsa cache'i tamamen temizle → kullanici tekrar
+        // login olunca taze yetki cekecek.
+        await Yetki.temizle();
+      }
+    } catch (e) {
+      log('Yetki push handler hatasi: $e');
+    }
   }
 
   Future<void> _showAsLocal(

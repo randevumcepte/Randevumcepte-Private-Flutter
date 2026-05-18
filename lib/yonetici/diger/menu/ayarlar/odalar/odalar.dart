@@ -85,6 +85,20 @@ class _OdalarState extends State<Odalar> {
     );
   }
 
+  void _duzenle(Oda o) {
+    if (_ds == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OdaEkle(
+          odadatasource: _ds!,
+          isletmebilgi: widget.isletmebilgi,
+          oda: o,
+        ),
+      ),
+    );
+  }
+
   Future<void> _silOnay(Oda o) async {
     final onay = await showDialog<bool>(
       context: context,
@@ -727,6 +741,10 @@ class _OdalarState extends State<Odalar> {
                   _buildMenu(o, musait),
                 ],
               ),
+              if (o.personeller.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _buildPersonelChips(o.personeller),
+              ],
               if (aciklama.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Container(
@@ -763,6 +781,67 @@ class _OdalarState extends State<Odalar> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPersonelChips(List<Map<String, String>> personeller) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _accent.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _accent.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.people_alt_rounded,
+                  size: 13, color: _accent.withValues(alpha: 0.8)),
+              const SizedBox(width: 5),
+              Text(
+                'Atanan Personel (${personeller.length})',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: _accent.withValues(alpha: 0.85),
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: personeller.map((p) {
+              final ad = p['personel_adi'] ?? '';
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: _accent.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Text(
+                  ad,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _accent,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -809,6 +888,8 @@ class _OdalarState extends State<Odalar> {
       onSelected: (value) {
         if (value == 'detay') {
           _showDetails(o);
+        } else if (value == 'duzenle') {
+          _duzenle(o);
         } else if (value == 'musait') {
           _musaitYap(o);
         } else if (value == 'musaitdegil') {
@@ -819,6 +900,7 @@ class _OdalarState extends State<Odalar> {
       },
       itemBuilder: (context) => [
         _menuItem('detay', Icons.info_outline_rounded, 'Detayı Gör'),
+        _menuItem('duzenle', Icons.edit_outlined, 'Düzenle', color: _accent),
         if (!musait)
           _menuItem('musait', Icons.check_circle_outline_rounded, 'Müsait Yap',
               color: const Color(0xFF16A34A)),
@@ -917,6 +999,16 @@ class _OdalarState extends State<Odalar> {
               ),
               const SizedBox(height: 16),
               _detailRow('Durum', null, statusChip: _statusChip(musait)),
+              if (o.personeller.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _detailRow(
+                  'Personel',
+                  o.personeller
+                      .map((p) => p['personel_adi'] ?? '')
+                      .where((s) => s.isNotEmpty)
+                      .join(', '),
+                ),
+              ],
               if (aciklama.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 _detailRow('Açıklama', aciklama),

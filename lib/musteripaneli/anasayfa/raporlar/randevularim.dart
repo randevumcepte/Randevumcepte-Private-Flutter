@@ -107,29 +107,30 @@ class _TumRandevularState extends State<MusteriRandevularDashboard> {
 
         toolbarHeight: 60,
         actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 150, // <-- Your width
-              child: ElevatedButton(onPressed: (){
-                Navigator.of(context).pop();
+          if (musteriOnlineRandevuAktifMi(widget.isletmebilgi))
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                width: 150, // <-- Your width
+                child: ElevatedButton(onPressed: (){
+                  Navigator.of(context).pop();
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => RandevuAl()),
-                );
-              }, child: Text("RANDEVU AL"), style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple[800], // background (button) color
-                  foregroundColor: Colors.white,
-                  textStyle: const TextStyle(
-                      color: Colors.white, fontSize: 15,fontWeight: FontWeight.bold
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0))
-              ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => RandevuAl()),
+                  );
+                }, child: Text("RANDEVU AL"), style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple[800], // background (button) color
+                    foregroundColor: Colors.white,
+                    textStyle: const TextStyle(
+                        color: Colors.white, fontSize: 15,fontWeight: FontWeight.bold
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0))
+                ),
+                ),
               ),
             ),
-          ),
 
         ],
         backgroundColor: Colors.white,

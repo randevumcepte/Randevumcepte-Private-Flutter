@@ -27,6 +27,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:randevu_sistem/musteripaneli/anasayfa/anasayfa.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -514,7 +515,11 @@ class _HomeState extends State<LoginPage> {
             localStorage.setString('sube',kullanici.yetkili_olunan_isletmeler[0]['salon_id'].toString());
             localStorage.setString('isletmeadi', kullanici.yetkili_olunan_isletmeler[0]['salonlar']['salon_adi']);
 
-
+            // Tek sube — yetkileri hemen tazele ki bottom nav vs. dogru render olsun.
+            await Yetki.tazele(
+              salonid: kullanici.yetkili_olunan_isletmeler[0]['salon_id'].toString(),
+              yetkiliId: kullanici.id.toString(),
+            );
           }
         Navigator.pushAndRemoveUntil(
           context,

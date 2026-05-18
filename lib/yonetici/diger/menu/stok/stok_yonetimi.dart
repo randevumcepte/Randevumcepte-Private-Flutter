@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/depo.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
 import 'package:randevu_sistem/Models/urun_kategorisi.dart';
@@ -228,19 +229,34 @@ class _StokYonetimiSayfaState extends State<StokYonetimiSayfa> {
     final deger    = double.tryParse(_ozet['toplam_satis_degeri']?.toString() ?? '0') ?? 0;
     final bugun    = _ozet['bugun_satis_tutar']?.toString() ?? '0';
     final bugunNum = double.tryParse(bugun) ?? 0;
+    final bool isTabletLandscape =
+        MediaQuery.of(context).size.width >= 900 &&
+            MediaQuery.of(context).orientation == Orientation.landscape;
     return Column(
       children: [
-        Row(children: [
-          Expanded(child: _ozetKart('Toplam Ürün', toplam, Icons.inventory_2_outlined, _mor)),
-          const SizedBox(width: 10),
-          Expanded(child: _ozetKart('Düşük Stok', dusuk, Icons.warning_amber_rounded, _sari)),
-        ]),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(child: _ozetKart('Tükenen', tukenen, Icons.remove_circle_outline, _kirmizi)),
-          const SizedBox(width: 10),
-          Expanded(child: _ozetKart('Stok Değeri', '₺${_tlFormat(deger)}', Icons.account_balance_wallet_outlined, _yesil)),
-        ]),
+        if (isTabletLandscape)
+          Row(children: [
+            Expanded(child: _ozetKart('Toplam Ürün', toplam, Icons.inventory_2_outlined, _mor)),
+            const SizedBox(width: 10),
+            Expanded(child: _ozetKart('Düşük Stok', dusuk, Icons.warning_amber_rounded, _sari)),
+            const SizedBox(width: 10),
+            Expanded(child: _ozetKart('Tükenen', tukenen, Icons.remove_circle_outline, _kirmizi)),
+            const SizedBox(width: 10),
+            Expanded(child: _ozetKart('Stok Değeri', '₺${_tlFormat(deger)}', Icons.account_balance_wallet_outlined, _yesil)),
+          ])
+        else ...[
+          Row(children: [
+            Expanded(child: _ozetKart('Toplam Ürün', toplam, Icons.inventory_2_outlined, _mor)),
+            const SizedBox(width: 10),
+            Expanded(child: _ozetKart('Düşük Stok', dusuk, Icons.warning_amber_rounded, _sari)),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: _ozetKart('Tükenen', tukenen, Icons.remove_circle_outline, _kirmizi)),
+            const SizedBox(width: 10),
+            Expanded(child: _ozetKart('Stok Değeri', '₺${_tlFormat(deger)}', Icons.account_balance_wallet_outlined, _yesil)),
+          ]),
+        ],
         if (bugunNum > 0) ...[
           const SizedBox(height: 10),
           Container(
@@ -296,35 +312,41 @@ class _StokYonetimiSayfaState extends State<StokYonetimiSayfa> {
   // ============================================================
 
   Widget _aksiyonButonlari() {
-    return GridView.count(
-      shrinkWrap: true,
-      crossAxisCount: 4,
-      childAspectRatio: 1,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        _aksiyon('Hızlı Satış', Icons.shopping_cart_outlined, _yesil, () {
-          Navigator.push(context, MaterialPageRoute(
-            builder: (_) => HizliSatisSayfa(salonId: _salonId, urunler: _urunler),
-          )).then((_) => _urunleriYukle());
-        }),
+    final children = <Widget>[
+      _aksiyon('Hızlı Satış', Icons.shopping_cart_outlined, _yesil, () {
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => HizliSatisSayfa(salonId: _salonId, urunler: _urunler),
+        )).then((_) => _urunleriYukle());
+      }),
+      if (Yetki.varMi('urun.stok_giris'))
         _aksiyon('Alış Girişi', Icons.local_shipping_outlined, _mor, () {
           Navigator.push(context, MaterialPageRoute(
             builder: (_) => AlisGirisiSayfa(salonId: _salonId, urunler: _urunler, depolar: _depolar, tedarikciler: _tedarikciler),
           )).then((_) => _urunleriYukle());
         }),
+      if (Yetki.varMi('urun.stok_sayim'))
         _aksiyon('Sayım', Icons.assignment_turned_in_outlined, _sari, () {
           Navigator.push(context, MaterialPageRoute(
             builder: (_) => SayimSayfa(salonId: _salonId, urunler: _urunler, depolar: _depolar),
           )).then((_) => _urunleriYukle());
         }),
-        _aksiyon('Düşük Stok', Icons.warning_amber, _kirmizi, () async {
-          final list = await StokApi.dusukStokListesi(_salonId);
-          if (!mounted) return;
-          setState(() => _urunler = list);
-        }),
-      ],
+      _aksiyon('Düşük Stok', Icons.warning_amber, _kirmizi, () async {
+        final list = await StokApi.dusukStokListesi(_salonId);
+        if (!mounted) return;
+        setState(() => _urunler = list);
+      }),
+    ];
+    final bool isTabletLandscape =
+        MediaQuery.of(context).size.width >= 900 &&
+            MediaQuery.of(context).orientation == Orientation.landscape;
+    return GridView.count(
+      shrinkWrap: true,
+      crossAxisCount: 4,
+      childAspectRatio: isTabletLandscape ? 1.6 : 1,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      physics: const NeverScrollableScrollPhysics(),
+      children: children,
     );
   }
 

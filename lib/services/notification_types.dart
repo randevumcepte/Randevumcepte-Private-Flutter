@@ -26,6 +26,8 @@ class NotificationTypes {
   // Sistem
   static const membershipExpiring      = 'membership_expiring';
   static const systemAnnouncement      = 'system_announcement';
+  // Personelin yetkileri yonetici tarafindan guncellendi -> popup + logout.
+  static const yetkiDegisti            = 'yetki_degisti';
 
   /// Bu tipler foreground'da resimli popup ile gösterilmeli.
   static bool isPopup(String? type) =>

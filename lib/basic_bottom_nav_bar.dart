@@ -33,6 +33,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_localizations/syncfusion_localizations.dart';
 
 import 'Backend/backend.dart';
+import 'Backend/yetki.dart';
 import 'Frontend/altyuvarlakmenu.dart';
 import 'Frontend/dialpad.dart';
 import 'Frontend/indexedstack.dart';
@@ -55,7 +56,7 @@ class BottomNavigationExample extends StatefulWidget {
   _BottomNavigationExampleState createState() => _BottomNavigationExampleState();
 }
 
-class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
+class _BottomNavigationExampleState extends State<BottomNavigationExample> with WidgetsBindingObserver {
   final DialPadManager dialPadManager = DialPadManager();
   late OverlayEntry _dialPadOverlayEntry;
   late GiderDataSource _giderDataGridSource;
@@ -72,6 +73,10 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
   late String personelId;
   late int uyelikturu;
   late List<Widget> _pages;
+  // Takvim'i her tab 1 secimiyle FRESH instance olarak yeniden insa etmek
+  // icin sayac. Key degisince initState yeniden calisir → randevular ve
+  // yetki cache'i baz alinarak guncel veri cekilir.
+  int _takvimRebuildCounter = 0;
   final List<bool> _isPageBuilt = [true, false, false, false, false];
   bool loggedin=true;
   bool giderlerHazir = false;
@@ -91,13 +96,23 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
     super.initState();
     giderleriGetir();
     _isPageBuilt.setAll(0, [true, false, false, false, false]);
+    // Yetki cache'i ekran acilirken bir kez daha tazele. Login/SubeSecimi'nde
+    // zaten cagriliyor; burada idempotent guvence. Tazele bitince notifier
+    // sayesinde nav otomatik yeniden build olur.
+    Yetki.tazele(
+      salonid: widget.isletmebilgi['id'].toString(),
+      yetkiliId: widget.kullanici.id.toString(),
+    );
+    Yetki.versiyon.addListener(_onYetkiDegisti);
+    Yetki.yetkiAyarlariDegisti.addListener(_onYetkiAyarlariDegisti);
+    WidgetsBinding.instance.addObserver(this);
     kullanicirolu = int.parse(widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["role_id"].toString());
     dahili =  widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_no_webrtc"].toString();
     dahiliSifre = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_sifre_webrtc"].toString();
     personelId = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["id"].toString();
     _pages = [
       DashBoard(kullanicirolu: kullanicirolu, kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi),
-      Takvim(selectedTab: _selectedTab, isletmebilgi: widget.isletmebilgi,kullanici:widget.kullanici,kullanicirolu: kullanicirolu,),
+      _buildTakvim(),
       //YeniTakvim(),
       (widget.uyelikturu > 2 && kullanicirolu < 5) ? CDRRaporlari(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi,dialPadManager: dialPadManager,scaffoldMessengerKey: widget.scaffoldMessengerKey,kullanici: widget.kullanici) : AjandaNotlar(isletmebilgi: widget.isletmebilgi),
       (widget.uyelikturu > 1 ) ? AdisyonlarPage(kullanicirolu:kullanicirolu,kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi,geriGitBtn: false,) : OnGorusmeler(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi),
@@ -172,10 +187,25 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
     }
   }
 
+  Widget _buildTakvim() => Takvim(
+        key: ValueKey('takvim_$_takvimRebuildCounter'),
+        selectedTab: _selectedTab,
+        isletmebilgi: widget.isletmebilgi,
+        kullanici: widget.kullanici,
+        kullanicirolu: kullanicirolu,
+      );
+
   void _selectScreen(int index) {
     setState(() {
       _isPageBuilt[index] = true;
       _selectedTab = index;
+      // Takvim tab'ina her girisinde widget'i ValueKey degistirerek
+      // tamamen yeniden insa et → initState tetiklenir, getUpdatedAppointments
+      // guncel randevulari yetki filtresine gore yeniden ceker.
+      if (index == 1) {
+        _takvimRebuildCounter++;
+        _pages[1] = _buildTakvim();
+      }
     });
   }
 
@@ -190,6 +220,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
   void _handleLogout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userToken');
+    await Yetki.temizle();
 
     setState(() {
       _selectedTab = 0;
@@ -209,7 +240,87 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
     if (_isMenuOpen) {
       _hideMenu();
     }
+    Yetki.versiyon.removeListener(_onYetkiDegisti);
+    Yetki.yetkiAyarlariDegisti.removeListener(_onYetkiAyarlariDegisti);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  bool _yetkiDialogAcik = false;
+
+  void _onYetkiAyarlariDegisti() {
+    if (!mounted) return;
+    if (!Yetki.yetkiAyarlariDegisti.value) return;
+    if (_yetkiDialogAcik) return; // ust uste dialog acma
+    _yetkiDialogAcik = true;
+    // Notifier'i hemen reset et ki gelecek tazele'de tekrar tetiklenebilsin.
+    Yetki.yetkiAyarlariDegisti.value = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        _yetkiDialogAcik = false;
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Yetkileriniz Güncellendi'),
+          content: const Text(
+            'Yöneticiniz yetkilerinizi güncelledi. Değişikliklerin etkili olması için tekrar giriş yapmanız gerekmektedir.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Tamam'),
+            ),
+          ],
+        ),
+      );
+      _yetkiDialogAcik = false;
+      if (mounted) _handleLogout();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Uygulama arka plandan geri donduginde yetki cache'i tazele.
+    // Personel/yonetici farkli cihaz uzerinden yetki degistirip personeli
+    // app'i tekrar acinca guncel yetkilerle karsilasir.
+    if (state == AppLifecycleState.resumed) {
+      Yetki.tazele(
+        salonid: widget.isletmebilgi['id'].toString(),
+        yetkiliId: widget.kullanici.id.toString(),
+      );
+    }
+  }
+
+  // ===== Yetki entegrasyonu =====
+  //
+  // Bottom nav tab pozisyonlari sabit (0..4) — ortadaki (2) FAB delik. Yetkisi
+  // olmayan tab'lar gizleniyor; eger kullanici o anda gizlenen bir tab'taysa
+  // Ozet'e (0) dusuyor.
+  bool _tabGoster(int pos) {
+    switch (pos) {
+      case 0: return true;                                  // Ozet
+      case 1: return Yetki.varMi('randevu.takvim_gor');     // Randevular
+      case 2: return true;                                  // FAB delik
+      case 3:                                               // Satis Takibi / Ongorusmeler
+        return widget.uyelikturu > 1
+            ? Yetki.varMi('satis.tum_satis_gor')
+            : Yetki.varMi('gorusme.liste_gor');
+      case 4: return true;                                  // Menu (hub)
+      default: return true;
+    }
+  }
+
+  void _onYetkiDegisti() {
+    if (!mounted) return;
+    // Mevcut tab gizlendiyse Ozet'e du.
+    if (!_tabGoster(_selectedTab)) {
+      setState(() => _selectedTab = 0);
+    } else {
+      setState(() {}); // nav item listesini yeniden kur
+    }
   }
 
   @override
@@ -377,103 +488,17 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                               ),
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  List<Map<String, dynamic>> menuItems = [
-                                    {
-                                      'icon': Icons.calendar_today_rounded,
-                                      'title': "Yeni Randevu",
-                                      'color': Colors.blue,
-                                      'onTap': () {
-                                        _hideMenu();
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => AppointmentEditor(
-                                              kullanicirolu: kullanicirolu,
-                                              isletmebilgi: widget.isletmebilgi,
-                                              tarihsaat: "",
-                                              personel_id: (kullanicirolu == 5 ? personelId : ""),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    },
-                                    {
-                                      'icon': Icons.shopping_bag_rounded,
-                                      'title': "Yeni Satış",
-                                      'color': Colors.green,
-                                      'onTap': () async {
-                                        _hideMenu();
-                                        final result = await Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => SatisEkrani(
-                                              kullanicirolu: kullanicirolu,
-                                              isletmebilgi: widget.isletmebilgi,
-                                              musteridanisanid: '',
-                                              kullanici: widget.kullanici,
-                                            ),
-                                          ),
-                                        );
-                                        if (result != null && result['refresh'] == true) {
-                                          setState(() {
-                                            _selectedTab = 3;
-                                            _pages[3] = AdisyonlarPage(
-                                              kullanicirolu: kullanicirolu,
-                                              kullanici: widget.kullanici,
-                                              isletmebilgi: widget.isletmebilgi,
-                                              geriGitBtn: false,
-                                            );
-                                          });
-                                        } else {
-                                          setState(() {
-                                            _selectedTab = 0;
-                                          });
-                                        }
-                                      },
-                                    },
-                                    {
-                                      'icon': Icons.person_add_alt_rounded,
-                                      'title': "Yeni Müşteri",
-                                      'color': Colors.red,
-                                      'onTap': () {
-                                        _hideMenu();
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => Yenimusteri(
-                                              kullanicirolu: kullanicirolu,
-                                              isletmebilgi: widget.isletmebilgi,
-                                              isim: "",
-                                              telefon: "",
-                                              sadeceekranikapat: true,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    },
-                                  ];
-
-                                  if (kullanicirolu != 5) {
-                                    menuItems.add({
-                                      'icon': Icons.currency_lira_outlined,
-                                      'title': "Yeni Masraf",
-                                      'color': Colors.orange,
-                                      'onTap': () {
-                                        _hideMenu();
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => MasrafEkle(
-                                              personeller: personelliste,
-                                              masrafkategorileri: masrafkategoriliste,
-                                              giderDataSource: _giderDataGridSource,
-                                              seciliisletme: widget.isletmebilgi['id'].toString(),
-                                              isletmebilgi: widget.isletmebilgi,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    });
+                                  // Yetki kontrollu menu — _getMenuItems tek kaynak.
+                                  final menuItems = _getMenuItems();
+                                  if (menuItems.isEmpty) {
+                                    return const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 24),
+                                      child: Text(
+                                        'Bu işlemler için yetkiniz yok.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: Colors.black54),
+                                      ),
+                                    );
                                   }
 
                                   return GridView.builder(
@@ -627,10 +652,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
     );
   }
 
-// Menü öğelerini getir
+// Menü öğelerini getir — yetki kontrollu
   List<Map<String, dynamic>> _getMenuItems() {
-    List<Map<String, dynamic>> menuItems = [
-      {
+    final List<Map<String, dynamic>> menuItems = [];
+
+    if (Yetki.varMi('randevu.olustur')) {
+      menuItems.add({
         'icon': Icons.calendar_today_rounded,
         'title': "Yeni Randevu",
         'color': Colors.blue,
@@ -648,8 +675,11 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
             ),
           );
         },
-      },
-      {
+      });
+    }
+
+    if (Yetki.varMi('satis.adisyon_olustur')) {
+      menuItems.add({
         'icon': Icons.shopping_bag_rounded,
         'title': "Yeni Satış",
         'color': Colors.green,
@@ -682,8 +712,11 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
             });
           }
         },
-      },
-      {
+      });
+    }
+
+    if (Yetki.varMi('musteri.ekle_duzenle')) {
+      menuItems.add({
         'icon': Icons.person_add_alt_rounded,
         'title': "Yeni Müşteri",
         'color': Colors.red,
@@ -702,10 +735,10 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
             ),
           );
         },
-      },
-    ];
+      });
+    }
 
-    if (kullanicirolu != 5) {
+    if (Yetki.varMi('finans.masraf_ekle')) {
       menuItems.add({
         'icon': Icons.currency_lira_outlined,
         'title': "Yeni Masraf",
@@ -925,6 +958,30 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
             ? SizedBox.shrink()
             : Consumer<IndexedStackState>(
           builder: (context, state, child) {
+            // Tum tab pozisyonlari (pozisyon, item) — sadece yetkili olanlar render edilir.
+            // FAB delik (pos=2) her zaman gosterilir; menu hub'i (pos=4) her zaman acik.
+            final tumItemler = <int, BottomNavigationBarItem>{
+              0: const BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined), label: "Özet"),
+              1: const BottomNavigationBarItem(
+                  icon: Icon(Icons.calendar_month_outlined), label: "Randevular"),
+              2: const BottomNavigationBarItem(
+                  icon: SizedBox.shrink(), label: ""),
+              3: widget.uyelikturu > 1
+                  ? const BottomNavigationBarItem(
+                      icon: Icon(Icons.copy_all_sharp), label: "Satış Takibi")
+                  : const BottomNavigationBarItem(
+                      icon: Icon(Icons.insert_comment_outlined),
+                      label: "Ön Görüşmeler"),
+              4: const BottomNavigationBarItem(
+                  icon: Icon(Icons.more_vert), label: "Menü"),
+            };
+            final pozisyonlar = tumItemler.keys.where(_tabGoster).toList();
+            final items = pozisyonlar.map((p) => tumItemler[p]!).toList();
+            // BottomNavigationBar.currentIndex item listesi icindeki index ister;
+            // _selectedTab pozisyon, onu visible listedeki konuma map'le.
+            int currentIdx = pozisyonlar.indexOf(_selectedTab);
+            if (currentIdx < 0) currentIdx = 0;
             return Stack(
               clipBehavior: Clip.none,
               children: [
@@ -940,12 +997,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                   ),
                   child: BottomNavigationBar(
                     backgroundColor: Colors.white,
-                    currentIndex: _selectedTab,
-                    onTap: (index) {
+                    currentIndex: currentIdx,
+                    onTap: (idx) {
                       if (_isMenuOpen) {
                         _hideMenu();
                       }
-                      _selectScreen(index);
+                      _selectScreen(pozisyonlar[idx]);
                     },
                     selectedItemColor: scheme.primary,
                     unselectedItemColor: Colors.black26,
@@ -958,34 +1015,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample>   {
                     unselectedLabelStyle: TextStyle(
                       fontFamily: 'Roboto',
                     ),
-
-                    items: [
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.home_outlined),
-                          label: "Özet"
-                      ),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.calendar_month_outlined),
-                          label: "Randevular"
-                      ),
-                      BottomNavigationBarItem(
-                        icon: SizedBox.shrink(),
-                        label: "",
-                      ),
-                      widget.uyelikturu > 1
-                          ? BottomNavigationBarItem(
-                          icon: Icon(Icons.copy_all_sharp),
-                          label: "Satış Takibi"
-                      )
-                          : BottomNavigationBarItem(
-                          icon: Icon(Icons.insert_comment_outlined),
-                          label: "Ön Görüşmeler"
-                      ),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.more_vert),
-                          label: "Menü"
-                      ),
-                    ],
+                    items: items,
                   ),
                 ),
               ],
