@@ -10,9 +10,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/services/notification_types.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
 
+import '../../menu/indirimler.dart';
 import '../../randevularim/randevularim.dart';
+import '../carkifelek.dart';
 
 class MusteriBildirimlerScreen extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -455,20 +458,44 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                 if (mounted) setState(() => b.okundu = '1');
               } catch (_) {}
             }
+            if (!mounted) return;
 
-            if (b.randevuid != 'null') {
-              if (!mounted) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MusteriRandevulari(
-                    isletmebilgi: widget.isletmebilgi,
-                    md: widget.md,
-                    geriButonu: true,
-                  ),
+            // Bildirim tipine gore yonlendirme (FCM push tap'i ile ayni).
+            final t = b.tip;
+            if (t == NotificationTypes.wheelChance) {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => WheelPage(md: widget.md, isletmebilgi: widget.isletmebilgi),
+              ));
+              return;
+            }
+            if (t == NotificationTypes.campaign ||
+                t == NotificationTypes.discount ||
+                t == NotificationTypes.birthday) {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => KazanilanIndirimlerPage(md: widget.md, isletmebilgi: widget.isletmebilgi),
+              ));
+              return;
+            }
+            // Randevu hareketleri / hatirlatma / odeme -> randevu listesi
+            final randevuTipi = t == NotificationTypes.appointmentCreated ||
+                t == NotificationTypes.appointmentApproved ||
+                t == NotificationTypes.appointmentCancelled ||
+                t == NotificationTypes.appointmentTimeChanged ||
+                t == NotificationTypes.appointmentReminder ||
+                t == NotificationTypes.appointmentReminderHour ||
+                t == NotificationTypes.staffAssigned ||
+                t == NotificationTypes.paymentReceived;
+            if (randevuTipi || b.randevuid != 'null') {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => MusteriRandevulari(
+                  isletmebilgi: widget.isletmebilgi,
+                  md: widget.md,
+                  geriButonu: true,
                 ),
-              );
-            } else if (b.arsiv != null && b.arsiv['uzanti'] != null) {
+              ));
+              return;
+            }
+            if (b.arsiv != null && b.arsiv['uzanti'] != null) {
               await downloadPdf(
                 'https://apptest.randevumcepte.com.tr/${b.arsiv['uzanti']}',
                 'appointment_${b.id}',
