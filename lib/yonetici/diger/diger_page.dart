@@ -6,6 +6,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/network_utils/api.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';
@@ -192,6 +193,7 @@ class _MenuState extends State<Menu> {
       );
 
       if (confirmLogout == true) {
+        try { await NotificationService.instance.unregister(); } catch (_) {}
         Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(0);
         Provider.of<IndexedStackState>(context, listen: false).resetSelectedIndex();
         SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -838,7 +840,8 @@ class _MenuState extends State<Menu> {
                     Yetki.varMi('ayar.cihaz_oda_yonet') ||
                     Yetki.varMi('randevu.online_ayar') ||
                     Yetki.varMi('hizmet.tanim_olustur') ||
-                    Yetki.varMi('hizmet.kategori_yonet'))
+                    Yetki.varMi('hizmet.kategori_yonet') ||
+                    Yetki.varMi('satis.indirim_uygula'))
                   _buildMenuButton(
                     icon: Icons.settings_rounded,
                     label: 'Sistem Ayarları',

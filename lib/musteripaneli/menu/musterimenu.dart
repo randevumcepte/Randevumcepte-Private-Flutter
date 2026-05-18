@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/musteriprofilbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/siparislerim.dart';
@@ -81,6 +82,7 @@ class _MenuPageState extends State<MenuPage> {
       );
 
       if (confirmLogout == true) {
+        try { await NotificationService.instance.unregister(); } catch (_) {}
         Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(0);
         Provider.of<IndexedStackState>(context, listen: false).resetSelectedIndex();
 

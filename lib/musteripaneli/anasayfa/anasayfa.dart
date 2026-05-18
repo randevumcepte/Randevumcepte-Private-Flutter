@@ -12,6 +12,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridashboard.dart';
 import 'package:randevu_sistem/Models/salonyorumlarozet.dart';
@@ -109,6 +110,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
       );
 
       if (confirmLogout == true) {
+        try { await NotificationService.instance.unregister(); } catch (_) {}
         Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(0);
         Provider.of<IndexedStackState>(context, listen: false).resetSelectedIndex();
         final prefs = await SharedPreferences.getInstance();

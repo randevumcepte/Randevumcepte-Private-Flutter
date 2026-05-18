@@ -5,6 +5,7 @@ import 'dart:developer';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1901,6 +1902,9 @@ void logout(BuildContext context) async {
 
     // If the user confirms logout
     if (confirmLogout == true) {
+      // FCM token'i backend'de pasifle ki bu cihaza artik push gitmesin.
+      try { await NotificationService.instance.unregister(); } catch (_) {}
+
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove('user');
       await prefs.remove('token');
