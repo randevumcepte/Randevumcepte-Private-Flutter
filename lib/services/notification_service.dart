@@ -50,6 +50,14 @@ Future<void> rmcNotificationBackgroundHandler(RemoteMessage message) async {
   log('🔔 [BG] FCM mesaj: ${message.messageId} data=${message.data}');
 }
 
+/// Token / izin durumu. UI bunu dinleyip uyarı banner'ı gösterebilir.
+enum NotificationStatus {
+  unknown,           // henuz init olmadi
+  ok,                // token alindi
+  permissionDenied,  // kullanici izin vermedi
+  unavailable,       // Google Play Services yok / iOS APNS yok / network vs.
+}
+
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
@@ -60,6 +68,13 @@ class NotificationService {
   bool _initialized = false;
   String? _currentToken;
   StreamSubscription<String>? _tokenRefreshSub;
+
+  /// UI tarafi bunu dinler. Token yoksa banner gosterilebilir.
+  static final ValueNotifier<NotificationStatus> status =
+      ValueNotifier<NotificationStatus>(NotificationStatus.unknown);
+
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
 
   /// main() içinde Firebase.initializeApp()'den SONRA çağır.
   /// Kullanıcı login değilse bile token alınıp local'e yazılır;
@@ -127,6 +142,10 @@ class NotificationService {
     );
     log('🔔 FCM permission: ${settings.authorizationStatus}');
 
+    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      status.value = NotificationStatus.permissionDenied;
+    }
+
     if (Platform.isAndroid) {
       await Permission.notification.request();
     }
@@ -163,7 +182,7 @@ class NotificationService {
     );
   }
 
-  Future<void> _refreshLocalToken() async {
+  Future<bool> _refreshLocalToken() async {
     try {
       final token = await _fcm.getToken();
       if (token != null && token.isNotEmpty) {
@@ -171,9 +190,80 @@ class NotificationService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', token);
         log('✅ FCM token: ${token.substring(0, 24)}...');
+        status.value = NotificationStatus.ok;
+        _retryAttempt = 0;
+        _stopRetryTimer();
+        return true;
       }
+      log('⚠️ FCM token bos dondu');
+      _markTokenUnavailable();
+      return false;
     } catch (e) {
       log('❌ FCM token alınamadı: $e');
+      _markTokenUnavailable();
+      return false;
+    }
+  }
+
+  /// Token alinamadiginda: status'u uygun degere set et + retry timer baslat.
+  /// Permission denied durumu zaten _requestPermission'da set ediliyor; o
+  /// durumda timer baslatma anlamsiz (retry yine de denenebilir, kullanici
+  /// ayarlardan izin actiysa yakalariz).
+  void _markTokenUnavailable() {
+    if (status.value != NotificationStatus.permissionDenied) {
+      status.value = NotificationStatus.unavailable;
+    }
+    _startRetryTimer();
+  }
+
+  /// 5 dk arayla token + register denemesi. Token gelirse otomatik durur.
+  void _startRetryTimer() {
+    if (_retryTimer != null && _retryTimer!.isActive) return;
+    _retryTimer = Timer.periodic(const Duration(minutes: 5), (_) async {
+      _retryAttempt++;
+      log('🔁 FCM token retry attempt=$_retryAttempt');
+      // izin tekrar dene (kullanici Ayarlar'dan acmis olabilir)
+      try {
+        final settings = await _fcm.requestPermission(
+          alert: true, badge: true, sound: true, provisional: false,
+        );
+        if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional) {
+          // izin ok → token al
+          if (status.value == NotificationStatus.permissionDenied) {
+            status.value = NotificationStatus.unavailable;
+          }
+        }
+      } catch (_) {}
+
+      final ok = await _refreshLocalToken();
+      if (ok) {
+        // Login durumundaysa backend'e de yeniden kaydet
+        final prefs = await SharedPreferences.getInstance();
+        final tip = prefs.getString('notif_kullanici_tipi');
+        if (tip != null && _currentToken != null) {
+          await _sendRegisterRequest(prefs, _currentToken!, tip);
+        }
+      }
+    });
+  }
+
+  void _stopRetryTimer() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+  }
+
+  /// App lifecycle: foreground'a gelince hemen bir kez dene (timer'i beklemeden).
+  Future<void> onAppResumed() async {
+    if (status.value == NotificationStatus.ok) return;
+    log('▶️ App resumed → FCM token retry');
+    await _refreshLocalToken();
+    if (_currentToken != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final tip = prefs.getString('notif_kullanici_tipi');
+      if (tip != null) {
+        await _sendRegisterRequest(prefs, _currentToken!, tip);
+      }
     }
   }
 

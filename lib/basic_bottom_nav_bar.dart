@@ -15,6 +15,8 @@ import 'package:randevu_sistem/yonetici/adisyonlar/adisyonpage.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
 
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
+import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler.dart';
 import 'package:randevu_sistem/yonetici/diger/diger_page.dart';
@@ -322,6 +324,8 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         salonid: widget.isletmebilgi['id'].toString(),
         yetkiliId: widget.kullanici.id.toString(),
       );
+      // FCM token alinamamissa retry et
+      NotificationService.instance.onAppResumed();
     }
   }
 
@@ -945,19 +949,26 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
           final scheme = Theme.of(context).colorScheme;
           return Scaffold(
         resizeToAvoidBottomInset: false,
-        body: Stack(
-          children: List.generate(_pages.length, (i) {
-            if (!_isPageBuilt[i] && _selectedTab != i) {
-              return const SizedBox.shrink();
-            }
-            return Offstage(
-              offstage: _selectedTab != i,
-              child: TickerMode(
-                enabled: _selectedTab == i,
-                child: _pages[i],
+        body: Column(
+          children: [
+            const NotificationStatusBanner(),
+            Expanded(
+              child: Stack(
+                children: List.generate(_pages.length, (i) {
+                  if (!_isPageBuilt[i] && _selectedTab != i) {
+                    return const SizedBox.shrink();
+                  }
+                  return Offstage(
+                    offstage: _selectedTab != i,
+                    child: TickerMode(
+                      enabled: _selectedTab == i,
+                      child: _pages[i],
+                    ),
+                  );
+                }),
               ),
-            );
-          }),
+            ),
+          ],
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: GestureDetector(

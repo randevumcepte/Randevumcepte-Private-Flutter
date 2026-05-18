@@ -21,6 +21,8 @@ import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
+import 'package:randevu_sistem/services/notification_service.dart';
+import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'anasayfa/anasayfa.dart';
 import 'anasayfa/carkifelek.dart';
 import 'anasayfa/musteribildirimleri/musteribildirimleri.dart';
@@ -47,7 +49,7 @@ class MusteriAltBar extends StatefulWidget {
   _BottomNavigationExampleState createState() => _BottomNavigationExampleState();
 }
 
-class _BottomNavigationExampleState extends State<MusteriAltBar> {
+class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBindingObserver {
   int _selectedTab = 0;
   bool _isKeyboardVisible = false;
 
@@ -70,6 +72,58 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> {
       isletmebilgi: widget.isletmebilgi,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    NotificationNavigationBus.current.addListener(_handleNotificationIntent);
+    // Cold-start: bus'ta onceden konmus intent varsa altbar mount olduktan
+    // sonra tuket.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationIntent());
+  }
+
+  @override
+  void dispose() {
+    NotificationNavigationBus.current.removeListener(_handleNotificationIntent);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // App foreground'a geri donduyse token alma denemesini tazele.
+      NotificationService.instance.onAppResumed();
+    }
+  }
+
+  void _handleNotificationIntent() {
+    final intent = NotificationNavigationBus.current.value;
+    if (intent == null || !mounted) return;
+    NotificationNavigationBus.consume();
+
+    switch (intent.target) {
+      case NotificationIntent.wheel:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => WheelPage(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.appointments:
+        setState(() => _selectedTab = 1);
+        break;
+      case NotificationIntent.discounts:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => KazanilanIndirimlerPage(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.notifications:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => MusteriBildirimlerScreen(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +160,12 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> {
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        body: _pages[_selectedTab],
+        body: Column(
+          children: [
+            const NotificationStatusBanner(),
+            Expanded(child: _pages[_selectedTab]),
+          ],
+        ),
 
         bottomNavigationBar: _isKeyboardVisible
             ? const SizedBox.shrink()
