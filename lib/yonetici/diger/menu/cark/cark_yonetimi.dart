@@ -2395,11 +2395,11 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
   Set<int> _gunler = {1, 2, 3, 4, 5, 6, 7};
   bool _kaydediliyor = false;
 
-  // Slot default'ları (boş alan placeholder + ilk kullanım)
+  // Slot default'ları — salon ilk açtığında bu standart başlıklarla gelir
   static const _defaults = [
-    {'baslik': '1. Hatırlatma — Yumuşak',  'altyazi': 'Sabah, ilk hatırlatma',  'saat': '10:00', 'mesaj': '🎡 Bugün çark hakkınız var, hediyeler sizi bekliyor!'},
-    {'baslik': '2. Hatırlatma — Orta',     'altyazi': 'Öğleden sonra',          'saat': '15:00', 'mesaj': '⏰ Çark hakkınız hâlâ duruyor — son birkaç saat!'},
-    {'baslik': '3. Hatırlatma — Aciliyet', 'altyazi': 'Akşam, son saatler',     'saat': '20:00', 'mesaj': '🚨 Çarkı çevirmeyi unutmayın'},
+    {'baslik': 'Sabah Hatırlatması', 'altyazi': 'Güne hediyeyle başla', 'saat': '10:00', 'mesaj': '🎡 Bugün çark hakkınız var, hediyeler sizi bekliyor!'},
+    {'baslik': 'Öğleden Sonra',      'altyazi': 'Çark hâlâ açık',       'saat': '15:00', 'mesaj': '⏰ Çark hakkınız hâlâ duruyor — son birkaç saat!'},
+    {'baslik': 'Akşam Hatırlatması', 'altyazi': 'Bugünün son şansı',    'saat': '20:00', 'mesaj': '🚨 Son saatler! Çarkı çevirmeyi unutmayın'},
   ];
 
   @override
