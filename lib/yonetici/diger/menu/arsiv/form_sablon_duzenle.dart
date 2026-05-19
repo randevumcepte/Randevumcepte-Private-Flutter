@@ -50,8 +50,9 @@ class _SoruModel {
   String tip;
   bool zorunlu;
   final TextEditingController controller;
-  _SoruModel({required this.tip, String metin = '', this.zorunlu = false})
-      : controller = TextEditingController(text: metin);
+  _SoruModel({required this.tip, String metin = '', bool? zorunlu})
+      : zorunlu = zorunlu ?? _zorunluKutucukluMu(tip),
+        controller = TextEditingController(text: metin);
 }
 
 class FormSablonDuzenle extends StatefulWidget {
@@ -170,11 +171,12 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
       return;
     }
 
+    // Cevap tipli alanlar (evet/hayir, metin, uzun_metin) her zaman zorunlu.
     final liste = _sorular
         .map((s) => {
               'tip': s.tip,
               'soru': _otomatikMi(s.tip) ? s.tip : s.controller.text.trim(),
-              'zorunlu': _zorunluKutucukluMu(s.tip) ? s.zorunlu : false,
+              'zorunlu': _zorunluKutucukluMu(s.tip),
             })
         .toList();
 
@@ -522,29 +524,20 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
               _soruIcerik(soru),
             if (zorunluKutucuk) ...[
               const SizedBox(height: 6),
-              InkWell(
-                onTap: () =>
-                    setState(() => soru.zorunlu = !soru.zorunlu),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: Checkbox(
-                        value: soru.zorunlu,
-                        onChanged: (v) =>
-                            setState(() => soru.zorunlu = v ?? false),
-                        materialTapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap,
-                      ),
+              Row(
+                children: const [
+                  Icon(Icons.fiber_manual_record,
+                      size: 10, color: Color(0xFFDC2626)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Zorunlu cevap',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFDC2626),
                     ),
-                    const SizedBox(width: 8),
-                    const Text('Zorunlu cevap',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ],
