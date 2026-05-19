@@ -2386,46 +2386,65 @@ class _HatirlatmaFormu extends StatefulWidget {
 
 class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
   late bool _aktif;
-  // Her asama icin bagimsiz aktif/pasif
-  late bool _a1, _a2, _a3, _aSon;
-  late TextEditingController _s1, _s2, _s3, _ss;
-  late TextEditingController _m1, _m2, _m3, _ms;
+  // 3 slot: her birinin aktif + başlık + altyazı + saat + mesaj
+  late bool _a1, _a2, _a3;
+  late TextEditingController _s1, _s2, _s3;
+  late TextEditingController _m1, _m2, _m3;
+  late TextEditingController _b1, _b2, _b3;       // başlık
+  late TextEditingController _alt1, _alt2, _alt3; // altyazı
   Set<int> _gunler = {1, 2, 3, 4, 5, 6, 7};
   bool _kaydediliyor = false;
+
+  // Slot default'ları (boş alan placeholder + ilk kullanım)
+  static const _defaults = [
+    {'baslik': '1. Hatırlatma — Yumuşak',  'altyazi': 'Sabah, ilk hatırlatma',  'saat': '10:00', 'mesaj': '🎡 Bugün çark hakkınız var, hediyeler sizi bekliyor!'},
+    {'baslik': '2. Hatırlatma — Orta',     'altyazi': 'Öğleden sonra',          'saat': '15:00', 'mesaj': '⏰ Çark hakkınız hâlâ duruyor — son birkaç saat!'},
+    {'baslik': '3. Hatırlatma — Aciliyet', 'altyazi': 'Akşam, son saatler',     'saat': '20:00', 'mesaj': '🚨 Çarkı çevirmeyi unutmayın'},
+  ];
 
   @override
   void initState() {
     super.initState();
     final a = widget.ayar;
     _aktif = ((a['aktif'] as num?)?.toInt() ?? 0) == 1;
-    _a1   = ((a['aktif_1']   as num?)?.toInt() ?? 1) == 1;
-    _a2   = ((a['aktif_2']   as num?)?.toInt() ?? 1) == 1;
-    _a3   = ((a['aktif_3']   as num?)?.toInt() ?? 1) == 1;
-    _aSon = ((a['aktif_son'] as num?)?.toInt() ?? 1) == 1;
-    _s1 = TextEditingController(text: a['saat_1']?.toString() ?? '10:00');
-    _s2 = TextEditingController(text: a['saat_2']?.toString() ?? '15:00');
-    _s3 = TextEditingController(text: a['saat_3']?.toString() ?? '20:00');
-    _ss = TextEditingController(text: a['saat_son']?.toString() ?? '22:30');
-    _m1 = TextEditingController(text: a['mesaj_1']?.toString() ?? '');
-    _m2 = TextEditingController(text: a['mesaj_2']?.toString() ?? '');
-    _m3 = TextEditingController(text: a['mesaj_3']?.toString() ?? '');
-    _ms = TextEditingController(text: a['mesaj_son']?.toString() ?? '');
+    _a1 = ((a['aktif_1'] as num?)?.toInt() ?? 1) == 1;
+    _a2 = ((a['aktif_2'] as num?)?.toInt() ?? 1) == 1;
+    _a3 = ((a['aktif_3'] as num?)?.toInt() ?? 1) == 1;
+    _s1 = TextEditingController(text: a['saat_1']?.toString() ?? _defaults[0]['saat']!);
+    _s2 = TextEditingController(text: a['saat_2']?.toString() ?? _defaults[1]['saat']!);
+    _s3 = TextEditingController(text: a['saat_3']?.toString() ?? _defaults[2]['saat']!);
+    _m1 = TextEditingController(text: a['mesaj_1']?.toString() ?? _defaults[0]['mesaj']!);
+    _m2 = TextEditingController(text: a['mesaj_2']?.toString() ?? _defaults[1]['mesaj']!);
+    _m3 = TextEditingController(text: a['mesaj_3']?.toString() ?? _defaults[2]['mesaj']!);
+    _b1 = TextEditingController(text: (a['baslik_1']?.toString().isNotEmpty ?? false) ? a['baslik_1'].toString() : _defaults[0]['baslik']!);
+    _b2 = TextEditingController(text: (a['baslik_2']?.toString().isNotEmpty ?? false) ? a['baslik_2'].toString() : _defaults[1]['baslik']!);
+    _b3 = TextEditingController(text: (a['baslik_3']?.toString().isNotEmpty ?? false) ? a['baslik_3'].toString() : _defaults[2]['baslik']!);
+    _alt1 = TextEditingController(text: (a['altyazi_1']?.toString().isNotEmpty ?? false) ? a['altyazi_1'].toString() : _defaults[0]['altyazi']!);
+    _alt2 = TextEditingController(text: (a['altyazi_2']?.toString().isNotEmpty ?? false) ? a['altyazi_2'].toString() : _defaults[1]['altyazi']!);
+    _alt3 = TextEditingController(text: (a['altyazi_3']?.toString().isNotEmpty ?? false) ? a['altyazi_3'].toString() : _defaults[2]['altyazi']!);
     final g = a['gonderim_gunleri'];
     if (g is List) _gunler = g.map((e) => (e as num).toInt()).toSet();
   }
 
   @override
   void dispose() {
-    _s1.dispose();
-    _s2.dispose();
-    _s3.dispose();
-    _ss.dispose();
-    _m1.dispose();
-    _m2.dispose();
-    _m3.dispose();
-    _ms.dispose();
+    _s1.dispose(); _s2.dispose(); _s3.dispose();
+    _m1.dispose(); _m2.dispose(); _m3.dispose();
+    _b1.dispose(); _b2.dispose(); _b3.dispose();
+    _alt1.dispose(); _alt2.dispose(); _alt3.dispose();
     super.dispose();
   }
+
+  void _yeniHatirlatmaEkle() {
+    // İlk pasif slot'u aktif et
+    setState(() {
+      if (!_a1) { _a1 = true; }
+      else if (!_a2) { _a2 = true; }
+      else if (!_a3) { _a3 = true; }
+    });
+  }
+
+  int get _aktifSayisi => (_a1 ? 1 : 0) + (_a2 ? 1 : 0) + (_a3 ? 1 : 0);
 
   Future<void> _kaydet() async {
     setState(() => _kaydediliyor = true);
@@ -2434,15 +2453,18 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
       'saat_1': _s1.text.trim(),
       'saat_2': _s2.text.trim(),
       'saat_3': _s3.text.trim(),
-      'saat_son': _ss.text.trim(),
       'mesaj_1': _m1.text.trim(),
       'mesaj_2': _m2.text.trim(),
       'mesaj_3': _m3.text.trim(),
-      'mesaj_son': _ms.text.trim(),
-      'aktif_1':   _a1   ? 1 : 0,
-      'aktif_2':   _a2   ? 1 : 0,
-      'aktif_3':   _a3   ? 1 : 0,
-      'aktif_son': _aSon ? 1 : 0,
+      'baslik_1': _b1.text.trim(),
+      'baslik_2': _b2.text.trim(),
+      'baslik_3': _b3.text.trim(),
+      'altyazi_1': _alt1.text.trim(),
+      'altyazi_2': _alt2.text.trim(),
+      'altyazi_3': _alt3.text.trim(),
+      'aktif_1': _a1 ? 1 : 0,
+      'aktif_2': _a2 ? 1 : 0,
+      'aktif_3': _a3 ? 1 : 0,
       'gonderim_gunleri': _gunler.toList(),
     };
     final ok = await carkAdminHatirlatmaKaydet(widget.salonId, data);
@@ -2508,10 +2530,20 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
           ),
         ], title: 'Gönderim Günleri'),
         SizedBox(height: 12),
-        _asamaKart(scheme, 1, 'Saat 1', _s1, _m1, _a1, (v) => setState(() => _a1 = v)),
-        _asamaKart(scheme, 2, 'Saat 2', _s2, _m2, _a2, (v) => setState(() => _a2 = v)),
-        _asamaKart(scheme, 3, 'Saat 3', _s3, _m3, _a3, (v) => setState(() => _a3 = v)),
-        _asamaKart(scheme, 4, 'Son Hatırlatma', _ss, _ms, _aSon, (v) => setState(() => _aSon = v)),
+        if (_a1)
+          _asamaKart(scheme, 1, _b1, _alt1, _s1, _m1,
+              onSil: () => setState(() => _a1 = false)),
+        if (_a2)
+          _asamaKart(scheme, 2, _b2, _alt2, _s2, _m2,
+              onSil: () => setState(() => _a2 = false)),
+        if (_a3)
+          _asamaKart(scheme, 3, _b3, _alt3, _s3, _m3,
+              onSil: () => setState(() => _a3 = false)),
+        if (_aktifSayisi < 3) ...[
+          SizedBox(height: 4),
+          _ekleButonu(scheme),
+          SizedBox(height: 8),
+        ],
         SizedBox(height: 16),
         ElevatedButton.icon(
           onPressed: _kaydediliyor ? null : _kaydet,
@@ -2533,79 +2565,128 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
   Widget _asamaKart(
     ColorScheme scheme,
     int n,
-    String label,
+    TextEditingController baslik,
+    TextEditingController altyazi,
     TextEditingController saat,
-    TextEditingController mesaj,
-    bool aktif,
-    void Function(bool) onAktifDegisti,
-  ) {
-    return Opacity(
-      opacity: aktif ? 1 : 0.55,
-      child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: aktif
-              ? null
-              : Border.all(color: Colors.grey.shade300, width: 1),
-          boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 12,
-                  backgroundColor: aktif ? scheme.primary : Colors.grey,
-                  child: Text('$n', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+    TextEditingController mesaj, {
+    required VoidCallback onSil,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: scheme.primary,
+                child: Text('$n', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: baslik,
+                      maxLength: 80,
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: scheme.onSurface),
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        border: InputBorder.none,
+                        hintText: 'Başlık (ör. Sabah Hatırlatması)',
+                        counterText: '',
+                      ),
+                    ),
+                    TextField(
+                      controller: altyazi,
+                      maxLength: 120,
+                      style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700, fontStyle: FontStyle.italic),
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        border: InputBorder.none,
+                        hintText: 'Altyazı (ör. Öğleden sonra)',
+                        counterText: '',
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(label, style: TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
-                ),
-                Transform.scale(
-                  scale: 0.85,
-                  child: Switch(
-                    value: aktif,
-                    activeColor: scheme.primary,
-                    onChanged: onAktifDegisti,
+              ),
+              SizedBox(width: 6),
+              Material(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: onSil,
+                  child: Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(Icons.close_rounded, color: Colors.red.shade700, size: 18),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 6),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
-                SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    aktif ? 'Bu saatte gönderilir' : 'Kapalı — gönderilmeyecek',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
-                  ),
+              ),
+            ],
+          ),
+          Divider(height: 18, color: Colors.grey.shade200),
+          Row(
+            children: [
+              Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+              SizedBox(width: 6),
+              Expanded(
+                child: Text('Bu saatte gönderilir', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+              ),
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  controller: saat,
+                  decoration: InputDecoration(border: OutlineInputBorder(), isDense: true, hintText: 'HH:MM'),
                 ),
-                SizedBox(
-                  width: 100,
-                  child: TextField(
-                    controller: saat,
-                    enabled: aktif,
-                    decoration: InputDecoration(border: OutlineInputBorder(), isDense: true, hintText: 'HH:MM'),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            TextField(
-              controller: mesaj,
-              enabled: aktif,
-              maxLines: 3,
-              maxLength: 300,
-              decoration: InputDecoration(labelText: 'Mesaj metni', border: OutlineInputBorder()),
-            ),
-          ],
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          TextField(
+            controller: mesaj,
+            maxLines: 3,
+            maxLength: 300,
+            decoration: InputDecoration(labelText: 'Mesaj metni', border: OutlineInputBorder()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ekleButonu(ColorScheme scheme) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: _yeniHatirlatmaEkle,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [scheme.primary.withValues(alpha: 0.08), scheme.tertiary.withValues(alpha: 0.08)]),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: scheme.primary.withValues(alpha: 0.30), width: 1.5, style: BorderStyle.solid),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_circle_outline, color: scheme.primary, size: 22),
+              SizedBox(width: 8),
+              Text(
+                'Yeni Hatırlatma Ekle  (${3 - _aktifSayisi} yer kaldı)',
+                style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary, fontSize: 14),
+              ),
+            ],
+          ),
         ),
       ),
     );
