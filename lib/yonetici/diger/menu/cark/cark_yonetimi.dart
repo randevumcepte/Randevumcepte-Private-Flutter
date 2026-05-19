@@ -2386,6 +2386,8 @@ class _HatirlatmaFormu extends StatefulWidget {
 
 class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
   late bool _aktif;
+  // Her asama icin bagimsiz aktif/pasif
+  late bool _a1, _a2, _a3, _aSon;
   late TextEditingController _s1, _s2, _s3, _ss;
   late TextEditingController _m1, _m2, _m3, _ms;
   Set<int> _gunler = {1, 2, 3, 4, 5, 6, 7};
@@ -2396,6 +2398,10 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
     super.initState();
     final a = widget.ayar;
     _aktif = ((a['aktif'] as num?)?.toInt() ?? 0) == 1;
+    _a1   = ((a['aktif_1']   as num?)?.toInt() ?? 1) == 1;
+    _a2   = ((a['aktif_2']   as num?)?.toInt() ?? 1) == 1;
+    _a3   = ((a['aktif_3']   as num?)?.toInt() ?? 1) == 1;
+    _aSon = ((a['aktif_son'] as num?)?.toInt() ?? 1) == 1;
     _s1 = TextEditingController(text: a['saat_1']?.toString() ?? '10:00');
     _s2 = TextEditingController(text: a['saat_2']?.toString() ?? '15:00');
     _s3 = TextEditingController(text: a['saat_3']?.toString() ?? '20:00');
@@ -2433,6 +2439,10 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
       'mesaj_2': _m2.text.trim(),
       'mesaj_3': _m3.text.trim(),
       'mesaj_son': _ms.text.trim(),
+      'aktif_1':   _a1   ? 1 : 0,
+      'aktif_2':   _a2   ? 1 : 0,
+      'aktif_3':   _a3   ? 1 : 0,
+      'aktif_son': _aSon ? 1 : 0,
       'gonderim_gunleri': _gunler.toList(),
     };
     final ok = await carkAdminHatirlatmaKaydet(widget.salonId, data);
@@ -2498,10 +2508,10 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
           ),
         ], title: 'Gönderim Günleri'),
         SizedBox(height: 12),
-        _asamaKart(scheme, 1, 'Saat 1', _s1, _m1),
-        _asamaKart(scheme, 2, 'Saat 2', _s2, _m2),
-        _asamaKart(scheme, 3, 'Saat 3', _s3, _m3),
-        _asamaKart(scheme, 4, 'Son Hatırlatma', _ss, _ms),
+        _asamaKart(scheme, 1, 'Saat 1', _s1, _m1, _a1, (v) => setState(() => _a1 = v)),
+        _asamaKart(scheme, 2, 'Saat 2', _s2, _m2, _a2, (v) => setState(() => _a2 = v)),
+        _asamaKart(scheme, 3, 'Saat 3', _s3, _m3, _a3, (v) => setState(() => _a3 = v)),
+        _asamaKart(scheme, 4, 'Son Hatırlatma', _ss, _ms, _aSon, (v) => setState(() => _aSon = v)),
         SizedBox(height: 16),
         ElevatedButton.icon(
           onPressed: _kaydediliyor ? null : _kaydet,
@@ -2520,41 +2530,83 @@ class _HatirlatmaFormuState extends State<_HatirlatmaFormu> {
     );
   }
 
-  Widget _asamaKart(ColorScheme scheme, int n, String label, TextEditingController saat, TextEditingController mesaj) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(radius: 12, backgroundColor: scheme.primary, child: Text('$n', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12))),
-              SizedBox(width: 8),
-              Text(label, style: TextStyle(fontWeight: FontWeight.w800)),
-              Spacer(),
-              SizedBox(
-                width: 90,
-                child: TextField(
-                  controller: saat,
-                  decoration: InputDecoration(border: OutlineInputBorder(), isDense: true, hintText: 'HH:MM'),
+  Widget _asamaKart(
+    ColorScheme scheme,
+    int n,
+    String label,
+    TextEditingController saat,
+    TextEditingController mesaj,
+    bool aktif,
+    void Function(bool) onAktifDegisti,
+  ) {
+    return Opacity(
+      opacity: aktif ? 1 : 0.55,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: aktif
+              ? null
+              : Border.all(color: Colors.grey.shade300, width: 1),
+          boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: aktif ? scheme.primary : Colors.grey,
+                  child: Text('$n', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: mesaj,
-            maxLines: 3,
-            maxLength: 300,
-            decoration: InputDecoration(labelText: 'Mesaj metni', border: OutlineInputBorder()),
-          ),
-        ],
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(label, style: TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
+                ),
+                Transform.scale(
+                  scale: 0.85,
+                  child: Switch(
+                    value: aktif,
+                    activeColor: scheme.primary,
+                    onChanged: onAktifDegisti,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    aktif ? 'Bu saatte gönderilir' : 'Kapalı — gönderilmeyecek',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                  ),
+                ),
+                SizedBox(
+                  width: 100,
+                  child: TextField(
+                    controller: saat,
+                    enabled: aktif,
+                    decoration: InputDecoration(border: OutlineInputBorder(), isDense: true, hintText: 'HH:MM'),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: mesaj,
+              enabled: aktif,
+              maxLines: 3,
+              maxLength: 300,
+              decoration: InputDecoration(labelText: 'Mesaj metni', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
       ),
     );
   }
