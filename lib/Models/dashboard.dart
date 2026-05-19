@@ -17,6 +17,9 @@ class OzetSayfasi {
   final String okunmamisbildirimler;
   final String prim;
   final List<dynamic> ajanda;
+  final bool whatsappAktif;
+  final bool whatsappBagli;
+  final String? whatsappNumara;
 
 
 
@@ -38,10 +41,15 @@ class OzetSayfasi {
     required this.ajanda,
     required this.okunmamisbildirimler,
     required this.prim,
+    this.whatsappAktif = false,
+    this.whatsappBagli = false,
+    this.whatsappNumara,
   });
 
 
   factory OzetSayfasi.fromJson(Map<String , dynamic> json){
+    bool truthy(dynamic v) =>
+        v == true || v == 1 || v == '1' || v?.toString().toLowerCase() == 'true';
     return OzetSayfasi(
       randevusayisi:json["randevu_sayisi"].toString() as String,
       ongorusmesayisi:json["ongorusme_sayisi"].toString() as String,
@@ -58,7 +66,10 @@ class OzetSayfasi {
       isletmepuani : json['puan'].toString() as String,
       ajanda : json['ajanda'],
       okunmamisbildirimler: json["okunmamisbildirimler"].toString() as String,
-      prim:json['prim'].toString()
+      prim:json['prim'].toString(),
+      whatsappAktif: truthy(json['whatsapp_aktif']),
+      whatsappBagli: truthy(json['whatsapp_bagli']),
+      whatsappNumara: json['whatsapp_numara']?.toString(),
 
     );
   }

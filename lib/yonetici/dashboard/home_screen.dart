@@ -27,6 +27,7 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/Models/sms_taslaklari.dart';
 import 'package:randevu_sistem/Models/user.dart';
+import '../diger/menu/whatsapp/whatsapp_yonetimi.dart';
 import '../adisyonlar/adisyonpage.dart';
 import '../adisyonlar/yeniadisyon.dart';
 import '../diger/menu/ajanda/ajandaekle.dart';
@@ -504,6 +505,10 @@ class _HomeState extends State<DashBoard> {
         tint: scheme.primary,
       ));
     }
+    // WhatsApp durum pill: bagli ise yesil, koptu/pasif ise kirmizi.
+    // Her zaman gosterilir — tiklayinca yonetim sayfasi acilir.
+    if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
+    pills.add(_whatsappPill(context, ozetsayfabilgi.whatsappBagli));
     if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
     pills.add(_quickPill(
       context,
@@ -518,6 +523,103 @@ class _HomeState extends State<DashBoard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: pills,
+      ),
+    );
+  }
+
+  Widget _whatsappPill(BuildContext context, bool bagli) {
+    final scheme = Theme.of(context).colorScheme;
+    final tint = bagli ? const Color(0xFF25D366) : const Color(0xFFDC2626);
+    final etiket = bagli ? 'Bağlı' : 'Bağlı Değil';
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WhatsappYonetimiPage(
+              isletmebilgi: widget.isletmebilgi,
+              kullanicirolu: kullanicirolu,
+            ),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: tint.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.chat_rounded,
+                      size: 16,
+                      color: tint,
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: tint,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 9),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    etiket,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    'WhatsApp',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurface.withValues(alpha: 0.55),
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 6),
+            ],
+          ),
+        ),
       ),
     );
   }
