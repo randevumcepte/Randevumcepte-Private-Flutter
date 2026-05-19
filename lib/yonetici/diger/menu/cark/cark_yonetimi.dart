@@ -42,13 +42,17 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   bool _hatLoading = false;
   Map<String, dynamic>? _hatData;
 
+  // Puan Ödülleri
+  bool _puanOdulLoading = false;
+  List<Map<String, dynamic>> _puanOdulleri = [];
+
   // Kaydedilmemiş değişiklik var mı? (true ise otomatik sync yapılmaz — kullanıcının emeği silinmesin)
   bool _dilimDirty = false;
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this);
+    _tab = TabController(length: 4, vsync: this);
     _salonId = widget.isletmebilgi['id'].toString();
     _konfeti = ConfettiController(duration: Duration(seconds: 3));
     // Runtime WAV ses byte'larını hazırla (web Audio API'nin Flutter karşılığı)
@@ -363,14 +367,17 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                 labelColor: scheme.primary,
                 unselectedLabelColor: Colors.grey,
                 labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                isScrollable: true,
                 tabs: [
                   Tab(icon: Icon(Icons.casino, size: 20), text: 'Çark'),
                   Tab(icon: Icon(Icons.card_giftcard, size: 20), text: 'Kazananlar'),
+                  Tab(icon: Icon(Icons.stars_rounded, size: 20), text: 'Puan Ödülleri'),
                   Tab(icon: Icon(Icons.notifications_active, size: 20), text: 'Hatırlatma'),
                 ],
                 onTap: (i) {
                   if (i == 1) _yukleKazananlar();
-                  if (i == 2) _yukleHatirlatma();
+                  if (i == 2) _yuklePuanOdulleri();
+                  if (i == 3) _yukleHatirlatma();
                 },
               ),
             ),
@@ -381,6 +388,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
           children: [
             _carkTab(scheme),
             _kazananlarTab(scheme),
+            _puanOdulleriTab(scheme),
             _hatirlatmaTab(scheme),
           ],
         ),
@@ -1416,6 +1424,375 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
         ],
       ),
     );
+  }
+
+  // ============ PUAN ODULLERI TAB ============
+
+  Future<void> _yuklePuanOdulleri() async {
+    setState(() => _puanOdulLoading = true);
+    final r = await carkAdminPuanOdulleriGetir(_salonId);
+    if (!mounted) return;
+    setState(() {
+      _puanOdulLoading = false;
+      if (r != null && r['basarili'] == true) {
+        _puanOdulleri = ((r['odulSeviyeleri'] as List?) ?? const [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    });
+  }
+
+  Widget _puanOdulleriTab(ColorScheme scheme) {
+    if (_puanOdulLoading) return Center(child: CircularProgressIndicator());
+
+    return RefreshIndicator(
+      onRefresh: _yuklePuanOdulleri,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(12, 12, 12, 100),
+        children: [
+          Container(
+            padding: EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [scheme.primary.withValues(alpha: 0.08), scheme.tertiary.withValues(alpha: 0.06)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.15)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: scheme.primary, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Müşteri çarktan puan kazanır. Topladığı puanla buradaki ödüllerden seçim yapar; salonda kupon koduyla doğrularsınız.',
+                    style: TextStyle(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.75), height: 1.35),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () => _puanOdulDuzenle(null),
+            icon: Icon(Icons.add),
+            label: Text('Yeni Ödül Ekle'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: scheme.primary,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+          SizedBox(height: 12),
+          if (_puanOdulleri.isEmpty)
+            Container(
+              padding: EdgeInsets.all(30),
+              alignment: Alignment.center,
+              child: Column(
+                children: [
+                  Icon(Icons.stars_outlined, size: 56, color: Colors.grey.shade400),
+                  SizedBox(height: 10),
+                  Text('Henüz puan ödülü tanımlamadınız', style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w700)),
+                  SizedBox(height: 4),
+                  Text(
+                    'Yukarıdaki butondan eşik, başlık ve ödül tipini belirleyip ekleyin.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._puanOdulleri.map((o) => _puanOdulKart(scheme, o)),
+        ],
+      ),
+    );
+  }
+
+  Widget _puanOdulKart(ColorScheme scheme, Map<String, dynamic> o) {
+    final tip = (o['tip'] ?? '').toString();
+    final aktif = ((o['aktif'] as num?)?.toInt() ?? 1) == 1;
+    final esik = (o['puan_esigi'] as num?)?.toInt() ?? 0;
+    final deger = o['deger'];
+    final tipLabel = const {
+      'hizmet_indirimi': 'Hizmet İnd.',
+      'urun_indirimi': 'Ürün İnd.',
+      'hediye': 'Hediye',
+    }[tip] ?? tip;
+    final tipColor = const {
+      'hizmet_indirimi': Color(0xFF1E40AF),
+      'urun_indirimi': Color(0xFF9F1239),
+      'hediye': Color(0xFF92400E),
+    }[tip] ?? Colors.grey;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: aktif ? Colors.transparent : Colors.grey.shade300),
+        boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
+      ),
+      child: Opacity(
+        opacity: aktif ? 1 : 0.55,
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [Color(0xFFFDE047), Color(0xFFF59E0B)]),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: [
+                  Text('$esik', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF78350F), height: 1)),
+                  SizedBox(height: 1),
+                  Text('PUAN', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF78350F), letterSpacing: 0.4)),
+                ],
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (o['baslik'] ?? '-').toString(),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                  if (((o['aciklama'] ?? '').toString()).isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Text(
+                        (o['aciklama']).toString(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade700, height: 1.3),
+                      ),
+                    ),
+                  SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: tipColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(tipLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: tipColor)),
+                      ),
+                      if (deger != null && (tip == 'hizmet_indirimi' || tip == 'urun_indirimi')) ...[
+                        SizedBox(width: 6),
+                        Text('%${(deger as num).toInt()}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                      ],
+                      if (!aktif) ...[
+                        SizedBox(width: 6),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text('PASİF', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey.shade700)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.edit, color: scheme.primary),
+              tooltip: 'Düzenle',
+              onPressed: () => _puanOdulDuzenle(o),
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_outline, color: Colors.red),
+              tooltip: 'Sil',
+              onPressed: () => _puanOdulSil(o),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _puanOdulDuzenle(Map<String, dynamic>? mevcut) async {
+    final baslikCtrl = TextEditingController(text: (mevcut?['baslik'] ?? '').toString());
+    final aciklamaCtrl = TextEditingController(text: (mevcut?['aciklama'] ?? '').toString());
+    final esikCtrl = TextEditingController(text: (mevcut?['puan_esigi'] ?? '').toString());
+    final degerCtrl = TextEditingController(
+      text: mevcut?['deger'] != null ? (mevcut!['deger'] as num).toInt().toString() : '',
+    );
+    String tip = (mevcut?['tip'] ?? 'hizmet_indirimi').toString();
+    bool aktif = ((mevcut?['aktif'] as num?)?.toInt() ?? 1) == 1;
+    bool kaydediyor = false;
+
+    await showDialog(
+      context: context,
+      builder: (c) => StatefulBuilder(builder: (c, setSt) {
+        final scheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(mevcut == null ? 'Yeni Puan Ödülü' : 'Ödülü Düzenle'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: baslikCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Başlık',
+                    hintText: 'Örn. %10 Hizmet İndirimi',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                SizedBox(height: 10),
+                TextField(
+                  controller: aciklamaCtrl,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: 'Açıklama (opsiyonel)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                SizedBox(height: 10),
+                TextField(
+                  controller: esikCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Puan Eşiği',
+                    hintText: 'Örn. 250',
+                    border: OutlineInputBorder(),
+                    suffixText: 'puan',
+                  ),
+                ),
+                SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: tip,
+                  decoration: InputDecoration(
+                    labelText: 'Ödül Tipi',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(value: 'hizmet_indirimi', child: Text('Hizmet İndirimi')),
+                    DropdownMenuItem(value: 'urun_indirimi', child: Text('Ürün İndirimi')),
+                    DropdownMenuItem(value: 'hediye', child: Text('Hediye')),
+                  ],
+                  onChanged: (v) => setSt(() => tip = v ?? 'hizmet_indirimi'),
+                ),
+                if (tip == 'hizmet_indirimi' || tip == 'urun_indirimi') ...[
+                  SizedBox(height: 10),
+                  TextField(
+                    controller: degerCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'İndirim Yüzdesi',
+                      hintText: 'Örn. 15',
+                      border: OutlineInputBorder(),
+                      suffixText: '%',
+                    ),
+                  ),
+                ],
+                SizedBox(height: 10),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Aktif'),
+                  subtitle: Text(aktif ? 'Müşteriye görünür' : 'Pasif — müşteri göremez', style: TextStyle(fontSize: 11)),
+                  value: aktif,
+                  activeColor: scheme.primary,
+                  onChanged: (v) => setSt(() => aktif = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: kaydediyor ? null : () => Navigator.pop(c),
+              child: Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: kaydediyor
+                  ? null
+                  : () async {
+                      setSt(() => kaydediyor = true);
+                      final data = <String, dynamic>{
+                        if (mevcut != null) 'id': mevcut['id'],
+                        'baslik': baslikCtrl.text.trim(),
+                        'aciklama': aciklamaCtrl.text.trim(),
+                        'puan_esigi': int.tryParse(esikCtrl.text.trim()) ?? 0,
+                        'tip': tip,
+                        'deger': (tip == 'hizmet_indirimi' || tip == 'urun_indirimi')
+                            ? (int.tryParse(degerCtrl.text.trim()) ?? 0)
+                            : null,
+                        'aktif': aktif ? 1 : 0,
+                      };
+                      final r = await carkAdminPuanOdulKaydet(_salonId, data);
+                      if (!mounted) return;
+                      setSt(() => kaydediyor = false);
+                      if (r != null && r['basarili'] == true) {
+                        Navigator.pop(c);
+                        _yuklePuanOdulleri();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Ödül kaydedildi'), behavior: SnackBarBehavior.floating),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(r?['mesaj']?.toString() ?? 'Kaydedilemedi'),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: kaydediyor
+                  ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(mevcut == null ? 'Ekle' : 'Güncelle'),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Future<void> _puanOdulSil(Map<String, dynamic> o) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Ödülü Sil'),
+        content: Text('"${o['baslik']}" ödülünü silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text('İptal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: Text('Sil'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    final basarili = await carkAdminPuanOdulSil(_salonId, (o['id'] as num).toInt());
+    if (!mounted) return;
+    if (basarili) {
+      _yuklePuanOdulleri();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ödül silindi'), behavior: SnackBarBehavior.floating),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Silinemedi'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+      );
+    }
   }
 
   // ============ HATIRLATMA TAB ============

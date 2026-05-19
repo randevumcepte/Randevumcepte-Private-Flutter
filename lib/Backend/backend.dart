@@ -5616,6 +5616,57 @@ Future<bool> carkAdminHatirlatmaKaydet(String salonId, Map<String, dynamic> data
   return false;
 }
 
+// ----- Puan Odulleri (admin tarafi) -----
+
+Future<Map<String, dynamic>?> carkAdminPuanOdulleriGetir(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/carkAdmin/puan-odul/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdminPuanOdulleriGetir: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> carkAdminPuanOdulKaydet(
+    String salonId, Map<String, dynamic> data) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/puan-odul/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode(data),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdminPuanOdulKaydet: $e');
+  }
+  return null;
+}
+
+Future<bool> carkAdminPuanOdulSil(String salonId, int id) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/carkAdmin/puan-odul-sil/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'id': id}),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      return body is Map && body['basarili'] == true;
+    }
+  } catch (e) {
+    log('carkAdminPuanOdulSil: $e');
+  }
+  return false;
+}
+
 // ============================================================
 // WHATSAPP API (mobil)
 // ============================================================
