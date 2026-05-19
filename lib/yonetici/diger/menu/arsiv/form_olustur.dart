@@ -165,8 +165,8 @@ class _FormOlusturState extends State<FormOlustur> {
           await showPremiumWarning(context,
               title: sadeceKaydet ? 'Form Kaydedildi' : 'Form Gönderildi',
               message: sadeceKaydet
-                  ? 'Form arşive eklendi. Gönderme yetkiniz olmadığı için müşteriye SMS atılmadı.'
-                  : 'Müşteriye SMS ile form linki gönderildi.',
+                  ? 'Form arşive eklendi. Gönderme yetkiniz olmadığı için müşteriye mesaj atılmadı.'
+                  : 'Form linki müşteriye gönderildi (WhatsApp bağlıysa WhatsApp\'tan, değilse SMS ile).',
               tone: 'success');
         }
         if (mounted) Navigator.pop(context, true);
