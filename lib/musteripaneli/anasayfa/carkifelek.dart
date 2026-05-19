@@ -352,6 +352,16 @@ class _WheelPageState extends State<WheelPage>
                 ),
               );
             },
+            onPuanRewards: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      PuanOdullerimPage(md: widget.md, salonId: _salonId),
+                ),
+              );
+            },
           ),
         );
       },
@@ -1037,6 +1047,7 @@ class _ResultCard extends StatelessWidget {
   final String? odulKodu;
   final VoidCallback onClose;
   final VoidCallback onMyRewards;
+  final VoidCallback onPuanRewards;
 
   const _ResultCard({
     required this.tip,
@@ -1044,11 +1055,13 @@ class _ResultCard extends StatelessWidget {
     required this.odulKodu,
     required this.onClose,
     required this.onMyRewards,
+    required this.onPuanRewards,
   });
 
   @override
   Widget build(BuildContext context) {
     final isPrize = odulKodu != null && odulKodu!.isNotEmpty;
+    final isPuan = tip == 'puan';
     final emoji = tip == 'tekrar_dene'
         ? '🍀'
         : tip == 'bos'
@@ -1150,6 +1163,17 @@ class _ResultCard extends StatelessWidget {
               ],
             ),
           ],
+          if (isPuan) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Puanlarınız ile özel ödüller seçebilirsiniz.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: const Color(0xFF636E72).withValues(alpha: 0.9),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Row(
             children: [
@@ -1167,6 +1191,21 @@ class _ResultCard extends StatelessWidget {
                   ),
                 ),
               if (isPrize) const SizedBox(width: 10),
+              if (isPuan)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onPuanRewards,
+                    icon: const Icon(Icons.stars_rounded, size: 18),
+                    label: const Text('Puan Ödüllerim'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFF59E0B),
+                      side: const BorderSide(color: Color(0xFFF59E0B)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                    ),
+                  ),
+                ),
+              if (isPuan) const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
                   onPressed: onClose,

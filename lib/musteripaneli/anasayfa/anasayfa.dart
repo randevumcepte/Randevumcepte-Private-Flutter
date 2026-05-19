@@ -17,6 +17,8 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridashboard.dart';
 import 'package:randevu_sistem/Models/salonyorumlarozet.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/salon_yorumlari.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanpaketler.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanurunler.dart';
@@ -225,6 +227,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       _sectionHeader(context, 'Sana Özel'),
                       const SizedBox(height: 10),
                       _carkPromoCard(context),
+                      const SizedBox(height: 10),
+                      _puanKuponRow(context),
                       const SizedBox(height: 12),
                       _yorumlarCard(context),
                       const SizedBox(height: 12),
@@ -998,6 +1002,131 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── PUAN + KUPONLAR HIZLI ROW ────────────────────────────────────────────
+  Widget _puanKuponRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+
+    final salonId = widget.isletmebilgi is Map
+        ? widget.isletmebilgi['id']?.toString()
+        : null;
+
+    Widget tile({
+      required IconData icon,
+      required String title,
+      required String subtitle,
+      required Color tint,
+      required VoidCallback onTap,
+    }) {
+      return Expanded(
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: tint.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, color: tint, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                            letterSpacing: -0.2,
+                            height: 1.1,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          tile(
+            icon: Icons.stars_rounded,
+            title: 'Puan Ödüllerim',
+            subtitle: 'Bakiye & ödüller',
+            tint: ext.warningColor,
+            onTap: () => Navigator.push(
+              context,
+              PageTransition(
+                type: PageTransitionType.rightToLeft,
+                duration: const Duration(milliseconds: 400),
+                child: PuanOdullerimPage(md: widget.md, salonId: salonId),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          tile(
+            icon: Icons.card_giftcard_rounded,
+            title: 'Kuponlarım',
+            subtitle: 'Kazandığın ödüller',
+            tint: scheme.tertiary,
+            onTap: () => Navigator.push(
+              context,
+              PageTransition(
+                type: PageTransitionType.rightToLeft,
+                duration: const Duration(milliseconds: 400),
+                child: OdullerimPage(md: widget.md),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

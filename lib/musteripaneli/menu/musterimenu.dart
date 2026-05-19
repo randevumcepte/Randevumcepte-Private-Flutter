@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/musteriprofilbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
@@ -287,6 +289,40 @@ class _MenuPageState extends State<MenuPage> {
                             md: widget.md,
                             isletmebilgi: widget.isletmebilgi,
                           ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuButton(
+                    icon: Icons.stars_rounded,
+                    label: 'Puan Ödüllerim',
+                    onTap: () {
+                      final salonId = widget.isletmebilgi is Map
+                          ? widget.isletmebilgi['id']?.toString()
+                          : null;
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: PuanOdullerimPage(
+                            md: widget.md,
+                            salonId: salonId,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuButton(
+                    icon: Icons.card_giftcard_rounded,
+                    label: 'Kuponlarım',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: const Duration(milliseconds: 300),
+                          child: OdullerimPage(md: widget.md),
                         ),
                       );
                     },
