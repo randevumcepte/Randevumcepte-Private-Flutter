@@ -83,13 +83,15 @@ class _AyarlarState extends State<Ayarlar> {
         route: RandevuAyarlari(isletmebilgi: widget.isletmebilgi),
       ));
     }
-    _ayarlarListesi.add(AyarlarItem(
-      title: 'Müşteri İndirimleri',
-      icon: Icons.discount_rounded,
-      iconColor: const Color(0xFFF44336),
-      gradientColors: [const Color(0xFFEF5350), const Color(0xFFF44336)],
-      route: MusteriIndirimleri(isletmebilgi: widget.isletmebilgi),
-    ));
+    if (Yetki.varMi('satis.indirim_uygula')) {
+      _ayarlarListesi.add(AyarlarItem(
+        title: 'Müşteri İndirimleri',
+        icon: Icons.discount_rounded,
+        iconColor: const Color(0xFFF44336),
+        gradientColors: [const Color(0xFFEF5350), const Color(0xFFF44336)],
+        route: MusteriIndirimleri(isletmebilgi: widget.isletmebilgi),
+      ));
+    }
     _ayarlarListesi.add(AyarlarItem(
       title: 'Görünüm',
       icon: Icons.palette_rounded,

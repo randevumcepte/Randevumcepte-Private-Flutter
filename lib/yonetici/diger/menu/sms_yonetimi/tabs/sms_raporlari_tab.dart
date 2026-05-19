@@ -202,7 +202,15 @@ class _SmsRaporlariTabState extends State<SmsRaporlariTab>
       separatorBuilder: (_, __) => Divider(height: 1),
       itemBuilder: (ctx, index) {
         final r = Map<String, dynamic>.from(liste[index] as Map);
-        final tarih = (r['date'] ?? '').toString();
+        // Backend bazı durumlarda 'date' alanını web DataTable için
+        // gizli <span style="display:none">YmdHis</span>dd.mm.YYYY HH:ii:ss
+        // formatında dönüyor. Etiketlerle birlikte içeriğini de temizliyoruz.
+        String tarih = (r['date'] ?? '').toString();
+        // Önce <span ...>...</span> bloklarını içeriğiyle beraber sil
+        tarih = tarih.replaceAll(
+            RegExp(r'<[a-z][^>]*>[\s\S]*?<\/[a-z]+>', caseSensitive: false), '');
+        // Kalan tekil etiketleri at
+        tarih = tarih.replaceAll(RegExp(r'<[^>]+>'), '').trim();
         final adet = (r['count'] ?? 0).toString();
         final fiyat = double.tryParse((r['price'] ?? 0).toString()) ?? 0;
         final adetInt = int.tryParse(adet) ?? 0;
@@ -220,9 +228,15 @@ class _SmsRaporlariTabState extends State<SmsRaporlariTab>
                 children: [
                   Icon(Icons.calendar_today, size: 14, color: Colors.grey),
                   SizedBox(width: 4),
-                  Text(tarih,
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  Spacer(),
+                  Expanded(
+                    child: Text(
+                      tarih,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
+                  SizedBox(width: 8),
                   Container(
                     padding:
                         EdgeInsets.symmetric(horizontal: 8, vertical: 2),

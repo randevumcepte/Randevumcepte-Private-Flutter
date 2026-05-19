@@ -87,6 +87,17 @@
       return value;
     }
 
+    // Satis filtresi: 'satis.tum_satis_gor' yetkisi varsa bos (tum satislar);
+    // yoksa personel kendi user_id'si ile filtrelenir. Yetkili roller
+    // (kullanicirolu != 5) zaten varMi=true doner.
+    String get _satisFiltreUserId {
+      if (widget.kullanicirolu == 5 &&
+          !Yetki.varMi('satis.tum_satis_gor')) {
+        return widget.kullanici.id;
+      }
+      return '';
+    }
+
     @override
     void initState() {
       super.initState();
@@ -160,7 +171,7 @@
             selectedadisyonicerigi?.id ?? "",
             "",
             false,
-            widget.kullanicirolu == 5 ? widget.kullanici.id : '',
+            _satisFiltreUserId,
             0
         );
 
@@ -231,7 +242,7 @@
             selectedadisyonicerigi?.id ?? "",
             "",
             false,
-            widget.kullanicirolu == 5 ? widget.kullanici.id : '',
+            _satisFiltreUserId,
             1
         );
 
@@ -1113,7 +1124,7 @@
             selectedadisyonicerigi?.id ?? "",
             "",
             false,
-            widget.kullanicirolu == 5 ? widget.kullanici.id : '',
+            _satisFiltreUserId,
             -1 // tümü
         );
 

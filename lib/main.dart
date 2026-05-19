@@ -75,6 +75,11 @@ class MyApp extends StatelessWidget {
             ],
             supportedLocales: const [Locale('tr')],
             locale: const Locale('tr'),
+            builder: (context, child) {
+              return ConnectivityWatcher(
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: MyHomePage(),
           );
         },

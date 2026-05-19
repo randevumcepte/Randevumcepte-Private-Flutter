@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
@@ -917,15 +918,16 @@ class _VarolanTahsilatState extends State<VarolanTahsilat> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
                   ),
                 ),
-                ElevatedButton(onPressed: (){},
-                  child: Text('Taksit Yap'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: cs.onPrimary,
-                    minimumSize: Size(90, 30),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                if (Yetki.varMi('satis.senet_olustur'))
+                  ElevatedButton(onPressed: (){},
+                    child: Text('Taksit Yap'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
+                      minimumSize: Size(90, 30),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                    ),
                   ),
-                ),
 
               ],
             ),

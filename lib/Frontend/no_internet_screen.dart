@@ -313,3 +313,105 @@ Future<bool> hasInternetConnection() async {
     return false;
   }
 }
+
+/// Uygulama agacinin uzerine yerlestirilen global connectivity watcher.
+/// Internet kesildiginde [NoInternetScreen]'i tam ekran overlay olarak
+/// gosterir; geri gelince otomatik kapanir.
+///
+/// MaterialApp.builder icinden cocuk widget'i sararak kullanin.
+class ConnectivityWatcher extends StatefulWidget {
+  final Widget child;
+  const ConnectivityWatcher({Key? key, required this.child}) : super(key: key);
+
+  @override
+  State<ConnectivityWatcher> createState() => _ConnectivityWatcherState();
+}
+
+class _ConnectivityWatcherState extends State<ConnectivityWatcher>
+    with WidgetsBindingObserver {
+  StreamSubscription<List<ConnectivityResult>>? _sub;
+  bool _offline = false;
+  bool _checking = false;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _sub = Connectivity().onConnectivityChanged.listen((results) {
+      _scheduleCheck(results: results);
+    });
+    // Ilk durumu da kontrol et (gec gelen ilk event icin).
+    _scheduleCheck(initialDelay: const Duration(milliseconds: 800));
+  }
+
+  void _scheduleCheck({
+    List<ConnectivityResult>? results,
+    Duration initialDelay = const Duration(milliseconds: 400),
+  }) {
+    _debounce?.cancel();
+    _debounce = Timer(initialDelay, () => _verify(results));
+  }
+
+  Future<void> _verify(List<ConnectivityResult>? results) async {
+    if (_checking) return;
+    _checking = true;
+    try {
+      // Hizli yol: connectivity_plus 'none' diyorsa direk offline.
+      if (results != null &&
+          results.isNotEmpty &&
+          results.every((r) => r == ConnectivityResult.none)) {
+        _setOffline(true);
+        return;
+      }
+      // Gercek DNS check.
+      final online = await hasInternetConnection();
+      _setOffline(!online);
+    } finally {
+      _checking = false;
+    }
+  }
+
+  void _setOffline(bool value) {
+    if (!mounted || _offline == value) return;
+    setState(() => _offline = value);
+  }
+
+  Future<void> _retry() async {
+    final online = await hasInternetConnection();
+    _setOffline(!online);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Uygulama on plana donunce yeniden kontrol et — sistem bazen baglanti
+    // event'i atmadan internet geri gelebilir.
+    if (state == AppLifecycleState.resumed) {
+      _scheduleCheck(initialDelay: const Duration(milliseconds: 300));
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _debounce?.cancel();
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        widget.child,
+        if (_offline)
+          Positioned.fill(
+            child: Material(
+              type: MaterialType.transparency,
+              child: NoInternetScreen(onRetry: _retry),
+            ),
+          ),
+      ],
+    );
+  }
+}
