@@ -26,8 +26,10 @@ import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'anasayfa/anasayfa.dart';
 import 'anasayfa/carkifelek.dart';
 import 'anasayfa/musteribildirimleri/musteribildirimleri.dart';
+import 'anasayfa/raporlar/seanslar.dart';
 import 'menu/indirimler.dart';
 import 'menu/musterimenu.dart';
+import 'menu/siparislerim.dart';
 
 
 
@@ -111,6 +113,22 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
         break;
       case NotificationIntent.appointments:
         setState(() => _selectedTab = 1);
+        break;
+      case NotificationIntent.sessions:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => SeanslarDashboard(
+            isletmebilgi: widget.isletmebilgi,
+            md: widget.musteriId,
+          ),
+        ));
+        break;
+      case NotificationIntent.purchases:
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => MusteriPaneliAdiayonlari(
+            kullanici: widget.musteriId,
+            isletmebilgi: widget.isletmebilgi,
+          ),
+        ));
         break;
       case NotificationIntent.discounts:
         Navigator.of(context).push(MaterialPageRoute(

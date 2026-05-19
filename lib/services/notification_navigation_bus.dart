@@ -13,11 +13,14 @@ class NotificationIntent {
   /// Müşteri tarafı hedefleri
   static const wheel         = 'wheel';
   static const appointments  = 'appointments';
+  static const sessions      = 'sessions';
+  static const purchases     = 'purchases';
   static const discounts     = 'discounts';
   static const notifications = 'notifications';
 
   /// İşletme tarafı hedefleri
   static const adminCalendar      = 'admin_calendar';
+  static const adminSales         = 'admin_sales';
   static const adminNotifications = 'admin_notifications';
 }
 

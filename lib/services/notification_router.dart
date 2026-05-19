@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:randevu_sistem/navigatorkey.dart';
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
 
@@ -28,6 +27,7 @@ class NotificationRouter {
 
     try {
       switch (type) {
+        // Randevu ile dogrudan ilgili tipler -> musteri: randevular tab, yetkili: takvim
         case NotificationTypes.appointmentCreated:
         case NotificationTypes.appointmentApproved:
         case NotificationTypes.appointmentCancelled:
@@ -35,34 +35,63 @@ class NotificationRouter {
         case NotificationTypes.appointmentReminder:
         case NotificationTypes.appointmentReminderHour:
         case NotificationTypes.staffAssigned:
+          NotificationNavigationBus.publish(NotificationIntent(
+            isMusteri
+                ? NotificationIntent.appointments
+                : NotificationIntent.adminCalendar,
+            {'randevu_id': payload.randevuId},
+          ));
+          break;
+
+        // Seans hatirlatmasi / seans kullanim bilgilendirme -> musteri: seanslarim, yetkili: takvim
+        case NotificationTypes.sessionReminder:
+        case NotificationTypes.sessionUsed:
+          NotificationNavigationBus.publish(NotificationIntent(
+            isMusteri
+                ? NotificationIntent.sessions
+                : NotificationIntent.adminCalendar,
+            {'randevu_id': payload.randevuId},
+          ));
+          break;
+
+        // Odeme alindi -> musteri: satin aldiklarim, yetkili: satis takibi
         case NotificationTypes.paymentReceived:
           NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri ? NotificationIntent.appointments : NotificationIntent.adminCalendar,
+            isMusteri
+                ? NotificationIntent.purchases
+                : NotificationIntent.adminSales,
             {'randevu_id': payload.randevuId},
           ));
           break;
 
         case NotificationTypes.newMessage:
           NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri ? NotificationIntent.notifications : NotificationIntent.adminNotifications,
+            isMusteri
+                ? NotificationIntent.notifications
+                : NotificationIntent.adminNotifications,
           ));
           break;
 
         case NotificationTypes.wheelChance:
-          NotificationNavigationBus.publish(const NotificationIntent(NotificationIntent.wheel));
+          NotificationNavigationBus.publish(
+              const NotificationIntent(NotificationIntent.wheel));
           break;
 
         case NotificationTypes.campaign:
         case NotificationTypes.discount:
         case NotificationTypes.birthday:
-          NotificationNavigationBus.publish(const NotificationIntent(NotificationIntent.discounts));
+          NotificationNavigationBus.publish(
+              const NotificationIntent(NotificationIntent.discounts));
           break;
 
         case NotificationTypes.survey:
         case NotificationTypes.membershipExpiring:
+        case NotificationTypes.systemAnnouncement:
         default:
           NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri ? NotificationIntent.notifications : NotificationIntent.adminNotifications,
+            isMusteri
+                ? NotificationIntent.notifications
+                : NotificationIntent.adminNotifications,
           ));
       }
     } catch (e) {

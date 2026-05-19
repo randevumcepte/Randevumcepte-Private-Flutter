@@ -10,6 +10,10 @@ class NotificationTypes {
   static const appointmentReminderHour = 'appointment_reminder_hour';
   static const staffAssigned           = 'staff_assigned';
 
+  // Seans / paket
+  static const sessionReminder         = 'session_reminder';
+  static const sessionUsed             = 'session_used';
+
   // Ödeme & mesaj
   static const paymentReceived         = 'payment_received';
   static const newMessage              = 'new_message';
@@ -42,6 +46,8 @@ class NotificationTypes {
         appointmentReminderHour,
         appointmentTimeChanged,
         appointmentCancelled,
+        sessionReminder,
+        sessionUsed,
         newMessage,
         paymentReceived,
       }.contains(type);

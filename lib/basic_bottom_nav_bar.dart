@@ -143,11 +143,37 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
     switch (intent.target) {
       case NotificationIntent.adminCalendar:
-        // Takvim sekmesi (index 1)
-        try {
-          Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(1);
-        } catch (_) {}
-        setState(() => _selectedTab = 1);
+        // Takvim sekmesi (index 1) — yetki kontrolu de yapilir
+        if (_tabGoster(1)) {
+          try {
+            Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(1);
+          } catch (_) {}
+          setState(() => _selectedTab = 1);
+        } else {
+          // Yetki yoksa fallback olarak bildirim ekrani
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => BildirimlerScreen(
+              isletmebilgi: widget.isletmebilgi,
+              kullanicirolu: kullanicirolu,
+            ),
+          ));
+        }
+        break;
+      case NotificationIntent.adminSales:
+        // Satis Takibi / On Gorusmeler tab'i (index 3)
+        if (_tabGoster(3)) {
+          try {
+            Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(3);
+          } catch (_) {}
+          setState(() => _selectedTab = 3);
+        } else {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => BildirimlerScreen(
+              isletmebilgi: widget.isletmebilgi,
+              kullanicirolu: kullanicirolu,
+            ),
+          ));
+        }
         break;
       case NotificationIntent.adminNotifications:
         Navigator.of(context).push(MaterialPageRoute(
