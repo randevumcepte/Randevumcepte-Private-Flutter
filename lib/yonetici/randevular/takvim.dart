@@ -2047,50 +2047,54 @@ List<Widget> _buildAppointmentsForResource(
                         (randevudurum![0] == "0" || randevudurum![0] == "1") && randevutitle[0].contains("ÖN GÖRÜŞME") && (randevudetay.notes ?? "").contains("Beklemede")  ? Row(
                           children: [
 
-                            ElevatedButton(onPressed: () async{
-                              OnGorusme selectedItem = await ongorsumebilgi(randevudetay.recurrenceId.toString());
-                              if (selectedItem.paket_id != null && selectedItem.paket_id != "null") {
-                                paketsatispopup(context, randevudetay.recurrenceId.toString());
-                              } else if (selectedItem.urun_id != null && selectedItem.urun_id != "null") {
-                                urunsatispopup(context, randevudetay.recurrenceId.toString());
-                              }
+                            Expanded(
+                              child: ElevatedButton(onPressed: () async{
+                                OnGorusme selectedItem = await ongorsumebilgi(randevudetay.recurrenceId.toString());
+                                if (selectedItem.paket_id != null && selectedItem.paket_id != "null") {
+                                  paketsatispopup(context, randevudetay.recurrenceId.toString());
+                                } else if (selectedItem.urun_id != null && selectedItem.urun_id != "null") {
+                                  urunsatispopup(context, randevudetay.recurrenceId.toString());
+                                }
 
-                            }, child:
-                            Text('Satış Yapıldı'),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: ext.successColor,
-                                  foregroundColor: Colors.white,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                              }, child:
+                              Text('Satış Yapıldı', textAlign: TextAlign.center),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: ext.successColor,
+                                    foregroundColor: Colors.white,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(0, 36)
+                                ),
                               ),
                             )
                             ,
                             SizedBox(width: 15,),
 
-                            ElevatedButton(onPressed: () {
+                            Expanded(
+                              child: ElevatedButton(onPressed: () {
 
-                              showSatisYapilmamaNedeniDialog(context, randevudetay.recurrenceId.toString(),"1","",(value)=>getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false));
+                                showSatisYapilmamaNedeniDialog(context, randevudetay.recurrenceId.toString(),"1","",(value)=>getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false));
 
-                              ;
+                                ;
 
-                              // close the confirmation dialog
+                                // close the confirmation dialog
 
 
 
-                              //satisyapilmadi(context,  "",String aciklama,String currentPage,String aramaterimi,bool showprogress)
-                            }, child:
-                            Text('Satış Yapılmadı'),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: cs.error,
-                                  foregroundColor: cs.onError,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5.0)
-                                  ),
-                                  minimumSize: Size(130, 30)
+                                //satisyapilmadi(context,  "",String aciklama,String currentPage,String aramaterimi,bool showprogress)
+                              }, child:
+                              Text('Satış Yapılmadı', textAlign: TextAlign.center),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: cs.error,
+                                    foregroundColor: cs.onError,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5.0)
+                                    ),
+                                    minimumSize: Size(0, 36)
+                                ),
                               ),
                             )
 
