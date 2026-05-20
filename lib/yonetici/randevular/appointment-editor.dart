@@ -30,6 +30,7 @@ import 'package:randevu_sistem/theme/premium_components.dart';
 import '../diger/menu/musteriler/yeni_musteri.dart';
 import 'hizmet_add.dart';
 import 'musteri_paketleri_dialog.dart';
+import 'hizli_paket_randevu_sheet.dart';
 import 'package:randevu_sistem/yonetici/randevular/musteri.dart';
 
 class AppointmentEditor extends StatefulWidget {
@@ -374,6 +375,67 @@ class AppointmentEditorState extends State<AppointmentEditor> {
         paketDetaylari: paketDetaylari,
       );
       if (secilenler == null || secilenler.isEmpty || !mounted) return;
+
+      // BIRDEN FAZLA hizmet -> Hizli Paket Randevu sheet'i ac (web ile ayni mantik):
+      // her hizmet icin inline personel/oda/cihaz/sure secimi + dogrudan olustur.
+      // TEK hizmet -> asagidaki mevcut "forma ekle" akisi devam eder.
+      if (secilenler.length > 1) {
+        final takvimTuru = int.tryParse(
+                widget.isletmebilgi['randevu_takvim_turu']?.toString() ?? '0') ??
+            0;
+        // Mevcut formda secili personel/oda/cihaz varsa base olarak gec
+        Personel? bP;
+        for (int i = secilipersonel.length - 1; i >= 0; i--) {
+          if (secilipersonel[i] != null) { bP = secilipersonel[i]; break; }
+        }
+        Oda? bO;
+        for (int i = secilioda.length - 1; i >= 0; i--) {
+          if (secilioda[i] != null) { bO = secilioda[i]; break; }
+        }
+        Cihaz? bC;
+        for (int i = secilicihaz.length - 1; i >= 0; i--) {
+          if (secilicihaz[i] != null) { bC = secilicihaz[i]; break; }
+        }
+
+        final hazirHizmetler = await showHizliPaketRandevuSheet(
+          context: context,
+          secilenler: secilenler,
+          personelliste: personelliste,
+          odaliste: odaliste,
+          cihazliste: cihazliste,
+          isletmehizmetliste: isletmehizmetliste,
+          takvimTuru: takvimTuru,
+          musteriAdi: (yanit['userName'] as String?) ?? (musteri.name ?? ''),
+          tarih: randevutarihi.text,
+          saat: randevusaati.text,
+          basePersonel: bP,
+          baseOda: bO,
+          baseCihaz: bC,
+        );
+        if (hazirHizmetler == null || hazirHizmetler.isEmpty || !mounted) return;
+
+        // Dogrudan randevu olustur
+        randevuEkleGuncelle(
+          '',
+          '',
+          '',
+          secilimusteridanisan!,
+          randevutarihi.text,
+          randevusaati.text,
+          hazirHizmetler,
+          <RandevuHizmetYardimciPersonelleri>[],
+          false,
+          '',
+          null,
+          notlar.text,
+          seciliisletme.toString(),
+          context,
+          'salon',
+          '1',
+          widget.isletmebilgi,
+        );
+        return;
+      }
 
       int eklenenSatir = 0;
       setState(() {
