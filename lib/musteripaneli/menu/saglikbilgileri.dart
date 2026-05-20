@@ -22,6 +22,8 @@ class _MusteriPaneliSaglikBilgileriState
     extends State<MusteriPaneliSaglikBilgileri> {
   String? seciliisletme;
   bool _saving = false;
+  bool _refreshing = false;
+  late MusteriDanisan _md;
 
   final List<SaglikBilgileri> evethayir = [
     SaglikBilgileri(id: "0", saglik: "Hayır"),
@@ -68,28 +70,49 @@ class _MusteriPaneliSaglikBilgileriState
   @override
   void initState() {
     super.initState();
-    musteriid = TextEditingController(text: widget.md.id);
-    final rawNot = widget.md.ek_saglik_sorunu;
-    eksaglik = TextEditingController(
-      text: (rawNot.isEmpty || rawNot.toLowerCase() == 'null') ? '' : rawNot,
-    );
-    selectedhemofili = _matchEvetHayir(widget.md.hemofili_hastaligi_var);
-    selectedseker = _matchEvetHayir(widget.md.seker_hastaligi_var);
-    selectedhamile = _matchEvetHayir(widget.md.hamile);
-    selectedameliyat =
-        _matchEvetHayir(widget.md.yakin_zamanda_ameliyat_gecirildi);
-    selectedalerji = _matchEvetHayir(widget.md.alerji_var);
-    selectedalkol = _matchEvetHayir(widget.md.alkol_alimi_yapildi);
-    selectedregl = _matchEvetHayir(widget.md.regl_doneminde);
-    selecteddoku = _matchEvetHayir(widget.md.deri_yumusak_doku_hastaligi_var);
-    selectedilac = _matchEvetHayir(widget.md.surekli_kullanilan_ilac_Var);
-    selectedkemoterapi = _matchEvetHayir(widget.md.kemoterapi_goruyor);
-    selecteduygulama =
-        _matchEvetHayir(widget.md.daha_once_uygulama_yaptirildi);
-    final ct = cilttipi.where((item) => item.id == widget.md.cilt_tipi);
-    selectedcilttip = ct.isEmpty ? null : ct.first;
+    _md = widget.md;
+    musteriid = TextEditingController(text: _md.id);
+    eksaglik = TextEditingController();
+    _hydrateFromMd(_md);
 
     _loadSalon();
+    _refreshFromServer();
+  }
+
+  void _hydrateFromMd(MusteriDanisan md) {
+    final rawNot = md.ek_saglik_sorunu;
+    eksaglik.text =
+        (rawNot.isEmpty || rawNot.toLowerCase() == 'null') ? '' : rawNot;
+    selectedhemofili = _matchEvetHayir(md.hemofili_hastaligi_var);
+    selectedseker = _matchEvetHayir(md.seker_hastaligi_var);
+    selectedhamile = _matchEvetHayir(md.hamile);
+    selectedameliyat = _matchEvetHayir(md.yakin_zamanda_ameliyat_gecirildi);
+    selectedalerji = _matchEvetHayir(md.alerji_var);
+    selectedalkol = _matchEvetHayir(md.alkol_alimi_yapildi);
+    selectedregl = _matchEvetHayir(md.regl_doneminde);
+    selecteddoku = _matchEvetHayir(md.deri_yumusak_doku_hastaligi_var);
+    selectedilac = _matchEvetHayir(md.surekli_kullanilan_ilac_Var);
+    selectedkemoterapi = _matchEvetHayir(md.kemoterapi_goruyor);
+    selecteduygulama = _matchEvetHayir(md.daha_once_uygulama_yaptirildi);
+    final ct = cilttipi.where((item) => item.id == md.cilt_tipi);
+    selectedcilttip = ct.isEmpty ? null : ct.first;
+  }
+
+  Future<void> _refreshFromServer() async {
+    if (_md.id.isEmpty) return;
+    if (mounted) setState(() => _refreshing = true);
+    try {
+      final fresh = await kullanicibilgimusteri(_md.id);
+      if (!mounted) return;
+      setState(() {
+        _md = fresh;
+        _hydrateFromMd(fresh);
+        _refreshing = false;
+      });
+    } catch (e) {
+      log('Sağlık bilgileri refresh hatası: $e');
+      if (mounted) setState(() => _refreshing = false);
+    }
   }
 
   Future<void> _loadSalon() async {
@@ -111,7 +134,7 @@ class _MusteriPaneliSaglikBilgileriState
     }
     _formKey.currentState!.save();
     setState(() => _saving = true);
-    await submitForm(
+    final ok = await submitForm(
       musteriid.text,
       selectedhemofili?.id ?? "",
       selectedseker?.id ?? "",
@@ -126,9 +149,22 @@ class _MusteriPaneliSaglikBilgileriState
       selecteduygulama?.id ?? "",
       eksaglik.text,
       selectedcilttip?.id ?? "",
-      context,
     );
-    if (mounted) setState(() => _saving = false);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sağlık bilgileriniz kaydedildi.')),
+      );
+      await _refreshFromServer();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Bilgiler kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -158,6 +194,22 @@ class _MusteriPaneliSaglikBilgileriState
                 color: _onSurface, size: 20),
             onPressed: () => Navigator.of(context).pop(),
           ),
+          actions: [
+            if (_refreshing)
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: _primary,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
         body: Container(
           decoration: BoxDecoration(
@@ -697,23 +749,23 @@ class _MusteriPaneliSaglikBilgileriState
   }
 }
 
-Future<void> submitForm(
-    String musteri_id,
-    String hemofili,
-    String seker,
-    String hamile,
-    String ameliyet,
-    String alerji,
-    String alkol,
-    String regl,
-    String doku,
-    String ilac,
-    String kemo,
-    String uygulama,
-    String eksaglik,
-    String cilt,
-    context) async {
-  Map<String, dynamic> formData = {
+Future<bool> submitForm(
+  String musteriId,
+  String hemofili,
+  String seker,
+  String hamile,
+  String ameliyet,
+  String alerji,
+  String alkol,
+  String regl,
+  String doku,
+  String ilac,
+  String kemo,
+  String uygulama,
+  String eksaglik,
+  String cilt,
+) async {
+  final formData = <String, dynamic>{
     'hemofili_hastaligi_var': hemofili,
     'seker_hastaligi_var': seker,
     'hamile': hamile,
@@ -727,35 +779,19 @@ Future<void> submitForm(
     'daha_once_uygulama_yaptirildi': uygulama,
     'ek_saglik_sorunu': eksaglik,
     'cilt_tipi': cilt,
-    'musteri_id': musteri_id
+    'musteri_id': musteriId,
   };
 
-  final response = await http.post(
-    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/saglikbilgilerigir'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(formData),
-  );
-  log('Response status: ${response.statusCode}');
-  log('Response body: ${response.body}');
-
-  if (response.statusCode == 200) {
-    if (response.body.isNotEmpty) {
-      log('Response body: ${response.body}');
-    } else {
-      log('Response body is empty');
-    }
-    Navigator.of(context).pop();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Güncelleme Başarılı')),
+  try {
+    final response = await http.post(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/saglikbilgilerigir'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(formData),
     );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            'Bilgiler değiştirilirken bir hata oluştu! Hata kodu : ${response.statusCode}'),
-      ),
-    );
-    debugPrint('Error: ${response.body}');
+    log('saglikbilgilerigir status: ${response.statusCode}');
+    return response.statusCode >= 200 && response.statusCode < 300;
+  } catch (e) {
+    log('saglikbilgilerigir hata: $e');
+    return false;
   }
 }
