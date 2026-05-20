@@ -1177,7 +1177,8 @@ class OnGorusmeDataSource extends DataGridSource {
       String aciklama,
       String personelid,
       String cakisanrandevuekle,
-      String hizmet_id) async {
+      String hizmet_id,
+      {String oda_id = ""}) async {
 
     SharedPreferences localStorage = await SharedPreferences.getInstance();
     var user = jsonDecode(localStorage.getString('user')!);
@@ -1193,7 +1194,7 @@ class OnGorusmeDataSource extends DataGridSource {
         'hizmet_id': "1",
         'hizmetler': {},
         'oda': "",
-        'oda_id': "",
+        'oda_id': oda_id,
         'personeller': {},
         'saat': randevu_saati,
         'saat_bitis': "",
@@ -1271,7 +1272,8 @@ class OnGorusmeDataSource extends DataGridSource {
               onGorusmeEkleGuncelle(
                   ongorusmeid, musteri_id, ad_soyad, telefon, email, cinsiyet,
                   context, salonid, sehir, referans, meslek, urun_id, paket_id,
-                  randevu_tarihi, randevu_saati, aciklama, personelid, "1", hizmet_id
+                  randevu_tarihi, randevu_saati, aciklama, personelid, "1", hizmet_id,
+                  oda_id: oda_id
               );
             }
           });

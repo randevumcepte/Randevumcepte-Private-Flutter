@@ -15,6 +15,7 @@ import 'package:randevu_sistem/theme/premium_components.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteridanisanreferans.dart';
+import 'package:randevu_sistem/Models/odalar.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/sehirler.dart';
 import 'package:randevu_sistem/Frontend/lazyload.dart';
@@ -53,7 +54,16 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	Referans? selectedongorusmereferans;
 	OnGorusmeNedeni? selectedongorusmesebep;
 	Personel? selectedongorusmeyapan;
+	// Takvim odaya gore ise (randevu_takvim_turu == 3) oda secimi gosterilir
+	Oda? selectedongorusmeoda;
 	late String seciliisletme;
+
+	bool get _odaTakvim {
+		final t = int.tryParse(
+				widget.isletmebilgi["randevu_takvim_turu"]?.toString() ?? '0') ??
+				0;
+		return t == 3;
+	}
 
 	final TextEditingController ongorusmesebepcontroller = TextEditingController();
 	final TextEditingController adsoyad = TextEditingController();
@@ -65,9 +75,11 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	final TextEditingController ongorusmesaati = TextEditingController();
 	final TextEditingController ongorusmeaciklama = TextEditingController();
 	final TextEditingController ongorusmeyapancontroller = TextEditingController();
+	final TextEditingController ongorusmeodacontroller = TextEditingController();
 
 	late List<Personel> ongorusmeyapan;
 	late List<OnGorusmeNedeni> ongorusmeneden;
+	List<Oda> ongorusmeodalar = [];
 	bool yukleniyor = true;
 
 	String _selectedGender = '';
@@ -86,12 +98,14 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		List<Personel> isletmepersonellerliste = isletmeVerileri['personeller'];
 		List<OnGorusmeNedeni> ongorusmenedeniliste = isletmeVerileri['onGorusmeNedeni'];
 		List<Sehir> sehirler = isletmeVerileri['sehirler'];
+		List<Oda> odalar = isletmeVerileri['odalar'] ?? [];
 		final secili = await seciliPersonelgetir(widget.isletmebilgi);
 		if (!mounted) return;
 		setState(() {
 			ongorusmeyapan = isletmepersonellerliste;
 			ongorusmesehir = sehirler;
 			ongorusmeneden = ongorusmenedeniliste;
+			ongorusmeodalar = odalar;
 			yukleniyor = false;
 			selectedongorusmereferans =
 					ongorusmereferans.firstWhere((item) => item.id == "");
@@ -112,6 +126,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		ongorusmesaati.dispose();
 		ongorusmeaciklama.dispose();
 		ongorusmeyapancontroller.dispose();
+		ongorusmeodacontroller.dispose();
 		super.dispose();
 	}
 
@@ -385,6 +400,32 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 								item.personel_adi.toLowerCase().contains(q.toLowerCase()),
 						onChanged: (v) => setState(() => selectedongorusmeyapan = v),
 					),
+					if (_odaTakvim) ...[
+						const SizedBox(height: 12),
+						_rowLabel('Oda', Icons.meeting_room_outlined),
+						const SizedBox(height: 6),
+						_premiumDropdown<Oda>(
+							value: selectedongorusmeoda,
+							items: ongorusmeodalar
+									.map((e) => DropdownMenuItem(
+												value: e,
+												child: Text(
+													e.oda_adi,
+													overflow: TextOverflow.ellipsis,
+													maxLines: 1,
+												),
+											))
+									.toList(),
+							hint: ongorusmeodalar.isEmpty
+									? 'Sistemde oda bulunmamaktadır'
+									: 'Oda seç',
+							icon: Icons.meeting_room_outlined,
+							searchController: ongorusmeodacontroller,
+							searchMatcher: (item, q) =>
+									item.oda_adi.toLowerCase().contains(q.toLowerCase()),
+							onChanged: (v) => setState(() => selectedongorusmeoda = v),
+						),
+					],
 					const SizedBox(height: 12),
 					_rowLabel('Açıklama', Icons.notes_rounded),
 					const SizedBox(height: 6),
@@ -821,6 +862,17 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 	}
 
 	void _kaydet() {
+		// Takvim odaya gore ise oda secimi zorunlu
+		if (_odaTakvim && selectedongorusmeoda == null) {
+			ScaffoldMessenger.of(context).showSnackBar(
+				const SnackBar(
+					content: Text('Lütfen oda seçiniz.'),
+					backgroundColor: Colors.red,
+					duration: Duration(seconds: 2),
+				),
+			);
+			return;
+		}
 		String urunid = "";
 		String paketid = "";
 		String hizmetid = '';
@@ -850,6 +902,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 			selectedongorusmeyapan?.id ?? "",
 			"",
 			hizmetid,
+			oda_id: selectedongorusmeoda?.id ?? "",
 		);
 	}
 
