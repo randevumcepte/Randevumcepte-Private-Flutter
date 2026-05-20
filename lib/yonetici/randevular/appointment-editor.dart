@@ -1179,8 +1179,11 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    // Personel secimi her takvim turunde gorunur (zorunlu degil)
-                    Column(
+                    // Personel her takvim turunde gorunur; cihaza/odaya gore
+                    // modda Personel + Cihaz/Oda yan yana gosterilir.
+                    Builder(builder: (context) {
+                      final tur = widget.isletmebilgi["randevu_takvim_turu"];
+                      final Widget personelKolon = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
@@ -1300,9 +1303,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                           ),
                           const SizedBox(height: 10),
                         ],
-                      ),
-                    if (widget.isletmebilgi["randevu_takvim_turu"] == 2)
-                      Column(
+                      );
+                      final Widget cihazKolon = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -1403,9 +1405,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                           ),
                           const SizedBox(height: 10),
                         ],
-                      ),
-                    if (widget.isletmebilgi["randevu_takvim_turu"] == 3)
-                      Column(
+                      );
+                      final Widget odaKolon = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -1506,7 +1507,29 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                           ),
                           const SizedBox(height: 10),
                         ],
-                      ),
+                      );
+                      if (tur == 2) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: personelKolon),
+                            const SizedBox(width: 10),
+                            Expanded(child: cihazKolon),
+                          ],
+                        );
+                      }
+                      if (tur == 3) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: personelKolon),
+                            const SizedBox(width: 10),
+                            Expanded(child: odaKolon),
+                          ],
+                        );
+                      }
+                      return personelKolon;
+                    }),
                     // Grup icindeki hizmet mini-kartlari
                     ...indices.map((i) {
                       final bool grupCokluHizmet = indices.length > 1;

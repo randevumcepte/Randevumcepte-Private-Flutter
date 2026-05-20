@@ -820,8 +820,11 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                 children: [
                   Column(
                     children: [
-                      // Personel secimi her takvim turunde gorunur (zorunlu degil)
-                      Column(
+                      // Personel her takvim turunde gorunur; cihaza/odaya gore
+                      // modda Personel + Cihaz/Oda yan yana gosterilir.
+                      Builder(builder: (context) {
+                        final tur = widget.isletmebilgi["randevu_takvim_turu"];
+                        final Widget personelKolon = Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
@@ -916,15 +919,8 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                               ),
                             ),
                           ],
-                        ),
-                      const SizedBox(height: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (widget.isletmebilgi["randevu_takvim_turu"] == 2)
-                            SizedBox(
-                              width: double.infinity,
-                              child: Column(
+                        );
+                        final Widget cihazKolon = Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -992,12 +988,8 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                                     ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          if (widget.isletmebilgi["randevu_takvim_turu"] == 3)
-                            SizedBox(
-                              width: double.infinity,
-                              child: Column(
+                              );
+                        final Widget odaKolon = Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -1065,11 +1057,33 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                                     ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          if (widget.isletmebilgi["randevu_takvim_turu"] == 2 ||
-                              widget.isletmebilgi["randevu_takvim_turu"] == 3)
-                            const SizedBox(height: 10),
+                              );
+                        if (tur == 2) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: personelKolon),
+                              const SizedBox(width: 10),
+                              Expanded(child: cihazKolon),
+                            ],
+                          );
+                        }
+                        if (tur == 3) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: personelKolon),
+                              const SizedBox(width: 10),
+                              Expanded(child: odaKolon),
+                            ],
+                          );
+                        }
+                        return personelKolon;
+                      }),
+                      const SizedBox(height: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           SizedBox(
                             width: double.infinity,
                             child: Column(
