@@ -1179,10 +1179,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    // Grup ust seridi: Personel + (Cihaz/Oda) tek kez
-                    if (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
-                        widget.isletmebilgi["randevu_takvim_turu"] == 1)
-                      Column(
+                    // Personel secimi her takvim turunde gorunur (zorunlu degil)
+                    Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
@@ -2160,16 +2158,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       }
                     }
                     bool himzetSeciliDegil = secilihizmet.any((element) => element == null);
-                    bool personelSeciliDegil = secilipersonel.any((element) => element == null);
                     bool cihazSeciliDegil = secilicihaz.any((element) => element == null);
                     bool odaSeciliDegil = secilioda.any((element) => element == null);
-
-                    if (widget.isletmebilgi["randevu_takvim_turu"] == 1) {
-                      if (personelSeciliDegil) {
-                        formisvalid = false;
-                        uyari += '\nLütfen personel seçiniz.';
-                      }
-                    }
 
                     if (widget.isletmebilgi["randevu_takvim_turu"] == 2) {
                       if (cihazSeciliDegil) {

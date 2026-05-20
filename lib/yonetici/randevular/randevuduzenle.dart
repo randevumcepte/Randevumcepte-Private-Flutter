@@ -820,9 +820,8 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                 children: [
                   Column(
                     children: [
-                      if (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
-                          widget.isletmebilgi["randevu_takvim_turu"] == 1)
-                        Column(
+                      // Personel secimi her takvim turunde gorunur (zorunlu degil)
+                      Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
@@ -918,9 +917,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                             ),
                           ],
                         ),
-                      if (widget.isletmebilgi["randevu_takvim_turu"] == 0 ||
-                          widget.isletmebilgi["randevu_takvim_turu"] == 1)
-                        const SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1521,16 +1518,8 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                       }
                     }
                     bool himzetSeciliDegil = secilihizmet.any((element) => element == null);
-                    bool personelSeciliDegil = secilipersonel.any((element) => element == null);
                     bool cihazSeciliDegil = secilicihaz.any((element) => element == null);
                     bool odaSeciliDegil = secilioda.any((element) => element == null);
-
-                    if (widget.isletmebilgi["randevu_takvim_turu"] == 1) {
-                      if(personelSeciliDegil) {
-                        formisvalid = false;
-                        uyari += '\nLütfen personel seçiniz.';
-                      }
-                    }
 
                     if (widget.isletmebilgi["randevu_takvim_turu"] == 2) {
                       if(cihazSeciliDegil){
