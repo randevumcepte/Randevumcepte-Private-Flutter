@@ -376,11 +376,9 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
                                       saat: '',
                                       saat_bitis: '',
                                       yardimci_personel: '',
-                                      // birlestir='1' => paralel (ust ile ayni saat)
-                                      birusttekiileaynisaat:
-                                          (i > 0 && d.birlestir)
-                                              ? '1'
-                                              : '',
+                                      // birlestir bayragi 2. pass'te onceki
+                                      // hizmete yazilir (API semantigi).
+                                      birusttekiileaynisaat: '',
                                       paket_adi: d.paketAdi,
                                       adisyon_paket_id:
                                           d.adisyonPaketId,
@@ -388,6 +386,15 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
                                           d.adisyonHizmetId,
                                       groupId: grupId,
                                     ));
+                                  }
+                                  // Birlestir bayragi: API'de hizmetler[i].birlestir=='1'
+                                  // => hizmet[i+1] hizmet[i] ile paralel olur.
+                                  // Kullanici i. satirda "ustteki ile birlestir"
+                                  // isaretlemisse => onceki hizmete (i-1) bayrak yaz.
+                                  for (int i = 1; i < secimler.length; i++) {
+                                    if (secimler[i].birlestir) {
+                                      sonuc[i - 1].birusttekiileaynisaat = '1';
+                                    }
                                   }
                                   Navigator.of(ctx).pop(sonuc);
                                 },
