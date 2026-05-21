@@ -3704,6 +3704,47 @@ class _HomeState extends State<DashBoard> {
                       IconButton(
                         onPressed: () async {
                           if (seciliisletme == null || seciliisletme!.isEmpty) return;
+                          // Disclaimer: ilk kez salon icin aciliyorsa 1 kerelik uyari
+                          final prefs = await SharedPreferences.getInstance();
+                          final flagKey = 'faturasiz_gizle_uyari_okundu_${seciliisletme!}';
+                          final okundu = prefs.getBool(flagKey) ?? false;
+                          if (!okundu && mounted) {
+                            final onay = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                title: Row(children: [
+                                  Icon(Icons.info_outline, color: Colors.blue.shade700),
+                                  SizedBox(width: 10),
+                                  Text('Bilgilendirme'),
+                                ]),
+                                content: SingleChildScrollView(
+                                  child: Text(
+                                    'Bu mod yalnizca yonetim raporu gorunumunuzu etkiler.\n\n'
+                                    'Tum satis kayitlariniz sistemde tutulmaya devam eder, hicbiri silinmez.\n\n'
+                                    'Vergi yukumluluklerinizi (fatura/fis kesme, beyan) karsiladiginizdan emin olunuz. Bu ozellik bir muhasebe takip aracidir, vergi yukumluluk muafiyeti saglamaz.',
+                                    style: TextStyle(fontSize: 14, height: 1.5),
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(false),
+                                    child: Text('Vazgec', style: TextStyle(color: Colors.grey.shade600)),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green.shade600,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: Text('Anladim, devam et'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (onay != true) return;
+                            await prefs.setBool(flagKey, true);
+                          }
                           final yeni = await faturasizGizleToggle(seciliisletme!, widget.kullanici.id.toString());
                           if (yeni >= 0 && mounted) setState(() { _faturasizGizleAktif = (yeni == 1); });
                         },
