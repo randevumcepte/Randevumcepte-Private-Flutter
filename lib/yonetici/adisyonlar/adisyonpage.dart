@@ -515,6 +515,19 @@
         },
       );
     }
+
+    Future<void> _toggleAdisyonFatura(Adisyon adisyon, bool isOpenTab) async {
+      if (seciliisletme == null || seciliisletme!.isEmpty) return;
+      final ok = await adisyonFaturaIsaretle(
+          seciliisletme!, widget.kullanici.id.toString(), adisyon.id);
+      if (!ok || !mounted) return;
+      if (isOpenTab) {
+        await fetchAcikAdisyonlar();
+      } else {
+        await fetchAdisyonlar();
+      }
+    }
+
     Widget _buildAdisyonCard(Adisyon adisyon, bool isOpenTab) {
       final bool isExpanded = _currentlyExpandedId == adisyon.id;
       final double toplam = double.tryParse(adisyon.toplam_numeric) ?? 0;
@@ -974,6 +987,9 @@
               case 'sil':
                 _deleteAdisyon(adisyon, isOpenTab);
                 break;
+              case 'fatura':
+                _toggleAdisyonFatura(adisyon, isOpenTab);
+                break;
             }
           },
           itemBuilder: (context) => [
@@ -1019,6 +1035,19 @@
                   SizedBox(width: 10),
                   Text('Sil',
                       style: TextStyle(color: Colors.red.shade700)),
+                ]),
+              ),
+            if (widget.kullanicirolu == 1)
+              PopupMenuItem(
+                value: 'fatura',
+                child: Row(children: [
+                  Icon(Icons.receipt_long,
+                      size: 18,
+                      color: adisyon.fatura_kesildi == 1
+                          ? Colors.amber.shade700
+                          : Colors.grey.shade600),
+                  SizedBox(width: 10),
+                  Text(adisyon.fatura_kesildi == 1 ? 'Faturayi Kaldir' : 'Fatura Isaretle'),
                 ]),
               ),
           ],

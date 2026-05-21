@@ -82,6 +82,9 @@ class _HomeState extends State<DashBoard> {
   // Yüklenme durumu: hangi periyotlar için API hâlâ cevap bekliyor
   final Set<String> _loadingPeriods = {};
 
+  // Faturasiz gizle modu (hesap sahibine ozel, salon-wide toggle)
+  bool _faturasizGizleAktif = false;
+
   void _updateNotificationCount() {
     _refreshDashboardData();
   }
@@ -164,6 +167,12 @@ class _HomeState extends State<DashBoard> {
     });
 
     if (!mounted) return;
+    // Salon-wide faturasiz gizle durumunu (hesap sahibine ozel) sessizce yukle
+    if (seciliisletme != null && seciliisletme!.isNotEmpty) {
+      faturasizGizleDurum(seciliisletme!).then((v) {
+        if (mounted) setState(() { _faturasizGizleAktif = (v == 1); });
+      });
+    }
     setState(() {
       kullanicirolu = int.parse(widget.kullanici.yetkili_olunan_isletmeler
           .firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["role_id"]
@@ -3691,6 +3700,19 @@ class _HomeState extends State<DashBoard> {
                       ),
                       iconSize: 20,
                     ),
+                    if (kullanicirolu == 1)
+                      IconButton(
+                        onPressed: () async {
+                          if (seciliisletme == null || seciliisletme!.isEmpty) return;
+                          final yeni = await faturasizGizleToggle(seciliisletme!, widget.kullanici.id.toString());
+                          if (yeni >= 0 && mounted) setState(() { _faturasizGizleAktif = (yeni == 1); });
+                        },
+                        icon: Icon(
+                          Icons.receipt_long,
+                          color: _faturasizGizleAktif ? Colors.amberAccent : onPrimary,
+                        ),
+                        iconSize: 20,
+                      ),
                     IconButton(
                       onPressed: () {
                         Navigator.push(

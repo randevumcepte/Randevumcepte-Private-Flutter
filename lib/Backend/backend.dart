@@ -5880,3 +5880,56 @@ Future<Map<String, dynamic>?> whatsappPaketTalep(String salonId, {
   }
   return null;
 }
+
+// ============================================================
+// FATURA ISARETLEME / FATURASIZ GIZLE (gizli muhasebe modu)
+// ============================================================
+
+Future<bool> adisyonFaturaIsaretle(String salonId, String userId, String adisyonId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/adisyonfaturaisaretle'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'salonid': salonId, 'user_id': userId, 'adisyon_id': adisyonId}),
+    );
+    if (res.statusCode == 200) {
+      final j = json.decode(res.body);
+      return j['ok'] == true;
+    }
+  } catch (e) {
+    log('adisyonFaturaIsaretle: $e');
+  }
+  return false;
+}
+
+Future<int> faturasizGizleToggle(String salonId, String userId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/faturasizgizletoggle'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'salonid': salonId, 'user_id': userId}),
+    );
+    if (res.statusCode == 200) {
+      final j = json.decode(res.body);
+      if (j['ok'] == true) return (j['faturasiz_gizle'] as num).toInt();
+    }
+  } catch (e) {
+    log('faturasizGizleToggle: $e');
+  }
+  return -1;
+}
+
+Future<int> faturasizGizleDurum(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/faturasizgizledurum/$salonId'),
+    );
+    if (res.statusCode == 200) {
+      final j = json.decode(res.body);
+      return (j['faturasiz_gizle'] as num).toInt();
+    }
+  } catch (e) {
+    log('faturasizGizleDurum: $e');
+  }
+  return 0;
+}

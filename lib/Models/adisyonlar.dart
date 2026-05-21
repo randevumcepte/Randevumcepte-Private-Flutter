@@ -33,6 +33,7 @@
     required this.indirim_tutari_toplam_numeric,
     required this.icerikKisaltilmis,
     this.son_tahsilat_tarihi = '',
+    this.fatura_kesildi = 0,
 
 
   });
@@ -67,6 +68,7 @@
   final String user_id;
   final String icerikKisaltilmis;
   final String son_tahsilat_tarihi;
+  final int fatura_kesildi;
 
 
 
@@ -103,6 +105,7 @@
       hizmet_veren:json["hizmet_veren"].toString(),
       user_id : json["user_id"].toString(),
       son_tahsilat_tarihi: json["son_tahsilat_tarihi"]?.toString() ?? '',
+      fatura_kesildi: int.tryParse(json["fatura_kesildi"]?.toString() ?? '0') ?? 0,
 
 
     );
