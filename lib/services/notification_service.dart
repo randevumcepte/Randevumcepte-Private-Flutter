@@ -22,24 +22,36 @@ import 'package:randevu_sistem/services/notification_types.dart';
 /// Backend host'u sabit. Build'e göre değişiyorsa burayı tek noktadan değiştir.
 const _apiBase = 'https://apptest.randevumcepte.com.tr/api/v1';
 
+/// Custom bildirim sesi. res/raw/ring.mp3 (Android) — uzantısız 'ring' verilir.
+const _ringSound = RawResourceAndroidNotificationSound('ring');
+
 /// Android bildirim kanalları. Tipler buradaki id'lere göre dağıtılır.
+/// NOT: Kanal ID'leri _v2. Bir kanalın sesi oluşturulduktan sonra
+/// değiştirilemez; ring.mp3'ü mevcut kullanıcılara da uygulamak için
+/// ID bump'landı ve eski kanallar _createAndroidChannels'da siliniyor.
 const _channelDefault   = AndroidNotificationChannel(
-  'rmc_default',
+  'rmc_default_v2',
   'Genel Bildirimler',
   description: 'Genel uygulama bildirimleri',
   importance: Importance.defaultImportance,
+  playSound: true,
+  sound: _ringSound,
 );
 const _channelImportant = AndroidNotificationChannel(
-  'rmc_important',
+  'rmc_important_v2',
   'Önemli Bildirimler',
   description: 'Randevu, mesaj, ödeme gibi önemli bildirimler',
   importance: Importance.high,
+  playSound: true,
+  sound: _ringSound,
 );
 const _channelPromo     = AndroidNotificationChannel(
-  'rmc_promo',
+  'rmc_promo_v2',
   'Kampanya ve İndirimler',
   description: 'Kampanya, indirim ve çark hatırlatmaları',
   importance: Importance.high,
+  playSound: true,
+  sound: _ringSound,
 );
 
 /// Arka planda gelen FCM mesajları için top-level handler.
@@ -89,11 +101,15 @@ class NotificationService {
     // 2) Android channels
     await _createAndroidChannels();
 
-    // 3) iOS foreground gösterimi (banner + sound + badge)
+    // 3) iOS foreground gösterimi.
+    // alert/sound KAPALI: foreground'da bildirimi zaten onMessage ->
+    // _showAsLocal kendisi çiziyor (ring.caf ile). Sistemin de ayrıca
+    // sunması çift banner + çift ses demek olurdu. badge açık kalsın ki
+    // sistem rozet sayısını güncelleyebilsin.
     await _fcm.setForegroundNotificationPresentationOptions(
-      alert: true,
+      alert: false,
       badge: true,
-      sound: true,
+      sound: false,
     );
 
     // 4) Local notifications init (foreground banner için)
@@ -155,6 +171,10 @@ class NotificationService {
     if (!Platform.isAndroid) return;
     final plugin = _local.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
+    // Eski kanallar (ring.mp3 öncesi) — sesleri değiştirilemediği için sil.
+    await plugin?.deleteNotificationChannel('rmc_default');
+    await plugin?.deleteNotificationChannel('rmc_important');
+    await plugin?.deleteNotificationChannel('rmc_promo');
     await plugin?.createNotificationChannel(_channelDefault);
     await plugin?.createNotificationChannel(_channelImportant);
     await plugin?.createNotificationChannel(_channelPromo);
@@ -466,6 +486,8 @@ class NotificationService {
                 : 'Genel Bildirimler',
         importance: Importance.high,
         priority: Priority.high,
+        playSound: true,
+        sound: _ringSound,
         styleInformation: BigPictureStyleInformation(
           await _resolveBigPicture(payload.image!),
           contentTitle: title,
@@ -482,6 +504,8 @@ class NotificationService {
                 : 'Genel Bildirimler',
         importance: Importance.high,
         priority: Priority.high,
+        playSound: true,
+        sound: _ringSound,
         styleInformation: BigTextStyleInformation(body, contentTitle: title),
       );
     }
@@ -490,6 +514,7 @@ class NotificationService {
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      sound: 'ring.caf',
       attachments: payload.image != null
           ? [DarwinNotificationAttachment(payload.image!)]
           : null,

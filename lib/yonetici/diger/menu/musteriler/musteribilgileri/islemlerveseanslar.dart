@@ -216,7 +216,7 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
                         children: [
                           Text('Seans Başlangıcı'),SizedBox(width: 2,),
                           Text(':'),
-                          Text(' 12.10.2023')
+                          Expanded(child: Text(' 12.10.2023', overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
@@ -232,7 +232,7 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
                         children: [
                           Text('Toplam Ücret(₺)'),SizedBox(width: 8,),
                           Text(':'),
-                          Text(' 1.000,00')
+                          Expanded(child: Text(' 1.000,00', overflow: TextOverflow.ellipsis,))
                         ],
 
                       ),
@@ -240,7 +240,7 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
                         children: [
                           Text('Ödenen(₺)'),SizedBox(width: 49,),
                           Text(':'),
-                          Text(' 0,00')
+                          Expanded(child: Text(' 0,00', overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
@@ -248,7 +248,7 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
                           Text('Kalan(₺)'),SizedBox(width: 45,),
                           SizedBox(width: 18,),
                           Text(':'),
-                          Text(' 1.000,00')
+                          Expanded(child: Text(' 1.000,00', overflow: TextOverflow.ellipsis,))
                         ],
 
                       ),

@@ -497,26 +497,32 @@ class _HomeState extends State<DashBoard> {
         Yetki.varMi('pazarlama.toplu_sms');
     final pills = <Widget>[];
     if (smsGoster) {
-      pills.add(_quickPill(
-        context,
-        icon: Icons.sms_outlined,
-        value: ozetsayfabilgi.kalansms,
-        label: 'SMS',
-        tint: scheme.primary,
+      pills.add(Expanded(
+        child: _quickPill(
+          context,
+          icon: Icons.sms_outlined,
+          value: ozetsayfabilgi.kalansms,
+          label: 'SMS',
+          tint: scheme.primary,
+        ),
       ));
     }
     // WhatsApp durum pill: bagli ise yesil, koptu/pasif ise kirmizi.
     // Her zaman gosterilir — tiklayinca yonetim sayfasi acilir.
     if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
-    pills.add(_whatsappPill(context, ozetsayfabilgi.whatsappBagli));
+    pills.add(Expanded(
+      child: _whatsappPill(context, ozetsayfabilgi.whatsappBagli),
+    ));
     if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
-    pills.add(_quickPill(
-      context,
-      icon: Icons.account_balance_wallet_outlined,
-      // rapor.ciro_kar_gor yetkisi yoksa "****" goster.
-      value: Yetki.tutarGoster('${ozetsayfabilgi.toplamkasa} ₺', 'rapor.ciro_kar_gor'),
-      label: kullanicirolu < 5 ? 'Bugünkü Kasa' : 'Toplam Satış',
-      tint: const Color(0xFF10B981),
+    pills.add(Expanded(
+      child: _quickPill(
+        context,
+        icon: Icons.account_balance_wallet_outlined,
+        // rapor.ciro_kar_gor yetkisi yoksa "****" goster.
+        value: Yetki.tutarGoster('${ozetsayfabilgi.toplamkasa} ₺', 'rapor.ciro_kar_gor'),
+        label: kullanicirolu < 5 ? 'Bugünkü Kasa' : 'Toplam Satış',
+        tint: const Color(0xFF10B981),
+      ),
     ));
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -558,7 +564,6 @@ class _HomeState extends State<DashBoard> {
             ],
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Stack(
                 alignment: Alignment.center,
@@ -592,29 +597,37 @@ class _HomeState extends State<DashBoard> {
                 ],
               ),
               const SizedBox(width: 9),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    etiket,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.onSurface,
-                      height: 1.1,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        etiket,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
+                          height: 1.1,
+                        ),
+                      ),
                     ),
-                  ),
-                  Text(
-                    'WhatsApp',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: scheme.onSurface.withValues(alpha: 0.55),
-                      height: 1.1,
+                    Text(
+                      'WhatsApp',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                        height: 1.1,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(width: 6),
             ],
@@ -646,7 +659,6 @@ class _HomeState extends State<DashBoard> {
         ],
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 30,
@@ -658,29 +670,37 @@ class _HomeState extends State<DashBoard> {
             child: Icon(icon, size: 16, color: tint),
           ),
           const SizedBox(width: 9),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onSurface,
-                  height: 1.1,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface,
+                      height: 1.1,
+                    ),
+                  ),
                 ),
-              ),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: scheme.onSurface.withValues(alpha: 0.55),
-                  height: 1.1,
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                    height: 1.1,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(width: 6),
         ],

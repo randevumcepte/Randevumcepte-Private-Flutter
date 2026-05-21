@@ -77,7 +77,7 @@ class _KampanyaDetayState extends State<KampanyaDetay>{
                   child: ListTile(
                       title: Row(
                         children: [
-                          Text('Paket\n${widget.kampanyadetayi.paket_isim}',style: TextStyle(fontWeight: FontWeight.bold),),
+                          Flexible(child: Text('Paket\n${widget.kampanyadetayi.paket_isim}',style: TextStyle(fontWeight: FontWeight.bold),)),
                           SizedBox(width: 50,),
                           Expanded(child: Text('Hizmet(-ler)\n${widget.kampanyadetayi.hizmet_adi}',style: TextStyle(fontWeight: FontWeight.bold)))
 

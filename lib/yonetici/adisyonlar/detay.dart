@@ -196,7 +196,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
         Column(
           children: [
 
-                Container(width:350,
+                Container(width: double.infinity,
                     height: 35,
                     color: Colors.purple[800],
                     child: Row(
@@ -291,7 +291,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
 
         Column(
           children: [
-            Container(width:350,
+            Container(width: double.infinity,
                 height: 35,
                 color: Colors.purple[800],
                 child: Row(
@@ -381,7 +381,7 @@ class _MusteriDetayState extends State<MusteriDetay> {
         ),
         Column(
           children: [
-            Container(width:350,
+            Container(width: double.infinity,
                 height: 35,
                 color: Colors.purple[800],
                 child: Row(

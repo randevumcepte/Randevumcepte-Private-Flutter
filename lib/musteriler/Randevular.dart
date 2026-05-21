@@ -49,7 +49,7 @@ class _MusteriRandevuState extends State<MusteriRandevu> {
                             children: [
                               Text("Durum", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),),
                               Spacer(),
-                              Text("Onaylı")
+                              Flexible(child: Text("Onaylı", overflow: TextOverflow.ellipsis,))
                             ],
                           ),
                         ),
@@ -61,7 +61,7 @@ class _MusteriRandevuState extends State<MusteriRandevu> {
                             children: [
                               Text("Hizmet", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 15),),
                               Spacer(),
-                              Text("Manikür")
+                              Flexible(child: Text("Manikür", overflow: TextOverflow.ellipsis,))
                             ],
                           ),
                         ),
@@ -73,8 +73,7 @@ class _MusteriRandevuState extends State<MusteriRandevu> {
                             children: [
                               Text("Çalışan", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 15),),
                               Spacer(),
-                              Text("Cevocey,"),
-                              Text("Anıl Orbey"),
+                              Flexible(child: Text("Cevocey, Anıl Orbey", overflow: TextOverflow.ellipsis,)),
                             ],
                           ),
                         ),
@@ -87,7 +86,7 @@ class _MusteriRandevuState extends State<MusteriRandevu> {
                             children: [
                               Text("Ödeme", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 15),),
                               Spacer(),
-                              Text("0 TL")
+                              Flexible(child: Text("0 TL", overflow: TextOverflow.ellipsis,))
                             ],
                           ),
                         ),

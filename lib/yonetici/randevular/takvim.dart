@@ -1399,6 +1399,7 @@ List<Widget> _buildAppointmentsForResource(
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text(
           'Randevu Taşıma Onayı',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -1581,6 +1582,7 @@ List<Widget> _buildAppointmentsForResource(
     final onay = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: const Text('Randevu Süresi Değişikliği', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,

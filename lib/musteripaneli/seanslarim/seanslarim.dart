@@ -63,7 +63,7 @@ class _MusteriSeanslariState extends State<MusteriSeanslari> {
                 return  DataRow(
                   cells: [
                     DataCell(
-                      Container(width:80,child: Text(item['paketadi'])),
+                      Container(width:80,child: Text(item['paketadi'], overflow: TextOverflow.ellipsis,)),
 
                     ),
 

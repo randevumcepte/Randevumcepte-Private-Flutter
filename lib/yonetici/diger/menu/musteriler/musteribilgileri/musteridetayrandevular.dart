@@ -564,7 +564,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Telefon'), SizedBox(width: 22,),
                             Text(':'),
-                            Text(' 5316237563')
+                            Expanded(child: Text(' 5316237563', overflow: TextOverflow.ellipsis,))
                           ],
                         ),
                         Row(
@@ -581,7 +581,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Zaman'), SizedBox(width: 26,),
                             Text(':'),
-                            Text(' 07.09.2023 17:45')
+                            Expanded(child: Text(' 07.09.2023 17:45', overflow: TextOverflow.ellipsis,))
                           ],
 
                         ),
@@ -589,7 +589,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Oluşturan'), SizedBox(width: 7.5,),
                             Text(':'),
-                            Text(' Elif Çetin')
+                            Expanded(child: Text(' Elif Çetin', overflow: TextOverflow.ellipsis,))
                           ],
                         ),
                         Row(
@@ -597,7 +597,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                             Text('Durum'), SizedBox(width: 10,),
                             SizedBox(width: 18,),
                             Text(':'),
-                            Text(' Onaylı')
+                            Expanded(child: Text(' Onaylı', overflow: TextOverflow.ellipsis,))
                           ],
 
                         ),
@@ -715,7 +715,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Telefon'), SizedBox(width: 22,),
                             Text(':'),
-                            Text(' 5316237563')
+                            Expanded(child: Text(' 5316237563', overflow: TextOverflow.ellipsis,))
                           ],
                         ),
                         Row(
@@ -732,7 +732,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Zaman'), SizedBox(width: 26,),
                             Text(':'),
-                            Text(' 07.09.2023 17:45')
+                            Expanded(child: Text(' 07.09.2023 17:45', overflow: TextOverflow.ellipsis,))
                           ],
 
                         ),
@@ -740,7 +740,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Oluşturan'), SizedBox(width: 7.5,),
                             Text(':'),
-                            Text(' Elif Çetin')
+                            Expanded(child: Text(' Elif Çetin', overflow: TextOverflow.ellipsis,))
                           ],
                         ),
                         Row(
@@ -748,7 +748,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                             Text('Durum'), SizedBox(width: 10,),
                             SizedBox(width: 18,),
                             Text(':'),
-                            Text(' Onaylı')
+                            Expanded(child: Text(' Onaylı', overflow: TextOverflow.ellipsis,))
                           ],
 
                         ),
@@ -821,7 +821,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Telefon'), SizedBox(width: 22,),
                             Text(':'),
-                            Text(' 5316237563')
+                            Expanded(child: Text(' 5316237563', overflow: TextOverflow.ellipsis,))
                           ],
                         ),
                         Row(
@@ -838,7 +838,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Zaman'), SizedBox(width: 26,),
                             Text(':'),
-                            Text(' 07.09.2023 17:45')
+                            Expanded(child: Text(' 07.09.2023 17:45', overflow: TextOverflow.ellipsis,))
                           ],
 
                         ),
@@ -846,7 +846,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                           children: [
                             Text('Oluşturan'), SizedBox(width: 7.5,),
                             Text(':'),
-                            Text(' Elif Çetin')
+                            Expanded(child: Text(' Elif Çetin', overflow: TextOverflow.ellipsis,))
                           ],
                         ),
                         Row(
@@ -854,7 +854,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                             Text('Durum'), SizedBox(width: 10,),
                             SizedBox(width: 18,),
                             Text(':'),
-                            Text(' Onaylı')
+                            Expanded(child: Text(' Onaylı', overflow: TextOverflow.ellipsis,))
                           ],
 
                         ),

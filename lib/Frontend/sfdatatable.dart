@@ -2119,7 +2119,7 @@ class ArsivDataSource extends DataGridSource {
                           children: [
                             Text('Başlık'), SizedBox(width: 7,),
                             Text(':'),
-                            Text(' Beyazlatıcı Krem')
+                            Expanded(child: Text(' Beyazlatıcı Krem', overflow: TextOverflow.ellipsis,))
                           ],
                         ),
                         Row(
@@ -5034,6 +5034,7 @@ class SeansDataSource extends DataGridSource {
                     minimumSize: Size(30, 20),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         (row.getCells()[2].value +
@@ -5058,6 +5059,7 @@ class SeansDataSource extends DataGridSource {
                     minimumSize: Size(30, 20),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         (row.getCells()[2].value).toString(),
@@ -5086,6 +5088,7 @@ class SeansDataSource extends DataGridSource {
                     minimumSize: Size(30, 20),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         row.getCells()[3].value.toString(),
@@ -5108,6 +5111,7 @@ class SeansDataSource extends DataGridSource {
                     minimumSize: Size(30, 20),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         row.getCells()[4].value.toString(),
@@ -5677,7 +5681,7 @@ class SenetDataSource extends DataGridSource {
                         children: [
                           Text('Durum'),SizedBox(width: 59,),
                           Text(': '),
-                          Text(row.getCells()[1].value.toString())
+                          Expanded(child: Text(row.getCells()[1].value.toString(), overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
@@ -5693,7 +5697,7 @@ class SenetDataSource extends DataGridSource {
                         children: [
                           Text('Ödenmiş'),SizedBox(width: 43,),
                           Text(': '),
-                          Text(row.getCells()[3].value.toString())
+                          Expanded(child: Text(row.getCells()[3].value.toString(), overflow: TextOverflow.ellipsis,))
                         ],
 
                       ),
@@ -5701,7 +5705,7 @@ class SenetDataSource extends DataGridSource {
                         children: [
                           Text('Kalan'),SizedBox(width: 67,),
                           Text(': '),
-                          Text(row.getCells()[4].value.toString())
+                          Expanded(child: Text(row.getCells()[4].value.toString(), overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
@@ -5709,7 +5713,7 @@ class SenetDataSource extends DataGridSource {
                           Text('Yaklaşan Vade'),
 
                           Text(' : '),
-                          Text(row.getCells()[5].value.toString())
+                          Expanded(child: Text(row.getCells()[5].value.toString(), overflow: TextOverflow.ellipsis,))
                         ],
 
                       ),
@@ -6275,7 +6279,7 @@ class GiderDataSource extends DataGridSource {
                         children: [
                           Text('Tarih'), SizedBox(width: 93,),
                           Text(' : '),
-                          Text(formattedDate(masraf.tarih))
+                          Expanded(child: Text(formattedDate(masraf.tarih), overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
@@ -6291,7 +6295,7 @@ class GiderDataSource extends DataGridSource {
                         children: [
                           Text('Tutar'), SizedBox(width: 90,),
                           Text(' : '),
-                          Text(masraf.tutar.toString())
+                          Expanded(child: Text(masraf.tutar.toString(), overflow: TextOverflow.ellipsis,))
                         ],
 
                       ),
@@ -6299,7 +6303,7 @@ class GiderDataSource extends DataGridSource {
                         children: [
                           Text('Masfar Kategorisi'),
                           Text(' : '),
-                          Text(masraf.masraf_kategorisi["kategori"].toString())
+                          Expanded(child: Text(masraf.masraf_kategorisi["kategori"].toString(), overflow: TextOverflow.ellipsis,))
                         ],
 
                       ),
@@ -6627,14 +6631,14 @@ class MusteriDanisanDataSource extends DataGridSource {
                         children: [
                           Text('Telefon'), SizedBox(width: 58,),
                           Text(':'),
-                          Text(Yetki.telefonGoster(md.cep_telefon.toString()))
+                          Expanded(child: Text(Yetki.telefonGoster(md.cep_telefon.toString()), overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
                         children: [
                           Text('Kayıt Tarihi'), SizedBox(width: 33,),
                           Text(':'),
-                          Text(md.kayit_tarihi)
+                          Expanded(child: Text(md.kayit_tarihi, overflow: TextOverflow.ellipsis,))
                         ],
                       ),
 
@@ -6642,7 +6646,7 @@ class MusteriDanisanDataSource extends DataGridSource {
                         children: [
                           Text('Son Randevusu'), SizedBox(width: 2,),
                           Text(':'),
-                          Text(md.son_randevu_tarihi!= "null" ? md.son_randevu_tarihi:"")
+                          Expanded(child: Text(md.son_randevu_tarihi!= "null" ? md.son_randevu_tarihi:"", overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
@@ -6650,7 +6654,7 @@ class MusteriDanisanDataSource extends DataGridSource {
                           Text('Randevu Sayısı'), SizedBox(width: 4,),
 
                           Text(':'),
-                          Text(md.randevu_sayisi.toString())
+                          Expanded(child: Text(md.randevu_sayisi.toString(), overflow: TextOverflow.ellipsis,))
                         ],
 
                       ),
@@ -6667,21 +6671,21 @@ class MusteriDanisanDataSource extends DataGridSource {
                         children: [
                           Text('Referans'), SizedBox(width: 48,),
                           Text(':'),
-                          Text(referans)
+                          Expanded(child: Text(referans, overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
                         children: [
                           Text('Doğum Tarihi'), SizedBox(width: 17,),
                           Text(':'),
-                          Text(md.dogum_tarihi != "null" ? md.dogum_tarihi : "")
+                          Expanded(child: Text(md.dogum_tarihi != "null" ? md.dogum_tarihi : "", overflow: TextOverflow.ellipsis,))
                         ],
                       ),
                       Row(
                         children: [
                           Text('Cinsiyet '), SizedBox(width: 51,),
                           Text(':'),
-                          Text(cinsiyet)
+                          Expanded(child: Text(cinsiyet, overflow: TextOverflow.ellipsis,))
                         ],
                       ),
 

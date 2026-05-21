@@ -54,6 +54,13 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
 
+        <!-- FCM: channel_id belirtilmeyen bildirimler (Firebase Console testi,
+             eski payload'lar) icin varsayilan kanal. Bu olmadan FCM sessiz
+             fcm_fallback_notification_channel'i kullanir. ring sesli kanala yonlendirir. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="rmc_important_v2" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
