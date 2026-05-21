@@ -41,6 +41,7 @@
   class _AdisyonlarPageState extends State<AdisyonlarPage> with SingleTickerProviderStateMixin {
     bool _isLoading = true;
     late TabController _tabController;
+    bool _faturasizGizleAktif = false;
 
     final List<SatisTuru> adisyonicerigi = [
       SatisTuru(id: "", satisturu: "Tümü"),
@@ -123,6 +124,13 @@
 
     Future<void> initialize() async {
       seciliisletme = await secilisalonid();
+
+      // Faturasiz gizle durumunu sessizce yukle
+      if (seciliisletme != null && seciliisletme!.isNotEmpty) {
+        faturasizGizleDurum(seciliisletme!).then((v) {
+          if (mounted) setState(() { _faturasizGizleAktif = (v == 1); });
+        });
+      }
 
       // Acik tabi onceleyerek await et: kullanici hizli render gorur
       await fetchAcikAdisyonlar();
@@ -1837,6 +1845,72 @@
             ),
           ),
           actions: [
+            if (widget.kullanicirolu == 1)
+              Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: IconButton(
+                  tooltip: 'Faturali Islemler',
+                  onPressed: () async {
+                    if (seciliisletme == null || seciliisletme!.isEmpty) return;
+                    // Aktif edilirken (kapali -> acik) her seferinde uyari
+                    if (!_faturasizGizleAktif && mounted) {
+                      final onay = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          title: Row(children: [
+                            Icon(Icons.info_outline, color: Colors.blue.shade700),
+                            SizedBox(width: 10),
+                            Text('Bilgilendirme'),
+                          ]),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              'Bu mod yalnizca yonetim raporu gorunumunuzu etkiler.\n\n'
+                              'Tum satis kayitlariniz sistemde tutulmaya devam eder, hicbiri silinmez.\n\n'
+                              'Vergi yukumluluklerinizi (fatura/fis kesme, beyan) karsiladiginizdan emin olunuz. Bu ozellik bir muhasebe takip aracidir, vergi yukumluluk muafiyeti saglamaz.',
+                              style: TextStyle(fontSize: 14, height: 1.5),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: Text('Vazgec', style: TextStyle(color: Colors.grey.shade600)),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade600,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: Text('Anladim, devam et'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (onay != true) return;
+                    }
+                    final yeni = await faturasizGizleToggle(
+                        seciliisletme!, widget.kullanici.id.toString());
+                    if (yeni >= 0 && mounted) {
+                      setState(() { _faturasizGizleAktif = (yeni == 1); });
+                      await fetchAcikAdisyonlar(resetPage: true);
+                      await fetchAdisyonlar(resetPage: true);
+                    }
+                  },
+                  icon: Container(
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _faturasizGizleAktif ? Colors.green.shade600 : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.receipt_long,
+                      color: _faturasizGizleAktif ? Colors.white : Colors.grey.shade600,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
             if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
               Padding(
                 padding: const EdgeInsets.only(right: 8),
