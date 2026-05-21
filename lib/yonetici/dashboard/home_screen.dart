@@ -3704,11 +3704,9 @@ class _HomeState extends State<DashBoard> {
                       IconButton(
                         onPressed: () async {
                           if (seciliisletme == null || seciliisletme!.isEmpty) return;
-                          // Disclaimer: ilk kez salon icin aciliyorsa 1 kerelik uyari
-                          final prefs = await SharedPreferences.getInstance();
-                          final flagKey = 'faturasiz_gizle_uyari_okundu_${seciliisletme!}';
-                          final okundu = prefs.getBool(flagKey) ?? false;
-                          if (!okundu && mounted) {
+                          // Disclaimer: SADECE aktif ederken (kapalidan acmaya gecerken).
+                          // Mod zaten acikken kapatma islemi uyari gerektirmez.
+                          if (!_faturasizGizleAktif && mounted) {
                             final onay = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
@@ -3743,7 +3741,6 @@ class _HomeState extends State<DashBoard> {
                               ),
                             );
                             if (onay != true) return;
-                            await prefs.setBool(flagKey, true);
                           }
                           final yeni = await faturasizGizleToggle(seciliisletme!, widget.kullanici.id.toString());
                           if (yeni >= 0 && mounted) setState(() { _faturasizGizleAktif = (yeni == 1); });
