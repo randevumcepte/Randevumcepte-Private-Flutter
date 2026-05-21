@@ -593,6 +593,17 @@
                               color: Colors.grey.shade800,
                             ),
                           ),
+                          if (adisyon.fatura_kesildi == 1) ...[
+                            SizedBox(width: 6),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade600,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Icon(Icons.receipt_long, size: 12, color: Colors.white),
+                            ),
+                          ],
                           _buildKebabMenu(adisyon, isOpenTab),
                         ],
                       ),
@@ -1037,17 +1048,27 @@
                       style: TextStyle(color: Colors.red.shade700)),
                 ]),
               ),
-            if (widget.kullanicirolu == 1)
+            // Fatura secenegi SADECE odemesi olan (kismi/tam) adisyonlarda
+            // gozukur. Hic odeme alinmamis adisyonda fatura kesilemez.
+            if (widget.kullanicirolu == 1 && (double.tryParse(adisyon.odenen_numeric) ?? 0) > 0)
               PopupMenuItem(
                 value: 'fatura',
                 child: Row(children: [
                   Icon(Icons.receipt_long,
                       size: 18,
                       color: adisyon.fatura_kesildi == 1
-                          ? Colors.amber.shade700
-                          : Colors.grey.shade600),
+                          ? Colors.green.shade700
+                          : Colors.grey.shade500),
                   SizedBox(width: 10),
-                  Text(adisyon.fatura_kesildi == 1 ? 'Faturayi Kaldir' : 'Fatura Isaretle'),
+                  Text(
+                    adisyon.fatura_kesildi == 1 ? 'Faturayi Kaldir' : 'Fatura Isaretle',
+                    style: TextStyle(
+                      color: adisyon.fatura_kesildi == 1
+                          ? Colors.green.shade700
+                          : null,
+                      fontWeight: adisyon.fatura_kesildi == 1 ? FontWeight.w600 : null,
+                    ),
+                  ),
                 ]),
               ),
           ],
