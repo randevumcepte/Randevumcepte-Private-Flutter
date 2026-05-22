@@ -56,7 +56,7 @@ class DashBoard extends StatefulWidget{
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<DashBoard> {
+class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   List<Map<String, dynamic>> randevuList = [];
   late Kullanici kullanici;
   late int uyelikturu;
@@ -116,6 +116,7 @@ class _HomeState extends State<DashBoard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     initialize();
     // Yetki tazelendiginde dashboard bolumleri yeniden cizilsin.
     Yetki.versiyon.addListener(_onYetkiDegisti);
@@ -123,8 +124,24 @@ class _HomeState extends State<DashBoard> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     Yetki.versiyon.removeListener(_onYetkiDegisti);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // App arka plandan dondugunde web tarafindan degistirilmis olabilecek
+    // faturasiz_gizle durumunu yenile (sessizce, list reload yapma)
+    if (state == AppLifecycleState.resumed
+        && seciliisletme != null
+        && seciliisletme!.isNotEmpty
+        && kullanicirolu == 1) {
+      faturasizGizleDurum(seciliisletme!).then((v) {
+        if (mounted) setState(() { _faturasizGizleAktif = (v == 1); });
+      });
+    }
   }
 
   Future<void> initialize() async {

@@ -38,10 +38,33 @@
     _AdisyonlarPageState createState() => _AdisyonlarPageState();
   }
 
-  class _AdisyonlarPageState extends State<AdisyonlarPage> with SingleTickerProviderStateMixin {
+  class _AdisyonlarPageState extends State<AdisyonlarPage> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
     bool _isLoading = true;
     late TabController _tabController;
     bool _faturasizGizleAktif = false;
+
+    @override
+    void didChangeAppLifecycleState(AppLifecycleState state) {
+      super.didChangeAppLifecycleState(state);
+      // App arka plandan dondugunde web tarafindan degistirilmis olabilecek
+      // faturasiz_gizle durumunu yenile + listeleri tazele
+      if (state == AppLifecycleState.resumed) {
+        _faturasizDurumYenile(listeYenile: true);
+      }
+    }
+
+    Future<void> _faturasizDurumYenile({bool listeYenile = false}) async {
+      if (seciliisletme == null || seciliisletme!.isEmpty) return;
+      final v = await faturasizGizleDurum(seciliisletme!);
+      final yeni = (v == 1);
+      if (!mounted) return;
+      final degisti = (yeni != _faturasizGizleAktif);
+      setState(() { _faturasizGizleAktif = yeni; });
+      if (degisti && listeYenile) {
+        await fetchAcikAdisyonlar(resetPage: true);
+        await fetchAdisyonlar(resetPage: true);
+      }
+    }
 
     final List<SatisTuru> adisyonicerigi = [
       SatisTuru(id: "", satisturu: "Tümü"),
@@ -102,6 +125,7 @@
     @override
     void initState() {
       super.initState();
+      WidgetsBinding.instance.addObserver(this);
       _tabController = TabController(length: 2, vsync: this);
       _tabController.addListener(_onTabChanged);
       initialize();
@@ -109,6 +133,7 @@
 
     @override
     void dispose() {
+      WidgetsBinding.instance.removeObserver(this);
       _tabController.removeListener(_onTabChanged);
       _tabController.dispose();
       super.dispose();
