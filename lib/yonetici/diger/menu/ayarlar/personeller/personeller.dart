@@ -213,33 +213,68 @@ class _PersonellerState extends State<Personeller> {
 
   Future<void> _aktifPasifToggle(Personel p) async {
     final aktif = p.durum == '1' || p.durum == 'true';
+    // Optimistic update: backend cevap beklemeden UI'i hemen guncelle
+    final eskiDurum = p.durum;
+    setState(() {
+      p.durum = aktif ? '0' : '1';
+    });
     final ok = aktif ? await personelPasifYap(p.id) : await personelAktifYap(p.id);
     if (!mounted) return;
     if (ok) {
       _snack(aktif ? 'Personel pasif yapıldı' : 'Personel aktif yapıldı', basari: true);
-      await _refreshAll();
+      // Tum liste icin stat kartlarini tazele
+      await _tumListeYukle();
     } else {
+      // Hata: optimistic update'i geri al
+      setState(() {
+        p.durum = eskiDurum;
+      });
       _snack('İşlem başarısız', basari: false);
     }
   }
 
   Future<void> _takvimToggle(Personel p) async {
+    // Optimistic update
+    final eski = p.takvimde_gorunsun;
+    final acik = p.takvimde_gorunsun == '1' || p.takvimde_gorunsun == 'true';
+    setState(() {
+      p.takvimde_gorunsun = acik ? '0' : '1';
+    });
     final yeni = await personelTakvimdeGorunsunToggle(p.id, _salonid!);
     if (!mounted) return;
     if (yeni != null) {
+      // Backend yeni durumu dondu, kesin sonucu ata
+      setState(() {
+        p.takvimde_gorunsun = yeni.toString();
+      });
       _snack(yeni == 1 ? 'Takvimde gözükecek' : 'Takvimden kaldırıldı', basari: true);
-      await _refreshAll();
+      await _tumListeYukle(); // stat kartlarini tazele
     } else {
+      setState(() => p.takvimde_gorunsun = eski);
       _snack('Takvim durumu güncellenemedi', basari: false);
     }
   }
 
   Future<void> _siraKaydir(Personel p, int delta) async {
+    // Optimistic: listedeki sirayi hemen kaydir
+    final idx = _liste.indexWhere((x) => x.id == p.id);
+    final hedef = idx + delta;
+    if (idx >= 0 && hedef >= 0 && hedef < _liste.length) {
+      setState(() {
+        final item = _liste.removeAt(idx);
+        _liste.insert(hedef, item);
+      });
+    }
     final ok = await personelSiralamaKaydir(p.id, _salonid!, delta);
     if (!mounted) return;
-    if (ok) {
-      await _refreshAll();
-    } else {
+    if (!ok) {
+      // Hata: geri al
+      if (idx >= 0 && hedef >= 0 && hedef < _liste.length) {
+        setState(() {
+          final item = _liste.removeAt(hedef);
+          _liste.insert(idx, item);
+        });
+      }
       _snack('Sıra değiştirilemedi', basari: false);
     }
   }
@@ -255,12 +290,21 @@ class _PersonellerState extends State<Personeller> {
       tehlikeli: true,
     );
     if (onay != true) return;
+    // Optimistic: personeli listeden hemen kaldir
+    final idx = _liste.indexWhere((x) => x.id == p.id);
+    setState(() {
+      if (idx >= 0) _liste.removeAt(idx);
+    });
     final ok = await personelArsivle(p.id, _salonid!);
     if (!mounted) return;
     if (ok) {
       _snack('Personel silindi', basari: true);
-      await _refreshAll();
+      await _tumListeYukle(); // stat kartlarini tazele
     } else {
+      // Hata: personeli geri ekle
+      if (idx >= 0) {
+        setState(() => _liste.insert(idx, p));
+      }
       _snack('Silinemedi', basari: false);
     }
   }
