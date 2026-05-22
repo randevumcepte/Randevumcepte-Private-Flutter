@@ -441,12 +441,12 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
           onTap: () => _tabController.animateTo(1),
         ),
         _StatCard(
-          title: 'Toplam Kasa',
+          title: 'Aylık Kasa',
           amount: toplam,
           icon: Icons.account_balance_wallet,
           color: Colors.blue,
           gradient: [Colors.blue.shade50, Colors.white],
-          subtitle: 'Dönem İçi Toplam Kasa',
+          subtitle: 'Dönem İçi Aylık Kasa',
         ),
         _StatCard(
           title: 'Toplam Kazanç',
