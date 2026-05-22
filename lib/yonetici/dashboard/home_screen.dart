@@ -360,6 +360,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _circleAction(
@@ -385,41 +386,126 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
             },
           ),
           Flexible(
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                isletmeadi,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: scheme.primary,
-                  letterSpacing: 0.1,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                child: Text(
+                  isletmeadi,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.primary,
+                    letterSpacing: 0.1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),
-          _circleAction(
-            context,
-            icon: Icons.person_outline_rounded,
-            onTap: () {
-              Navigator.push(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _circleAction(
                 context,
-                PageTransition(
-                  type: PageTransitionType.rightToLeft,
-                  duration: const Duration(milliseconds: 400),
-                  child: ProfilBilgileri(kullanici: widget.kullanici),
-                ),
-              );
-            },
+                icon: Icons.person_outline_rounded,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    PageTransition(
+                      type: PageTransitionType.rightToLeft,
+                      duration: const Duration(milliseconds: 400),
+                      child: ProfilBilgileri(kullanici: widget.kullanici),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 6),
+              _whatsappMiniBadge(context, ozetsayfabilgi.whatsappBagli),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Profil ikonunun altinda gosterilen kompakt WhatsApp durum gostergesi.
+  /// Yesil = bagli, kirmizi = kopuk. Tiklayinca yonetim sayfasi acilir.
+  Widget _whatsappMiniBadge(BuildContext context, bool bagli) {
+    final scheme = Theme.of(context).colorScheme;
+    final tint = bagli ? const Color(0xFF25D366) : const Color(0xFFDC2626);
+    return Tooltip(
+      message: bagli ? 'WhatsApp Bağlı' : 'WhatsApp Bağlı Değil',
+      child: Material(
+        color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 0,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WhatsappYonetimiPage(
+                isletmebilgi: widget.isletmebilgi,
+                kullanicirolu: kullanicirolu,
+              ),
+            ),
+          ),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: tint.withValues(alpha: 0.14),
+                  ),
+                  child: Icon(
+                    Icons.chat_rounded,
+                    size: 14,
+                    color: tint,
+                  ),
+                ),
+                Positioned(
+                  right: 2,
+                  bottom: 2,
+                  child: Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: tint,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -533,12 +619,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ));
     }
-    // WhatsApp durum pill: bagli ise yesil, koptu/pasif ise kirmizi.
-    // Her zaman gosterilir — tiklayinca yonetim sayfasi acilir.
-    if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
-    pills.add(Expanded(
-      child: _whatsappPill(context, ozetsayfabilgi.whatsappBagli),
-    ));
+    // WhatsApp durum gostergesi: profil ikonunun altinda (top bar'da) — burada degil.
     if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
     pills.add(Expanded(
       child: _quickPill(
@@ -555,110 +636,6 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: pills,
-      ),
-    );
-  }
-
-  Widget _whatsappPill(BuildContext context, bool bagli) {
-    final scheme = Theme.of(context).colorScheme;
-    final tint = bagli ? const Color(0xFF25D366) : const Color(0xFFDC2626);
-    final etiket = bagli ? 'Bağlı' : 'Bağlı Değil';
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => WhatsappYonetimiPage(
-              isletmebilgi: widget.isletmebilgi,
-              kullanicirolu: kullanicirolu,
-            ),
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.primary.withValues(alpha: 0.08),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: tint.withValues(alpha: 0.14),
-                      shape: BoxShape.circle,
-                    ),
-                    child: FaIcon(
-                      FontAwesomeIcons.whatsapp,
-                      size: 16,
-                      color: tint,
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 9,
-                      height: 9,
-                      decoration: BoxDecoration(
-                        color: tint,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        etiket,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onSurface,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      'WhatsApp',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: scheme.onSurface.withValues(alpha: 0.55),
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
-          ),
-        ),
       ),
     );
   }
