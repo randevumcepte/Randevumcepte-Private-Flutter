@@ -601,7 +601,8 @@
                               color: Colors.grey.shade800,
                             ),
                           ),
-                          if (adisyon.fatura_kesildi == 1) ...[
+                          // FATURALI rozeti SADECE odemesi olan (kismi/tam) adisyonlarda gozukur
+                          if (adisyon.fatura_kesildi == 1 && odenen > 0) ...[
                             SizedBox(width: 6),
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
