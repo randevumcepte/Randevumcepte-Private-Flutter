@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
@@ -601,8 +602,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                       color: tint.withValues(alpha: 0.14),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.chat_rounded,
+                    child: FaIcon(
+                      FontAwesomeIcons.whatsapp,
                       size: 16,
                       color: tint,
                     ),
@@ -2971,15 +2972,18 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: TextButton(
                           onPressed: loading
                               ? null
                               : () => Navigator.of(ctx).pop(),
-                          child: const Text('Kapat'),
+                          child: const Text('Kapat',
+                              style: TextStyle(fontSize: 13)),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
+                        flex: 3,
                         child: ElevatedButton(
                           onPressed: loading
                               ? null
@@ -3041,6 +3045,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                             backgroundColor: scheme.primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 12),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
@@ -3054,7 +3060,16 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                                         Colors.white),
                                   ),
                                 )
-                              : const Text('Kampanya Hazırla'),
+                              : const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Kampanya Hazırla',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600),
+                                    maxLines: 1,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
