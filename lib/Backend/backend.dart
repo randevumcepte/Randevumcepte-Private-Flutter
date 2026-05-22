@@ -32,6 +32,7 @@ import 'package:randevu_sistem/Models/musteridashboard.dart';
 import 'package:randevu_sistem/Models/salonyorumlarozet.dart';
 import 'package:randevu_sistem/Models/hizmetkategorisi.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
+import 'package:randevu_sistem/Frontend/seans_dusum_popup.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
 import 'package:randevu_sistem/Models/adisyonkalemleri.dart';
@@ -2312,16 +2313,19 @@ Future<void> randevugeldiisaretle(
     String randevuid,
     String dogrulamakodu2,
     BuildContext context,
-    String onayKodu2,
-    ) async {
+    String onayKodu2, {
+    List<int>? secilenSeansIdler,
+    }) async {
   showProgressLoading(context);
 
-  log("doğrulama kodu: $dogrulamakodu2, onay kodu: $onayKodu2");
+  log("doğrulama kodu: $dogrulamakodu2, onay kodu: $onayKodu2, seans secim: $secilenSeansIdler");
 
   Map<String, dynamic> formData = {
     'randevuid': randevuid,
     'dogrulama_kodu': dogrulamakodu2,
     'kvkkKodu': onayKodu2,
+    'seans_secim_destek': true,
+    if (secilenSeansIdler != null) 'secilen_seans_idler': secilenSeansIdler,
   };
 
   final response = await http.post(
@@ -2355,7 +2359,8 @@ Future<void> randevugeldiisaretle(
 
         if (!context.mounted) return;
         // recursive çağrı, KVKK kodu zaten varsa geçecek
-        await randevugeldiisaretle(randevuid, dogrulamaKodu, context, onayKodu);
+        await randevugeldiisaretle(randevuid, dogrulamaKodu, context, onayKodu,
+            secilenSeansIdler: secilenSeansIdler);
         return; // recursive çağrı sonrası devam etme
       }
     }
@@ -2375,12 +2380,39 @@ Future<void> randevugeldiisaretle(
 
         if (!context.mounted) return;
         // recursive çağrı, doğrulama kodu zaten varsa geçecek
-        await randevugeldiisaretle(randevuid, dogrulamaKodu, context, onayKodu);
+        await randevugeldiisaretle(randevuid, dogrulamaKodu, context, onayKodu,
+            secilenSeansIdler: secilenSeansIdler);
         return; // recursive çağrı sonrası devam etme
       }
     }
 
-    // 3️⃣ Başarılı veya hatalı durumlar artık popup'lar tamamlandıktan sonra buraya gelir
+    // 3️⃣ Seans secim popup'i — paketli randevu icin manuel dusum
+    if (result["hatali"].toString() == "4" && secilenSeansIdler == null) {
+      final List<dynamic> rawSeanslar = (result["seanslar"] as List?) ?? const [];
+      final seanslar = rawSeanslar
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .toList();
+      final secim = await seansDusumPopupGoster(
+        context,
+        musteriAdi: (result["musteri_adi"] ?? '').toString(),
+        tarih: (result["tarih"] ?? '').toString(),
+        saat: (result["saat"] ?? '').toString(),
+        seanslar: seanslar,
+      );
+      if (secim != null && context.mounted) {
+        await randevugeldiisaretle(
+          randevuid,
+          dogrulamaKodu,
+          context,
+          onayKodu,
+          secilenSeansIdler: secim,
+        );
+      }
+      return;
+    }
+
+    // 4️⃣ Başarılı veya hatalı durumlar artık popup'lar tamamlandıktan sonra buraya gelir
     if (result["hatali"] == "0") {
       log("Randevu başarıyla işaretlendi.");
     }
