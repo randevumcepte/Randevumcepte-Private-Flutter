@@ -154,25 +154,24 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     if (mounted && seciliisletme != null && seciliisletme!.isNotEmpty) {
       // ignore: use_build_context_synchronously
       context.read<ThemeProvider>().bindSalon(seciliisletme!);
-      // Karşılaştırma verisini de yükle (background, fallback'li)
+      // Karsilastirma (diagramlar) — fire-and-forget, sayfa build'i beklemez
       _loadKarsilastirma(_perfPeriod);
-    }
-
-    // ONEMLI: Randevu fetch'ten ONCE yetki cache'i tazele. Boylece
-    // _gunlukRandevulariGetirInternal icinde 'randevu.tum_personel_gor'
-    // yetkisi guncel okunur ve personel_id filtresi dogru uygulanir.
-    if (seciliisletme != null && seciliisletme!.isNotEmpty) {
-      await Yetki.tazele(salonid: seciliisletme!);
     }
 
     int bugunYarinTimestamp = DateTime.now().millisecondsSinceEpoch;
 
-    // PARALEL — 3 network çağrısını eşzamanlı başlat (eskiden seri await idi)
-    final futures = await Future.wait([
-      dashboardGunlukRapor(seciliisletme!),
-      easistandashboard(seciliisletme!, bugunYarinTimestamp),
-      _gunlukRandevulariGetirInternal(),
-    ]);
+    // OPTIMIZE — 4 network cagrisini paralel calistir.
+    // Yetki.tazele -> _gunlukRandevulariGetirInternal sirali zincir,
+    // ama dashboardGunlukRapor ve easistandashboard yetkiye bagli degil,
+    // onlar paralel calisir. Eskiden yetki + sonra Future.wait[3] idi,
+    // yani toplam = yetki_suresi + en_yavaş_3. Yeni: max(yetki+randevu, dashboard, easistan)
+    final tRandevu = (seciliisletme != null && seciliisletme!.isNotEmpty)
+        ? Yetki.tazele(salonid: seciliisletme!)
+            .then((_) => _gunlukRandevulariGetirInternal())
+        : _gunlukRandevulariGetirInternal();
+    final tDashboard = dashboardGunlukRapor(seciliisletme!);
+    final tAsistan = easistandashboard(seciliisletme!, bugunYarinTimestamp);
+    final futures = await Future.wait([tDashboard, tAsistan, tRandevu]);
     final OzetSayfasi ozet = futures[0] as OzetSayfasi;
     final asistanVerileri = futures[1] as List<EAsistan>;
     final List<Map<String, dynamic>> randevulariBugun =
