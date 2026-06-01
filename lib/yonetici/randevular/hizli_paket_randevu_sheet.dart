@@ -69,6 +69,14 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
   final bool gosterCihaz = takvimTuru == 0 || takvimTuru == 2;
   final bool gosterOda = takvimTuru == 0 || takvimTuru == 3;
 
+  // Toplu mod state (web 'Tum hizmetlere uygula' karsiligi).
+  // Default: ozellestir=false -> tek panel; tum hizmetlere uygulanir.
+  bool ozellestir = false;
+  Personel? toplulPersonel = basePersonel;
+  Oda? toplulOda = baseOda;
+  Cihaz? toplulCihaz = baseCihaz;
+  int toplulPaketSure = secimler.fold(0, (t, s) => t + s.sure);
+
   return showModalBottomSheet<List<RandevuHizmet>>(
     context: context,
     isScrollControlled: true,
@@ -85,7 +93,9 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
         builder: (ctx, scrollController) {
           return StatefulBuilder(
             builder: (ctx, setLocalState) {
-              int toplamSure = secimler.fold(0, (t, s) => t + s.sure);
+              int toplamSure = ozellestir
+                  ? secimler.fold(0, (t, s) => t + s.sure)
+                  : toplulPaketSure;
 
               return Column(
                 children: [
@@ -129,13 +139,88 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
                     ),
                   ),
                   const Divider(height: 1),
-                  // Liste
+                  // Body
                   Expanded(
-                    child: ListView.builder(
+                    child: !ozellestir
+                        ? _topluBody(
+                            context: ctx,
+                            scrollController: scrollController,
+                            secimler: secimler,
+                            gosterPersonel: gosterPersonel,
+                            gosterOda: gosterOda,
+                            gosterCihaz: gosterCihaz,
+                            personelliste: personelliste,
+                            odaliste: odaliste,
+                            cihazliste: cihazliste,
+                            toplulPersonel: toplulPersonel,
+                            toplulOda: toplulOda,
+                            toplulCihaz: toplulCihaz,
+                            toplulPaketSure: toplulPaketSure,
+                            onPersonel: (v) =>
+                                setLocalState(() => toplulPersonel = v),
+                            onOda: (v) => setLocalState(() => toplulOda = v),
+                            onCihaz: (v) =>
+                                setLocalState(() => toplulCihaz = v),
+                            onPaketSure: (v) =>
+                                setLocalState(() => toplulPaketSure = v),
+                            onOzellestir: () {
+                              setLocalState(() {
+                                // Toplu degerleri tum satirlara uygula, sonra
+                                // ozellestirme aciliyor
+                                for (int i = 0; i < secimler.length; i++) {
+                                  secimler[i].personel = toplulPersonel;
+                                  secimler[i].oda = toplulOda;
+                                  secimler[i].cihaz = toplulCihaz;
+                                  secimler[i].sure = i == 0
+                                      ? toplulPaketSure
+                                      : 0;
+                                }
+                                ozellestir = true;
+                              });
+                            },
+                          )
+                        : ListView.builder(
                       controller: scrollController,
                       padding: const EdgeInsets.all(12),
-                      itemCount: secimler.length,
-                      itemBuilder: (context, index) {
+                      itemCount: secimler.length + 1,
+                      itemBuilder: (context, indexRaw) {
+                        if (indexRaw == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Hizmet başına özelleştirme',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () => setLocalState(
+                                      () => ozellestir = false),
+                                  icon: const Icon(Icons.unfold_less,
+                                      size: 16),
+                                  label: const Text('Toplu Seç',
+                                      style: TextStyle(fontSize: 12)),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor:
+                                        const Color(0xFF10B981),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 0),
+                                    minimumSize: const Size(0, 28),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        final index = indexRaw - 1;
                         final d = secimler[index];
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
@@ -373,8 +458,32 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
                               flex: 2,
                               child: ElevatedButton.icon(
                                 onPressed: () {
+                                  // Toplu modda toplu degerleri satirlara uygula
+                                  if (!ozellestir) {
+                                    for (int i = 0;
+                                        i < secimler.length;
+                                        i++) {
+                                      secimler[i].personel = toplulPersonel;
+                                      secimler[i].oda = toplulOda;
+                                      secimler[i].cihaz = toplulCihaz;
+                                      secimler[i].sure =
+                                          i == 0 ? toplulPaketSure : 0;
+                                    }
+                                  }
                                   // Eksik secim kontrolu
                                   String? hata;
+                                  if (!ozellestir) {
+                                    if (takvimTuru == 1 &&
+                                        toplulPersonel == null) {
+                                      hata = 'Personel seçin.';
+                                    } else if (takvimTuru == 2 &&
+                                        toplulCihaz == null) {
+                                      hata = 'Cihaz seçin.';
+                                    } else if (takvimTuru == 3 &&
+                                        toplulOda == null) {
+                                      hata = 'Oda seçin.';
+                                    }
+                                  } else {
                                   for (int i = 0;
                                       i < secimler.length;
                                       i++) {
@@ -397,6 +506,7 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
                                           '${i + 1}. hizmet için oda seçin.';
                                       break;
                                     }
+                                  }
                                   }
                                   if (hata != null) {
                                     ScaffoldMessenger.of(ctx)
@@ -500,6 +610,225 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
         },
       );
     },
+  );
+}
+
+/// Toplu mod gövdesi: tek personel/oda/cihaz/sure + bilgi + hizmet listesi
+/// + "Hizmetleri Özelleştir" butonu (web 'Tum hizmetlere uygula' karsiligi).
+Widget _topluBody({
+  required BuildContext context,
+  required ScrollController scrollController,
+  required List<_SatirDurum> secimler,
+  required bool gosterPersonel,
+  required bool gosterOda,
+  required bool gosterCihaz,
+  required List<Personel> personelliste,
+  required List<Oda> odaliste,
+  required List<Cihaz> cihazliste,
+  required Personel? toplulPersonel,
+  required Oda? toplulOda,
+  required Cihaz? toplulCihaz,
+  required int toplulPaketSure,
+  required ValueChanged<Personel?> onPersonel,
+  required ValueChanged<Oda?> onOda,
+  required ValueChanged<Cihaz?> onCihaz,
+  required ValueChanged<int> onPaketSure,
+  required VoidCallback onOzellestir,
+}) {
+  return ListView(
+    controller: scrollController,
+    padding: const EdgeInsets.all(12),
+    children: [
+      // Bilgi seridi
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE0F2FE),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF7DD3FC), width: 1),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Icon(Icons.info_outline, size: 18, color: Color(0xFF0369A1)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: TextStyle(
+                      fontSize: 12, color: Color(0xFF0C4A6E), height: 1.35),
+                  children: [
+                    TextSpan(
+                      text: 'Tüm hizmetlere uygula',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    TextSpan(
+                      text:
+                          ' — buradan seçtikleriniz tüm hizmet satırlarına uygulanır; tek bir hizmeti ayrı ayarlamak için Özelleştir\'e tıklayın.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 14),
+      // Toplu form
+      Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (gosterPersonel)
+              _dropdown<Personel>(
+                label: 'Personel',
+                value: toplulPersonel,
+                items: personelliste,
+                itemLabel: (p) => p.personel_adi,
+                onChanged: onPersonel,
+              ),
+            if (gosterOda) ...[
+              const SizedBox(height: 10),
+              _dropdown<Oda>(
+                label: 'Oda',
+                value: toplulOda,
+                items: odaliste,
+                itemLabel: (o) => o.oda_adi,
+                onChanged: onOda,
+              ),
+            ],
+            if (gosterCihaz) ...[
+              const SizedBox(height: 10),
+              _dropdown<Cihaz>(
+                label: 'Cihaz',
+                value: toplulCihaz,
+                items: cihazliste,
+                itemLabel: (c) => c.cihaz_adi,
+                onChanged: onCihaz,
+              ),
+            ],
+            const SizedBox(height: 10),
+            TextFormField(
+              key: ValueKey('toplul-sure-$toplulPaketSure'),
+              initialValue: toplulPaketSure.toString(),
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Paket Süresi (dk)',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (v) {
+                final n = int.tryParse(v);
+                if (n != null && n >= 0) onPaketSure(n);
+              },
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      // Onay seridi + Ozellestir butonu
+      Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFCD34D), width: 1),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${secimler.length} hizmet pakete eklendi — hepsi yukarıdaki personel/oda/cihaz ile uygulanır.',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF78350F),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: onOzellestir,
+              icon: const Icon(Icons.tune, size: 16),
+              label: const Text(
+                'Hizmetleri özelleştir',
+                style: TextStyle(fontSize: 12),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF92400E),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 10),
+      // Hizmet listesi (sadece okunur preview)
+      ...secimler.asMap().entries.map((e) {
+        final i = e.key;
+        final d = e.value;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: const Color(0xFFE0F2FE),
+                child: Text(
+                  '${i + 1}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0369A1),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  d.hizmetAdi,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (d.paketAdi != null && d.paketAdi!.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '📦 ${d.paketAdi}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }),
+    ],
   );
 }
 
