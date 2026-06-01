@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
 /// Randevuya "Geldi" butonuna basildiginda, randevu paketli ise hangi
-/// seanslarin paketten dusulecegini salon manuel olarak isaretler.
-/// Donus: secilen [AdisyonPaketSeanslar.id] listesi (int). null = vazgec.
-Future<List<int>?> seansDusumPopupGoster(
+/// seanslarin paketten dusulecegini ve kac adet dusulecegini salon
+/// manuel olarak isaretler.
+///
+/// Donus: secilen seanslar { 'id': int, 'miktar': int } listesi.
+/// null = vazgec.
+Future<List<Map<String, dynamic>>?> seansDusumPopupGoster(
   BuildContext context, {
   required String musteriAdi,
   required String tarih,
   required String saat,
   required List<Map<String, dynamic>> seanslar,
 }) {
-  return showModalBottomSheet<List<int>?>(
+  return showModalBottomSheet<List<Map<String, dynamic>>?>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
@@ -42,6 +45,9 @@ class _SeansDusumSheet extends StatefulWidget {
 
 class _SeansDusumSheetState extends State<_SeansDusumSheet> {
   late final Set<int> _secili;
+  // id -> Adet (dusum_miktari). Backend default_miktar geldikten sonra
+  // ilk acilista bu degerle dolduruluyor.
+  late final Map<int, int> _miktarlar;
 
   @override
   void initState() {
@@ -52,12 +58,28 @@ class _SeansDusumSheetState extends State<_SeansDusumSheet> {
         .map((s) => _parseInt(s['id']))
         .where((id) => id != 0)
         .toSet();
+    _miktarlar = {
+      for (final s in widget.seanslar)
+        _parseInt(s['id']): _parseInt(s['default_miktar']) > 0
+            ? _parseInt(s['default_miktar'])
+            : 1,
+    };
   }
 
   int _parseInt(dynamic v) {
     if (v == null) return 0;
     if (v is int) return v;
     return int.tryParse(v.toString()) ?? 0;
+  }
+
+  /// Bu seans icin Adet stepper'inin alabilecegi max deger:
+  /// halen 'geldi' iseniz kalan + mevcut dusulen; degilse kalan.
+  int _maxAdet(Map<String, dynamic> s) {
+    final kalan = _parseInt(s['kalan_seans']);
+    final dusulen = _parseInt(s['dusulen_miktar']);
+    final simdiGeldi = s['simdi_geldi'] == true;
+    final max = simdiGeldi ? (kalan + dusulen) : kalan;
+    return max < 1 ? 1 : max;
   }
 
   String _formatTarih(String raw) {
@@ -316,6 +338,8 @@ class _SeansDusumSheetState extends State<_SeansDusumSheet> {
     final kalan = _parseInt(s['kalan_seans']);
     final toplam = _parseInt(s['toplam_seans']);
     final seansNo = _parseInt(s['seans_no']);
+    final maxAdet = _maxAdet(s);
+    final adet = (_miktarlar[id] ?? 1).clamp(1, maxAdet);
 
     return Material(
       color: Colors.transparent,
@@ -352,124 +376,221 @@ class _SeansDusumSheetState extends State<_SeansDusumSheet> {
               ),
             ],
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: isSelected ? scheme.primary : Colors.transparent,
-                  border: Border.all(
-                    color: isSelected
-                        ? scheme.primary
-                        : scheme.outline.withValues(alpha: 0.45),
-                    width: 1.6,
-                  ),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: isSelected
-                    ? Icon(Icons.check_rounded,
-                        color: scheme.onPrimary, size: 16)
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      scheme.primary.withValues(alpha: 0.18),
-                      scheme.tertiary.withValues(alpha: 0.10),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.spa_rounded,
-                    size: 16, color: scheme.primary),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      hizmetAdi.isEmpty ? '-' : hizmetAdi,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurface,
-                        letterSpacing: -0.2,
+              Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isSelected ? scheme.primary : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected
+                            ? scheme.primary
+                            : scheme.outline.withValues(alpha: 0.45),
+                        width: 1.6,
                       ),
+                      borderRadius: BorderRadius.circular(7),
                     ),
-                    if (paketAdi.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        paketAdi,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurface.withValues(alpha: 0.55),
-                        ),
+                    child: isSelected
+                        ? Icon(Icons.check_rounded,
+                            color: scheme.onPrimary, size: 16)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          scheme.primary.withValues(alpha: 0.18),
+                          scheme.tertiary.withValues(alpha: 0.10),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
-                    const SizedBox(height: 4),
-                    Row(
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.spa_rounded,
+                        size: 16, color: scheme.primary),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (seansNo > 0) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              'Seans #$seansNo',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: scheme.primary,
-                              ),
+                        Text(
+                          hizmetAdi.isEmpty ? '-' : hizmetAdi,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        if (paketAdi.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            paketAdi,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface.withValues(alpha: 0.55),
                             ),
                           ),
-                          const SizedBox(width: 6),
                         ],
-                        if (toplam > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF15803D)
-                                  .withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              'Kalan $kalan/$toplam',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF15803D),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (seansNo > 0) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color:
+                                      scheme.primary.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  'Seans #$seansNo',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.primary,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                              const SizedBox(width: 6),
+                            ],
+                            if (toplam > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF15803D)
+                                      .withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  'Kalan $kalan/$toplam',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF15803D),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
+                    ),
+                  ),
+                ],
+              ),
+              // Adet stepper — sadece secili seanslarda gorunur
+              if (isSelected) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const SizedBox(width: 36),
+                    Icon(Icons.exposure_rounded,
+                        size: 14,
+                        color: scheme.onSurface.withValues(alpha: 0.55)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Düşülecek Adet',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface.withValues(alpha: 0.65),
+                      ),
+                    ),
+                    const Spacer(),
+                    _adetStepper(
+                      scheme: scheme,
+                      adet: adet,
+                      min: 1,
+                      max: maxAdet,
+                      onChanged: (v) => setState(() => _miktarlar[id] = v),
                     ),
                   ],
                 ),
-              ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _adetStepper({
+    required ColorScheme scheme,
+    required int adet,
+    required int min,
+    required int max,
+    required ValueChanged<int> onChanged,
+  }) {
+    final canDec = adet > min;
+    final canInc = adet < max;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: canDec ? () => onChanged(adet - 1) : null,
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                Icons.remove_rounded,
+                size: 16,
+                color: canDec
+                    ? scheme.primary
+                    : scheme.primary.withValues(alpha: 0.35),
+              ),
+            ),
+          ),
+          Container(
+            constraints: const BoxConstraints(minWidth: 28),
+            alignment: Alignment.center,
+            child: Text(
+              '$adet',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: scheme.primary,
+              ),
+            ),
+          ),
+          InkWell(
+            onTap: canInc ? () => onChanged(adet + 1) : null,
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                Icons.add_rounded,
+                size: 16,
+                color: canInc
+                    ? scheme.primary
+                    : scheme.primary.withValues(alpha: 0.35),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -522,8 +643,20 @@ class _SeansDusumSheetState extends State<_SeansDusumSheet> {
             Expanded(
               flex: 2,
               child: GestureDetector(
-                onTap: () =>
-                    Navigator.of(context).pop(_secili.toList()),
+                onTap: () {
+                  final sonuc = <Map<String, dynamic>>[];
+                  for (final id in _secili) {
+                    sonuc.add({
+                      'id': id,
+                      'miktar': (_miktarlar[id] ?? 1).clamp(
+                          1,
+                          _maxAdet(widget.seanslar.firstWhere(
+                              (s) => _parseInt(s['id']) == id,
+                              orElse: () => const {}))),
+                    });
+                  }
+                  Navigator.of(context).pop(sonuc);
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
