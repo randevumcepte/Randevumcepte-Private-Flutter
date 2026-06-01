@@ -202,6 +202,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
           'hizmet_id': h['id'],
           'hizmet_adi': h['text']?.toString() ?? '',
           'sure': h['sure'],
+          'seans': h['seans'],
           'paket_sure': isPaket ? item['sure'] : null,
           'paket_adi': isPaket ? item['adi']?.toString() : null,
           'adisyon_paket_id': item['adisyon_paket_id'],

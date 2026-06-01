@@ -274,6 +274,7 @@ Future<List<Map<String, dynamic>>?> showPaketSecimBottomSheet({
                                           'hizmet_adi':
                                               h['text']?.toString() ?? '',
                                           'sure': h['sure'],
+                                          'seans': h['seans'],
                                           'paket_sure': (isPaket && tumKalemler)
                                               ? item['sure']
                                               : null,

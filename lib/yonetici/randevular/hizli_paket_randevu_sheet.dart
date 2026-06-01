@@ -44,10 +44,14 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
       return 30;
     }
 
+    final pAdi = s['paket_adi']?.toString();
+    final isPaket = pAdi != null && pAdi.isNotEmpty;
+    final adetVar = int.tryParse(s['dusum_miktari']?.toString() ?? '');
+    final maxAdet = int.tryParse(s['seans']?.toString() ?? '') ?? 99;
     return _SatirDurum(
       hizmetId: s['hizmet_id']?.toString() ?? '',
       hizmetAdi: s['hizmet_adi']?.toString() ?? '',
-      paketAdi: s['paket_adi']?.toString(),
+      paketAdi: pAdi,
       adisyonPaketId: s['adisyon_paket_id'],
       adisyonHizmetId: s['adisyon_hizmet_id'],
       personel: basePersonel,
@@ -55,6 +59,9 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
       cihaz: baseCihaz,
       sure: sureCoz(),
       birlestir: false,
+      dusumMiktari: (adetVar != null && adetVar > 0) ? adetVar : 1,
+      paketSatiri: isPaket,
+      maxAdet: maxAdet < 1 ? 1 : maxAdet,
     );
   }).toList();
 
@@ -205,21 +212,87 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
                                 ),
                               ],
                               const SizedBox(height: 8),
-                              // Sure
-                              TextFormField(
-                                initialValue: d.sure.toString(),
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Süre (dk)',
-                                  isDense: true,
-                                  border: OutlineInputBorder(),
-                                ),
-                                onChanged: (v) {
-                                  final n = int.tryParse(v);
-                                  if (n != null && n >= 0) {
-                                    setLocalState(() => d.sure = n);
-                                  }
-                                },
+                              // Sure + Adet (paket satirinda)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: TextFormField(
+                                      initialValue: d.sure.toString(),
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Süre (dk)',
+                                        isDense: true,
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (v) {
+                                        final n = int.tryParse(v);
+                                        if (n != null && n >= 0) {
+                                          setLocalState(() => d.sure = n);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  if (d.paketSatiri) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 2,
+                                      child: InputDecorator(
+                                        decoration: const InputDecoration(
+                                          labelText: 'Adet',
+                                          isDense: true,
+                                          border: OutlineInputBorder(),
+                                          contentPadding:
+                                              EdgeInsets.symmetric(
+                                                  horizontal: 8, vertical: 4),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            InkWell(
+                                              onTap: d.dusumMiktari > 1
+                                                  ? () => setLocalState(() =>
+                                                      d.dusumMiktari--)
+                                                  : null,
+                                              child: Icon(
+                                                Icons.remove,
+                                                size: 18,
+                                                color: d.dusumMiktari > 1
+                                                    ? const Color(0xFF6A1B9A)
+                                                    : const Color(0xFFB9A6C6),
+                                              ),
+                                            ),
+                                            Text(
+                                              '${d.dusumMiktari}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF6A1B9A),
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            InkWell(
+                                              onTap:
+                                                  d.dusumMiktari < d.maxAdet
+                                                      ? () => setLocalState(
+                                                          () =>
+                                                              d.dusumMiktari++)
+                                                      : null,
+                                              child: Icon(
+                                                Icons.add,
+                                                size: 18,
+                                                color: d.dusumMiktari <
+                                                        d.maxAdet
+                                                    ? const Color(0xFF6A1B9A)
+                                                    : const Color(0xFFB9A6C6),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                               // Ustteki ile birlestir (ilk satir haric)
                               if (index > 0)
@@ -384,6 +457,8 @@ Future<List<RandevuHizmet>?> showHizliPaketRandevuSheet({
                                           d.adisyonPaketId,
                                       adisyon_hizmet_id:
                                           d.adisyonHizmetId,
+                                      dusum_miktari:
+                                          d.dusumMiktari.toString(),
                                       groupId: grupId,
                                     ));
                                   }
@@ -467,6 +542,12 @@ class _SatirDurum {
   Cihaz? cihaz;
   int sure;
   bool birlestir;
+  // Paketten dusulen seans miktari (web randevu_hizmetler.dusum_miktari)
+  int dusumMiktari;
+  // Pakete ait satir mi (Adet UI'sini sadece bunlarda goster)
+  final bool paketSatiri;
+  // UI stepper maks degeri — paketteki kalan seans (s['seans']).
+  final int maxAdet;
 
   _SatirDurum({
     required this.hizmetId,
@@ -479,5 +560,8 @@ class _SatirDurum {
     required this.cihaz,
     required this.sure,
     required this.birlestir,
+    required this.dusumMiktari,
+    required this.paketSatiri,
+    required this.maxAdet,
   });
 }
