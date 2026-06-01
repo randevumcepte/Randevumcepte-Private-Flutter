@@ -367,6 +367,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           'paket_adi': isPaket ? item['adi']?.toString() : null,
           'adisyon_paket_id': item['adisyon_paket_id'],
           'adisyon_hizmet_id': item['adisyon_hizmet_id'],
+          'dusum_miktari': '1',
         });
       }
     }
@@ -627,6 +628,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             paket_adi: paketAdi,
             adisyon_paket_id: adisyonPaketId,
             adisyon_hizmet_id: adisyonHizmetId,
+            dusum_miktari: secim['dusum_miktari']?.toString() ?? '1',
             groupId: hedefGroupId,
           );
 

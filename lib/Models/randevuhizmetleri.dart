@@ -19,6 +19,7 @@ class RandevuHizmet {
     this.paket_adi,
     this.adisyon_paket_id,
     this.adisyon_hizmet_id,
+    this.dusum_miktari = '1',
     this.groupId = 'g0',
   });
 
@@ -40,6 +41,9 @@ class RandevuHizmet {
   String? paket_adi;
   dynamic adisyon_paket_id;
   dynamic adisyon_hizmet_id;
+  // Paketten kac seans dusulecek (web randevu_hizmetler.dusum_miktari karsiligi)
+  // Varsayilan '1' — paket disi hizmetler icin yine '1' (kullanilmiyor olabilir).
+  String dusum_miktari;
   // UI grupla: ayni groupId'li satirlar tek karta gosterilir (1 personel + N hizmet)
   String groupId;
 
@@ -62,6 +66,9 @@ class RandevuHizmet {
       if (paket_adi != null) 'paket_adi': paket_adi,
       if (adisyon_paket_id != null) 'adisyon_paket_id': adisyon_paket_id,
       if (adisyon_hizmet_id != null) 'adisyon_hizmet_id': adisyon_hizmet_id,
+      // Paket seans dusumu: ilgili kalemi(leri) backend'de dusulen_miktar ile ekler
+      if (adisyon_paket_id != null || adisyon_hizmet_id != null)
+        'dusum_miktari': dusum_miktari,
     };
   }
 
