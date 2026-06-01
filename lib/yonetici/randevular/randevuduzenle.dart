@@ -189,6 +189,29 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
+  /// Onay gerekmeyen senaryoda: tum paket/hizmetleri dogrudan satirlara
+  /// cevirir. appointment-editor ile esit, web convertAllPackagesToServiceData.
+  List<Map<String, dynamic>> _tumPaketleriHizmetSatirlarinaCevir(
+      List<Map<String, dynamic>> paketDetaylari) {
+    final out = <Map<String, dynamic>>[];
+    for (final item in paketDetaylari) {
+      final isPaket = item['type'] == 'paket';
+      final icerik = (item['icerik'] as List?) ?? [];
+      for (final h in icerik) {
+        out.add({
+          'hizmet_id': h['id'],
+          'hizmet_adi': h['text']?.toString() ?? '',
+          'sure': h['sure'],
+          'paket_sure': isPaket ? item['sure'] : null,
+          'paket_adi': isPaket ? item['adi']?.toString() : null,
+          'adisyon_paket_id': item['adisyon_paket_id'],
+          'adisyon_hizmet_id': item['adisyon_hizmet_id'],
+        });
+      }
+    }
+    return out;
+  }
+
   /// Musteri secildikten sonra cagrilir: aktif paket/hizmet var mi backend'e sor.
   /// Varsa bottom sheet ac, secilenleri hizmet satirlarina inject et.
   /// appointment-editor.dart ile esit akıs.
@@ -209,12 +232,25 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
           <Map<String, dynamic>>[];
       if (paketDetaylari.isEmpty) return;
 
-      final secilenler = await showPaketSecimBottomSheet(
-        context: context,
-        userName: (yanit['userName'] as String?) ?? (musteri.name ?? ''),
-        paketDetaylari: paketDetaylari,
-      );
-      if (secilenler == null || secilenler.isEmpty || !mounted) return;
+      // Web randevumcepte-yeni semantigi:
+      //   paketRandevuOnayiGerekli=true  => popup ile kullanici secimi
+      //   paketRandevuOnayiGerekli=false => popup gosterme, hepsini oto ekle
+      final bool onayGerekli = yanit['paketRandevuOnayiGerekli'] == true;
+      final String? onayMetni = yanit['onayMetni']?.toString();
+
+      List<Map<String, dynamic>>? secilenlerHam;
+      if (onayGerekli) {
+        secilenlerHam = await showPaketSecimBottomSheet(
+          context: context,
+          userName: (yanit['userName'] as String?) ?? (musteri.name ?? ''),
+          paketDetaylari: paketDetaylari,
+          onayMetni: onayMetni,
+        );
+      } else {
+        secilenlerHam = _tumPaketleriHizmetSatirlarinaCevir(paketDetaylari);
+      }
+      if (secilenlerHam == null || secilenlerHam.isEmpty || !mounted) return;
+      final List<Map<String, dynamic>> secilenler = secilenlerHam;
 
       int eklenenSatir = 0;
       setState(() {

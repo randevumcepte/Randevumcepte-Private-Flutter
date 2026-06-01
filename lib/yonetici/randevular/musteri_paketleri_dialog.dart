@@ -10,6 +10,7 @@ Future<List<Map<String, dynamic>>?> showPaketSecimBottomSheet({
   required BuildContext context,
   required String userName,
   required List<Map<String, dynamic>> paketDetaylari,
+  String? onayMetni,
 }) {
   final secimler = List<bool>.filled(paketDetaylari.length, false);
 
@@ -76,6 +77,39 @@ Future<List<Map<String, dynamic>>?> showPaketSecimBottomSheet({
                     ),
                   ),
                   const Divider(height: 1),
+                  if (onayMetni != null && onayMetni.trim().isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7E0),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: const Color(0xFFE0C16A), width: 1),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline,
+                              size: 18, color: Color(0xFFB07B00)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              // HTML iceriklerini kaba bicimde temizle.
+                              onayMetni
+                                  .replaceAll(RegExp(r'<[^>]*>'), '')
+                                  .replaceAll('&nbsp;', ' ')
+                                  .trim(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7A5300),
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   // Liste
                   Expanded(
                     child: ListView.separated(
