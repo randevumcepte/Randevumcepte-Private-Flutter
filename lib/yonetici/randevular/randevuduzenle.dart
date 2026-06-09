@@ -57,11 +57,6 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
   List<List<Personel?>> seciliyardimcipersonel = [];
   MusteriDanisan? secilimusteridanisan;
 
-  // Toplu uygulama (web 'Tum hizmetlere uygula' karsiligi).
-  Personel? _topluPersonel;
-  Oda? _topluOda;
-  Cihaz? _topluCihaz;
-
   bool tekrarlayanrandevu = false;
 
   bool _isAllDay = false;
@@ -789,10 +784,6 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
           ),
 
           const SizedBox(height: 20),
-
-          _topluUygulaPaneli(scheme),
-
-          const SizedBox(height: 16),
 
           // Detaylar header + Hizmet Ekle pill
           Row(
@@ -1661,166 +1652,6 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _topluUygulaPaneli(ColorScheme scheme) {
-    final int takvimTuru = int.tryParse(
-            widget.isletmebilgi['randevu_takvim_turu']?.toString() ?? '0') ??
-        0;
-    final bool gosterCihaz = takvimTuru == 0 || takvimTuru == 2;
-    final bool gosterOda = takvimTuru == 0 || takvimTuru == 3;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE0F2FE),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF7DD3FC), width: 1),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Icon(Icons.info_outline, size: 18, color: Color(0xFF0369A1)),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF0C4A6E),
-                      height: 1.35,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: 'Tüm hizmetlere uygula',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      TextSpan(
-                        text:
-                            ' — buradan seçtikleriniz tüm hizmet satırlarına uygulanır; ince ayar için aşağıdaki kartlardan da düzenleyebilirsiniz.',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _topluDropdown<Personel>(
-                label: 'Personel',
-                value: personelliste.contains(_topluPersonel)
-                    ? _topluPersonel
-                    : null,
-                items: personelliste,
-                itemLabel: (p) => p.personel_adi,
-                onChanged: (v) {
-                  setState(() {
-                    _topluPersonel = v;
-                    if (v != null) {
-                      for (int i = 0; i < secilipersonel.length; i++) {
-                        secilipersonel[i] = v;
-                        if (i < randevuhizmetleri.length) {
-                          randevuhizmetleri[i].personeller = v;
-                          randevuhizmetleri[i].personel_id = v.id;
-                        }
-                      }
-                    }
-                  });
-                },
-              ),
-              if (gosterOda) ...[
-                const SizedBox(height: 10),
-                _topluDropdown<Oda>(
-                  label: 'Oda',
-                  value: odaliste.contains(_topluOda) ? _topluOda : null,
-                  items: odaliste,
-                  itemLabel: (o) => o.oda_adi,
-                  onChanged: (v) {
-                    setState(() {
-                      _topluOda = v;
-                      if (v != null) {
-                        for (int i = 0; i < secilioda.length; i++) {
-                          secilioda[i] = v;
-                          if (i < randevuhizmetleri.length) {
-                            randevuhizmetleri[i].oda = v;
-                            randevuhizmetleri[i].oda_id = v.id;
-                          }
-                        }
-                      }
-                    });
-                  },
-                ),
-              ],
-              if (gosterCihaz) ...[
-                const SizedBox(height: 10),
-                _topluDropdown<Cihaz>(
-                  label: 'Cihaz',
-                  value: cihazliste.contains(_topluCihaz) ? _topluCihaz : null,
-                  items: cihazliste,
-                  itemLabel: (c) => c.cihaz_adi,
-                  onChanged: (v) {
-                    setState(() {
-                      _topluCihaz = v;
-                      if (v != null) {
-                        for (int i = 0; i < secilicihaz.length; i++) {
-                          secilicihaz[i] = v;
-                          if (i < randevuhizmetleri.length) {
-                            randevuhizmetleri[i].cihaz = v;
-                            randevuhizmetleri[i].cihaz_id = v.id;
-                          }
-                        }
-                      }
-                    });
-                  },
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _topluDropdown<T>({
-    required String label,
-    required T? value,
-    required List<T> items,
-    required String Function(T) itemLabel,
-    required ValueChanged<T?> onChanged,
-  }) {
-    return DropdownButtonFormField<T>(
-      value: value,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: label,
-        isDense: true,
-        border: const OutlineInputBorder(),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-      hint: Text('$label seç (tüm hizmetlere uygulanır)'),
-      items: items
-          .map((e) => DropdownMenuItem<T>(
-                value: e,
-                child: Text(itemLabel(e), overflow: TextOverflow.ellipsis),
-              ))
-          .toList(),
-      onChanged: onChanged,
     );
   }
 
