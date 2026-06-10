@@ -75,10 +75,11 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   MusteriDanisan? secilimusteridanisan;
 
   // Toplu uygulama (web 'Tum hizmetlere uygula' karsiligi). Bir kere secip
-  // tum satirlara tek dokunusla dagitmak icin. Per-row override hala mumkun.
+  // tum mevcut + yeni satirlara dagitmak icin. Per-row override hala mumkun.
   Personel? _topluPersonel;
   Oda? _topluOda;
   Cihaz? _topluCihaz;
+  TextEditingController _topluSureCtrl = TextEditingController();
 
   bool tekrarlayanrandevu = false;
 
@@ -1075,7 +1076,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
 
           const SizedBox(height: 20),
 
-          // Tum hizmetlere uygula paneli (web 'Tum hizmetlere uygula' karsiligi)
+          // Tum hizmetlere uygula paneli — web 'Tum hizmetlere uygula' karsiligi
           _topluUygulaPaneli(scheme),
 
           const SizedBox(height: 16),
@@ -2459,6 +2460,93 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                   },
                 ),
               ],
+              const SizedBox(height: 10),
+              // Paket Suresi (toplu): ilk hizmete yazilir, geri kalan satirlar 0 olur
+              TextFormField(
+                controller: _topluSureCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Paket Süresi (dk)',
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.done_all_rounded, size: 18),
+                    tooltip: 'Tüm hizmetlere uygula',
+                    onPressed: () {
+                      final n = int.tryParse(_topluSureCtrl.text);
+                      if (n == null || n < 0) return;
+                      setState(() {
+                        for (int i = 0; i < randevuhizmetleri.length; i++) {
+                          final dk = i == 0 ? n.toString() : '0';
+                          randevuhizmetleri[i].sure_dk = dk;
+                          if (i < suredk.length) suredk[i].text = dk;
+                        }
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Paket süresi 1. hizmete $n dk yazıldı, kalanlar 0.'),
+                          backgroundColor: const Color(0xFF15803D),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Sari onay seridi + "Hizmetleri ozellestir" pill
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBEB),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFFCD34D), width: 1),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  randevuhizmetleri.isEmpty
+                      ? 'Henüz hizmet eklenmedi — aşağıdan ekleyin, hepsi yukarıdaki seçimlerle uygulanır.'
+                      : '${randevuhizmetleri.length} hizmet — hepsi yukarıdaki personel/oda/cihaz ile uygulanır.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF78350F),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: randevuhizmetleri.isEmpty
+                    ? null
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Aşağıdaki kartlardan her bir hizmeti ayrı düzenleyebilirsiniz.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.tune, size: 16),
+                label: const Text(
+                  'Hizmetleri özelleştir',
+                  style: TextStyle(fontSize: 12),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF92400E),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                  minimumSize: const Size(0, 28),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
             ],
           ),
         ),
