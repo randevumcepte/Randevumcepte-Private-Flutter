@@ -172,13 +172,52 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
       oda.add(TextEditingController());
       cihaz.add(TextEditingController());
       hizmet.add(TextEditingController());
-      secilihizmet[element.key] = isletmehizmetliste.firstWhere((element2) => element2.hizmet_id == element.value.hizmet_id);
-      secilipersonel[element.key] = Personel.fromJson(element.value.personeller);
+
+      // Hizmet eslesmesi: aktif salon listesinde yoksa (silinmis/arsivli),
+      // randevu satirinin kendi hizmetler snapshot'undan yapay IsletmeHizmet
+      // uret ve listeye ekle (DropdownButton2 'value not in items' patlamasin).
+      try {
+        final eslesen = isletmehizmetliste
+            .where((h) => h.hizmet_id == element.value.hizmet_id)
+            .toList();
+        IsletmeHizmet? hizmetObj;
+        if (eslesen.isNotEmpty) {
+          hizmetObj = eslesen.first;
+        } else if (element.value.hizmet_id.isNotEmpty &&
+            element.value.hizmet_id != 'null') {
+          final snap = element.value.hizmetler;
+          final hAdi = snap is Map
+              ? (snap['hizmet_adi']?.toString() ?? '')
+              : (snap?.hizmet_adi?.toString() ?? '');
+          hizmetObj = IsletmeHizmet(
+            hizmet_id: element.value.hizmet_id,
+            hizmet: {'hizmet_adi': hAdi},
+            hizmet_kategorisi: null,
+            sure: element.value.sure_dk,
+            fiyat: element.value.fiyat,
+            bolum: '',
+          );
+          isletmehizmetliste.add(hizmetObj);
+        }
+        secilihizmet[element.key] = hizmetObj;
+      } catch (e) {
+        log('randevu hizmet eslesme hatasi: $e');
+        secilihizmet[element.key] = null;
+      }
+
+      // Personel — null veya bos olabilir
+      try {
+        if (element.value.personeller != null) {
+          secilipersonel[element.key] =
+              Personel.fromJson(element.value.personeller);
+        }
+      } catch (e) {
+        log('randevu personel parse hatasi: $e');
+      }
       if(element.value.oda != null)
         secilioda[element.key]=Oda.fromJson(element.value.oda);
       if(element.value.cihaz != null)
         secilicihaz[element.key]=Cihaz.fromJson(element.value.cihaz);
-      print('süre '+element.value.sure_dk);
       suredk[element.key].text = element.value.sure_dk != 'null' ? element.value.sure_dk : '30';
       fiyat[element.key].text = element.value.fiyat != 'null' ? element.value.fiyat : '0';
     });
