@@ -129,10 +129,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
 
   Future<void> initialize() async {
     seciliisletme = (await secilisalonid())!;
-    // Duzenleme: bu randevuda kullanilan aktif=0 (silinmis/arsivli) hizmetler
-    // de backend listesine dahil edilsin (frontend fallback'a gerek olmasin).
-    final isletmeVerileri = await isletmeVerileriGetir(seciliisletme,false,'','','',0,0,
-        randevuId: widget.randevu.id.toString());
+    final isletmeVerileri = await isletmeVerileriGetir(seciliisletme,false,'','','',0,0);
     List <MusteriDanisan> musteridanisanliste = isletmeVerileri['musteriler'];
     List<IsletmeHizmet> isletmehizmetleriliste =  isletmeVerileri['hizmetler'];
     List<Personel> isletmepersonellerliste =  isletmeVerileri['personeller'];
@@ -176,9 +173,9 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
       cihaz.add(TextEditingController());
       hizmet.add(TextEditingController());
 
-      // Hizmet eslesmesi: backend artik bu randevuda kullanilan aktif=0 hizmetleri
-      // de listeye dahil ediyor (randevu_id parametresi ile). Yine de güvenlik
-      // amaçlı fallback: hic gelmezse yapay IsletmeHizmet uret.
+      // Hizmet eslesmesi: aktif salon listesinde yoksa (silinmis/arsivli),
+      // randevu satirinin kendi hizmetler snapshot'undan yapay IsletmeHizmet
+      // uret ve listeye ekle (DropdownButton2 'value not in items' patlamasin).
       try {
         final eslesen = isletmehizmetliste
             .where((h) => h.hizmet_id == element.value.hizmet_id)
