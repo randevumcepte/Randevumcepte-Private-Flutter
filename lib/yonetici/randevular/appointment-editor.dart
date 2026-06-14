@@ -74,13 +74,6 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   List<List<Personel?>> seciliyardimcipersonel = [];
   MusteriDanisan? secilimusteridanisan;
 
-  // Toplu uygulama (web 'Tum hizmetlere uygula' karsiligi). Bir kere secip
-  // tum mevcut + yeni satirlara dagitmak icin. Per-row override hala mumkun.
-  Personel? _topluPersonel;
-  Oda? _topluOda;
-  Cihaz? _topluCihaz;
-  TextEditingController _topluSureCtrl = TextEditingController();
-
   bool tekrarlayanrandevu = false;
 
   bool _isAllDay = false;
@@ -1076,11 +1069,6 @@ class AppointmentEditorState extends State<AppointmentEditor> {
 
           const SizedBox(height: 20),
 
-          // Tum hizmetlere uygula paneli — web 'Tum hizmetlere uygula' karsiligi
-          _topluUygulaPaneli(scheme),
-
-          const SizedBox(height: 16),
-
           // Detaylar header + Hizmet Ekle pill
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1984,6 +1972,12 @@ class AppointmentEditorState extends State<AppointmentEditor> {
             }).toList();
           }(),
 
+          // V2 stili ozet kart: Toplam Sure + Toplam Tutar
+          if (randevuhizmetleri.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            _v2OzetKart(scheme),
+          ],
+
           const SizedBox(height: 8),
 
           // Tekrarlayan
@@ -2330,255 +2324,119 @@ class AppointmentEditorState extends State<AppointmentEditor> {
     );
   }
 
-  /// Toplu uygulama paneli: tek personel/oda/cihaz secimi tum hizmet
-  /// satirlarina dagilir. Web 'Tum hizmetlere uygula' karsiligi —
-  /// per-row override hala mumkun.
-  Widget _topluUygulaPaneli(ColorScheme scheme) {
-    final int takvimTuru = int.tryParse(
-            widget.isletmebilgi['randevu_takvim_turu']?.toString() ?? '0') ??
-        0;
-    final bool gosterCihaz = takvimTuru == 0 || takvimTuru == 2;
-    final bool gosterOda = takvimTuru == 0 || takvimTuru == 3;
 
-    Widget bilgiSeridi() => Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE0F2FE),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF7DD3FC), width: 1),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Icon(Icons.info_outline, size: 18, color: Color(0xFF0369A1)),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF0C4A6E),
-                      height: 1.35,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: 'Tüm hizmetlere uygula',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      TextSpan(
-                        text:
-                            ' — buradan seçtikleriniz tüm hizmet satırlarına uygulanır; ince ayar için aşağıdaki kartlardan da düzenleyebilirsiniz.',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        bilgiSeridi(),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _topluDropdown<Personel>(
-                label: 'Personel',
-                value: personelliste.contains(_topluPersonel)
-                    ? _topluPersonel
-                    : null,
-                items: personelliste,
-                itemLabel: (p) => p.personel_adi,
-                onChanged: (v) {
-                  setState(() {
-                    _topluPersonel = v;
-                    if (v != null) {
-                      for (int i = 0; i < secilipersonel.length; i++) {
-                        secilipersonel[i] = v;
-                        if (i < randevuhizmetleri.length) {
-                          randevuhizmetleri[i].personeller = v;
-                          randevuhizmetleri[i].personel_id = v.id;
-                        }
-                      }
-                    }
-                  });
-                },
-              ),
-              if (gosterOda) ...[
-                const SizedBox(height: 10),
-                _topluDropdown<Oda>(
-                  label: 'Oda',
-                  value: odaliste.contains(_topluOda) ? _topluOda : null,
-                  items: odaliste,
-                  itemLabel: (o) => o.oda_adi,
-                  onChanged: (v) {
-                    setState(() {
-                      _topluOda = v;
-                      if (v != null) {
-                        for (int i = 0; i < secilioda.length; i++) {
-                          secilioda[i] = v;
-                          if (i < randevuhizmetleri.length) {
-                            randevuhizmetleri[i].oda = v;
-                            randevuhizmetleri[i].oda_id = v.id;
-                          }
-                        }
-                      }
-                    });
-                  },
-                ),
-              ],
-              if (gosterCihaz) ...[
-                const SizedBox(height: 10),
-                _topluDropdown<Cihaz>(
-                  label: 'Cihaz',
-                  value: cihazliste.contains(_topluCihaz) ? _topluCihaz : null,
-                  items: cihazliste,
-                  itemLabel: (c) => c.cihaz_adi,
-                  onChanged: (v) {
-                    setState(() {
-                      _topluCihaz = v;
-                      if (v != null) {
-                        for (int i = 0; i < secilicihaz.length; i++) {
-                          secilicihaz[i] = v;
-                          if (i < randevuhizmetleri.length) {
-                            randevuhizmetleri[i].cihaz = v;
-                            randevuhizmetleri[i].cihaz_id = v.id;
-                          }
-                        }
-                      }
-                    });
-                  },
-                ),
-              ],
-              const SizedBox(height: 10),
-              // Paket Suresi (toplu): ilk hizmete yazilir, geri kalan satirlar 0 olur
-              TextFormField(
-                controller: _topluSureCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Paket Süresi (dk)',
-                  isDense: true,
-                  border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.done_all_rounded, size: 18),
-                    tooltip: 'Tüm hizmetlere uygula',
-                    onPressed: () {
-                      final n = int.tryParse(_topluSureCtrl.text);
-                      if (n == null || n < 0) return;
-                      setState(() {
-                        for (int i = 0; i < randevuhizmetleri.length; i++) {
-                          final dk = i == 0 ? n.toString() : '0';
-                          randevuhizmetleri[i].sure_dk = dk;
-                          if (i < suredk.length) suredk[i].text = dk;
-                        }
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              'Paket süresi 1. hizmete $n dk yazıldı, kalanlar 0.'),
-                          backgroundColor: const Color(0xFF15803D),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
+  /// v2 randevu-ekle-modal-v2.blade.php'deki ozet panelinin karsiligi.
+  /// Tum hizmet satirlarinin toplam sure + toplam fiyatini gosterir.
+  Widget _v2OzetKart(ColorScheme scheme) {
+    int toplamSure = 0;
+    double toplamFiyat = 0;
+    for (int i = 0; i < randevuhizmetleri.length; i++) {
+      final dk = (i < suredk.length)
+          ? int.tryParse(suredk[i].text)
+          : int.tryParse(randevuhizmetleri[i].sure_dk);
+      if (dk != null && dk > 0) toplamSure += dk;
+      final fiy = (i < fiyat.length)
+          ? double.tryParse(fiyat[i].text.replaceAll(',', '.'))
+          : double.tryParse(
+              randevuhizmetleri[i].fiyat.replaceAll(',', '.'));
+      if (fiy != null && fiy > 0) toplamFiyat += fiy;
+    }
+    String fiyatStr;
+    if (toplamFiyat == toplamFiyat.roundToDouble()) {
+      fiyatStr = toplamFiyat.toStringAsFixed(0);
+    } else {
+      fiyatStr = toplamFiyat.toStringAsFixed(2);
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            scheme.primary.withValues(alpha: 0.92),
+            scheme.tertiary.withValues(alpha: 0.92),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        const SizedBox(height: 10),
-        // Sari onay seridi + "Hizmetleri ozellestir" pill
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFBEB),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFFCD34D), width: 1),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.22),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  randevuhizmetleri.isEmpty
-                      ? 'Henüz hizmet eklenmedi — aşağıdan ekleyin, hepsi yukarıdaki seçimlerle uygulanır.'
-                      : '${randevuhizmetleri.length} hizmet — hepsi yukarıdaki personel/oda/cihaz ile uygulanır.',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF78350F),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: randevuhizmetleri.isEmpty
-                    ? null
-                    : () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Aşağıdaki kartlardan her bir hizmeti ayrı düzenleyebilirsiniz.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                icon: const Icon(Icons.tune, size: 16),
-                label: const Text(
-                  'Hizmetleri özelleştir',
-                  style: TextStyle(fontSize: 12),
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF92400E),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                  minimumSize: const Size(0, 28),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _topluDropdown<T>({
-    required String label,
-    required T? value,
-    required List<T> items,
-    required String Function(T) itemLabel,
-    required ValueChanged<T?> onChanged,
-  }) {
-    return DropdownButtonFormField<T>(
-      value: value,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: label,
-        isDense: true,
-        border: const OutlineInputBorder(),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ],
       ),
-      hint: Text('$label seç (tüm hizmetlere uygulanır)'),
-      items: items
-          .map((e) => DropdownMenuItem<T>(
-                value: e,
-                child: Text(itemLabel(e), overflow: TextOverflow.ellipsis),
-              ))
-          .toList(),
-      onChanged: onChanged,
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Icon(Icons.hourglass_bottom_rounded,
+                    color: scheme.onPrimary.withValues(alpha: 0.9), size: 18),
+                const SizedBox(width: 6),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Toplam Süre',
+                      style: TextStyle(
+                        color: scheme.onPrimary.withValues(alpha: 0.85),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '$toplamSure dk',
+                      style: TextStyle(
+                        color: scheme.onPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 28,
+            color: scheme.onPrimary.withValues(alpha: 0.25),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              children: [
+                Icon(Icons.payments_rounded,
+                    color: scheme.onPrimary.withValues(alpha: 0.9), size: 18),
+                const SizedBox(width: 6),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Toplam Tutar',
+                      style: TextStyle(
+                        color: scheme.onPrimary.withValues(alpha: 0.85),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '$fiyatStr ₺',
+                      style: TextStyle(
+                        color: scheme.onPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
