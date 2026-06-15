@@ -74,6 +74,54 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   List<List<Personel?>> seciliyardimcipersonel = [];
   MusteriDanisan? secilimusteridanisan;
 
+  // v2 randevu-ekle-modal-v2 filtreleme mapleri (backend personel/oda/cihaz/
+  // hizmet pivotlarindan dolduruluyor). Bos = filtre yok.
+  Map<String, List<String>> _personelHizmetMap = {};
+  Map<String, List<String>> _cihazHizmetMap = {};
+  Map<String, List<String>> _odaHizmetMap = {};
+  Map<String, List<String>> _odaPersonelMap = {};
+
+  /// v2FilterHizmetler karsiligi: secili personel/cihaz/oda'ya gore izinli
+  /// hizmet id'lerini birleştirir. Hicbiri tanımlı atama yapmamissa tüm
+  /// listeyi döner (permisif). Strict: tanımlı atama varsa kesişimle filtreler.
+  List<IsletmeHizmet> _filtreliHizmetler({
+    Personel? personel,
+    Cihaz? cihaz,
+    Oda? oda,
+  }) {
+    final tum = isletmehizmetliste;
+    List<String>? izinli;
+    if (personel != null) {
+      final hp = _personelHizmetMap[personel.id];
+      if (hp != null && hp.isNotEmpty) izinli = List<String>.from(hp);
+    }
+    if (cihaz != null) {
+      final hc = _cihazHizmetMap[cihaz.id];
+      if (hc != null && hc.isNotEmpty) {
+        izinli = (izinli ?? <String>[])..addAll(hc);
+      }
+    }
+    if (oda != null) {
+      final ho = _odaHizmetMap[oda.id];
+      if (ho != null && ho.isNotEmpty) {
+        izinli = (izinli ?? <String>[])..addAll(ho);
+      }
+    }
+    if (izinli == null || izinli.isEmpty) return tum;
+    final s = izinli.toSet();
+    return tum.where((h) => s.contains(h.hizmet_id)).toList();
+  }
+
+  /// v2RefreshPersonelByOda karsiligi: oda secilince personel listesi
+  /// odanin atanmis personellerine filtrelenir; atama yoksa hepsi gosterilir.
+  List<Personel> _filtreliPersoneller({Oda? oda}) {
+    if (oda == null) return personelliste;
+    final izinli = _odaPersonelMap[oda.id];
+    if (izinli == null || izinli.isEmpty) return personelliste;
+    final s = izinli.toSet();
+    return personelliste.where((p) => s.contains(p.id)).toList();
+  }
+
   bool tekrarlayanrandevu = false;
 
   bool _isAllDay = false;
@@ -199,9 +247,24 @@ class AppointmentEditorState extends State<AppointmentEditor> {
       List<Personel> isletmepersonellerliste = isletmeVerileri['personeller'];
       List<Cihaz> isletmecihazliste = isletmeVerileri['cihazlar'];
       List<Oda> isletmeodaliste = isletmeVerileri['odalar'];
+      final personelHizmetMap =
+          (isletmeVerileri['personel_hizmet_map'] as Map?) ?? {};
+      final cihazHizmetMap =
+          (isletmeVerileri['cihaz_hizmet_map'] as Map?) ?? {};
+      final odaHizmetMap = (isletmeVerileri['oda_hizmet_map'] as Map?) ?? {};
+      final odaPersonelMap =
+          (isletmeVerileri['oda_personel_map'] as Map?) ?? {};
 
       if (!mounted) return;
       setState(() {
+        _personelHizmetMap = Map<String, List<String>>.from(personelHizmetMap
+            .map((k, v) => MapEntry(k.toString(), List<String>.from(v))));
+        _cihazHizmetMap = Map<String, List<String>>.from(cihazHizmetMap
+            .map((k, v) => MapEntry(k.toString(), List<String>.from(v))));
+        _odaHizmetMap = Map<String, List<String>>.from(odaHizmetMap
+            .map((k, v) => MapEntry(k.toString(), List<String>.from(v))));
+        _odaPersonelMap = Map<String, List<String>>.from(odaPersonelMap
+            .map((k, v) => MapEntry(k.toString(), List<String>.from(v))));
         // Liste sıfırla — retry'de duplicate eklenmesin
         suredk.clear();
         fiyat.clear();
@@ -1263,7 +1326,10 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                                     ),
                                   ),
                                   value: secilipersonel[firstIndex],
-                                  items: personelliste
+                                  // v2: Oda secilince personel listesi oda
+                                  // atanmis personellere filtrelenir.
+                                  items: _filtreliPersoneller(
+                                          oda: secilioda[firstIndex])
                                       .map((item) => DropdownMenuItem(
                                             value: item,
                                             child: Text(
@@ -1624,7 +1690,14 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                                                 fontSize: 14,
                                                 color: Theme.of(context)
                                                     .hintColor)),
-                                        items: isletmehizmetliste
+                                        // v2: hizmet listesi grup'taki secili
+                                        // personel/oda/cihaz'a gore strict
+                                        // filtrelenir (atama yoksa hepsi).
+                                        items: _filtreliHizmetler(
+                                          personel: secilipersonel[firstIndex],
+                                          oda: secilioda[firstIndex],
+                                          cihaz: secilicihaz[firstIndex],
+                                        )
                                             .map((item) => DropdownMenuItem(
                                                   value: item,
                                                   child: Text(

@@ -190,6 +190,27 @@ Future<List<Map<String, String>>> odaPersonelListesi(String salonid) async {
       .toList();
 }
 
+Future<List<Map<String, String>>> odaHizmetListesi(String salonid) async {
+  final response = await http.get(
+    Uri.parse(
+        'https://apptest.randevumcepte.com.tr//api/v1/oda_hizmet_listesi/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+  );
+  if (response.statusCode != 200) {
+    throw Exception(response.reasonPhrase);
+  }
+  final body = json.decode(response.body);
+  final List list = (body is Map && body['data'] is List)
+      ? body['data'] as List
+      : (body is List ? body : const []);
+  return list
+      .map<Map<String, String>>((e) => {
+            'id': (e['id'] ?? '').toString(),
+            'hizmet_adi': (e['hizmet_adi'] ?? '').toString(),
+          })
+      .toList();
+}
+
 Future<Map<String, dynamic>> odaDetayGetir(String odaId) async {
   final response = await http.get(
     Uri.parse('https://apptest.randevumcepte.com.tr//api/v1/oda_detay/$odaId'),
@@ -2647,7 +2668,7 @@ Future<Map<String, dynamic>> senetvetaksitler(String salonid, String musteriid,S
     throw Exception('Failed to load resources');
   }
 }
-Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim) async {
+Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim,{String satisTarihi = ''}) async {
   showProgressLoading(context);
   log("kalem sayısı "+adisyonkalemleri.length.toString());
 
@@ -2712,6 +2733,7 @@ Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<Adisyo
     'indirimli_toplam_tahsilat_tutari':odenentutar,
     'tahsilat_tarihi':tahsilattarihi,
     'tahsilat_notlari':notlar,
+    'satis_tarihi':satisTarihi,
     // Add other form fields
   };
   final response = await http.post(
@@ -2725,7 +2747,7 @@ Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<Adisyo
 
 }
 
-Future <String> tahsilet(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim) async {
+Future <String> tahsilet(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim,{String satisTarihi = ''}) async {
   showProgressLoading(context);
 
 
@@ -2794,6 +2816,7 @@ Future <String> tahsilet(BuildContext context, String Salonid,List<AdisyonKaleml
     'tahsilat_notlari':notlar,
     'senet_vade_id':adisyonsenetidler,
     'taksit_vade_id':adisyontaksitidler,
+    'satis_tarihi':satisTarihi,
     // Add other form fields
   };
   final response = await http.post(
@@ -4535,6 +4558,19 @@ Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlS
         loadedItems.addAll((data['hizmetler'] as List).map((item) => IsletmeHizmet.fromJson(item)).toList());*/
       }
 
+    // v2 randevu-ekle-modal filtreleme mapleri — { id: [hizmet_id|personel_id] }
+    Map<String, List<String>> _ayikla(dynamic raw) {
+      final out = <String, List<String>>{};
+      if (raw is Map) {
+        raw.forEach((k, v) {
+          if (v is List) {
+            out[k.toString()] = v.map((e) => e.toString()).toList();
+          }
+        });
+      }
+      return out;
+    }
+
     return {
       'personeller':   data['personeller']!=''? (data['personeller'] as List).map((e) => Personel.fromJson(e)).toList() : [],
       'hizmetler':     data['hizmetler']!='' ? (data['hizmetler'] as List).map((e) => IsletmeHizmet.fromJson(e)).toList() : [],
@@ -4547,6 +4583,10 @@ Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlS
       'subeler' : randevuAlSayfasi ? (data['subeler'] as List).map((e) => Salonlar.fromJson(e)).toList() : [],
       'onGorusmeNedeni':loadedItems,
       'formlar': !randevuAlSayfasi ? (data ['formlar'] as List).map((e)=>Sozlesme.fromJson(e)).toList() : [],
+      'personel_hizmet_map': _ayikla(data['personel_hizmet_map']),
+      'cihaz_hizmet_map': _ayikla(data['cihaz_hizmet_map']),
+      'oda_hizmet_map': _ayikla(data['oda_hizmet_map']),
+      'oda_personel_map': _ayikla(data['oda_personel_map']),
     };
   } else {
     throw Exception("Veriler alınamadı: ${response.reasonPhrase}");
@@ -4582,12 +4622,13 @@ Future<Map<String, dynamic>> bosVeDoluSaatleriGetir(
     throw Exception("Veriler alınamadı: ${response.reasonPhrase}");
   }
 }
-Future<void> saveVoipTokenToBackend(String token,String personelId)
+Future<void> saveVoipTokenToBackend(String token, String personelId, String type)
 async {
   Map<String, dynamic> formData = {
 
     'voipToken' :token,
     'personelId' : personelId,
+    'type' : type,
 
 
 
