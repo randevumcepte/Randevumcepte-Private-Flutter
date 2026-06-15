@@ -303,7 +303,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
       return;
     }
 
-    final AdisyonHizmet result = mevcutadisyonhizmet != null
+    final AdisyonHizmet? result = mevcutadisyonhizmet != null
         ? await Navigator.push(
       context,
       MaterialPageRoute(
@@ -349,7 +349,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
       return;
     }
 
-    final AdisyonUrun result = mevcutadisyonurun != null
+    final AdisyonUrun? result = mevcutadisyonurun != null
         ? await Navigator.push(
       context,
       MaterialPageRoute(
@@ -393,7 +393,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
       return;
     }
 
-    final AdisyonPaket result = mevcutadisyonpaket != null
+    final AdisyonPaket? result = mevcutadisyonpaket != null
         ? await Navigator.push(
       context,
       MaterialPageRoute(
@@ -832,7 +832,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
                 if (item is AdisyonHizmet) {
                   key = item.hizmet_id.toString();
-                  kalem = item.hizmet["hizmet_adi"];
+                  kalem = item.hizmet?["hizmet_adi"] ?? "";
                   adet = "1";
                   if (item.personel != null) {
                     if (item.personel is Personel) {
@@ -852,7 +852,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
                 if (item is AdisyonUrun) {
                   key = item.urun_id.toString();
-                  kalem = item.urun["urun_adi"];
+                  kalem = item.urun?["urun_adi"] ?? "";
                   adet = item.adet;
                   satan = item.personel?["personel_adi"] ?? "Personel Yok";
                   tutar = tryformat.format(double.parse(item.fiyat));
@@ -863,7 +863,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
                 if (item is AdisyonPaket) {
                   key = item.paket_id.toString();
-                  kalem = item.paket["paket_adi"];
+                  kalem = item.paket?["paket_adi"] ?? "";
                   adet = "1";
                   satan = item.personel?["personel_adi"] ?? "Personel Yok";
                   tutar = tryformat.format(double.parse(item.fiyat));
@@ -1485,6 +1485,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                 tahsilat_tarihi.text,
                                 "",
                                 harici_indirim.text,
+                                satisTarihi: tahsilat_tarihi.text,
                               );
 
                               if (taksitResult == 200) {
@@ -1567,6 +1568,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
     bool taksitMode = false;
     final TextEditingController taksitSayisiCtrl = TextEditingController(text: '2');
     final TextEditingController taksitTarihCtrl = TextEditingController(text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+    final TextEditingController tahsilatTarihCtrl = TextEditingController(
+        text: tahsilat_tarihi.text.isNotEmpty ? tahsilat_tarihi.text : DateFormat('yyyy-MM-dd').format(DateTime.now()));
 
     await showModalBottomSheet<void>(
       context: context,
@@ -1694,6 +1697,36 @@ class _SatisEkraniState extends State<SatisEkrani> {
                               onPressed: () => setSheet(() => tutarCtrl.text = tryformat.format(toplamTahsilat)),
                               child: Text('TAMAMI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _primaryColor)),
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        // Tahsilat tarihi
+                        Text('Tahsilat Tarihi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _textLightColor, letterSpacing: 0.3)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: tahsilatTarihCtrl,
+                          readOnly: true,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _textColor),
+                          onTap: () async {
+                            DateTime? p = await showDatePicker(
+                              context: sbCtx,
+                              initialDate: DateTime.tryParse(tahsilatTarihCtrl.text) ?? DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime(2100),
+                              locale: const Locale('tr', 'TR'),
+                            );
+                            if (p != null) {
+                              setSheet(() => tahsilatTarihCtrl.text = DateFormat('yyyy-MM-dd').format(p));
+                            }
+                          },
+                          decoration: InputDecoration(
+                            isDense: true,
+                            filled: true,
+                            fillColor: _surfaceColor,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            suffixIcon: Icon(Icons.calendar_today_rounded, size: 18, color: _primaryColor),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _borderColor, width: 1.2), borderRadius: BorderRadius.circular(14)),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _primaryColor, width: 1.6), borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
                         // Kalan + Taksit toggle (sadece kısmi ödeme varsa görünür)
@@ -1829,9 +1862,10 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                     toplamindirimtutari.text,
                                     secilenYontem.id,
                                     tutarCtrl.text,
-                                    tahsilat_tarihi.text,
+                                    tahsilatTarihCtrl.text,
                                     "",
                                     harici_indirim.text,
+                                    satisTarihi: tahsilat_tarihi.text,
                                   );
                                   if (!mounted) return;
                                   Navigator.of(sheetCtx).pop();
@@ -1859,9 +1893,10 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                   toplamindirimtutari.text,
                                   secilenYontem.id,
                                   tutarCtrl.text,
-                                  tahsilat_tarihi.text,
+                                  tahsilatTarihCtrl.text,
                                   "",
                                   harici_indirim.text,
+                                  satisTarihi: tahsilat_tarihi.text,
                                 );
                                 if (!mounted) return;
                                 if (result == 200) {
@@ -1907,7 +1942,6 @@ class _SatisEkraniState extends State<SatisEkrani> {
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     bool isTablet = width > 600;
-    String currentDateTime = DateFormat('dd MMMM yyyy EEEE HH:mm', 'tr_TR').format(DateTime.now());
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -2055,110 +2089,135 @@ class _SatisEkraniState extends State<SatisEkrani> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tarih ve Saat Kartı (Vurgulu)
-                  Container(
-                    margin: EdgeInsets.symmetric(horizontal: 20),
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          _primaryColor.withOpacity(0.08),
-                          _secondaryColor.withOpacity(0.05),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _primaryColor.withOpacity(0.2), width: 1),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: _primaryColor,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.calendar_today_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Tarih ve Saat',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: _textLightColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  currentDateTime,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: _textColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 24),
-                  Text(
-                    'Müşteri Seçimi',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: _textColor,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  SizedBox(height: 12),
+                  // Tarih ve Müşteri Seçimi — yan yana iki kolon
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Sol kolon: Satış Tarihi (sadece tarih seçimi)
                       Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _surfaceColor,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _borderColor, width: 1),
-                            boxShadow: [
-                              BoxShadow(
-                                color: _shadowColor,
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Satış Tarihi',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: _textColor,
+                                letterSpacing: -0.3,
                               ),
-                            ],
-                          ),
-                          child: LazyDropdown(
-                            salonId: seciliisletme,
-                            selectedItem: secilimusteridanisan,
-                            onChanged: (value) {
-                              secilimusteridanisan = value;
-                              loadbar(value!);
-                            },
-                          ),
+                            ),
+                            SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: () async {
+                                DateTime initial =
+                                    DateTime.tryParse(tahsilat_tarihi.text) ?? DateTime.now();
+                                DateTime? pickedDate = await showDatePicker(
+                                  context: context,
+                                  initialDate: initial,
+                                  firstDate: DateTime(1950),
+                                  lastDate: DateTime(2100),
+                                  locale: const Locale('tr', 'TR'),
+                                  builder: (context, child) {
+                                    return Theme(
+                                      data: ThemeData.light().copyWith(
+                                        primaryColor: _primaryColor,
+                                        colorScheme: ColorScheme.light(primary: _primaryColor),
+                                      ),
+                                      child: child!,
+                                    );
+                                  },
+                                );
+                                if (pickedDate != null) {
+                                  setState(() {
+                                    tahsilat_tarihi.text =
+                                        DateFormat('yyyy-MM-dd').format(pickedDate);
+                                    ilk_taksit_vade_tarihi.text =
+                                        DateFormat('yyyy-MM-dd').format(pickedDate);
+                                  });
+                                }
+                              },
+                              child: Container(
+                                height: 52,
+                                padding: EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: _surfaceColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: _borderColor, width: 1),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: _shadowColor,
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_today_rounded,
+                                        color: _primaryColor, size: 18),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        DateFormat('dd MMM yyyy', 'tr_TR').format(
+                                            DateTime.tryParse(tahsilat_tarihi.text) ??
+                                                DateTime.now()),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: _textColor,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-
-
+                      SizedBox(width: 12),
+                      // Sağ kolon: Müşteri Seçimi
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Müşteri Seçimi',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: _textColor,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: _surfaceColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: _borderColor, width: 1),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _shadowColor,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: LazyDropdown(
+                                salonId: seciliisletme,
+                                selectedItem: secilimusteridanisan,
+                                onChanged: (value) {
+                                  secilimusteridanisan = value;
+                                  loadbar(value!);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ],

@@ -38,7 +38,7 @@ class _FormSablonlariState extends State<FormSablonlari> {
     try {
       final resp = await http.get(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/form-sablonlari-liste?sube=$_seciliSube'),
+            'https://app.randevumcepte.com.tr/api/v1/form-sablonlari-liste?sube=$_seciliSube'),
       );
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
@@ -73,7 +73,7 @@ class _FormSablonlariState extends State<FormSablonlari> {
     try {
       await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/form-sablonlari-sira-guncelle'),
+            'https://app.randevumcepte.com.tr/api/v1/form-sablonlari-sira-guncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'sube': _seciliSube, 'form_id': formId, 'yon': yon}),
       );
@@ -162,7 +162,7 @@ class _FormSablonlariState extends State<FormSablonlari> {
     try {
       final resp = await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/form-sablonlari-sil'),
+            'https://app.randevumcepte.com.tr/api/v1/form-sablonlari-sil'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'sube': _seciliSube, 'form_id': form['id']}),
       );
@@ -202,7 +202,7 @@ class _FormSablonlariState extends State<FormSablonlari> {
 
   Future<void> _pdfAc(Map<String, dynamic> form) async {
     final url =
-        'https://apptest.randevumcepte.com.tr/isletmeyonetim/bosFormIndirDinamik?formId=${form['id']}&sube=$_seciliSube';
+        'https://app.randevumcepte.com.tr/isletmeyonetim/bosFormIndirDinamik?formId=${form['id']}&sube=$_seciliSube';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);

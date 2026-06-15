@@ -325,15 +325,15 @@ class _CDRState extends State<CDRRaporlari> {
               onPressed: _showFilterBottomSheet,
               tooltip: 'Filtrele'
           ),
-          /*_buildActionButton(
+          _buildActionButton(
               icon: Icons.phone,
               onPressed: () {
-                /*widget.dialPadManager.updateDialPad(
+                widget.dialPadManager.updateDialPad(
                     context, true, "", widget.kullanici
-                );*/
+                );
               },
               tooltip: 'Tuş Takımı'
-          ),*/
+          ),
         ],
       ),
       body: Container(

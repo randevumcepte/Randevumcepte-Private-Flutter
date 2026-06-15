@@ -25,8 +25,11 @@ class _OdaEkleState extends State<OdaEkle> {
   String? _seciliisletme;
   bool _saving = false;
   bool _loadingPersonel = true;
+  bool _loadingHizmet = true;
   List<Map<String, String>> _personeller = const [];
+  List<Map<String, String>> _hizmetler = const [];
   final Set<String> _seciliPersonelIds = <String>{};
+  final Set<String> _seciliHizmetIds = <String>{};
 
   bool get _duzenleme => widget.oda != null;
 
@@ -55,6 +58,12 @@ class _OdaEkleState extends State<OdaEkle> {
           _seciliPersonelIds
             ..clear()
             ..addAll(ids);
+          final hizmetIds = (detay['hizmet_ids'] as List? ?? const [])
+              .map((e) => e.toString())
+              .toList();
+          _seciliHizmetIds
+            ..clear()
+            ..addAll(hizmetIds);
         } catch (_) {}
       }
       if (mounted) {
@@ -65,6 +74,17 @@ class _OdaEkleState extends State<OdaEkle> {
       }
     } catch (_) {
       if (mounted) setState(() => _loadingPersonel = false);
+    }
+    try {
+      final hizmetler = await odaHizmetListesi(_seciliisletme!);
+      if (mounted) {
+        setState(() {
+          _hizmetler = hizmetler;
+          _loadingHizmet = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingHizmet = false);
     }
   }
 
@@ -83,6 +103,7 @@ class _OdaEkleState extends State<OdaEkle> {
       _seciliisletme!,
       context,
       personelIds: _seciliPersonelIds.toList(),
+      hizmetIds: _seciliHizmetIds.toList(),
       odaId: _duzenleme ? widget.oda!.id : null,
     );
     if (mounted) setState(() => _saving = false);
@@ -116,6 +137,43 @@ class _OdaEkleState extends State<OdaEkle> {
   String? _personelAdi(String id) {
     for (final p in _personeller) {
       if (p['id'] == id) return p['personel_adi'];
+    }
+    return null;
+  }
+
+  Future<void> _hizmetSecimiAc() async {
+    if (_hizmetler.isEmpty) return;
+    final secim = Set<String>.from(_seciliHizmetIds);
+    final sonuc = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return _PersonelSecimSheet(
+          personeller: _hizmetler,
+          baslangicSecim: secim,
+          accent: _accent,
+          accentSoft: _accentSoft,
+          nameKey: 'hizmet_adi',
+          baslik: 'Hizmet Seç',
+          aramaHint: 'Hizmet adıyla ara',
+          bosUyari: 'Eşleşme bulunamadı.',
+          baslikIcon: Icons.design_services_rounded,
+        );
+      },
+    );
+    if (sonuc != null && mounted) {
+      setState(() {
+        _seciliHizmetIds
+          ..clear()
+          ..addAll(sonuc);
+      });
+    }
+  }
+
+  String? _hizmetAdi(String id) {
+    for (final h in _hizmetler) {
+      if (h['id'] == id) return h['hizmet_adi'];
     }
     return null;
   }
@@ -271,7 +329,7 @@ class _OdaEkleState extends State<OdaEkle> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Oda adını ve odada çalışacak personelleri belirleyin.',
+                  'Oda adını, personelleri ve bu odada verilen hizmetleri belirleyin.',
                   style: TextStyle(
                     color: Colors.white70,
                     fontWeight: FontWeight.w500,
@@ -350,6 +408,20 @@ class _OdaEkleState extends State<OdaEkle> {
           _label('Personel (opsiyonel)'),
           const SizedBox(height: 8),
           _buildPersonelSecim(),
+          const SizedBox(height: 18),
+          _label('Bu odada verilen hizmetler'),
+          const SizedBox(height: 4),
+          Text(
+            'Paket satışlarında uygun oda otomatik atanır.',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildHizmetSecim(),
         ],
       ),
     );
@@ -511,6 +583,127 @@ class _OdaEkleState extends State<OdaEkle> {
     );
   }
 
+  Widget _buildHizmetSecim() {
+    if (_loadingHizmet) {
+      return Container(
+        height: 56,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _accent.withValues(alpha: 0.15)),
+        ),
+        alignment: Alignment.center,
+        child: const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            color: _accent,
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+    if (_hizmetler.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _accent.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline_rounded,
+                size: 18, color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Bu işletmede aktif hizmet bulunmuyor.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black54,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return InkWell(
+      onTap: _hizmetSecimiAc,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _accent.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _seciliHizmetIds.isEmpty
+                  ? Text(
+                      'Hizmet seçiniz',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                  : Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _seciliHizmetIds.map((id) {
+                        final ad = _hizmetAdi(id) ?? '#$id';
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: _accent.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: _accent.withValues(alpha: 0.30),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                ad,
+                                style: const TextStyle(
+                                  color: _accent,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () => setState(
+                                    () => _seciliHizmetIds.remove(id)),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  size: 14,
+                                  color: _accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                color: _accent, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _label(String text) {
     return Text(
       text,
@@ -529,11 +722,21 @@ class _PersonelSecimSheet extends StatefulWidget {
   final Set<String> baslangicSecim;
   final Color accent;
   final Color accentSoft;
+  final String nameKey;
+  final String baslik;
+  final String aramaHint;
+  final String bosUyari;
+  final IconData baslikIcon;
   const _PersonelSecimSheet({
     required this.personeller,
     required this.baslangicSecim,
     required this.accent,
     required this.accentSoft,
+    this.nameKey = 'personel_adi',
+    this.baslik = 'Personel Seç',
+    this.aramaHint = 'Personel adıyla ara',
+    this.bosUyari = 'Eşleşme bulunamadı.',
+    this.baslikIcon = Icons.people_alt_rounded,
   });
 
   @override
@@ -554,7 +757,7 @@ class _PersonelSecimSheetState extends State<_PersonelSecimSheet> {
   Widget build(BuildContext context) {
     final filtreli = widget.personeller.where((p) {
       if (_arama.isEmpty) return true;
-      return (p['personel_adi'] ?? '')
+      return (p[widget.nameKey] ?? '')
           .toLowerCase()
           .contains(_arama.toLowerCase());
     }).toList();
@@ -591,14 +794,14 @@ class _PersonelSecimSheetState extends State<_PersonelSecimSheet> {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.people_alt_rounded,
+                  child: Icon(widget.baslikIcon,
                       color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Personel Seç',
-                    style: TextStyle(
+                    widget.baslik,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                       letterSpacing: -0.2,
@@ -623,7 +826,7 @@ class _PersonelSecimSheetState extends State<_PersonelSecimSheet> {
               style: const TextStyle(
                   fontSize: 13.5, fontWeight: FontWeight.w600),
               decoration: InputDecoration(
-                hintText: 'Personel adıyla ara',
+                hintText: widget.aramaHint,
                 hintStyle: TextStyle(
                   color: Colors.grey[500],
                   fontSize: 13,
@@ -658,7 +861,7 @@ class _PersonelSecimSheetState extends State<_PersonelSecimSheet> {
                 ? Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Eşleşme bulunamadı.',
+                      widget.bosUyari,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
@@ -673,7 +876,7 @@ class _PersonelSecimSheetState extends State<_PersonelSecimSheet> {
                     itemBuilder: (context, i) {
                       final p = filtreli[i];
                       final id = p['id']!;
-                      final ad = p['personel_adi'] ?? '';
+                      final ad = p[widget.nameKey] ?? '';
                       final secili = _secim.contains(id);
                       return Material(
                         color: secili

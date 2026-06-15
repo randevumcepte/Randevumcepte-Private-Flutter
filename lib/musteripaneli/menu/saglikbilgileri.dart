@@ -784,7 +784,7 @@ Future<bool> submitForm(
 
   try {
     final response = await http.post(
-      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/saglikbilgilerigir'),
+      Uri.parse('https://app.randevumcepte.com.tr//api/v1/saglikbilgilerigir'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );

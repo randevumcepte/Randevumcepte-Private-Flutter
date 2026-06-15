@@ -66,7 +66,7 @@ class _VideoBackgroundHomePageState extends State<VideoBackgroundHomePage> {
               Padding(
                 padding: const EdgeInsets.only(top: 16.0,left: 16),
                 child: Text(
-                  'RandevumCepte',
+                  'Ceren Ceviz Estetik',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 33.0,

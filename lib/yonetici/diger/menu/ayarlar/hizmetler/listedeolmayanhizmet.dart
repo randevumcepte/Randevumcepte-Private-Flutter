@@ -115,7 +115,7 @@ class _ListedeOlmayanHizmetState extends State<ListedeOlmayanHizmet> {
       final response = await http
           .post(
             Uri.parse(
-                'https://apptest.randevumcepte.com.tr/api/v1/sistemeyenihizmetekle'),
+                'https://app.randevumcepte.com.tr/api/v1/sistemeyenihizmetekle'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(formData),
           )

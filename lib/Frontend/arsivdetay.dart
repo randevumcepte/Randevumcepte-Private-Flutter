@@ -125,7 +125,7 @@ void ArsivDetayGosterDialog(BuildContext context, Arsiv arsiv) {
 
                             try {
                               final filePath = await fileDownloader.downloadFile(
-                                'https://apptest.randevumcepte.com.tr/$uzanti',
+                                'https://app.randevumcepte.com.tr/$uzanti',
                                 fileName,
                               );
                               log('File downloaded to: $filePath');

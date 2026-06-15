@@ -43,7 +43,7 @@ class _FormOlusturState extends State<FormOlustur> {
       final results = await Future.wait([
         isletmeVerileriGetir(_seciliSube, false, '', '', '', 0, 0),
         http.get(Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/form-sablonlari-liste?sube=$_seciliSube')),
+            'https://app.randevumcepte.com.tr/api/v1/form-sablonlari-liste?sube=$_seciliSube')),
       ]);
 
       final veri = results[0] as Map<String, dynamic>;
@@ -155,7 +155,7 @@ class _FormOlusturState extends State<FormOlustur> {
 
       final resp = await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/arsivformekleguncelle'),
+            'https://app.randevumcepte.com.tr/api/v1/arsivformekleguncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );

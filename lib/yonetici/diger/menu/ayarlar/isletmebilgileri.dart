@@ -18,7 +18,7 @@ class IsletmeBilgileri extends StatefulWidget {
 }
 
 class _IsletmeBilgileriState extends State<IsletmeBilgileri> {
-  static const String _baseUrl = 'https://apptest.randevumcepte.com.tr';
+  static const String _baseUrl = 'https://app.randevumcepte.com.tr/';
   static const Color _accent = Color(0xFF5C008E);
   static const Color _bg = Color(0xFFF7F5FA);
 

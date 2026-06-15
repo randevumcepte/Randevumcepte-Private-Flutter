@@ -25,7 +25,7 @@ class ImageGallery extends StatefulWidget {
 }
 
 class _ImageGalleryState extends State<ImageGallery> {
-  static const String _baseUrl = 'https://apptest.randevumcepte.com.tr';
+  static const String _baseUrl = 'https://app.randevumcepte.com.tr/';
 
   bool isLoading = true;
   bool _uploading = false;

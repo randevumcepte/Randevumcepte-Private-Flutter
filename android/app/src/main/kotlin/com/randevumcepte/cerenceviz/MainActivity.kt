@@ -1,4 +1,4 @@
-package com.randevumcepte.randevumcepteprivate
+package com.randevumcepte.cerenceviz
 
 import io.flutter.embedding.android.FlutterActivity
 

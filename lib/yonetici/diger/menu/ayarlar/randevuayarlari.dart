@@ -93,7 +93,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
     final navigator = Navigator.of(context);
     try {
       final response = await http.post(
-        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/randevuayarguncelle'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuayarguncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'randevu_saat_araligi': _aralikId,

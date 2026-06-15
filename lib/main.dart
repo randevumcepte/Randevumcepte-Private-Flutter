@@ -19,6 +19,7 @@ import 'package:randevu_sistem/Frontend/randevuguncellemeprovider.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
+import 'package:randevu_sistem/services/sip_service.dart';
 import 'package:randevu_sistem/theme/app_theme.dart';
 import 'package:randevu_sistem/theme/theme_provider.dart';
 
@@ -37,6 +38,10 @@ void main() async {
 
   // 3) Bildirim altyapısı (FCM + local + foreground + tıklama + popup)
   await NotificationService.instance.init();
+
+  // 3b) SIP CallKit olay dinleyicisi: uygulama push-accept ile acildiginda
+  //     Kabul/Reddet olaylarini kacirmamak icin erken baglanir.
+  SipService.instance.initCallkitListener();
 
   // 4) Yetki cache'ini disktan belege yukle (varsa). Personeller sayfasi
   //    acilirken tazelenecek; bu sadece onceki oturumun ayarlarini yukler.
@@ -174,7 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       print("Step 4: HTTP isteği atılıyor...");
       final response = await http.post(
-        Uri.parse("https://apptest.randevumcepte.com.tr/api/v1/versiyonAppKontrol"),
+        Uri.parse("https://app.randevumcepte.com.tr/api/v1/versiyonAppKontrol"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );
@@ -336,7 +341,7 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 3),
           opacity: _opacity,
           child: Image.asset(
-            "images/randevumcepte.png",
+            "images/cc.png",
             height: 200,
           ),
         ),

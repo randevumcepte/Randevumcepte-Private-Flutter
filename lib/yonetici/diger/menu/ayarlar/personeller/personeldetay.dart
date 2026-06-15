@@ -86,7 +86,17 @@ class _PersonelDetayState extends State<PersonelDetay> {
   double _parseTrNumber(dynamic v) {
     if (v == null) return 0.0;
     if (v is num) return v.toDouble();
-    final s = v.toString().replaceAll('.', '').replaceAll(',', '.');
+    var s = v.toString().trim();
+    if (s.isEmpty) return 0.0;
+    if (s.contains(',')) {
+      // TR formati: "1.234,56" -> binlik '.' kaldir, ondalik ',' -> '.'
+      s = s.replaceAll('.', '').replaceAll(',', '.');
+    } else if ('.'.allMatches(s).length > 1) {
+      // Virgulsuz cok noktali "1.234.567" -> binlik ayraci, kaldir
+      s = s.replaceAll('.', '');
+    }
+    // Virgulsuz tek nokta "1234.5" -> ondalik ayraci; nokta KALMALI
+    // (backend float'i string olarak gelirse 10x/100x sismeyi onler)
     return double.tryParse(s) ?? 0.0;
   }
 

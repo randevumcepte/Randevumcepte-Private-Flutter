@@ -165,7 +165,7 @@ class _HesapKaldirmaState extends State<HesapKaldirma> {
                     };
 
                     final response = await http.post(
-                      Uri.parse("https://apptest.randevumcepte.com.tr/api/v1/hesapSilmeTalebiGonderMusteri"),
+                      Uri.parse("https://app.randevumcepte.com.tr//api/v1/hesapSilmeTalebiGonderMusteri"),
                       headers: {'Content-Type': 'application/json'},
                       body: jsonEncode(formData),
                     );

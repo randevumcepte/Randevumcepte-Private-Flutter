@@ -141,7 +141,7 @@ class Yetki {
         return;
       }
       final response = await http.post(
-        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/benimYetkilerim'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/benimYetkilerim'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

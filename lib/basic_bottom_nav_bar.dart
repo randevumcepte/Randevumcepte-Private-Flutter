@@ -30,6 +30,7 @@ import 'package:randevu_sistem/yonetici/randevular/takvim.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
 // import 'package:randevu_sistem/yonetici/santral/arama.dart'; // SIP devre dışı
 import 'package:randevu_sistem/yonetici/santral/santralraporlari.dart';
+import 'package:randevu_sistem/services/sip_service.dart';
 
 import 'package:randevu_sistem/yonetici/subesecimi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -123,8 +124,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       DigerPage(scaffoldMessengerKey: widget.scaffoldMessengerKey, kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi,dialpadManager: dialPadManager,),
 
     ];
-    if(dahili != null){
+    if(dahili != null && dahili != "null" && dahili.isNotEmpty){
       setupVoipAndFcmTokenListener();
+
+      // Merkezi SIP servisi: tek helper ile register + gelen cagri yonetimi.
+      SipService.instance.attachUi(widget.kullanici, dialPadManager);
+      SipService.instance.baslat(dahiliNo: dahili, sifre: dahiliSifre);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         dialPadManager.showDialPad(context,false,"",widget.kullanici,personelId);
@@ -219,7 +224,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('ios_voip_token', token);
-          await saveVoipTokenToBackend(token, widget.kullanici.id.toString());
+          await saveVoipTokenToBackend(token, widget.kullanici.id.toString(), 'ios_voip');
         }
       });
     }
@@ -232,7 +237,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('fcm_token', token);
-          await saveVoipTokenToBackend(token, widget.kullanici.id.toString());
+          await saveVoipTokenToBackend(token, widget.kullanici.id.toString(), 'android_fcm');
         }
       });
 
@@ -240,7 +245,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         print('FCM token refreshed: $token');
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', token);
-        await saveVoipTokenToBackend(token, widget.kullanici.id.toString());
+        await saveVoipTokenToBackend(token, widget.kullanici.id.toString(), 'android_fcm');
       });
     }
   }
@@ -278,6 +283,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
   void _handleLogout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userToken');
+    await SipService.instance.durdur();
     await Yetki.temizle();
 
     setState(() {
@@ -769,7 +775,11 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
           if (result != null && result['refresh'] == true) {
             setState(() {
               _selectedTab = 3;
+              _isPageBuilt[3] = true;
+              // UniqueKey: yeni satis sonrasi taze State olussun ki initState ->
+              // fetchAdisyonlar calissin ve guncel veri elle refresh gerekmeden gelsin
               _pages[3] = AdisyonlarPage(
+                key: UniqueKey(),
                 kullanicirolu: kullanicirolu,
                 kullanici: widget.kullanici,
                 isletmebilgi: widget.isletmebilgi,

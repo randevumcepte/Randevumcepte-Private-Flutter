@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCHy0FNX1_8QBC8TgO2ScvkZKINYIU5PbU</string>
+	<string>AIzaSyDF1aqOtMfdJwp8zOuml_EWtYUYH0nhgWw</string>
 	<key>GCM_SENDER_ID</key>
-	<string>279726530132</string>
+	<string>51858922753</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.randevumcepte.cerenceviz</string>
+	<string>com.randevumcepte.kessplus</string>
 	<key>PROJECT_ID</key>
-	<string>randevumcepte-uygulamala-5ff4d</string>
+	<string>randevumcepte-uygulamalar</string>
 	<key>STORAGE_BUCKET</key>
-	<string>randevumcepte-uygulamala-5ff4d.firebasestorage.app</string>
+	<string>randevumcepte-uygulamalar.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:279726530132:ios:d077bbd1517bb1bb9f57c1</string>
+	<string>1:51858922753:ios:df7a841df532eeac8ccf00</string>
 </dict>
 </plist>

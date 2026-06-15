@@ -529,7 +529,7 @@ class _AjandaEkleDashboardState extends State<AjandaEkleDashboard> {
 
     };
     final response = await http.post(
-      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/notekleduzenle/$salonid/${user['id']}'),
+      Uri.parse('https://app.randevumcepte.com.tr//api/v1/notekleduzenle/$salonid/${user['id']}'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );

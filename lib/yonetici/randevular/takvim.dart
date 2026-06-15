@@ -570,7 +570,7 @@ class TakvimState extends State<Takvim> with RouteAware {
         displayName: item['name'],
         id: item['id'],
         color: Color(int.parse(item['bgcolor'].toString().replaceFirst('0x', ''), radix: 16)),
-        image: NetworkImage('https://apptest.randevumcepte.com.tr' + (item["avatar"] != null ? item['avatar'] : '/public/isletmeyonetim_assets/img/avatar.png')),
+        image: NetworkImage('https://app.randevumcepte.com.tr/' + (item["avatar"] != null ? item['avatar'] : '/public/isletmeyonetim_assets/img/avatar.png')),
       );
     }).toList();
 
@@ -1483,7 +1483,7 @@ List<Widget> _buildAppointmentsForResource(
       if(randevudurum != null && randevudurum.isNotEmpty)
         randevuHizmetId = randevudurum[4];
       final response = await http.post(
-        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/surukleBirakRandevuGuncelle'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/surukleBirakRandevuGuncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'randevuHizmetId':randevuHizmetId,

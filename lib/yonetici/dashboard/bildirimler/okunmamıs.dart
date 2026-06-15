@@ -52,7 +52,7 @@ class _BildirimPageState extends State<BildirimPage> {
 
     });
 
-    final response = await http.get(Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/bildirimgetir/114/0/'+personelid.toString()));
+    final response = await http.get(Uri.parse('https://app.randevumcepte.com.tr//api/v1/bildirimgetir/114/0/'+personelid.toString()));
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       if(data.isNotEmpty)
@@ -95,7 +95,7 @@ class _BildirimPageState extends State<BildirimPage> {
                       leading: Image.network(
                         width: 30, // Set width as needed
                         height: 30,
-                        'https://apptest.randevumcepte.com.tr${bildirimData.avatar}',
+                        'https://app.randevumcepte.com.tr/${bildirimData.avatar}',
                         loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
                           if (loadingProgress == null) {
                             return child;
@@ -109,7 +109,7 @@ class _BildirimPageState extends State<BildirimPage> {
                         },
                         errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
                           return Image.asset(
-                            'images/randevumcepteicon.png', // Replace with your image path
+                            'images/ccicon.png', // Replace with your image path
                             width: 30, // Adjust width as needed
                             height: 30, // Adjust height as needed
                           );

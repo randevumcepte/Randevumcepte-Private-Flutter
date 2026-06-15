@@ -92,7 +92,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
 
       final response = await http.get(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/musteri/${user["id"]}'),
+            'https://app.randevumcepte.com.tr//api/v1/musteri/${user["id"]}'),
       );
 
       if (response.statusCode != 200) return;
@@ -160,7 +160,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
       var request = http.MultipartRequest(
         'POST',
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/musteriprofilresimyukle'),
+            'https://app.randevumcepte.com.tr//api/v1/musteriprofilresimyukle'),
       );
 
       request.fields['yetkili_id'] = user["id"].toString();
@@ -243,7 +243,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
 
       final response = await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/musteribilgiguncelle'),
+            'https://app.randevumcepte.com.tr//api/v1/musteribilgiguncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );
@@ -281,7 +281,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
       return '';
     }
     String baseUrl =
-        'https://apptest.randevumcepte.com.tr$_currentProfileImageUrl';
+        'https://app.randevumcepte.com.tr/$_currentProfileImageUrl';
     if (_imageVersion > 0) return '$baseUrl?v=$_imageVersion';
     return '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
   }

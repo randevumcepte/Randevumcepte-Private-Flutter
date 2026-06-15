@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- 📌 İzinler application'dan önce -->
     <uses-feature
         android:name="android.hardware.camera"
@@ -15,13 +16,24 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
+    <!-- SIP softphone bu surumde KAPALI. flutter_callkit_incoming/flutter_webrtc
+         kendi manifestlerinde asagidaki hassas izinleri tanimliyor; Google Play
+         bunlar icin beyan+video istiyor. Softphone tam calisana kadar birlesik
+         manifesttten tools:node="remove" ile cikariyoruz (Play beyani gerekmesin).
+         Softphone aktif edilince bu satirlari normal <uses-permission>'a cevir. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" tools:node="remove" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" tools:node="remove" />
+
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
 
     <application
-        android:label="RandevumCepte"
+        android:label="Ceren Ceviz Estetik"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:largeHeap="true">

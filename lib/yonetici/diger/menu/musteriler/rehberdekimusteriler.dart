@@ -171,7 +171,7 @@ class _ContactSelectionPageState extends State<ContactSelectionPage> {
     Set<String> existingPhones = {};
     try {
       final response = await http.post(
-        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/check_phone'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/check_phone'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'phones': phones}),
       );
@@ -288,7 +288,7 @@ class _ContactSelectionPageState extends State<ContactSelectionPage> {
     };
     final response = await http.post(
       Uri.parse(
-          'https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/$salonid'),
+          'https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/$salonid'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );

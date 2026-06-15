@@ -930,7 +930,7 @@ class _MusteriPaneliArsivDetayState extends State<MusteriPaneliArsivDetay> {
 
     try {
       final filePath = await downloader.downloadFile(
-        'https://apptest.randevumcepte.com.tr/${arsiv.uzanti}',
+        'https://app.randevumcepte.com.tr//${arsiv.uzanti}',
         safeName,
       );
       log('File downloaded to: $filePath');

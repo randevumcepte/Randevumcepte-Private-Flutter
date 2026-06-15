@@ -146,67 +146,94 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   Future<void> initialize() async {
-    SharedPreferences localStorage = await SharedPreferences.getInstance();
-    isletmeadi = localStorage.getString('isletmeadi')!;
-    seciliisletme = await secilisalonid();
+    bool dataLoaded = false;
+    try {
+      SharedPreferences localStorage = await SharedPreferences.getInstance();
+      isletmeadi = localStorage.getString('isletmeadi') ?? '';
+      seciliisletme = await secilisalonid();
 
-    // Tema bilgisini salon-bazlı server senkronu için bağla.
-    if (mounted && seciliisletme != null && seciliisletme!.isNotEmpty) {
-      // ignore: use_build_context_synchronously
-      context.read<ThemeProvider>().bindSalon(seciliisletme!);
-      // Karsilastirma (diagramlar) — fire-and-forget, sayfa build'i beklemez
-      _loadKarsilastirma(_perfPeriod);
-    }
-
-    int bugunYarinTimestamp = DateTime.now().millisecondsSinceEpoch;
-
-    // OPTIMIZE — 4 network cagrisini paralel calistir.
-    // Yetki.tazele -> _gunlukRandevulariGetirInternal sirali zincir,
-    // ama dashboardGunlukRapor ve easistandashboard yetkiye bagli degil,
-    // onlar paralel calisir. Eskiden yetki + sonra Future.wait[3] idi,
-    // yani toplam = yetki_suresi + en_yavaş_3. Yeni: max(yetki+randevu, dashboard, easistan)
-    final tRandevu = (seciliisletme != null && seciliisletme!.isNotEmpty)
-        ? Yetki.tazele(salonid: seciliisletme!)
-            .then((_) => _gunlukRandevulariGetirInternal())
-        : _gunlukRandevulariGetirInternal();
-    final tDashboard = dashboardGunlukRapor(seciliisletme!);
-    final tAsistan = easistandashboard(seciliisletme!, bugunYarinTimestamp);
-    final futures = await Future.wait([tDashboard, tAsistan, tRandevu]);
-    final OzetSayfasi ozet = futures[0] as OzetSayfasi;
-    final asistanVerileri = futures[1] as List<EAsistan>;
-    final List<Map<String, dynamic>> randevulariBugun =
-        futures[2] as List<Map<String, dynamic>>;
-
-    widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
-      if (element['salon_id'] == seciliisletme.toString()) {
-        uyelikturu = int.parse(element['salonlar']['uyelik_turu'].toString());
+      // Tema bilgisini salon-bazlı server senkronu için bağla.
+      if (mounted && seciliisletme != null && seciliisletme!.isNotEmpty) {
+        // ignore: use_build_context_synchronously
+        context.read<ThemeProvider>().bindSalon(seciliisletme!);
+        // Karsilastirma (diagramlar) — fire-and-forget, sayfa build'i beklemez
+        _loadKarsilastirma(_perfPeriod);
       }
-    });
 
-    if (!mounted) return;
-    // Salon-wide faturasiz gizle durumunu (hesap sahibine ozel) sessizce yukle
-    if (seciliisletme != null && seciliisletme!.isNotEmpty) {
-      faturasizGizleDurum(seciliisletme!).then((v) {
-        if (mounted) setState(() { _faturasizGizleAktif = (v == 1); });
+      int bugunYarinTimestamp = DateTime.now().millisecondsSinceEpoch;
+
+      // OPTIMIZE — 4 network cagrisini paralel calistir.
+      // Yetki.tazele -> _gunlukRandevulariGetirInternal sirali zincir,
+      // ama dashboardGunlukRapor ve easistandashboard yetkiye bagli degil,
+      // onlar paralel calisir. Eskiden yetki + sonra Future.wait[3] idi,
+      // yani toplam = yetki_suresi + en_yavaş_3. Yeni: max(yetki+randevu, dashboard, easistan)
+      final tRandevu = (seciliisletme != null && seciliisletme!.isNotEmpty)
+          ? Yetki.tazele(salonid: seciliisletme!)
+              .then((_) => _gunlukRandevulariGetirInternal())
+          : _gunlukRandevulariGetirInternal();
+      final tDashboard = dashboardGunlukRapor(seciliisletme!);
+      final tAsistan = easistandashboard(seciliisletme!, bugunYarinTimestamp);
+      // YENİ: 20s timeout — backend yanıt vermezse sonsuza kadar bekleme.
+      final futures = await Future.wait([tDashboard, tAsistan, tRandevu])
+          .timeout(const Duration(seconds: 20));
+      final OzetSayfasi ozet = futures[0] as OzetSayfasi;
+      final asistanVerileri = futures[1] as List<EAsistan>;
+      final List<Map<String, dynamic>> randevulariBugun =
+          futures[2] as List<Map<String, dynamic>>;
+
+      widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
+        if (element['salon_id'] == seciliisletme.toString()) {
+          uyelikturu = int.parse(element['salonlar']['uyelik_turu'].toString());
+        }
       });
+
+      if (!mounted) return;
+      // Salon-wide faturasiz gizle durumunu (hesap sahibine ozel) sessizce yukle
+      if (seciliisletme != null && seciliisletme!.isNotEmpty) {
+        faturasizGizleDurum(seciliisletme!).then((v) {
+          if (mounted) setState(() { _faturasizGizleAktif = (v == 1); });
+        });
+      }
+      setState(() {
+        kullanicirolu = int.parse(widget.kullanici.yetkili_olunan_isletmeler
+            .firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["role_id"]
+            .toString());
+        _isletmeadi = isletmeadi;
+        ozetsayfabilgi = ozet;
+        _ajandaDataGridSource = AjandaDataSource(
+            isletmebilgi: widget.isletmebilgi,
+            rowsPerPage: 10,
+            salonid: seciliisletme!,
+            context: context,
+            baslik: '');
+        futureEAsistanData = Future.value(asistanVerileri);
+        randevuList = randevulariBugun;
+      });
+      dataLoaded = true;
+    } catch (e, st) {
+      // Network/backend hatası: ekranı preload'ta kilitlemek yerine
+      // hatayı logla ve kullanıcıya bilgi ver. Boş state ile devam et.
+      debugPrint('home_screen.initialize hata: $e');
+      debugPrint('stack: $st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Veriler yüklenemedi. Yenilemek için aşağı çekin.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      // HER DURUMDA loading bayrağını kapat — sonsuz spinner'i önler.
+      if (mounted) {
+        setState(() {
+          randevularYukleniyor = false;
+          isloading = false;
+        });
+      }
+      // Hata aldıysak _hasError flag'i için ekstra alan eklenebilir ileride;
+      // şu an için snackbar + pull-to-refresh yeterli.
     }
-    setState(() {
-      kullanicirolu = int.parse(widget.kullanici.yetkili_olunan_isletmeler
-          .firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["role_id"]
-          .toString());
-      _isletmeadi = isletmeadi;
-      ozetsayfabilgi = ozet;
-      _ajandaDataGridSource = AjandaDataSource(
-          isletmebilgi: widget.isletmebilgi,
-          rowsPerPage: 10,
-          salonid: seciliisletme!,
-          context: context,
-          baslik: '');
-      futureEAsistanData = Future.value(asistanVerileri);
-      randevuList = randevulariBugun;
-      randevularYukleniyor = false;
-      isloading = false;
-    });
   }
 
   /// Bugünkü randevuları çeken iç fonksiyon (Future.wait icin paralel).

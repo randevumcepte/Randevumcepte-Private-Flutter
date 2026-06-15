@@ -26,9 +26,66 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:5600fccbacc1a6639f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.drmetestetik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:279726530132:android:8768bad0d5b26dc09f57c1",
         "android_client_info": {
           "package_name": "com.randevumcepte.esemavci"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:33faa72e23f641b89f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.esrakocak"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:07a8835d4a5e29429f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.eymlife"
         }
       },
       "oauth_client": [],
@@ -67,6 +124,44 @@
         "mobilesdk_app_id": "1:279726530132:android:5bb41c61c80e89989f57c1",
         "android_client_info": {
           "package_name": "com.randevumcepte.randevumcepteprivate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:5fd414022c60657e9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.senailbeauty"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:ce6140df4d41949b9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.shemallbeauty"
         }
       },
       "oauth_client": [],

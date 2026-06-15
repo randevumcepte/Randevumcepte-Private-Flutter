@@ -18,7 +18,7 @@ import 'package:randevu_sistem/theme/app_theme.dart';
 /// uygulama lokal config ile çalışmaya devam eder.
 
 class SalonTemaApi {
-  static const String _baseUrl = 'https://apptest.randevumcepte.com.tr/api/v1';
+  static const String _baseUrl = 'https://app.randevumcepte.com.tr/api/v1';
   static const Duration _timeout = Duration(seconds: 8);
 
   static Future<AppThemeConfig?> fetch(String salonId) async {

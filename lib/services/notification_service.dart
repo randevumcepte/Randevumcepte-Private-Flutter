@@ -15,12 +15,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
+import 'package:randevu_sistem/services/sip_service.dart';
 import 'package:randevu_sistem/services/notification_popup.dart';
 import 'package:randevu_sistem/services/notification_router.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
 
 /// Backend host'u sabit. Build'e göre değişiyorsa burayı tek noktadan değiştir.
-const _apiBase = 'https://apptest.randevumcepte.com.tr/api/v1';
+const _apiBase = 'https://app.randevumcepte.com.tr/api/v1';
 
 /// Custom bildirim sesi. res/raw/ring.mp3 (Android) — uzantısız 'ring' verilir.
 const _ringSound = RawResourceAndroidNotificationSound('ring');
@@ -60,6 +61,13 @@ const _channelPromo     = AndroidNotificationChannel(
 Future<void> rmcNotificationBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   log('🔔 [BG] FCM mesaj: ${message.messageId} data=${message.data}');
+
+  // Santral gelen cagri push'u: arka plan/kilitli ekranda CallKit goster.
+  // Kullanici Kabul'e basinca uygulama acilir, SipService register olup
+  // gelen INVITE'i otomatik yanitlar (bkz. SipService.initCallkitListener).
+  if (message.data['type'] == 'sip_incoming') {
+    await sipIncomingCallkitGoster(message.data);
+  }
 }
 
 /// Token / izin durumu. UI bunu dinleyip uyarı banner'ı gösterebilir.

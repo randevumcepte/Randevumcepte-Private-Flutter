@@ -60,7 +60,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
 
   Future<List<SistemBildirimleri>> _fetchData() async {
     final url =
-        'https://apptest.randevumcepte.com.tr/api/v1/bildirimgetirmusteri';
+        'https://app.randevumcepte.com.tr/api/v1/bildirimgetirmusteri';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -81,7 +81,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
 
   Future<void> _markAsRead(String notificationId) async {
     final url =
-        'https://apptest.randevumcepte.com.tr/api/v1/bildirimguncelle';
+        'https://app.randevumcepte.com.tr/api/v1/bildirimguncelle';
     final res = await http.post(
       Uri.parse(url),
       body: jsonEncode({'bildirim_id': notificationId}),
@@ -99,7 +99,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
 
     try {
       final url =
-          'https://apptest.randevumcepte.com.tr/api/v1/tumBildirimleriOkuMusteri/$_salonId/$_userId';
+          'https://app.randevumcepte.com.tr/api/v1/tumBildirimleriOkuMusteri/$_salonId/$_userId';
       final res = await http.post(Uri.parse(url));
       if (res.statusCode == 200) {
         widget.onNotificationRead?.call();
@@ -497,7 +497,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
             }
             if (b.arsiv != null && b.arsiv['uzanti'] != null) {
               await downloadPdf(
-                'https://apptest.randevumcepte.com.tr/${b.arsiv['uzanti']}',
+                'https://app.randevumcepte.com.tr/${b.arsiv['uzanti']}',
                 'appointment_${b.id}',
                 context,
               );
@@ -698,7 +698,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
       ),
       child: ClipOval(
         child: Image.network(
-          'https://apptest.randevumcepte.com.tr${b.avatar}',
+          'https://app.randevumcepte.com.tr/${b.avatar}',
           width: 42,
           height: 42,
           fit: BoxFit.cover,

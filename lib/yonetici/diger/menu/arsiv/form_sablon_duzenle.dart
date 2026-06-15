@@ -191,8 +191,8 @@ class _FormSablonDuzenleState extends State<FormSablonDuzenle> {
         'sorular_json': jsonEncode(liste),
       };
       final url = _duzenleme
-          ? 'https://apptest.randevumcepte.com.tr/api/v1/form-sablonlari-guncelle'
-          : 'https://apptest.randevumcepte.com.tr/api/v1/form-sablonlari-kaydet';
+          ? 'https://app.randevumcepte.com.tr/api/v1/form-sablonlari-guncelle'
+          : 'https://app.randevumcepte.com.tr/api/v1/form-sablonlari-kaydet';
       final resp = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},

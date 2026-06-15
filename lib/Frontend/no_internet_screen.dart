@@ -63,15 +63,7 @@ class _NoInternetScreenState extends State<NoInternetScreen>
     });
   }
 
-  Future<bool> _hasRealInternet() async {
-    try {
-      final result = await InternetAddress.lookup('apptest.randevumcepte.com.tr')
-          .timeout(const Duration(seconds: 4));
-      return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
-  }
+  Future<bool> _hasRealInternet() => _probeInternet();
 
   Future<void> _handleRetry() async {
     if (_retrying) return;
@@ -296,7 +288,7 @@ class _NoInternetScreenState extends State<NoInternetScreen>
 
 /// Cihazın gercekten internete erisebildigini kontrol eder.
 /// connectivity_plus tek başına yeterli degil (Wi-Fi'a bagli olup internet
-/// olmayabilir), bu yuzden DNS lookup ile dogruluyoruz.
+/// olmayabilir), bu yuzden gercek bir HTTP istegi ile dogruluyoruz.
 Future<bool> hasInternetConnection() async {
   try {
     final conn = await Connectivity().checkConnectivity();
@@ -306,11 +298,36 @@ Future<bool> hasInternetConnection() async {
         r == ConnectivityResult.ethernet ||
         r == ConnectivityResult.vpn);
     if (!online) return false;
-    final result = await InternetAddress.lookup('apptest.randevumcepte.com.tr')
-        .timeout(const Duration(seconds: 4));
-    return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
+    return await _probeInternet();
   } catch (_) {
     return false;
+  }
+}
+
+/// Gercek bir HTTP istegi atarak internet erisimini dogrular.
+///
+/// [InternetAddress.lookup] yerine HTTP kullaniyoruz cunku dart:io DNS
+/// cozumleyicisi (ozellikle iOS'ta) internet yokken alinan basarisiz lookup
+/// sonucunu bir sure negatif cache'liyor; internet geri gelse bile lookup
+/// basarisiz donmeye devam edip "Tekrar Dene"yi calismaz hale getiriyordu.
+///
+/// Sunucudan donen HERHANGI bir HTTP yaniti (500 dahil) internet baglantisinin
+/// oldugunu kanitlar; sadece status 200 aramiyoruz.
+Future<bool> _probeInternet() async {
+  HttpClient? client;
+  try {
+    client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+    final req = await client
+        .headUrl(Uri.parse('https://app.randevumcepte.com.tr/'))
+        .timeout(const Duration(seconds: 5));
+    req.followRedirects = false;
+    final resp = await req.close().timeout(const Duration(seconds: 5));
+    await resp.drain<void>();
+    return resp.statusCode > 0;
+  } catch (_) {
+    return false;
+  } finally {
+    client?.close(force: true);
   }
 }
 

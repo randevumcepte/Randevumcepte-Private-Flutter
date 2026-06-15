@@ -144,7 +144,7 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
       final resp = await http
           .post(
             Uri.parse(
-                'https://apptest.randevumcepte.com.tr/api/v1/hizmetekleduzenle'),
+                'https://app.randevumcepte.com.tr/api/v1/hizmetekleduzenle'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(formData),
           )

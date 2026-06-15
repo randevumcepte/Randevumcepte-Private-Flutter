@@ -116,20 +116,27 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
                 Padding(
-                  padding: const EdgeInsets.only(top: 16.0,left: 16),
-                  child: Text(
-                    'RandevumCepte',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 33.0,
+                  padding: const EdgeInsets.only(top: 16.0,left: 16, right: 16),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Ceren Ceviz Estetik',
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 33.0,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ),
 
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0,left: 16),
+                  padding: const EdgeInsets.only(top: 8.0,left: 16, right: 16),
                   child: Text(
-                    'Randevularınızı, satışlarınızı ve borçlarınızı kolaylıkla takip edin. Kampanyalarımızdan haberdar olun. Randevularınız ve borçlarınız hatırlatılsın.',
+                    'Randevularınızı kolayca oluşturun ve takip edin.\nSize özel kampanyalardan haberdar olun, tüm güzellik işlemlerinizi tek uygulamadan yönetin.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16.0,

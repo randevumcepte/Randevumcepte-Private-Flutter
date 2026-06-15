@@ -392,7 +392,7 @@ Future<void> submitForm(String paket_id, String salonid, String paket_adi, List<
   log('formdata ' + formData.toString());
 
   final response = await http.post(
-    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/paket_ekle_guncelle/' + salonid.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/paket_ekle_guncelle/' + salonid.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
