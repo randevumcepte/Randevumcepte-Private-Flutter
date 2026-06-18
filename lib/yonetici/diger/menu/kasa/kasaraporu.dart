@@ -1074,6 +1074,22 @@ class _TransactionList extends StatelessWidget {
     );
   }
 
+  /// Geliri tahsil eden personel (olusturan oncelikli, yoksa satici). Backend
+  /// bu iliskileri eager-load eder; yoksa null doner ve satir gizlenir.
+  String? _tahsilEden(Map<String, dynamic> item) {
+    final o = item['olusturan'];
+    if (o is Map) {
+      final ad = _safeString(o['personel_adi']);
+      if (ad != null) return ad;
+    }
+    final s = item['satici'];
+    if (s is Map) {
+      final ad = _safeString(s['personel_adi']);
+      if (ad != null) return ad;
+    }
+    return null;
+  }
+
   void _showDetayPopup(BuildContext context, Map<String, dynamic> item) {
     final isGelir = type == 'gelir';
     final tutar = item['tutar'] ?? item['miktar'];
@@ -1143,6 +1159,13 @@ class _TransactionList extends StatelessWidget {
                             icon: Icons.person_outline_rounded,
                             label: 'Müşteri',
                             value: musteriAdi ?? 'Kasaya para ekleme',
+                            accent: accent,
+                          ),
+                        if (isGelir && _tahsilEden(item) != null)
+                          _detaySatir(
+                            icon: Icons.badge_outlined,
+                            label: 'Tahsil Eden',
+                            value: _tahsilEden(item)!,
                             accent: accent,
                           ),
                         if (isGelir && kalemler.isNotEmpty)
