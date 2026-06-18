@@ -9223,8 +9223,8 @@ class HizmetlerDataSource extends DataGridSource{
     );
     Navigator.of(context,rootNavigator:true).pop();
     if (response.statusCode == 200) {
-      Navigator.of(context).pop();
-
+      // NOT: Eskiden burada Navigator.of(context).pop() vardi -> hizmet listesini
+      // kapatip Ayarlar kart ekranina donuyordu. Kaldirildi: listede kal, sadece tazele.
       fetchData("1","",false);
 
     } else {
