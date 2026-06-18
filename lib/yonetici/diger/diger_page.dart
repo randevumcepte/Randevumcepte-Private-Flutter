@@ -44,6 +44,8 @@ import 'menu/seanstakibi/seanstakibi.dart';
 import 'menu/seanstakibi/seanstakibiyeni.dart';
 import 'menu/senetler/senetlistesi.dart';
 import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_dashboard.dart';
 import 'package:http/http.dart' as http;
 
 bool menu_sayfasindayiz = false;
@@ -536,6 +538,46 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: CDRRaporlari(scaffoldMessengerKey: widget.scaffoldMessengerKey , kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi ,kullanicirolu:kullanicirolu ,dialPadManager:widget.dialpadManager,),
+                        ),
+                      );
+                    },
+                  ),
+
+                // Cagri Merkezi — Arama Ekrani (dialer): personel + yonetici
+                if (widget.uyelikturu > 2)
+                  _buildMenuButton(
+                    icon: Icons.dialpad_rounded,
+                    label: 'Arama Ekranı',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: AramaEkrani(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                // Cagri Merkezi — Dashboard (performans paneli): SADECE hesap sahibi (rol == 1)
+                if (widget.uyelikturu > 2 && kullanicirolu == 1)
+                  _buildMenuButton(
+                    icon: Icons.headset_mic_rounded,
+                    label: 'Çağrı Merkezi',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: CagriDashboard(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
+                          ),
                         ),
                       );
                     },
