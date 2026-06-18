@@ -294,21 +294,6 @@ class _ToastKartState extends State<_ToastKart>
                                 style: TextStyle(
                                     fontSize: 11.5, color: altRenk, height: 1.2)),
                           ],
-                          if (h.ctaText.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(h.ctaText,
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: renk)),
-                                Icon(Icons.arrow_forward_rounded,
-                                    size: 14, color: renk),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),
