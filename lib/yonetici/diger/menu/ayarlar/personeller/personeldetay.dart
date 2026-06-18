@@ -61,9 +61,16 @@ class _PersonelDetayState extends State<PersonelDetay> {
       _hata = null;
     });
     try {
+      // personelgetir bir donem salon_id dondurmuyordu -> model'de "null" olabiliyor.
+      // Secili salonu (personel bu salonda listelendi) tercih et; backend de artik salon_id doner.
+      final secili = await secilisalonid();
+      final sId = (widget.personel.salon_id.isNotEmpty &&
+              widget.personel.salon_id != 'null')
+          ? widget.personel.salon_id
+          : (secili ?? '');
       final data = await personelPrimHesaplaAyYil(
         personelid: widget.personel.id,
-        salonid: widget.personel.salon_id,
+        salonid: sId,
         ay: _seciliAy.toString().padLeft(2, '0'),
         yil: _seciliYil.toString(),
       );
