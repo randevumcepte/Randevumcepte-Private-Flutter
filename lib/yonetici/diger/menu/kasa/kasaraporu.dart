@@ -734,7 +734,7 @@ class _TransactionList extends StatelessWidget {
                 ),
                 title: Text(
                   type == 'gelir'
-                      ? ((item['musteri']['name']  ?? 'Kasaya para ekleme')+"\n"+(item['aciklama']??hizmetUrunPaket))
+                      ? ((item['musteri']?['name']  ?? 'Kasaya para ekleme')+"\n"+(item['aciklama']??hizmetUrunPaket))
                       : (item['harcayan']?['personel_adi'] ?? item['aciklama'] ?? 'İşlem'),
                   style: const TextStyle(fontWeight: FontWeight.w500),
                   maxLines: 1,
