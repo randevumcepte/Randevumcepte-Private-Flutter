@@ -38,8 +38,10 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
 
   List<Personel> _tumPersoneller = [];
   List<Cihaz> _tumCihazlar = [];
-  final Set<String> _secilenPersonelIds = {};
-  final Set<String> _secilenCihazIds = {};
+  // Secim INDEX bazli tutulur (p.id'ye bagimli degil -> toggle + onsecim her zaman calisir).
+  // Kaydederken index'ler _tumPersoneller / _tumCihazlar uzerinden gercek id'ye cevrilir.
+  final Set<int> _secilenPersonelIdx = {};
+  final Set<int> _secilenCihazIdx = {};
 
   String _salonId = '';
 
@@ -70,28 +72,32 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
     _tumPersoneller = personeller;
     _tumCihazlar = cihazlar;
 
+    // Isimleri normalize et: bosluk + sondaki parantezli ek "(Siz)" gibi -> birakma.
+    String norm(String s) =>
+        s.replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '').trim().toLowerCase();
+
     if (widget.hizmet.personel.isNotEmpty &&
         widget.hizmet.personel != 'null') {
       final secilenAdlar = widget.hizmet.personel
           .split(',')
-          .map((e) => e.trim())
+          .map((e) => norm(e))
           .where((e) => e.isNotEmpty)
           .toSet();
-      for (final p in _tumPersoneller) {
-        if (secilenAdlar.contains(p.personel_adi)) {
-          _secilenPersonelIds.add(p.id);
+      for (var i = 0; i < _tumPersoneller.length; i++) {
+        if (secilenAdlar.contains(norm(_tumPersoneller[i].personel_adi))) {
+          _secilenPersonelIdx.add(i);
         }
       }
     }
     if (widget.hizmet.cihaz.isNotEmpty && widget.hizmet.cihaz != 'null') {
       final secilenAdlar = widget.hizmet.cihaz
           .split(',')
-          .map((e) => e.trim())
+          .map((e) => norm(e))
           .where((e) => e.isNotEmpty)
           .toSet();
-      for (final c in _tumCihazlar) {
-        if (secilenAdlar.contains(c.cihaz_adi)) {
-          _secilenCihazIds.add(c.id);
+      for (var i = 0; i < _tumCihazlar.length; i++) {
+        if (secilenAdlar.contains(norm(_tumCihazlar[i].cihaz_adi))) {
+          _secilenCihazIdx.add(i);
         }
       }
     }
@@ -117,7 +123,7 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
       _uyari('Eksik bilgi', 'Hizmet adı ve süre boş bırakılamaz.');
       return;
     }
-    if (_secilenPersonelIds.isEmpty && _secilenCihazIds.isEmpty) {
+    if (_secilenPersonelIdx.isEmpty && _secilenCihazIdx.isEmpty) {
       _uyari(
         'Personel veya cihaz seç',
         'En az bir personel ya da cihaz seçmelisin.',
@@ -133,8 +139,12 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
       'sureler': [sure],
       'fiyatlar': [fiyat],
       'hizmetAdlari': [ad],
-      'secilipersoneller': [_secilenPersonelIds.toList()],
-      'secilicihazlar': [_secilenCihazIds.toList()],
+      'secilipersoneller': [
+        _secilenPersonelIdx.map((i) => _tumPersoneller[i].id).toList()
+      ],
+      'secilicihazlar': [
+        _secilenCihazIdx.map((i) => _tumCihazlar[i].id).toList()
+      ],
       'sube': _salonId.isNotEmpty
           ? _salonId
           : widget.isletmebilgi['id'].toString(),
@@ -303,21 +313,29 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
                   _secimCard(
                     baslik: 'Personeller',
                     ikon: Icons.person_outline_rounded,
-                    secimSayisi: _secilenPersonelIds.length,
+                    secimSayisi: _secilenPersonelIdx.length,
                     toplam: _tumPersoneller.length,
                     children: _tumPersoneller.isEmpty
                         ? [const _EmptyMini(text: 'Personel tanımlı değil')]
-                        : _tumPersoneller.map(_buildPersonelChip).toList(),
+                        : _tumPersoneller
+                            .asMap()
+                            .entries
+                            .map((e) => _buildPersonelChip(e.key, e.value))
+                            .toList(),
                   ),
                   const SizedBox(height: 12),
                   _secimCard(
                     baslik: 'Cihazlar',
                     ikon: Icons.devices_other_rounded,
-                    secimSayisi: _secilenCihazIds.length,
+                    secimSayisi: _secilenCihazIdx.length,
                     toplam: _tumCihazlar.length,
                     children: _tumCihazlar.isEmpty
                         ? [const _EmptyMini(text: 'Cihaz tanımlı değil')]
-                        : _tumCihazlar.map(_buildCihazChip).toList(),
+                        : _tumCihazlar
+                            .asMap()
+                            .entries
+                            .map((e) => _buildCihazChip(e.key, e.value))
+                            .toList(),
                   ),
                 ],
               ),
@@ -651,8 +669,8 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
     );
   }
 
-  Widget _buildPersonelChip(Personel p) {
-    final selected = _secilenPersonelIds.contains(p.id);
+  Widget _buildPersonelChip(int i, Personel p) {
+    final selected = _secilenPersonelIdx.contains(i);
     return _SecimChip(
       label: p.personel_adi,
       icon: Icons.person_rounded,
@@ -660,17 +678,17 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
       onTap: () {
         setState(() {
           if (selected) {
-            _secilenPersonelIds.remove(p.id);
+            _secilenPersonelIdx.remove(i);
           } else {
-            _secilenPersonelIds.add(p.id);
+            _secilenPersonelIdx.add(i);
           }
         });
       },
     );
   }
 
-  Widget _buildCihazChip(Cihaz c) {
-    final selected = _secilenCihazIds.contains(c.id);
+  Widget _buildCihazChip(int i, Cihaz c) {
+    final selected = _secilenCihazIdx.contains(i);
     return _SecimChip(
       label: c.cihaz_adi,
       icon: Icons.devices_rounded,
@@ -678,9 +696,9 @@ class _HizmetDuzenleState extends State<HizmetDuzenle> {
       onTap: () {
         setState(() {
           if (selected) {
-            _secilenCihazIds.remove(c.id);
+            _secilenCihazIdx.remove(i);
           } else {
-            _secilenCihazIds.add(c.id);
+            _secilenCihazIdx.add(i);
           }
         });
       },
