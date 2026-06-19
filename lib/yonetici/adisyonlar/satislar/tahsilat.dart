@@ -485,12 +485,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
               senetvadeleri.add(SenetVade(id: element2["id"].toString(),
                   senet_id: element2["senet_id"].toString(),
-                  vade_tarih: element2["vade_tarih"],
+                  vade_tarih: element2["vade_tarih"].toString(),
                   tutar: element2["tutar"].toString(),
                   odendi: element2["odendi"].toString(),
                   notlar: element2["notlar"].toString(),
-                  odeme_yontemi_id: element2["odeme_yontemi_id"]??"",
-                  dogrulama_kodu: element2["dogrulama_kodu"]??""));
+                  odeme_yontemi_id: (element2["odeme_yontemi_id"]??"").toString(),
+                  dogrulama_kodu: (element2["dogrulama_kodu"]??"").toString()));
 
 
             });
@@ -534,7 +534,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
           if(element2["odendi"].toString()=='0' && DateTime.parse(element2["vade_tarih"]+'T00:00:00').isBefore(DateTime.now())){
             setState(() {
 
-              adisyonkalemleri.add(TaksitVade(id: element2["id"].toString(), taksitli_tahsilat_id: element2["taksitli_tahsilat_id"].toString(), vade_tarih: element2["vade_tarih"], tutar: element2["tutar"].toString(), odendi: element2["odendi"].toString(), notlar: element2["notlar"].toString(), odeme_yontemi_id: element2["odeme_yontemi_id"]??"", dogrulama_kodu: element2["dogrulama_kodu"]??""));
+              adisyonkalemleri.add(TaksitVade(id: element2["id"].toString(), taksitli_tahsilat_id: element2["taksitli_tahsilat_id"].toString(), vade_tarih: element2["vade_tarih"].toString(), tutar: element2["tutar"].toString(), odendi: element2["odendi"].toString(), notlar: element2["notlar"].toString(), odeme_yontemi_id: (element2["odeme_yontemi_id"]??"").toString(), dogrulama_kodu: (element2["dogrulama_kodu"]??"").toString()));
 
             });
           }
