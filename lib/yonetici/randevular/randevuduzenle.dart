@@ -54,6 +54,9 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
   List<Oda?> secilioda = [];
   List<Cihaz?> secilicihaz = [];
   List<IsletmeHizmet?> secilihizmet = [];
+  // Hizmet dropdown'u: satir bazinda, personel/oda/cihaz SECILENE KADAR filtresiz
+  // (tum hizmetler). Kullanici personel/oda/cihaz secince true olur ve filtre uygulanir.
+  List<bool> _filtreUygula = [];
   List<List<Personel?>> seciliyardimcipersonel = [];
   MusteriDanisan? secilimusteridanisan;
 
@@ -89,6 +92,41 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
     if (izinli == null || izinli.isEmpty) return tum;
     final s = izinli.toSet();
     return tum.where((h) => s.contains(h.hizmet_id)).toList();
+  }
+
+  /// Hizmet dropdown'unun gosterecegi liste:
+  /// - Personel/oda/cihaz HENUZ SECILMEDIYSE (_filtreUygula[index]==false): TUM hizmetler (filtresiz).
+  /// - Secildiyse: personel/oda/cihaz'a gore filtreli liste.
+  /// Her iki durumda da randevunun MEVCUT hizmeti (arsivli/filtre disi olsa bile) listeye dahil
+  /// edilir ve hizmet_id'ye gore tekillestirilir -> DropdownButton2 "exactly one item with value"
+  /// assertion'i patlamaz.
+  List<IsletmeHizmet> _hizmetDropdownItems(int index) {
+    final List<IsletmeHizmet> kaynak = _filtreUygula[index]
+        ? _filtreliHizmetler(
+            personel: secilipersonel[index],
+            oda: secilioda[index],
+            cihaz: secilicihaz[index],
+          )
+        : isletmehizmetliste;
+    final byId = <dynamic, IsletmeHizmet>{};
+    for (final h in kaynak) {
+      byId.putIfAbsent(h.hizmet_id, () => h);
+    }
+    final sel = secilihizmet[index];
+    if (sel != null) {
+      byId.putIfAbsent(sel.hizmet_id, () => sel);
+    }
+    return byId.values.toList();
+  }
+
+  /// Dropdown value: items icindeki ayni hizmet_id'li GERCEK instance (identity eslesmesi icin).
+  IsletmeHizmet? _hizmetDropdownValue(int index) {
+    final sel = secilihizmet[index];
+    if (sel == null) return null;
+    for (final h in _hizmetDropdownItems(index)) {
+      if (h.hizmet_id == sel.hizmet_id) return h;
+    }
+    return null;
   }
 
   List<Personel> _filtreliPersoneller({Oda? oda}) {
@@ -223,6 +261,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
       secilihizmet.add(null);
       secilioda.add(null);
       secilicihaz.add(null);
+      _filtreUygula.add(false); // baslangicta hizmet listesi filtresiz
       suredk.add(TextEditingController());
       fiyat.add(TextEditingController());
       oda.add(TextEditingController());
@@ -242,9 +281,12 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
         } else if (element.value.hizmet_id.isNotEmpty &&
             element.value.hizmet_id != 'null') {
           final snap = element.value.hizmetler;
-          final hAdi = snap is Map
-              ? (snap['hizmet_adi']?.toString() ?? '')
-              : (snap?.hizmet_adi?.toString() ?? '');
+          // On gorusme randevusunun hizmeti (id=1) "On Gorusme" olarak gosterilir
+          final hAdi = element.value.hizmet_id == "1"
+              ? 'Ön Görüşme'
+              : (snap is Map
+                  ? (snap['hizmet_adi']?.toString() ?? '')
+                  : (snap?.hizmet_adi?.toString() ?? ''));
           hizmetObj = IsletmeHizmet(
             hizmet_id: element.value.hizmet_id,
             hizmet: {'hizmet_adi': hAdi},
@@ -254,6 +296,12 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
             bolum: '',
           );
           isletmehizmetliste.add(hizmetObj);
+        }
+        // On gorusme placeholder (id=1) dropdown'da her zaman "On Gorusme" etiketiyle gelsin
+        if (element.value.hizmet_id == "1" &&
+            hizmetObj != null &&
+            hizmetObj.hizmet is Map) {
+          hizmetObj.hizmet['hizmet_adi'] = 'Ön Görüşme';
         }
         secilihizmet[element.key] = hizmetObj;
       } catch (e) {
@@ -496,6 +544,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
             secilihizmet.add(hizmetObj);
             secilioda.add(null);
             secilicihaz.add(null);
+            _filtreUygula.add(false);
             randevuhizmetleri.add(yeniHizmet);
           }
           eklenenSatir++;
@@ -910,6 +959,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                     secilihizmet.add(null);
                     secilioda.add(null);
                     secilicihaz.add(null);
+                    _filtreUygula.add(false);
                     randevuhizmetleri.add(RandevuHizmet(
                       hizmetler: null,
                       hizmet_id: '',
@@ -1014,6 +1064,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                                       setState(() {
                                         secilipersonel[index] = value!;
                                         randevuhizmetleri[index].personel_id = value.id;
+                                        _filtreUygula[index] = true; // artik hizmet filtreli
                                       });
                                     },
                                     buttonStyleData: const ButtonStyleData(
@@ -1094,6 +1145,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                                             setState(() {
                                               secilicihaz[index] = value!;
                                               randevuhizmetleri[index].cihaz_id = value.id;
+                                              _filtreUygula[index] = true; // artik hizmet filtreli
                                             });
                                           },
                                           buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 14), height: 50, width: 400),
@@ -1163,6 +1215,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                                             setState(() {
                                               secilioda[index] = value!;
                                               randevuhizmetleri[index].oda_id = value.id;
+                                              _filtreUygula[index] = true; // artik hizmet filtreli
                                             });
                                           },
                                           buttonStyleData: ButtonStyleData(padding: EdgeInsets.symmetric(horizontal: 14), height: 50, width: 400),
@@ -1253,15 +1306,12 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                                         // v2: hizmet listesi secili
                                         // personel/oda/cihaz'a gore strict
                                         // filtrelenir.
-                                        items: _filtreliHizmetler(
-                                          personel: secilipersonel[index],
-                                          oda: secilioda[index],
-                                          cihaz: secilicihaz[index],
-                                        ).map((item) => DropdownMenuItem(
+                                        items: _hizmetDropdownItems(index)
+                                            .map((item) => DropdownMenuItem(
                                           value: item,
                                           child: Text(item.hizmet['hizmet_adi'], style: TextStyle(fontSize: 14)),
                                         )).toList(),
-                                        value: secilihizmet[index],
+                                        value: _hizmetDropdownValue(index),
                                         onChanged: (value) {
                                           _closeKeyboard(); // YENİ: Değişiklikte klavyeyi kapat
                                           setState(() {
