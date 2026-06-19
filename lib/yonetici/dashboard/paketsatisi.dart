@@ -444,13 +444,27 @@ class _PaketSatisiState extends State<PaketSatisi> {
                     if (value != null) {
                       setState(() {
                         selectedPaket = value;
-                        // Paketin toplam fiyatını hesapla
+                        // Fiyat + seans sayisi paket hizmetlerinden hesaplanir;
+                        // hizmet verisi yoksa paketin KENDI belirlenen degerine duser.
                         double toplamFiyat = 0;
+                        double toplamSeans = 0;
                         value.hizmetler.forEach((element) {
                           toplamFiyat +=
                               double.tryParse(element["fiyat"]?.toString() ?? "0") ?? 0;
+                          toplamSeans +=
+                              double.tryParse(element["seans"]?.toString() ?? "0") ?? 0;
                         });
+                        if (toplamFiyat <= 0) {
+                          toplamFiyat =
+                              double.tryParse(value.fiyat.replaceAll(',', '.')) ?? 0;
+                        }
                         pfiyat.text = formatFiyat(toplamFiyat.toString());
+                        // Varsayilan seans sayisi (duzenlenebilir): hizmet seans toplami,
+                        // yoksa paketin miktari.
+                        final int seansVarsayilan = toplamSeans > 0
+                            ? toplamSeans.round()
+                            : (int.tryParse(value.miktar) ?? 0);
+                        pseans.text = seansVarsayilan > 0 ? seansVarsayilan.toString() : '';
                       });
                     }
                   },
@@ -504,97 +518,13 @@ class _PaketSatisiState extends State<PaketSatisi> {
 
             SizedBox(height: 16),
 
-            // Başlangıç Tarihi ve Saati Satırı
+            // Seans Sayısı ve Fiyat Satırı
             Row(
               children: [
                 Expanded(
                   child: _buildInputCard(
-                    icon: Icons.calendar_today_outlined,
-                    title: 'Başlangıç Tarihi',
-                    child: TextFormField(
-                      controller: baslangictarihi,
-                      readOnly: true,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade800,
-                      ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Tarih seç',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                      onTap: () async {
-                        final DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                          builder: (context, child) {
-                            return Theme(
-                              data: ThemeData.light().copyWith(
-                                colorScheme: ColorScheme.light(
-                                  primary: Colors.purple.shade700,
-                                  onPrimary: Colors.white,
-                                ),
-                              ),
-                              child: child!,
-                            );
-                          },
-                        );
-                        if (pickedDate != null) {
-                          setState(() {
-                            baslangictarihi.text =
-                                DateFormat('yyyy-MM-dd').format(pickedDate);
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _buildInputCard(
-                    icon: Icons.access_time_outlined,
-                    title: 'Başlangıç Saati',
-                    child: TextFormField(
-                      controller: randevusaati,
-                      readOnly: true,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade800,
-                      ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Saat seç',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
-                        ),
-                        suffixIcon: Icon(
-                          Icons.access_time,
-                          color: Colors.purple.shade700,
-                          size: 20,
-                        ),
-                      ),
-                      onTap: () async {
-                        await _showModernTimePicker(context);
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 16),
-
-            // Seans Aralığı ve Fiyat Satırı
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInputCard(
-                    icon: Icons.calendar_view_day_outlined,
-                    title: 'Seans Aralığı',
+                    icon: Icons.format_list_numbered_rounded,
+                    title: 'Seans Sayısı',
                     child: TextFormField(
                       controller: pseans,
                       keyboardType: TextInputType.number,
@@ -604,7 +534,7 @@ class _PaketSatisiState extends State<PaketSatisi> {
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Gün',
+                        hintText: 'Adet',
                         hintStyle: TextStyle(
                           color: Colors.grey.shade400,
                           fontSize: 13,
@@ -816,8 +746,10 @@ class _PaketSatisiState extends State<PaketSatisi> {
                     return;
                   }
 
-                  // Seans null kontrolü - boşsa varsayılan 30
-                  int seansAraligi = pseans.text.isNotEmpty ? int.tryParse(pseans.text) ?? 30 : 30;
+                  // pseans artik SEANS SAYISI (adet). Seans araligi (gun) UI'dan
+                  // kaldirildi -> backend'e varsayilan 30 gun ile gonderilir.
+                  final String seansSayisi = pseans.text.trim();
+                  const String seansAraligiGun = '30';
 
                   // Fiyat null kontrolü
                   String fiyatDegeri = pfiyat.text.replaceAll(',', '.');
@@ -825,7 +757,7 @@ class _PaketSatisiState extends State<PaketSatisi> {
 
                   final AdisyonPaket paket = AdisyonPaket(
                     baslangic_tarihi: baslangictarihi.text,
-                    seans_araligi: seansAraligi.toString(),
+                    seans_araligi: seansAraligiGun,
                     id: "",
                     adisyon_id: widget.mevcutadisyonId ?? "",
                     paket_id: selectedPaket!.id ?? "",
@@ -849,6 +781,7 @@ class _PaketSatisiState extends State<PaketSatisi> {
                       randevusaati.text,
                       true,
                       "",
+                      seansSayisi: seansSayisi,
                     );
                     Navigator.pop(context, eklenepaket);
                   } else {
