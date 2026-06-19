@@ -68,11 +68,20 @@ class _PaketSatisiState extends State<PaketSatisi> {
     selectedPaketSatici = await seciliPersonelgetir(widget.isletmebilgi);
     // Şu anki saati başlangıç olarak ayarla
     setState(() {
-      paketsatici = personelliste;
+      // paketsatici'yi id'ye gore tekille (ayni id 2+ -> DropdownButton2 assertion'i onler)
+      final gorulenPersId = <String>{};
+      paketsatici = [
+        for (final p in personelliste) if (gorulenPersId.add(p.id)) p
+      ];
       paket = paketliste;
       isloading = false;
-      if(widget.kullanicirolu==5)
-        selectedPaketSatici= selectedPaketSatici;
+      // selectedPaketSatici, items (paketsatici) icindeki GERCEK instance olmali.
+      // Personel'de == override yok -> DropdownButton2 identity ile eslestiriyor;
+      // seciliPersonelgetir farkli instance dondurdugu icin id ile eslestir, yoksa null.
+      if (selectedPaketSatici != null) {
+        final esl = paketsatici.where((p) => p.id == selectedPaketSatici!.id).toList();
+        selectedPaketSatici = esl.isNotEmpty ? esl.first : null;
+      }
 
       // Başlangıç saati ayarla
       DateTime now = DateTime.now();

@@ -45,12 +45,18 @@ class _PaketSatisiState extends State<PaketSatisiDuzenleme> {
     List <Personel> personelliste = await personellistegetir(seciliisletme!);
     List <Paket> paketliste = await paket_liste(seciliisletme!);
     setState(() {
-      paketsatici = personelliste;
+      // id'ye gore tekille (ayni value 2+ -> DropdownButton2 assertion'i onler)
+      final gorulenPers = <String>{};
+      paketsatici = [for (final p in personelliste) if (gorulenPers.add(p.id)) p];
+      final gorulenPaket = <String>{};
+      paket = [for (final p in paketliste) if (gorulenPaket.add(p.id)) p];
 
-      paket  = paketliste;
-
-      selectedPaket = paket.firstWhere((element) => element.id == widget.mevcutpaket.paket_id);
-      selectedPaketSatici = paketsatici.firstWhere((element) => element.id == widget.mevcutpaket.personel_id);
+      // firstWhere orElse'siz StateError firlatabilir (paket/personel silinmis/arsivli/
+      // bos id). where().toList ile guvenli -> yoksa null (dropdown bos baslar).
+      final eslP = paket.where((e) => e.id == widget.mevcutpaket.paket_id).toList();
+      selectedPaket = eslP.isNotEmpty ? eslP.first : null;
+      final eslS = paketsatici.where((e) => e.id == widget.mevcutpaket.personel_id).toList();
+      selectedPaketSatici = eslS.isNotEmpty ? eslS.first : null;
       pfiyat.text = tryformat.format(double.parse(widget.mevcutpaket.fiyat)).toString();
       pseans.text = widget.mevcutpaket.seans_araligi;
 
