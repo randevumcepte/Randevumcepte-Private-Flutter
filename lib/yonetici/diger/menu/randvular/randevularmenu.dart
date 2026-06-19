@@ -14,6 +14,7 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/colorandtext.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
+import 'package:randevu_sistem/yonetici/randevular/randevuduzenle.dart';
 
 class RandevularMenu extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -22,6 +23,9 @@ class RandevularMenu extends StatefulWidget {
   final String personel_adi;
   final String cihaz_adi;
   final int kullanicirolu;
+  // Belirli bir musteriye gore filtrele (user_id). null/'' ise tum musteriler.
+  // Musteri Detayi > Randevular kartindan acilirken doldurulur.
+  final String? musteriId;
 
   const RandevularMenu({
     Key? key,
@@ -31,6 +35,7 @@ class RandevularMenu extends StatefulWidget {
     required this.cihazid,
     required this.cihaz_adi,
     required this.personel_adi,
+    this.musteriId,
   }) : super(key: key);
 
   @override
@@ -70,7 +75,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
 
   String selectedrandevuolusturma = 'Tümü';
   String selectedrandevudurum = 'Tümü';
-  String selectedrandevutarih = 'Bu yıl';
+  String selectedrandevutarih = 'Tümü';
 
   final TextEditingController _controller = TextEditingController();
 
@@ -136,7 +141,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
         salonid: seciliisletme!,
         tarih: selectedrandevutarih,
         context: context,
-        musteriid: "",
+        musteriid: widget.musteriId ?? "",
         personelid: _yetkiyeGorePersonelid,
         cihazid: widget.cihazid,
         musteriMi: false,
@@ -645,12 +650,44 @@ class _RandevularMenuState extends State<RandevularMenu> {
   }
 
   List<PopupMenuEntry<String>> _menuItems(Randevu r) {
+    final scheme = Theme.of(context).colorScheme;
     final items = <PopupMenuEntry<String>>[];
+    // Baslik: hangi musterinin randevusu oldugunu goster
+    items.add(PopupMenuItem<String>(
+      enabled: false,
+      height: 34,
+      child: Row(
+        children: [
+          Icon(Icons.person_rounded, size: 15, color: scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              r.musteriname,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ));
+    items.add(const PopupMenuDivider(height: 8));
     items.add(_menuEntry(
       'detaylibilgi',
       'Detaylı Bilgi',
       Icons.info_outline_rounded,
     ));
+    if (widget.kullanicirolu != 5) {
+      items.add(_menuEntry(
+        'randevuduzenle',
+        'Düzenle',
+        Icons.edit_outlined,
+      ));
+    }
     if (r.durum == "0" && widget.kullanicirolu != 5) {
       items.add(_menuEntry(
         'randevuonayla',
@@ -718,6 +755,20 @@ class _RandevularMenuState extends State<RandevularMenu> {
   Future<void> _handleAction(String value, Randevu r) async {
     if (value == 'detaylibilgi') {
       _detayDialog(r);
+      return;
+    }
+    if (value == 'randevuduzenle') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RandevuDuzenle(
+            isletmebilgi: widget.isletmebilgi,
+            randevu: r,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      _applyFilters(page: _randevuDataGridSource.currentPage);
       return;
     }
     if (value == 'randevuonayla') {
