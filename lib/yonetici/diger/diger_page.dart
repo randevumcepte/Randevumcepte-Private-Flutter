@@ -543,46 +543,6 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                // Cagri Merkezi — Arama Ekrani (dialer): personel + yonetici
-                if (widget.uyelikturu > 2)
-                  _buildMenuButton(
-                    icon: Icons.dialpad_rounded,
-                    label: 'Arama Ekranı',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: Duration(milliseconds: 300),
-                          child: AramaEkrani(
-                            isletmebilgi: widget.isletmebilgi,
-                            kullanicirolu: kullanicirolu,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                // Cagri Merkezi — Dashboard (performans paneli): SADECE hesap sahibi (rol == 1)
-                if (widget.uyelikturu > 2 && kullanicirolu == 1)
-                  _buildMenuButton(
-                    icon: Icons.headset_mic_rounded,
-                    label: 'Çağrı Merkezi',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: Duration(milliseconds: 300),
-                          child: CagriDashboard(
-                            isletmebilgi: widget.isletmebilgi,
-                            kullanicirolu: kullanicirolu,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
                 if (widget.uyelikturu > 2 && Yetki.varMi('gorusme.liste_gor'))
                   _buildMenuButton(
                     icon: Icons.chat_bubble_outline_rounded,
@@ -867,6 +827,46 @@ class _MenuState extends State<Menu> {
                           child: SmsYonetimiPage(
                             kullanicirolu: kullanicirolu,
                             isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                // Cagri Merkezi — Arama Ekrani (dialer): personel + yonetici
+                if (widget.uyelikturu > 2)
+                  _buildMenuButton(
+                    icon: Icons.dialpad_rounded,
+                    label: 'Arama Ekranı',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: AramaEkrani(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                // Cagri Merkezi — Dashboard (performans paneli): SADECE hesap sahibi (rol == 1)
+                if (widget.uyelikturu > 2 && kullanicirolu == 1)
+                  _buildMenuButton(
+                    icon: Icons.headset_mic_rounded,
+                    label: 'Çağrı Merkezi',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: CagriDashboard(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
                           ),
                         ),
                       );
