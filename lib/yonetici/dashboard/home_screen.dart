@@ -11,7 +11,6 @@ import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/theme/theme_provider.dart';
 import 'package:randevu_sistem/yonetici/dashboard/ozetsayfasi_sevices.dart';
 import 'package:randevu_sistem/yonetici/dashboard/profilbilgileri.dart';
-import 'package:randevu_sistem/yonetici/dashboard/satisPerformanslari/alacaklardashboard.dart';
 import 'package:randevu_sistem/yonetici/dashboard/satisPerformanslari/kasa.dart';
 import 'package:randevu_sistem/yonetici/dashboard/scaffold_layout_builder.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/kasa/kasaraporu.dart';
@@ -37,15 +36,21 @@ import '../santral/santralraporlari.dart';
 import 'bildirimler/bildirimler.dart';
 import 'deneme.dart';
 import 'gunlukRaporlar/gunlukajandanotlari.dart';
-import 'gunlukRaporlar/ongorusmeraporlari.dart';
-import 'gunlukRaporlar/paketsatislaridashboard.dart';
-import 'gunlukRaporlar/randevular.dart';
-import 'gunlukRaporlar/urunsatislaridashboard.dart';
+import 'gunlukRaporlar/rapor_liste.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/kasa/alacaklar.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteriliste.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeller.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'ozetsayfasi.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:randevu_sistem/yonetici/hatirlatma/hatirlatma_overlay.dart';
+import 'package:randevu_sistem/yonetici/hatirlatma/hatirlatma_model.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
 
 class DashBoard extends StatefulWidget{
   final Kullanici kullanici;
@@ -283,7 +288,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
-      body: Container(
+      body: Stack(children: [
+      Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topRight,
@@ -376,7 +382,80 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ),
       ),
+          // Hatirlatma overlay'i tum rollerde mount edilir; ICERIGI BACKEND belirler:
+          // genel hatirlatmalar yalnizca rol 1/2/3'e, arama randevusu ilgili personele
+          // (rol 5 acente dahil) doner. Yetkisiz rol bos feed alir.
+          if (seciliisletme != null && seciliisletme!.isNotEmpty)
+            HatirlatmaOverlay(
+              sube: seciliisletme!,
+              onAc: _hatirlatmaAc,
+            ),
+        ],
+      ),
     );
+  }
+
+  /// Hatirlatma kartina tiklandiginda: arama randevusu ise click-to-call baslat,
+  /// digerleri simdilik sadece kapanir (ileride tip'e gore navigasyon eklenebilir).
+  void _hatirlatmaAc(Hatirlatma h) async {
+    // Arama randevusu: click-to-call (ekran degil aksiyon)
+    if (h.aksiyon == 'arama_baslat' &&
+        h.aranacakMusteriId != null &&
+        seciliisletme != null) {
+      try {
+        final sonuc =
+            await CagriApi.aramaBaslat(h.aranacakMusteriId!, seciliisletme!);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(sonuc.message.isNotEmpty ? sonuc.message : 'Arama başlatıldı'),
+          duration: const Duration(seconds: 5),
+        ));
+      } catch (_) {}
+      return;
+    }
+
+    // Hatirlatma tipine gore ilgili ekrana git.
+    Widget? hedef;
+    switch (h.tip) {
+      case 'geciken_alacak':
+        hedef = Alacaklar(isletmebilgi: widget.isletmebilgi);
+        break;
+      case 'acik_adisyon':
+        hedef = AdisyonlarPage(
+          kullanicirolu: widget.kullanicirolu,
+          kullanici: widget.kullanici,
+          isletmebilgi: widget.isletmebilgi,
+          geriGitBtn: true,
+        );
+        break;
+      case 'yeni_musteri':
+      case 'dogum_gunu':
+        hedef = MusteriListesi(
+          kullanicirolu: widget.kullanicirolu,
+          isletmebilgi: widget.isletmebilgi,
+        );
+        break;
+      case 'bekleyen_randevu':
+      case 'geldi_gelmedi':
+        hedef = RandevularMenu(
+          kullanicirolu: widget.kullanicirolu,
+          isletmebilgi: widget.isletmebilgi,
+          personelid: _randevuPersonelIdFiltre(),
+          cihazid: "",
+          personel_adi: "",
+          cihaz_adi: "",
+        );
+        break;
+      case 'personel_odeme':
+        hedef = Personeller(
+          kullanicirolu: widget.kullanicirolu,
+          isletmebilgi: widget.isletmebilgi,
+        );
+        break;
+    }
+    if (hedef != null && mounted) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => hedef!));
+    }
   }
 
   Widget _premiumTopBar(BuildContext context) {
@@ -436,10 +515,12 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               ),
             ),
           ),
-          Column(
+          Row(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              _whatsappMiniBadge(context, ozetsayfabilgi.whatsappBagli),
+              const SizedBox(width: 8),
               _circleAction(
                 context,
                 icon: Icons.person_outline_rounded,
@@ -454,8 +535,6 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   );
                 },
               ),
-              const SizedBox(height: 6),
-              _whatsappMiniBadge(context, ozetsayfabilgi.whatsappBagli),
             ],
           ),
         ],
@@ -778,6 +857,20 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     );
   }
 
+  /// Role-5 personel 'randevu.tum_personel_gor' yetkisi yoksa sadece kendi
+  /// randevularini gormeli; diger roller icin filtre yok ('').
+  String _randevuPersonelIdFiltre() {
+    if (kullanicirolu == 5 && !Yetki.varMi('randevu.tum_personel_gor')) {
+      for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
+        if (e['salon_id'].toString() ==
+            widget.isletmebilgi['id'].toString()) {
+          return e['id'].toString();
+        }
+      }
+    }
+    return '';
+  }
+
   Widget _premiumDailyGrid(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
@@ -797,9 +890,14 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           PageTransition(
             type: PageTransitionType.rightToLeft,
             duration: const Duration(milliseconds: 400),
-            child: RandevularDashboard(
-                kullanicirolu: widget.kullanicirolu,
-                isletmebilgi: widget.isletmebilgi),
+            child: RandevularMenu(
+              kullanicirolu: widget.kullanicirolu,
+              isletmebilgi: widget.isletmebilgi,
+              personelid: _randevuPersonelIdFiltre(),
+              cihazid: "",
+              personel_adi: "",
+              cihaz_adi: "",
+            ),
           ),
         ),
       ));
@@ -815,7 +913,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           PageTransition(
             type: PageTransitionType.rightToLeft,
             duration: const Duration(milliseconds: 400),
-            child: OnGorusmelerDashboard(isletmebilgi: widget.isletmebilgi),
+            child: OnGorusmeler(
+              isletmebilgi: widget.isletmebilgi,
+              kullanicirolu: widget.kullanicirolu,
+            ),
           ),
         ),
       ));
@@ -831,9 +932,12 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           PageTransition(
             type: PageTransitionType.rightToLeft,
             duration: const Duration(milliseconds: 400),
-            child: PaketSatislariDashboard(
+            child: AdisyonlarPage(
               kullanicirolu: widget.kullanicirolu,
+              kullanici: widget.kullanici,
               isletmebilgi: widget.isletmebilgi,
+              geriGitBtn: true,
+              ilkSatisTuruId: "2", // Paket Satışları filtresi
             ),
           ),
         ),
@@ -848,9 +952,12 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           PageTransition(
             type: PageTransitionType.rightToLeft,
             duration: const Duration(milliseconds: 400),
-            child: UrunSatislariDashboard(
+            child: AdisyonlarPage(
               kullanicirolu: widget.kullanicirolu,
+              kullanici: widget.kullanici,
               isletmebilgi: widget.isletmebilgi,
+              geriGitBtn: true,
+              ilkSatisTuruId: "3", // Ürün Satışları filtresi
             ),
           ),
         ),
@@ -1217,7 +1324,86 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                     type: PageTransitionType.rightToLeft,
                     duration: const Duration(milliseconds: 400),
                     child: widget.kullanicirolu != 5
-                        ? AlacaklarDashboard(isletmebilgi: widget.isletmebilgi)
+                        ? RaporListeSayfa(
+                            baslik: 'Alacaklar',
+                            ikon: Icons.account_balance_wallet_outlined,
+                            statLabel: 'Vadesi Gelen / Geçmiş Alacak',
+                            aramaHint: 'Müşteri adıyla ara',
+                            bosBaslik: 'Tahsil edilecek alacak yok',
+                            bosAltyazi:
+                                'Vadesi gelen ve geçmiş tahsil edilmemiş alacaklar burada listelenir.',
+                            isletmebilgi: widget.isletmebilgi,
+                            fetch: alacaklarV2,
+                            kartMapper: (e) {
+                              final gecmis =
+                                  e['vadesi_gecmis'] == true || e['vadesi_gecmis'] == 1;
+                              return RaporKart(
+                                musteri: (e['musteri'] ?? '').toString(),
+                                baslik: (e['kalem'] ?? 'Alacak').toString(),
+                                tarih:
+                                    'Vade: ${(e['planlanan_odeme_tarihi'] ?? '-').toString()}',
+                                altBilgi: gecmis ? 'Vadesi geçti' : null,
+                                altBilgiIcon: Icons.warning_amber_rounded,
+                                sagUst: '${e['tutar'] ?? '0'} ₺',
+                                sagUstUyari: gecmis,
+                                data: e,
+                              );
+                            },
+                            onItemTap: (ctx, item) {
+                              final adId =
+                                  (item['adisyon_id'] ?? '').toString();
+                              final musId =
+                                  (item['user_id'] ?? '').toString();
+                              final adGecerli = adId.isNotEmpty &&
+                                  adId != 'null' &&
+                                  adId != '0';
+                              final musGecerli = musId.isNotEmpty &&
+                                  musId != 'null' &&
+                                  musId != '0';
+                              if (adGecerli) {
+                                // Birincil: bu alacağın adisyonunun tahsilat ekranı
+                                Navigator.push(
+                                  ctx,
+                                  PageTransition(
+                                    type: PageTransitionType.rightToLeft,
+                                    duration:
+                                        const Duration(milliseconds: 400),
+                                    child: TahsilatEkrani(
+                                      adisyonId: adId,
+                                      isletmebilgi: widget.isletmebilgi,
+                                      musteridanisanid: musId,
+                                      kullanicirolu: widget.kullanicirolu,
+                                    ),
+                                  ),
+                                );
+                              } else if (musGecerli) {
+                                // Yedek: alacak adisyona bağlı değilse müşterinin
+                                // Satış Takibi (açık/vadesi geçmiş adisyonları)
+                                Navigator.push(
+                                  ctx,
+                                  PageTransition(
+                                    type: PageTransitionType.rightToLeft,
+                                    duration:
+                                        const Duration(milliseconds: 400),
+                                    child: AdisyonlarPage(
+                                      kullanicirolu: widget.kullanicirolu,
+                                      kullanici: widget.kullanici,
+                                      isletmebilgi: widget.isletmebilgi,
+                                      geriGitBtn: true,
+                                      ilkMusteriId: musId,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Tahsilat bilgisi alınamadı. Uygulama güncellemesi gerekebilir.'),
+                                  ),
+                                );
+                              }
+                            },
+                          )
                         : AdisyonlarPage(
                             kullanicirolu: widget.kullanicirolu,
                             kullanici: widget.kullanici,
