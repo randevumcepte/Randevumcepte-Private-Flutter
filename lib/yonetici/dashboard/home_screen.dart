@@ -40,7 +40,7 @@ import 'gunlukRaporlar/rapor_liste.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/kasa/alacaklar.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteriliste.dart';
-import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeller.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/prim_hakedis.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
 import 'package:http/http.dart' as http;
@@ -447,10 +447,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         );
         break;
       case 'personel_odeme':
-        hedef = Personeller(
-          kullanicirolu: widget.kullanicirolu,
-          isletmebilgi: widget.isletmebilgi,
-        );
+        hedef = PrimHakedis(isletmebilgi: widget.isletmebilgi);
         break;
     }
     if (hedef != null && mounted) {
