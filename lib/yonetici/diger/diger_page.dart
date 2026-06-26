@@ -46,6 +46,7 @@ import 'menu/senetler/senetlistesi.dart';
 import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_dashboard.dart';
+import 'package:randevu_sistem/yonetici/hesabim/hesabim_ekrani.dart';
 import 'package:http/http.dart' as http;
 
 bool menu_sayfasindayiz = false;
@@ -875,6 +876,24 @@ class _MenuState extends State<Menu> {
 
                 // Ayarlar Bölümü
                 _buildSectionTitle('AYARLAR'),
+
+                // Hesabim — uyelik/hizmet/fatura bilgisi (hesap sahibi)
+                if (kullanicirolu == 1)
+                  _buildMenuButton(
+                    icon: Icons.account_circle_outlined,
+                    label: 'Hesabım',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: HesabimEkrani(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
+
                 // Sistem Ayarlari menusu: ayarlar sayfasinda gosterilen
                 // herhangi bir kutu icin yetki acikken gorulur. Icerde her
                 // kutu kendi yetkisine gore filtrelenir.
