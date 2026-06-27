@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
@@ -306,7 +304,10 @@ class _MusteriListesiState extends State<MusteriListesi> {
               //     },
               //   ),
               // ),
-              if (Platform.isIOS || !Yetki.varMi('musteri.ekle_duzenle'))
+              // NOT: Eskiden iOS'ta gizliydi (rehber izni Info.plist'e eklenmeden once).
+              // NSContactsUsageDescription artik tanimli + flutter_contacts iOS'u
+              // destekliyor -> iOS gizlemesi kaldirildi, sadece yetki kontrolu kaldi.
+              if (!Yetki.varMi('musteri.ekle_duzenle'))
                 SizedBox()
               else
               Container(
