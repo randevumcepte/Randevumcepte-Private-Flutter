@@ -61,8 +61,10 @@ post_install do |installer|
       # dSYM dosyaları
       config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
 
-      # GCC preprocessor
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)', 'PERMISSION_CAMERA=1']
+      # GCC preprocessor — permission_handler iOS izinleri derleme-zamani makrolariyla
+      # acilir. PERMISSION_CONTACTS olmadan 'Rehberden ekle' iOS'ta izin isteyemez
+      # (sessizce reddedilir). Rehber icin PERMISSION_CONTACTS=1 eklendi.
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)', 'PERMISSION_CAMERA=1', 'PERMISSION_CONTACTS=1']
     end
   end
 end
