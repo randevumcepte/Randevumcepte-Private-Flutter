@@ -3,12 +3,22 @@
 // Satin alma/yukseltme YOK (Netflix modeli) — sadece bilgilendirme + fatura duzenleme.
 
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/lisans_uyari.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'hesabim_api.dart';
 
 class HesabimEkrani extends StatefulWidget {
   final dynamic isletmebilgi;
-  const HesabimEkrani({super.key, required this.isletmebilgi});
+
+  /// Lisans bittiginde panel yerine bu ekran gosterilir: ustte kalici uyari
+  /// banner'i + cikis butonu eklenir (kullanici baska ekrana gecemez).
+  final bool lisansBitti;
+
+  const HesabimEkrani({
+    super.key,
+    required this.isletmebilgi,
+    this.lisansBitti = false,
+  });
 
   @override
   State<HesabimEkrani> createState() => _HesabimEkraniState();
@@ -51,9 +61,18 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
           backgroundColor: cs.surface,
           elevation: 0,
           foregroundColor: cs.onSurface,
+          automaticallyImplyLeading: !widget.lisansBitti,
           title: const Text('Hesabım',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-          actions: [IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh))],
+          actions: [
+            IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh)),
+            if (widget.lisansBitti)
+              IconButton(
+                tooltip: 'Çıkış Yap',
+                onPressed: () => lisansCikisYap(context),
+                icon: const Icon(Icons.logout),
+              ),
+          ],
           bottom: _yukleniyor || _veri == null
               ? null
               : TabBar(
@@ -71,25 +90,34 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                   ],
                 ),
         ),
-        body: _yukleniyor
-            ? const Center(child: CircularProgressIndicator())
-            : _hata != null
-                ? _hataGoster()
-                : Column(
-                    children: [
-                      _hero(),
-                      Expanded(
-                        child: TabBarView(
+        body: Column(
+          children: [
+            // Lisans bitti uyarisi yukleme/hata durumunda da gorunur kalir.
+            if (widget.lisansBitti)
+              LisansBittiBanner(isletmebilgi: widget.isletmebilgi),
+            Expanded(
+              child: _yukleniyor
+                  ? const Center(child: CircularProgressIndicator())
+                  : _hata != null
+                      ? _hataGoster()
+                      : Column(
                           children: [
-                            _uyelikTab(),
-                            _hizmetlerTab(),
-                            _faturaBilgiTab(),
-                            _faturalarTab(),
+                            _hero(),
+                            Expanded(
+                              child: TabBarView(
+                                children: [
+                                  _uyelikTab(),
+                                  _hizmetlerTab(),
+                                  _faturaBilgiTab(),
+                                  _faturalarTab(),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -253,9 +281,6 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
           _satir('Kalan Gün', i.kalanGun == null ? '-' : '${i.kalanGun} gün'),
           _satir('Kayıt Tarihi', i.kayitTarihi.isEmpty ? '-' : i.kayitTarihi),
         ]),
-        const SizedBox(height: 12),
-        _bilgiNotu(
-            'Paket yükseltme ve satın alma işlemleri web panelden (app.randevumcepte.com.tr) yapılır.'),
       ],
     );
   }
@@ -520,25 +545,6 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
                 color: context.colors.onSurfaceVariant,
                 letterSpacing: 0.3)),
       );
-
-  Widget _bilgiNotu(String t) {
-    final cs = context.colors;
-    final ext = context.appTheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: ext.infoColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: ext.infoColor.withValues(alpha: 0.25)),
-      ),
-      child: Row(children: [
-        Icon(Icons.info_outline, size: 18, color: ext.infoColor),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text(t, style: TextStyle(fontSize: 12.5, color: cs.onSurface))),
-      ]),
-    );
-  }
 
   String _str(dynamic v) => v == null ? '' : v.toString();
 
