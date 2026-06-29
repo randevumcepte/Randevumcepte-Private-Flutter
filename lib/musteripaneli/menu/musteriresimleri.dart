@@ -34,6 +34,9 @@ class _ImageGalleryState extends State<ImageGallery> {
   final Map<String, List<String>> _gruplar = {};
   List<String> _siraliGruplar = [];
 
+  // image path → note (caption)
+  final Map<String, String> _notlar = {};
+
   String? get _salonId {
     try {
       final b = widget.isletmebilgi;
@@ -53,10 +56,16 @@ class _ImageGalleryState extends State<ImageGallery> {
   Future<void> fetchImages() async {
     try {
       setState(() => isLoading = true);
+      final Map<String, dynamic> body = {'user_id': widget.md.id};
+      final salon = _salonId;
+      if (salon != null && salon.isNotEmpty) {
+        // Beyaz etiket: sadece bu isletmenin gorselleri gelsin
+        body['salon_id'] = salon;
+      }
       final response = await http.post(
         Uri.parse('$_baseUrl/api/v1/musteriresimleri'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'user_id': widget.md.id}),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {
@@ -64,6 +73,7 @@ class _ImageGalleryState extends State<ImageGallery> {
         final folders = data.map((item) => Islemler.fromJson(item)).toList();
 
         final Map<String, List<String>> grouped = {};
+        final Map<String, String> notlar = {};
         for (final e in folders) {
           final raw = (e.islem_fotolari).trim();
           if (raw.isEmpty || raw == 'null' || raw == '[]') continue;
@@ -74,6 +84,12 @@ class _ImageGalleryState extends State<ImageGallery> {
             continue;
           }
           if (images.isEmpty) continue;
+          final not = e.resim_notu;
+          if (not != null && not.trim().isNotEmpty) {
+            for (final p in images) {
+              notlar[p] = not;
+            }
+          }
           final key = _gunKey(e.tarih);
           grouped.putIfAbsent(key, () => <String>[]).addAll(images);
         }
@@ -87,6 +103,9 @@ class _ImageGalleryState extends State<ImageGallery> {
           _gruplar
             ..clear()
             ..addAll(grouped);
+          _notlar
+            ..clear()
+            ..addAll(notlar);
           _siraliGruplar = keys;
           isLoading = false;
         });
@@ -246,7 +265,170 @@ class _ImageGalleryState extends State<ImageGallery> {
       maxWidth: 1600,
     );
     if (picked == null) return;
-    await _uploadImage(File(picked.path));
+    // Picker (galeri/kamera) async bir bosluk; iOS'ta uygulama on plana
+    // donerken widget dispose olmus olabilir -> context'e dokunmadan once kontrol.
+    if (!mounted) return;
+    final file = File(picked.path);
+    final not = await _notSheet(
+      localFile: file,
+      mevcut: '',
+      actionLabel: 'Ekle',
+      baslik: 'Not ekle',
+      altMetin: 'İstersen bu fotoğraf için kısa bir not yaz (opsiyonel).',
+    );
+    if (not == null) return; // iptal edildi
+    if (!mounted) return;
+    await _uploadImage(file, not.trim());
+  }
+
+  // ── NOTE INPUT SHEET (ekleme + düzenleme ortak) ──────────────────────────
+  Future<String?> _notSheet({
+    File? localFile,
+    String? networkUrl,
+    required String mevcut,
+    required String actionLabel,
+    required String baslik,
+    required String altMetin,
+  }) async {
+    if (!mounted) return null; // picker async bosluugundan sonra dispose olduysa context'e dokunma
+    final scheme = Theme.of(context).colorScheme;
+    final controller = TextEditingController(text: mevcut);
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: scheme.onSurface.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (localFile != null || networkUrl != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    child: SizedBox(
+                      height: 150,
+                      width: double.infinity,
+                      child: localFile != null
+                          ? Image.file(localFile, fit: BoxFit.cover)
+                          : Image.network(networkUrl!, fit: BoxFit.cover),
+                    ),
+                  ),
+                const SizedBox(height: 14),
+                Text(
+                  baslik,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  altMetin,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  maxLines: 3,
+                  minLines: 1,
+                  maxLength: 500,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: 'Not...',
+                    filled: true,
+                    fillColor: scheme.primary.withValues(alpha: 0.04),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      borderSide: BorderSide(
+                          color: scheme.primary.withValues(alpha: 0.12)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      borderSide: BorderSide(
+                          color: scheme.primary.withValues(alpha: 0.12)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      borderSide: BorderSide(color: scheme.primary, width: 1.4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          side: BorderSide(
+                              color: scheme.onSurface.withValues(alpha: 0.15)),
+                          foregroundColor: scheme.onSurface,
+                        ),
+                        child: const Text('İptal',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.pop(ctx, controller.text),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scheme.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                        child: Text(actionLabel,
+                            style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    controller.dispose();
+    return result;
   }
 
   Widget _sourceTile({
@@ -305,7 +487,7 @@ class _ImageGalleryState extends State<ImageGallery> {
     );
   }
 
-  Future<void> _uploadImage(File file) async {
+  Future<void> _uploadImage(File file, [String note = '']) async {
     setState(() => _uploading = true);
     try {
       final req = http.MultipartRequest(
@@ -316,6 +498,9 @@ class _ImageGalleryState extends State<ImageGallery> {
       final salon = _salonId;
       if (salon != null && salon.isNotEmpty) {
         req.fields['salon_id'] = salon;
+      }
+      if (note.trim().isNotEmpty) {
+        req.fields['not'] = note.trim();
       }
       req.files.add(
         await http.MultipartFile.fromPath('musteriresim', file.path),
@@ -365,11 +550,13 @@ class _ImageGalleryState extends State<ImageGallery> {
           paths: paths,
           baseUrl: _baseUrl,
           initialIndex: index,
+          notes: Map<String, String>.from(_notlar),
           onDelete: (p) async {
             final ok = await _silmeIste();
             if (!ok) return false;
             return _resimSil(p);
           },
+          onEditNote: (p) => _notDuzenle(p),
         ),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -525,6 +712,69 @@ class _ImageGalleryState extends State<ImageGallery> {
       _bildirim('Silme sırasında bir hata oluştu');
       return false;
     }
+  }
+
+  // ── NOTE UPDATE ──────────────────────────────────────────────────────────
+  Future<bool> _notGuncelle(String path, String note) async {
+    final temiz = note.trim();
+    try {
+      final Map<String, dynamic> body = {
+        'user_id': widget.md.id,
+        'path': path,
+        'not': temiz,
+      };
+      final salon = _salonId;
+      if (salon != null && salon.isNotEmpty) {
+        body['salon_id'] = salon;
+      }
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/v1/musteriresimnot'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+      if (res.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            if (temiz.isEmpty) {
+              _notlar.remove(path);
+            } else {
+              _notlar[path] = temiz;
+            }
+          });
+        }
+        _bildirim(temiz.isEmpty ? 'Not silindi' : 'Not kaydedildi');
+        return true;
+      } else {
+        debugPrint('not ${res.statusCode}: ${res.body}');
+        String mesaj = 'Not kaydedilemedi';
+        try {
+          final j = jsonDecode(res.body) as Map<String, dynamic>;
+          if (j['error'] is String) mesaj = j['error'] as String;
+        } catch (_) {}
+        _bildirim('$mesaj (${res.statusCode})');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('not exception: $e');
+      _bildirim('Not kaydedilirken bir hata oluştu');
+      return false;
+    }
+  }
+
+  /// Not düzenleme akışı. İptal/başarısızlıkta null,
+  /// başarıda kaydedilen (kırpılmış) not metnini döndürür ('' = temizlendi).
+  Future<String?> _notDuzenle(String path) async {
+    final not = await _notSheet(
+      networkUrl: '$_baseUrl/$path',
+      mevcut: _notlar[path] ?? '',
+      actionLabel: 'Kaydet',
+      baslik: 'Notu düzenle',
+      altMetin: 'Bu fotoğrafa ait notu güncelle veya temizle.',
+    );
+    if (not == null) return null; // iptal
+    final ok = await _notGuncelle(path, not);
+    if (!ok) return null;
+    return not.trim();
   }
 
   // ── BUILD ─────────────────────────────────────────────────────────────────
@@ -781,6 +1031,7 @@ class _ImageGalleryState extends State<ImageGallery> {
             return _resimKart(
               context,
               url,
+              hasNote: _notlar.containsKey(path),
               onTap: () => _acGoruntuleyici(images, i),
               onLongPress: () async {
                 final ok = await _silmeIste();
@@ -798,6 +1049,7 @@ class _ImageGalleryState extends State<ImageGallery> {
     String url, {
     required VoidCallback onTap,
     VoidCallback? onLongPress,
+    bool hasNote = false,
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
@@ -817,36 +1069,58 @@ class _ImageGalleryState extends State<ImageGallery> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Image.network(
-              url,
-              fit: BoxFit.cover,
-              loadingBuilder: (ctx, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  color: scheme.primary.withValues(alpha: 0.05),
-                  alignment: Alignment.center,
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: scheme.primary,
-                      value: progress.expectedTotalBytes != null
-                          ? progress.cumulativeBytesLoaded /
-                              (progress.expectedTotalBytes ?? 1)
-                          : null,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (ctx, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: scheme.primary.withValues(alpha: 0.05),
+                      alignment: Alignment.center,
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: scheme.primary,
+                          value: progress.expectedTotalBytes != null
+                              ? progress.cumulativeBytesLoaded /
+                                  (progress.expectedTotalBytes ?? 1)
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => Container(
+                    color: scheme.primary.withValues(alpha: 0.05),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.broken_image_rounded,
+                      color: scheme.onSurface.withValues(alpha: 0.35),
                     ),
                   ),
-                );
-              },
-              errorBuilder: (_, __, ___) => Container(
-                color: scheme.primary.withValues(alpha: 0.05),
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.broken_image_rounded,
-                  color: scheme.onSurface.withValues(alpha: 0.35),
                 ),
-              ),
+                if (hasNote)
+                  Positioned(
+                    right: 5,
+                    bottom: 5,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.sticky_note_2_rounded,
+                        color: Colors.white,
+                        size: 13,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -940,13 +1214,18 @@ class _FullScreenGallery extends StatefulWidget {
   final List<String> paths;
   final String baseUrl;
   final int initialIndex;
+  final Map<String, String> notes;
   final Future<bool> Function(String path) onDelete;
+  // null = iptal/başarısız; '' = not temizlendi; aksi halde yeni not
+  final Future<String?> Function(String path) onEditNote;
 
   const _FullScreenGallery({
     required this.paths,
     required this.baseUrl,
     required this.initialIndex,
+    required this.notes,
     required this.onDelete,
+    required this.onEditNote,
   });
 
   @override
@@ -957,13 +1236,30 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
   late final PageController _controller;
   late int _current;
   late List<String> _paths;
+  late Map<String, String> _notes;
 
   @override
   void initState() {
     super.initState();
     _paths = List<String>.from(widget.paths);
+    _notes = Map<String, String>.from(widget.notes);
     _current = widget.initialIndex;
     _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  Future<void> _editNote() async {
+    if (_paths.isEmpty) return;
+    final path = _paths[_current];
+    final result = await widget.onEditNote(path);
+    if (result == null) return; // iptal / başarısız
+    if (!mounted) return;
+    setState(() {
+      if (result.isEmpty) {
+        _notes.remove(path);
+      } else {
+        _notes[path] = result;
+      }
+    });
   }
 
   @override
@@ -1058,15 +1354,72 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      color: Colors.white, size: 26),
-                  tooltip: 'Sil',
-                  onPressed: _delete,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_note_rounded,
+                          color: Colors.white, size: 28),
+                      tooltip: 'Not',
+                      onPressed: _editNote,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          color: Colors.white, size: 26),
+                      tooltip: 'Sil',
+                      onPressed: _delete,
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          if (_paths.isNotEmpty && (_notes[_paths[_current]]?.isNotEmpty ?? false))
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: GestureDetector(
+                onTap: _editNote,
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(
+                    18,
+                    14,
+                    18,
+                    MediaQuery.of(context).padding.bottom + 18,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.72),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.sticky_note_2_rounded,
+                          color: Colors.white70, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _notes[_paths[_current]] ?? '',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            height: 1.35,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
