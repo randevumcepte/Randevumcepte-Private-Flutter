@@ -81,6 +81,18 @@ String? _alanOku(dynamic isletmebilgi, List<String> keys) {
   return null;
 }
 
+/// Telefonu gosterim/arama icin formatlar: 10 haneli (5xx...) numaranin basina
+/// 0 ekler. Zaten 0 veya + ile basliyorsa dokunmaz.
+String? _telGoster(String? t) {
+  if (t == null) return null;
+  final s = t.trim();
+  if (s.isEmpty) return null;
+  if (s.startsWith('+') || s.startsWith('0')) return s;
+  final rakam = s.replaceAll(RegExp(r'[^0-9]'), '');
+  if (rakam.length == 10 && rakam.startsWith('5')) return '0$rakam';
+  return s;
+}
+
 Future<void> _ara(String numara) async {
   final temiz = numara.replaceAll(RegExp(r'[^0-9+]'), '');
   if (temiz.isEmpty) return;
@@ -543,7 +555,7 @@ class LisansBittiEkrani extends StatelessWidget {
   // ── MUSTERI TARAFI (iletisim bilgisi + adres + arama) ──────────────────
   Widget _musteriIcerik(BuildContext context) {
     final salonAdi = _alanOku(isletmebilgi, const ['salon_adi']) ?? 'Isletme';
-    final telefon = _alanOku(isletmebilgi, const ['telefon_1', 'telefon', 'telefon_2']);
+    final telefon = _telGoster(_alanOku(isletmebilgi, const ['telefon_1', 'telefon', 'telefon_2']));
     final adres = _alanOku(isletmebilgi, const ['adres']);
 
     return Column(
