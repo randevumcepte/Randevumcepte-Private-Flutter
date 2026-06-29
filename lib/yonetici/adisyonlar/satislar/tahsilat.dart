@@ -165,6 +165,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
   bool _gapBannerVisible = true;
   bool _gapApplied = false;
 
+  // Cark indirim kuponu
+  final TextEditingController _carkKuponKodCtrl = TextEditingController();
+  Map<String, dynamic>? _carkKuponInfo;
+  bool _carkKuponApplied = false;
+  bool _carkKuponLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -448,6 +454,238 @@ class _TahsilatState extends State<TahsilatEkrani> {
           '${_gapKampanya?['gapLabel'] ?? ''} kampanyası: %$disc indirim uygulandı',
           style: const TextStyle(color: Colors.white),
         ),
+      ),
+    );
+  }
+
+  // ────────── Cark indirim kuponu ──────────
+  double _matchingTutarForKuponTip(String tip) {
+    double t = 0;
+    for (final el in adisyonkalemleri) {
+      if (el is AdisyonHizmet && tip == 'hizmet_indirimi') {
+        t += double.tryParse(el.fiyat.replaceAll(',', '.')) ?? 0;
+      } else if (el is AdisyonUrun && tip == 'urun_indirimi') {
+        t += double.tryParse(el.fiyat.replaceAll(',', '.')) ?? 0;
+      } else if (el is AdisyonPaket && tip == 'paket_indirimi') {
+        t += double.tryParse(el.fiyat.replaceAll(',', '.')) ?? 0;
+      }
+    }
+    return t;
+  }
+
+  String _tipAdi(String tip) {
+    switch (tip) {
+      case 'hizmet_indirimi': return 'Hizmet';
+      case 'urun_indirimi':   return 'Ürün';
+      case 'paket_indirimi':  return 'Paket';
+      default: return 'İndirim';
+    }
+  }
+
+  Future<void> _applyCarkKupon() async {
+    final ext = context.appTheme;
+    final kod = _carkKuponKodCtrl.text.trim().toUpperCase();
+    if (kod.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kupon kodu giriniz'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    if (secilimusteridanisan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Önce müşteri seçiniz'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    setState(() => _carkKuponLoading = true);
+    try {
+      final res = await carkAdminKuponDogrula(seciliisletme, kod);
+      if (res == null || res['basarili'] != true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: ext.errorColor,
+            behavior: SnackBarBehavior.floating,
+            content: Text((res?['mesaj'] ?? 'Kupon doğrulanamadı').toString(),
+                style: const TextStyle(color: Colors.white)),
+          ),
+        );
+        return;
+      }
+      final odul = Map<String, dynamic>.from(res['odul'] as Map);
+      final tip = (odul['tip'] ?? '').toString();
+      final durum = (odul['durum'] ?? '').toString();
+      // Backend response doesn't include user_id; tip + durum + sepet kontrolu ile yetinilir
+      if (durum == 'kullanildi') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: ext.errorColor,
+            behavior: SnackBarBehavior.floating,
+            content: const Text('Bu kupon daha önce kullanılmış',
+                style: TextStyle(color: Colors.white)),
+          ),
+        );
+        return;
+      }
+      if (durum == 'sure_doldu') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: ext.errorColor,
+            behavior: SnackBarBehavior.floating,
+            content: const Text('Bu kuponun süresi dolmuş',
+                style: TextStyle(color: Colors.white)),
+          ),
+        );
+        return;
+      }
+      if (tip != 'hizmet_indirimi' && tip != 'urun_indirimi' && tip != 'paket_indirimi') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu kupon indirim kuponu değil'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      final matchTutar = _matchingTutarForKuponTip(tip);
+      if (matchTutar <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: ext.errorColor,
+            behavior: SnackBarBehavior.floating,
+            content: Text('Sepette ${_tipAdi(tip).toLowerCase()} bulunmadığı için kupon uygulanamadı',
+                style: const TextStyle(color: Colors.white)),
+          ),
+        );
+        return;
+      }
+      final deger = (odul['deger'] as num?)?.toDouble() ?? 0;
+      final indirimTutar = matchTutar * (deger / 100.0);
+      // Mevcut harici indirimin uzerine ekle
+      final mevcut = tlyirakamacevir(harici_indirim.text);
+      final yeni = mevcut + indirimTutar;
+      // Kuponu kullanildi olarak isaretle
+      final odulId = (odul['id'] as num?)?.toInt() ?? 0;
+      if (odulId > 0) {
+        await carkAdminKuponKullan(seciliisletme, odulId, aksiyon: 'kullan');
+      }
+      setState(() {
+        harici_indirim.text = tryformat.format(yeni).toString();
+        _carkKuponInfo = odul;
+        _carkKuponApplied = true;
+      });
+      tutar_hesapla(false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: ext.successColor,
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            '🎁 Kupon uygulandı: %${deger.toInt()} ${_tipAdi(tip)} indirimi (${tryformat.format(indirimTutar)} ₺)',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _carkKuponLoading = false);
+    }
+  }
+
+  Widget _buildCarkKuponBanner() {
+    final cs = context.colors;
+    if (_carkKuponApplied && _carkKuponInfo != null) {
+      final tip = (_carkKuponInfo!['tip'] ?? '').toString();
+      final deger = (_carkKuponInfo!['deger'] as num?)?.toInt() ?? 0;
+      final kod = (_carkKuponInfo!['kod'] ?? '').toString();
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+              colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)]),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFCD34D), width: 1),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.card_giftcard_rounded, size: 20, color: Color(0xFF92400E)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Çark kuponu uygulandı: $kod — %$deger ${_tipAdi(tip)} İndirimi',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF78350F),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.card_giftcard_rounded, size: 18, color: Color(0xFF92400E)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _carkKuponKodCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Çark kupon kodu',
+                hintStyle: TextStyle(
+                    fontSize: 12.5, color: cs.onSurface.withValues(alpha: 0.45)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFFDE68A)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFFDE68A)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFF59E0B), width: 1.5),
+                ),
+              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: _carkKuponLoading ? null : _applyCarkKupon,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF59E0B),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: _carkKuponLoading
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Text('Uygula',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
+          ),
+        ],
       ),
     );
   }
@@ -859,6 +1097,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
             const SizedBox(height: 16,),
             if (_gapKampanya != null && _gapKampanya!['hasCampaign'] == true && _gapBannerVisible)
               _buildGapKampanyaBanner(),
+            if (secilimusteridanisan != null && adisyonkalemleri.any((e) => e is AdisyonHizmet || e is AdisyonUrun || e is AdisyonPaket))
+              _buildCarkKuponBanner(),
             widget.adisyonId == '' ?
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
