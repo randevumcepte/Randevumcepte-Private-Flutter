@@ -20,6 +20,7 @@ class OnBoardingPage extends StatefulWidget {
 class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
   late VideoPlayerController _controller;
   bool _onlineRandevuAktif = false;
+  bool _lisansAktif = true; // lisans bittiyse 'Randevu Al' gizlenir
 
   @override
   void initState() {
@@ -42,6 +43,9 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
       if (!mounted) return;
       setState(() {
         _onlineRandevuAktif = musteriOnlineRandevuAktifMi(ayar);
+        // Lisans bittiyse (lisans_aktif != 1) randevu al butonu gizlenir.
+        final la = ayar is Map ? ayar['lisans_aktif'] : null;
+        _lisansAktif = la == null || la == 1 || la.toString() == '1';
       });
     } catch (_) {
       if (!mounted) return;
@@ -121,7 +125,7 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Ceren Ceviz Estetik',
+                      'Shemall Beauty',
                       maxLines: 1,
                       softWrap: false,
                       style: TextStyle(
@@ -180,7 +184,7 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
                         ),
                       ),
 
-                      if (_onlineRandevuAktif)
+                      if (_onlineRandevuAktif && _lisansAktif)
                         OutlinedButton(
                           onPressed: () {
                             _pauseVideo();
