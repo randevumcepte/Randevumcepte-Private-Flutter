@@ -486,15 +486,15 @@ class LisansBittiEkrani extends StatelessWidget {
     final salonId = _alanOku(isletmebilgi, const ['id']) ?? '';
 
     final baslik = aktifDegil
-        ? 'Lisans Kullaniminiz Henuz Aktif Olmadi!'
-        : 'Lisans Kullanim Sureniz Bitti!';
+        ? 'Lisans Kullanımınız Henüz Aktif Olmadı!'
+        : 'Lisans Kullanım Süreniz Bitti!';
     final aciklama = StringBuffer()
-      ..write(salonAdi.isNotEmpty ? 'Sayin $salonAdi. ' : 'Sayin Yetkili. ')
+      ..write(salonAdi.isNotEmpty ? 'Sayın $salonAdi. ' : 'Sayın Yetkili. ')
       ..write(aktifDegil
-          ? 'Panel kullanimi icin lisansiniz henuz aktif olmamistir. '
-          : 'Panel kullanim sureniz sona ermistir. ')
+          ? 'Panel kullanımı için lisansınız henüz aktif olmamıştır. '
+          : 'Panel kullanım süreniz sona ermiştir. ')
       ..write(
-          'Ayrintili bilgi icin bizimle iletisime gecebilir veya web sitemizi ziyaret edebilirsiniz.');
+          'Ayrıntılı bilgi için bizimle iletişime geçebilir veya web sitemizi ziyaret edebilirsiniz.');
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -526,26 +526,26 @@ class LisansBittiEkrani extends StatelessWidget {
         if (salonId.isNotEmpty) ...[
           const SizedBox(height: 14),
           Text(
-            'Isletme ID: $salonId',
+            'İşletme ID: $salonId',
             style: const TextStyle(color: Colors.white38, fontSize: 13),
           ),
         ],
         const SizedBox(height: 32),
         _cerceveliButon(
           icon: Icons.phone,
-          label: 'ILETISIME GECMEK ICIN : $kLisansIletisimGosterim',
+          label: 'İLETİŞİME GEÇMEK İÇİN : $kLisansIletisimGosterim',
           onTap: () => _ara(kLisansIletisimTel),
         ),
         const SizedBox(height: 14),
         _cerceveliButon(
           icon: Icons.language,
-          label: 'AYRINTILI BILGI : $kLisansWebGosterim',
+          label: 'AYRINTILI BİLGİ : $kLisansWebGosterim',
           onTap: () => _webAc(kLisansWebUrl),
         ),
         const SizedBox(height: 14),
         _cerceveliButon(
           icon: Icons.logout,
-          label: 'CIKIS YAPIN',
+          label: 'ÇIKIŞ YAPIN',
           onTap: () => lisansCikisYap(context),
         ),
       ],
@@ -554,7 +554,7 @@ class LisansBittiEkrani extends StatelessWidget {
 
   // ── MUSTERI TARAFI (iletisim bilgisi + adres + arama) ──────────────────
   Widget _musteriIcerik(BuildContext context) {
-    final salonAdi = _alanOku(isletmebilgi, const ['salon_adi']) ?? 'Isletme';
+    final salonAdi = _alanOku(isletmebilgi, const ['salon_adi']) ?? 'İşletme';
     final telefon = _telGoster(_alanOku(isletmebilgi, const ['telefon_1', 'telefon', 'telefon_2']));
     final adres = _alanOku(isletmebilgi, const ['adres']);
 
@@ -564,7 +564,7 @@ class LisansBittiEkrani extends StatelessWidget {
         const Icon(Icons.info_outline_rounded, color: Color(0xFF5076DB), size: 72),
         const SizedBox(height: 24),
         const Text(
-          'Hizmet Gecici Olarak Kullanilamiyor',
+          'Hizmet Geçici Olarak Kullanılamıyor',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
@@ -576,8 +576,8 @@ class LisansBittiEkrani extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          '$salonAdi su anda uygulama uzerinden hizmet veremiyor. '
-          'Randevu ve bilgi icin isletme ile dogrudan iletisime gecebilirsiniz.',
+          '$salonAdi şu anda uygulama üzerinden hizmet veremiyor. '
+          'Randevu ve bilgi için işletme ile doğrudan iletişime geçebilirsiniz.',
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white70,
@@ -612,13 +612,13 @@ class LisansBittiEkrani extends StatelessWidget {
         if (telefon != null)
           _cerceveliButon(
             icon: Icons.phone,
-            label: 'ISLETMEYI ARA',
+            label: 'İŞLETMEYİ ARA',
             onTap: () => _ara(telefon),
           ),
         const SizedBox(height: 14),
         _cerceveliButon(
           icon: Icons.logout,
-          label: 'CIKIS YAP',
+          label: 'ÇIKIŞ YAP',
           onTap: () => lisansCikisYap(context),
         ),
       ],
