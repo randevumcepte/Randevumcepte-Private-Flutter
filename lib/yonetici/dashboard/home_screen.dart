@@ -38,7 +38,7 @@ import 'deneme.dart';
 import 'gunlukRaporlar/gunlukajandanotlari.dart';
 import 'gunlukRaporlar/rapor_liste.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
-import 'package:randevu_sistem/yonetici/diger/menu/kasa/alacaklar.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/alacaklar.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteriliste.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/prim_hakedis.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
@@ -418,7 +418,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     Widget? hedef;
     switch (h.tip) {
       case 'geciken_alacak':
-        hedef = Alacaklar(isletmebilgi: widget.isletmebilgi);
+        hedef = const AlacaklarScreen();
         break;
       case 'acik_adisyon':
         hedef = AdisyonlarPage(
