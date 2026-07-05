@@ -32,13 +32,12 @@ import '../adisyonlar/adisyonpage.dart';
 import '../adisyonlar/yeniadisyon.dart';
 import '../diger/menu/ajanda/ajandaekle.dart';
 import '../diger/menu/musteriler/yeni_musteri.dart';
-import '../santral/santralraporlari.dart';
+// import '../santral/santralraporlari.dart'; // Apple deprecated-API: santral .bak
 import 'bildirimler/bildirimler.dart';
 import 'deneme.dart';
 import 'gunlukRaporlar/gunlukajandanotlari.dart';
 import 'gunlukRaporlar/rapor_liste.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
-import 'package:randevu_sistem/yonetici/adisyonlar/alacaklar.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteriliste.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/prim_hakedis.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
@@ -397,6 +396,78 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
 
   /// Hatirlatma kartina tiklandiginda: arama randevusu ise click-to-call baslat,
   /// digerleri simdilik sadece kapanir (ileride tip'e gore navigasyon eklenebilir).
+  /// Dashboard "Alacak" karti ve "geciken_alacak" hatirlatmasi AYNI modern
+  /// alacak listesini (Vadesi Gelen / Gecmis Alacak) acsin diye ortak builder.
+  Widget _alacaklarRaporSayfasi() {
+    return RaporListeSayfa(
+      baslik: 'Alacaklar',
+      ikon: Icons.account_balance_wallet_outlined,
+      statLabel: 'Vadesi Gelen / Geçmiş Alacak',
+      aramaHint: 'Müşteri adıyla ara',
+      bosBaslik: 'Tahsil edilecek alacak yok',
+      bosAltyazi:
+          'Vadesi gelen ve geçmiş tahsil edilmemiş alacaklar burada listelenir.',
+      isletmebilgi: widget.isletmebilgi,
+      fetch: alacaklarV2,
+      kartMapper: (e) {
+        final gecmis = e['vadesi_gecmis'] == true || e['vadesi_gecmis'] == 1;
+        return RaporKart(
+          musteri: (e['musteri'] ?? '').toString(),
+          baslik: (e['kalem'] ?? 'Alacak').toString(),
+          tarih: 'Vade: ${(e['planlanan_odeme_tarihi'] ?? '-').toString()}',
+          altBilgi: gecmis ? 'Vadesi geçti' : null,
+          altBilgiIcon: Icons.warning_amber_rounded,
+          sagUst: '${e['tutar'] ?? '0'} ₺',
+          sagUstUyari: gecmis,
+          data: e,
+        );
+      },
+      onItemTap: (ctx, item) {
+        final adId = (item['adisyon_id'] ?? '').toString();
+        final musId = (item['user_id'] ?? '').toString();
+        final adGecerli = adId.isNotEmpty && adId != 'null' && adId != '0';
+        final musGecerli = musId.isNotEmpty && musId != 'null' && musId != '0';
+        if (adGecerli) {
+          Navigator.push(
+            ctx,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 400),
+              child: TahsilatEkrani(
+                adisyonId: adId,
+                isletmebilgi: widget.isletmebilgi,
+                musteridanisanid: musId,
+                kullanicirolu: widget.kullanicirolu,
+              ),
+            ),
+          );
+        } else if (musGecerli) {
+          Navigator.push(
+            ctx,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 400),
+              child: AdisyonlarPage(
+                kullanicirolu: widget.kullanicirolu,
+                kullanici: widget.kullanici,
+                isletmebilgi: widget.isletmebilgi,
+                geriGitBtn: true,
+                ilkMusteriId: musId,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Tahsilat bilgisi alınamadı. Uygulama güncellemesi gerekebilir.'),
+            ),
+          );
+        }
+      },
+    );
+  }
+
   void _hatirlatmaAc(Hatirlatma h) async {
     // Arama randevusu: click-to-call (ekran degil aksiyon)
     if (h.aksiyon == 'arama_baslat' &&
@@ -418,7 +489,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     Widget? hedef;
     switch (h.tip) {
       case 'geciken_alacak':
-        hedef = const AlacaklarScreen();
+        hedef = _alacaklarRaporSayfasi();
         break;
       case 'acik_adisyon':
         hedef = AdisyonlarPage(
@@ -3675,19 +3746,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          onTap: () => Navigator.push(
-            context,
-            PageTransition(
-              type: PageTransitionType.rightToLeft,
-              duration: const Duration(milliseconds: 400),
-              child: CDRRaporlari(
-                kullanicirolu: widget.kullanicirolu,
-                isletmebilgi: widget.isletmebilgi,
-                dialPadManager: DialPadManager(),
-                scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
-                kullanici: widget.kullanici,
-              ),
-            ),
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Santral raporları şu an devre dışı')),
           ),
           borderRadius: BorderRadius.circular(18),
           child: Padding(
