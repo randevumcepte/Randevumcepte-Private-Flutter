@@ -179,7 +179,11 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           ? Yetki.tazele(salonid: seciliisletme!)
               .then((_) => _gunlukRandevulariGetirInternal())
           : _gunlukRandevulariGetirInternal();
-      final tDashboard = dashboardGunlukRapor(seciliisletme!);
+      // Rol 5 (Personel) icin dashboard'a kendi personel_id'sini gonder ki
+      // backend salon toplami yerine sadece bu personelin verisini dondursun.
+      final String _dashboardPersonelId = _resolvePersonelIdForRole5();
+      final tDashboard =
+          dashboardGunlukRapor(seciliisletme!, personelId: _dashboardPersonelId);
       final tAsistan = easistandashboard(seciliisletme!, bugunYarinTimestamp);
       // YENİ: 20s timeout — backend yanıt vermezse sonsuza kadar bekleme.
       final futures = await Future.wait([tDashboard, tAsistan, tRandevu])
@@ -982,6 +986,29 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return '';
   }
 
+  /// Role-5 personel icin salondaki kendi personel_id'sini dondur. Diger
+  /// roller icin bos string. Dashboard ozet ve karsilastirma API'lerine
+  /// gonderilir; backend rol 5 gelirse tum salon yerine sadece bu
+  /// personelin randevu/satis/tahsilat verisiyle filtreler.
+  ///
+  /// State icindeki `kullanicirolu`'ndan bagimsiz calisir; setState'ten
+  /// once (initialize() sirasinda) cagrilabilsin diye role_id direkt
+  /// yetkili_olunan_isletmeler'den okunur.
+  String _resolvePersonelIdForRole5() {
+    if (seciliisletme == null || seciliisletme!.isEmpty) return '';
+    for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
+      if (e['salon_id'].toString() ==
+          widget.isletmebilgi['id'].toString()) {
+        final rolStr = e['role_id']?.toString() ?? '';
+        if (rolStr == '5') {
+          return e['id'].toString();
+        }
+        return '';
+      }
+    }
+    return '';
+  }
+
   Widget _premiumDailyGrid(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
@@ -1623,7 +1650,11 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     if (_karsCache.containsKey(period)) return;
     if (_loadingPeriods.contains(period)) return; // zaten yükleniyor
     if (mounted) setState(() => _loadingPeriods.add(period));
-    final data = await dashboardKarsilastirma(seciliisletme!, period);
+    final data = await dashboardKarsilastirma(
+      seciliisletme!,
+      period,
+      personelId: _resolvePersonelIdForRole5(),
+    );
     if (!mounted) return;
     setState(() {
       _loadingPeriods.remove(period);

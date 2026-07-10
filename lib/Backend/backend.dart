@@ -90,7 +90,7 @@ Future<Map<String,dynamic>> ajandagetir(String salonid,String currpage,String ba
 
 
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/ajandaget/"+salonid.toString()+"/"+user['id'].toString()+'?page='+currpage.toString()),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/ajandaget/"+salonid.toString()+"/"+user['id'].toString()+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -120,7 +120,7 @@ Future<Map<String,dynamic>> cihazgetir(String salonid,String currpage,String bas
 
 
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/cihazgetir/"+salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/cihazgetir/"+salonid.toString()+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -150,7 +150,7 @@ Future<Map<String,dynamic>> odagetir(String salonid,String currpage,String basli
 
 
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/odagetir/"+salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/odagetir/"+salonid.toString()+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -172,7 +172,7 @@ Future<Map<String,dynamic>> odagetir(String salonid,String currpage,String basli
 Future<List<Map<String, String>>> odaPersonelListesi(String salonid) async {
   final response = await http.get(
     Uri.parse(
-        'https://app.randevumcepte.com.trapi/v1/oda_personel_listesi/$salonid'),
+        'https://app.randevumcepte.com.tr/api/v1/oda_personel_listesi/$salonid'),
     headers: {'Content-Type': 'application/json'},
   );
   if (response.statusCode != 200) {
@@ -193,7 +193,7 @@ Future<List<Map<String, String>>> odaPersonelListesi(String salonid) async {
 Future<List<Map<String, String>>> odaHizmetListesi(String salonid) async {
   final response = await http.get(
     Uri.parse(
-        'https://app.randevumcepte.com.trapi/v1/oda_hizmet_listesi/$salonid'),
+        'https://app.randevumcepte.com.tr/api/v1/oda_hizmet_listesi/$salonid'),
     headers: {'Content-Type': 'application/json'},
   );
   if (response.statusCode != 200) {
@@ -211,9 +211,14 @@ Future<List<Map<String, String>>> odaHizmetListesi(String salonid) async {
       .toList();
 }
 
-Future<Map<String, dynamic>> odaDetayGetir(String odaId) async {
+Future<Map<String, dynamic>> odaDetayGetir(String odaId, {String? salonId}) async {
+  // Beyaz etiket: oda detayini salon bazinda izole et
+  final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/oda_detay/$odaId')
+      .replace(queryParameters: (salonId != null && salonId.isNotEmpty)
+          ? {'salon_id': salonId}
+          : null);
   final response = await http.get(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/oda_detay/$odaId'),
+    uri,
     headers: {'Content-Type': 'application/json'},
   );
   if (response.statusCode != 200) {
@@ -224,7 +229,7 @@ Future<Map<String, dynamic>> odaDetayGetir(String odaId) async {
 
 Future<List<MusteriDanisan>> musterilistegetir(String salonid) async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/musteriler/'+salonid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriler/'+salonid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -263,7 +268,7 @@ Future<List<MusteriDanisan>> musterilistegetir(String salonid) async {
 
 Future<MusteriDanisan> musterilistegetirTahsilat(String userId) async {
   final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/musteritahsilat?userId='+userId)
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteritahsilat?userId='+userId)
   );
 
   if (response.statusCode == 200) {
@@ -287,7 +292,7 @@ Future<List<MusteriDanisan>> musterilistegetirSayfali(String seciliMusteri,
     String salonid, String filter, String limit, String offset) async {
 
   final response = await http.get(Uri.parse(
-      'https://app.randevumcepte.com.trapi/v1/musteriler/$salonid?search=$filter&limit=$limit&offset=$offset&seciliMusteri?$seciliMusteri'));
+      'https://app.randevumcepte.com.tr/api/v1/musteriler/$salonid?search=$filter&limit=$limit&offset=$offset&seciliMusteri?$seciliMusteri'));
 
   if (response.statusCode == 200) {
     final jsonResponse = json.decode(response.body);
@@ -301,7 +306,7 @@ Future<List<MusteriDanisan>> musterilistegetirSayfali(String seciliMusteri,
 }
 Future<List<Sehir>> sehirgetir() async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/sehirler')
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/sehirler')
   );
 
   if (response.statusCode == 200) {
@@ -320,7 +325,7 @@ Future<List<Sehir>> sehirgetir() async {
 }
 
 Future<List<OnGorusmeNedeni>> ongorusmenedeni(String salonid) async {
-  final response = await http.get(Uri.parse('https://app.randevumcepte.com.trapi/v1/ongorusmenedeni/'+salonid));
+  final response = await http.get(Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmenedeni/'+salonid));
 
   if (response.statusCode == 200) {
     var rateLimit = response.headers['x-ratelimit-limit'];
@@ -339,6 +344,9 @@ Future<List<OnGorusmeNedeni>> ongorusmenedeni(String salonid) async {
     if (jsonResponse['urunler'] != null) {
       loadedItems.addAll((jsonResponse['urunler'] as List).map((item) => Urun.fromJson(item)).toList());
     }
+    if (jsonResponse['hizmetler'] != null) {
+      loadedItems.addAll((jsonResponse['hizmetler'] as List).map((item) => IsletmeHizmet.fromJson(item)).toList());
+    }
     return loadedItems;
   } else {
     logyaz(response.statusCode,response.reasonPhrase);
@@ -350,7 +358,7 @@ Future<List<OnGorusmeNedeni>> ongorusmenedeni(String salonid) async {
 
 Future<List<Personel>> personellistegetir(String salonid) async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/personeller/'+salonid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personeller/'+salonid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -370,7 +378,7 @@ Future<List<Personel>> personellistegetir(String salonid) async {
 
 Future<List<Sozlesme>> formlarigetir() async{
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/formlar')
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/formlar')
   );
 
   if (response.statusCode == 200) {
@@ -389,7 +397,7 @@ Future<List<Sozlesme>> formlarigetir() async{
 }
 Future<List<MasrafKategorisi>> masrafkategorileri() async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/masrafkategorileri')
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/masrafkategorileri')
   );
 
   if (response.statusCode == 200) {
@@ -408,7 +416,7 @@ Future<List<MasrafKategorisi>> masrafkategorileri() async {
 }
 Future<List<SmsTaslak>> smstaslakgetir(String salonid) async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/smstaslaklari/'+salonid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/smstaslaklari/'+salonid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -434,7 +442,7 @@ Future<Map<String,dynamic>> kampanyagetir(String salonid,String currpage,String 
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/kampanyalar/'+salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/kampanyalar/'+salonid.toString()+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -459,7 +467,7 @@ Future<Map<String,dynamic>> etkinlikgetir(String salonid,String currpage,String 
 
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/etkinlikyukle/'+salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/etkinlikyukle/'+salonid.toString()+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -477,7 +485,7 @@ Future<Map<String,dynamic>> etkinlikgetir(String salonid,String currpage,String 
 }
 Future<List<Paket>> paketgetir(String salonid) async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/paketget/'+salonid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketget/'+salonid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -514,7 +522,7 @@ Future<Map<String, dynamic>> arsivgetir(String salonid,String musteriid,String c
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/arsivyukle/'+salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/arsivyukle/'+salonid.toString()+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -534,9 +542,39 @@ Future<Map<String, dynamic>> arsivgetir(String salonid,String musteriid,String c
   }
 }
 
+// Form/arsiv islemleri: onayla, iptal, tekrar gonder.
+// Hepsi arsiv kaydinin id'sini alir; backend ApiController'daki
+// /arsivonayla, /arsiviptal, /formgonder uclarini kullanir.
+Future<bool> arsivOnayla(String arsivId) async {
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/arsivonayla'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'id': arsivId}),
+  );
+  return response.statusCode == 200;
+}
+
+Future<bool> arsivIptal(String arsivId) async {
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/arsiviptal'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'id': arsivId}),
+  );
+  return response.statusCode == 200;
+}
+
+Future<bool> arsivFormGonder(String arsivId) async {
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/formgonder'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'id': arsivId}),
+  );
+  return response.statusCode == 200;
+}
+
 Future<Kullanici> kullanicibilgi(String userid) async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/kullaniciBilgiGetir/'+userid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/kullaniciBilgiGetir/'+userid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -555,7 +593,7 @@ Future<Kullanici> kullanicibilgi(String userid) async {
 }
 Future<List<IsletmeHizmet>> isletmehizmetleri(String salonid) async{
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/hizmetler/'+salonid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetler/'+salonid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -591,7 +629,7 @@ Future<List<IsletmeHizmet>> isletmehizmetleri(String salonid) async{
 }
 Future<List<Cihaz>> isletmecihazlari(String salonid) async{
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/cihazlar/'+salonid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/cihazlar/'+salonid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -610,7 +648,7 @@ Future<List<Cihaz>> isletmecihazlari(String salonid) async{
 }
 Future<List<Oda>> isletmeodalari(String salonid) async{
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/odalar/'+salonid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/odalar/'+salonid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -634,7 +672,7 @@ Future<List<Oda>> isletmeodalari(String salonid) async{
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/salonlar'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/salonlar'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -660,7 +698,7 @@ Future<List<Oda>> isletmeodalari(String salonid) async{
 Future<List<IsletmeCalismaSaatleri>> fetchSalonHoursSettings(String salonId) async{
 
   final response = await http.get(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/salonsaatleri/'+salonId),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/salonsaatleri/'+salonId),
 
     headers: {'Content-Type': 'application/json'},
 
@@ -685,7 +723,7 @@ Future<List<IsletmeCalismaSaatleri>> fetchSalonHoursSettings(String salonId) asy
 Future<List<IsletmeMolaSaatleri>> fetchSalonBreakHoursSettings(String salonId) async{
 
   final response = await http.get(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/salonmolasaatleri/'+salonId),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/salonmolasaatleri/'+salonId),
 
     headers: {'Content-Type': 'application/json'},
 
@@ -717,20 +755,21 @@ Future<String?> secilisalonid() async {
     return 'Hata oluştu: $e';
   }
 }
-Future<OzetSayfasi> dashboardGunlukRapor(String salonid ) async{
+Future<OzetSayfasi> dashboardGunlukRapor(String salonid, {String personelId = ''} ) async{
   SharedPreferences localStorage = await SharedPreferences.getInstance();
 
   var user = jsonDecode(localStorage.getString('user')!);
-  log("salon id "+salonid +" user id "+user["id"].toString());
+  log("salon id "+salonid +" user id "+user["id"].toString()+" personel_id "+personelId);
   Map<String, dynamic> formData = {
 
     'sube': salonid,
     'user_id': user["id"],
+    if (personelId.isNotEmpty) 'personel_id': personelId,
 
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/dashboard'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/dashboard'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -750,12 +789,14 @@ Future<OzetSayfasi> dashboardGunlukRapor(String salonid ) async{
 ///
 /// Backend henüz deploy edilmediyse null döner — UI mock veri ile devam eder.
 Future<Map<String, dynamic>?> dashboardKarsilastirma(
-    String salonId, String period) async {
+    String salonId, String period, {String personelId = ''}) async {
   try {
+    final personelParam =
+        personelId.isNotEmpty ? '&personel_id=$personelId' : '';
     final response = await http
         .get(
           Uri.parse(
-              'https://app.randevumcepte.com.trapi/v1/dashboardKarsilastirma/$salonId?period=$period'),
+              'https://app.randevumcepte.com.tr/api/v1/dashboardKarsilastirma/$salonId?period=$period$personelParam'),
           headers: {'Content-Type': 'application/json'},
         )
         .timeout(const Duration(seconds: 10));
@@ -784,7 +825,7 @@ Future<Map<String, dynamic>?> saatBosluguKampanyaOlustur({
     final response = await http
         .post(
           Uri.parse(
-              'https://app.randevumcepte.com.trapi/v1/saatBosluguKampanyaOlustur/$salonId'),
+              'https://app.randevumcepte.com.tr/api/v1/saatBosluguKampanyaOlustur/$salonId'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'gapKey': gapKey,
@@ -815,7 +856,7 @@ Future<Map<String, dynamic>?> saatBosluguKampanyaBildirimGonder({
     final response = await http
         .post(
           Uri.parse(
-              'https://app.randevumcepte.com.trapi/v1/saatBosluguKampanyaBildirimGonder/$salonId'),
+              'https://app.randevumcepte.com.tr/api/v1/saatBosluguKampanyaBildirimGonder/$salonId'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'kampanyaId': kampanyaId,
@@ -840,7 +881,7 @@ Future<Map<String, dynamic>?> aktifGapKampanyalari(String salonId) async {
     final response = await http
         .get(
           Uri.parse(
-              'https://app.randevumcepte.com.trapi/v1/aktifGapKampanyalari/$salonId'),
+              'https://app.randevumcepte.com.tr/api/v1/aktifGapKampanyalari/$salonId'),
           headers: {'Content-Type': 'application/json'},
         )
         .timeout(const Duration(seconds: 10));
@@ -865,7 +906,7 @@ Future<Map<String, dynamic>?> randevuKampanyaKontrol({
     final response = await http
         .get(
           Uri.parse(
-              'https://app.randevumcepte.com.trapi/v1/randevuKampanyaKontrol/$salonId$qp'),
+              'https://app.randevumcepte.com.tr/api/v1/randevuKampanyaKontrol/$salonId$qp'),
           headers: {'Content-Type': 'application/json'},
         )
         .timeout(const Duration(seconds: 10));
@@ -887,7 +928,7 @@ Future<Map<String, dynamic>?> saatBosluguKampanyaIptal({
     final response = await http
         .post(
           Uri.parse(
-              'https://app.randevumcepte.com.trapi/v1/saatBosluguKampanyaIptal/$salonId'),
+              'https://app.randevumcepte.com.tr/api/v1/saatBosluguKampanyaIptal/$salonId'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({'kampanyaId': kampanyaId}),
         )
@@ -907,7 +948,7 @@ Future<Map<String, dynamic>?> anketOzet(String salonId, {int gun = 30}) async {
   try {
     final response = await http.get(
       Uri.parse(
-          'https://app.randevumcepte.com.trapi/v1/anketOzet/$salonId?gun=$gun'),
+          'https://app.randevumcepte.com.tr/api/v1/anketOzet/$salonId?gun=$gun'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -940,7 +981,7 @@ Future<List<Map<String, dynamic>>?> anketGonderimleri(
       'sadeceCevaplilar': sadeceCevaplilar ? '1' : '0',
       if (filtre != null && filtre.isNotEmpty) 'filtre': filtre,
     };
-    final uri = Uri.parse('https://app.randevumcepte.com.trapi/v1/anketGonderimleri/$salonId')
+    final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/anketGonderimleri/$salonId')
         .replace(queryParameters: params);
     final response = await http.get(
       uri,
@@ -987,7 +1028,7 @@ Future <Map<String, dynamic>> ongorusmeler(String Salonid,  String currpage,Stri
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/ongorusmeget/'+Salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmeget/'+Salonid.toString()+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1018,7 +1059,7 @@ Future <Map<String, dynamic>> ongorusmelergunluk(String Salonid,  String currpag
   };
   log('formdata '+jsonEncode(formData).toString());
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/ongorusmegetgunluk/'+Salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmegetgunluk/'+Salonid.toString()+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1054,7 +1095,7 @@ Future<List<Cdr>> santralraporlari(
     buffer.write("&limit=50"); // <-- YENİ: limit parametresi eklendi
 
     final uri = Uri.parse(
-      "https://app.randevumcepte.com.trapi/v1/cdrraporson?${buffer.toString()}",
+      "https://app.randevumcepte.com.tr/api/v1/cdrraporson?${buffer.toString()}",
     );
 
     print('santralraporlari: URI = $uri');
@@ -1197,7 +1238,7 @@ Future <Map<String, dynamic>>   randevularigetir(String musteri_id,String Saloni
 
   log('randevu liste '+jsonEncode(formData));
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevular?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevular?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1227,7 +1268,7 @@ Future <Map<String, dynamic>> calismasaatlerinigetir(String Salonid) async {
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/isletmecalismasaatleri/'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/isletmecalismasaatleri/'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1259,7 +1300,7 @@ Future <Map<String ,dynamic>> randevucek(String Salonid,String currpage,String m
     // Add other form fields
   };
   var response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/tum_randevulari_getir/"+Salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/tum_randevulari_getir/"+Salonid.toString()+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1290,7 +1331,7 @@ Future <Map<String ,dynamic>> randevuceksalon(String Salonid,String currpage,Str
     // Add other form fields
   };
   var response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/salon_randevu_getir/"+Salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/salon_randevu_getir/"+Salonid.toString()+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1321,7 +1362,7 @@ Future <Map<String ,dynamic>> randevucekuygulama(String Salonid,String currpage,
     // Add other form fields
   };
   var response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/uygulama_randevu_getir/"+Salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/uygulama_randevu_getir/"+Salonid.toString()+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1352,7 +1393,7 @@ Future <Map<String ,dynamic>> randevucekweb(String Salonid,String currpage,Strin
     // Add other form fields
   };
   var response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/web_randevu_getir/"+Salonid.toString()+'?page='+currpage.toString()),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/web_randevu_getir/"+Salonid.toString()+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1393,7 +1434,7 @@ Future <Map<String, dynamic>> urunlerigetir(String Salonid , String currpage,Str
   log('formdata '+jsonEncode(formData).toString());
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/urunler/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunler/'+Salonid+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1428,7 +1469,7 @@ Future <Map<String, dynamic>> paketlerigetir(String Salonid , String currpage,St
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/paketler/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketler/'+Salonid+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1458,7 +1499,7 @@ Future <Map<String, dynamic>> paketsatislarigetir(String Salonid,String currpage
   };
   log('formdata '+jsonEncode(formData).toString());
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/paketsatisget/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketsatisget/'+Salonid+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1487,7 +1528,7 @@ Future <Map<String, dynamic>> urunsatislarigetir(String Salonid,String currpage,
   };
   log('formdata '+jsonEncode(formData).toString());
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/urunsatisget/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunsatisget/'+Salonid+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1516,7 +1557,7 @@ Future <Map<String, dynamic>> alacaklargetir(String Salonid,String currpage,Stri
   };
   log('formdata '+jsonEncode(formData).toString());
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/alacaklar/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/alacaklar/'+Salonid+'?page='+currpage.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -1537,6 +1578,77 @@ Future <Map<String, dynamic>> alacaklargetir(String Salonid,String currpage,Stri
 
 }
 
+// Harici tahsilat (gecmise donuk satis) — kalem listeleri (hizmet/urun/paket).
+Future<Map<String, dynamic>> hariciTahsilatKalemler(String salonid) async {
+  final response = await http.post(
+    Uri.parse(
+        'https://app.randevumcepte.com.tr/api/v1/harici-tahsilat-kalemler/$salonid'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'salon_id': salonid}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body);
+  } else {
+    logyaz(response.statusCode, response.reasonPhrase);
+    throw Exception(response.reasonPhrase);
+  }
+}
+
+// Harici tahsilat kaydet. kalemler: [{tip, id, fiyat, adet}]
+Future<Map<String, dynamic>> hariciTahsilatEkle({
+  required String salonid,
+  required String musteriId,
+  required String olusturanId,
+  required String satisTarihi,
+  required List<Map<String, dynamic>> kalemler,
+  required String tahsilatTutari,
+  required String odemeYontemi,
+  String not = '',
+}) async {
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/harici-tahsilat-ekle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'salon_id': salonid,
+      'musteri_id': musteriId,
+      'olusturan_id': olusturanId,
+      'satis_tarihi': satisTarihi,
+      'kalemler': kalemler,
+      'tahsilat_tutari': tahsilatTutari,
+      'odeme_yontemi': odemeYontemi,
+      'not': not,
+    }),
+  );
+  try {
+    return json.decode(response.body);
+  } catch (_) {
+    logyaz(response.statusCode, response.reasonPhrase);
+    throw Exception(response.reasonPhrase);
+  }
+}
+
+// ===========================================================================
+// v2 — Mobil kart tasarimi icin temiz JSON donen rapor uc noktasi.
+// Eski (v1) alacaklar uc noktasi DEGISMEDI; eski yuklu uygulamalar
+// bozulmasin diye ayri "-v2" route'u eklendi.
+// (Paket/Urun satislari artik Satis Takibi/AdisyonlarPage'e yonlendiriliyor.)
+// ===========================================================================
+Future<Map<String, dynamic>> alacaklarV2(
+    String salonid, String currpage, String musteridanisanadi) async {
+  final response = await http.post(
+    Uri.parse(
+        'https://app.randevumcepte.com.tr/api/v1/alacaklar-v2/$salonid?page=$currpage'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'id': salonid, 'musteridanisan': musteridanisanadi}),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body);
+  } else {
+    logyaz(response.statusCode, response.reasonPhrase);
+    throw Exception(response.reasonPhrase);
+  }
+}
+
 Future <Map<String, dynamic>> satislarigetir(String Salonid , String currpage,String arama) async {
 
 
@@ -1548,7 +1660,7 @@ Future <Map<String, dynamic>> satislarigetir(String Salonid , String currpage,St
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/seanslar?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seanslar?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1580,7 +1692,7 @@ Future <Map<String, dynamic>> senetlerigetir(String Salonid , String currpage,St
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/senetler/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/senetler/'+Salonid+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1612,7 +1724,7 @@ Future <Map<String, dynamic>> musteridanisanlistesi(String Salonid , String curr
 
 log('curr page '+currpage.toString());
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/musterilistegetir/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/musterilistegetir/'+Salonid+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1692,7 +1804,7 @@ Future <Map<String, dynamic>> tahsilatraporu(String Salonid , String currpage,St
 
   log('odeme id'+ odeme);
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/tahsilatraporu/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/tahsilatraporu/'+Salonid+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1773,7 +1885,7 @@ Future <Map<String, dynamic>> masrafraporu(String Salonid , String currpage,Stri
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/masrafraporu/'+Salonid+'?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/masrafraporu/'+Salonid+'?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1855,7 +1967,7 @@ Future <Map<String, dynamic>> kasaraporu(String Salonid , String tarih,String od
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/kasaraporu/'+Salonid),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/kasaraporu/'+Salonid),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1886,7 +1998,7 @@ Future<Map<String, dynamic>> devredenAylar(String salonId, int year) async {
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/devredenAylar'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/devredenAylar'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
 
@@ -1961,7 +2073,7 @@ Future <Map<String, dynamic>> seanslarigetir(String Salonid , String currpage,St
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/seanslar?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seanslar?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -1992,7 +2104,7 @@ Future<Map<String, dynamic>> seansGuncelleApi(
     'geldi': geldi,
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/seansGuncelle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansGuncelle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -2013,7 +2125,7 @@ Future<Map<String, dynamic>> seansEkleApi(
     'geldi': geldi,
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/seansEkle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansEkle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -2037,7 +2149,7 @@ Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tar
   };
   log('randevu personel id '+personelid);
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevular/'+seciliisletme+'/0'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevular/'+seciliisletme+'/0'),
 
 
     headers: {'Content-Type': 'application/json'},
@@ -2057,7 +2169,7 @@ Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tar
 }
 
 Future<List<Appointment>> fetchAppointments(String seciliisletme) async {
-  final response = await http.get(Uri.parse('https://app.randevumcepte.com.trapi/v1/randevular/'+seciliisletme+'/0'));
+  final response = await http.get(Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevular/'+seciliisletme+'/0'));
 
   if (response.statusCode == 200) {
     var rateLimit = response.headers['x-ratelimit-limit'];
@@ -2087,7 +2199,7 @@ Future<List<Appointment>> fetchAppointments(String seciliisletme) async {
   }
 }
 Future<List<CalendarResource>> fetchResources(String seciliisletme) async {
-  final response = await http.get(Uri.parse('https://app.randevumcepte.com.trapi/v1/randevular/'+seciliisletme+'/1'));
+  final response = await http.get(Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevular/'+seciliisletme+'/1'));
   if (response.statusCode == 200) {
     var rateLimit = response.headers['x-ratelimit-limit'];
     var remaining = response.headers['x-ratelimit-remaining'];
@@ -2112,7 +2224,7 @@ Future<List<CalendarResource>> fetchResources(String seciliisletme) async {
 }
 
 Future<List<Randevu>> tumrandevular(seciliisletme) async {
-  final response = await http.get(Uri.parse('https://app.randevumcepte.com.trapi/v1/randevular/'+seciliisletme+'/2'));
+  final response = await http.get(Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevular/'+seciliisletme+'/2'));
 
   if (response.statusCode == 200) {
     final List<dynamic> data = json.decode(response.body);
@@ -2138,7 +2250,7 @@ Future<void> randevuonayla(String randevuid, BuildContext context) async {
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevuonayla'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuonayla'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2172,7 +2284,7 @@ Future<void> randevugelmediisaretle(String randevuid, BuildContext context, [Str
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevuyagelmediisaretle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuyagelmediisaretle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -2238,7 +2350,7 @@ Future<String?> seansDusmeOnayPopup(String mesaj, BuildContext context) {
     },
   );
 }
-Future<void> randevuiptalet(String randevuid, BuildContext context,String usertype) async {
+Future<bool> randevuiptalet(String randevuid, BuildContext context,String usertype) async {
   showProgressLoading(context);
 
   String durum='';
@@ -2247,14 +2359,26 @@ Future<void> randevuiptalet(String randevuid, BuildContext context,String userty
   else
     durum='2';
   log('user type '+usertype);
+  // Islemi yapan (iptal eden) giris kullanicisini gonder ki aktivite logunda
+  // "Mobil" yerine kim iptal etti yazsin. Musteri kendi iptalinde (usertype=="0")
+  // personel olarak atfetmemek icin olusturan gonderilmez.
+  dynamic _olusturanId;
+  if (usertype != "0") {
+    try {
+      SharedPreferences localStorage = await SharedPreferences.getInstance();
+      var user = jsonDecode(localStorage.getString('user')!);
+      _olusturanId = user['id'];
+    } catch (_) {}
+  }
   Map<String, dynamic> formData = {
     'randevuid': randevuid,
-    'durum':durum
+    'durum':durum,
+    if (_olusturanId != null) 'olusturan': _olusturanId,
     // Add other form fields
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevuiptalet'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuiptalet'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -2266,12 +2390,14 @@ Future<void> randevuiptalet(String randevuid, BuildContext context,String userty
     var reset = response.headers['x-ratelimit-reset'];
 
     logyaz2("randevu iptal. Rate Limit: $rateLimit Requests Remaining: $remaining Rate Limit Reset Time: $reset");
+    return true;
   } else {
     debugPrint(response.body);
     if (context.mounted) {
       Navigator.of(context).pop(); // Close the progress dialog
       showErrorDialog(context, response.reasonPhrase);
     }
+    return false;
   }
 }
 void showErrorDialog(BuildContext context, String? message) {
@@ -2307,7 +2433,7 @@ Future<int> randevuGeldiGelmediIsaretiKaldir(
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevuGeldiGelmediIsaretiKaldir'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuGeldiGelmediIsaretiKaldir'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -2356,7 +2482,7 @@ Future<void> randevugeldiisaretle(
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevugeldiisaretle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevugeldiisaretle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -2611,7 +2737,7 @@ Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildC
   };
   log(json.encode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/adisyonpaketekle"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/adisyonpaketekle"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2651,7 +2777,7 @@ Future<Map<String, dynamic>> senetvetaksitler(String salonid, String musteriid,S
   };
   log('tahsilat verisi '+jsonEncode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/tum-alacaklar"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/tum-alacaklar"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2737,7 +2863,7 @@ Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<Adisyo
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/taksitekleguncelle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/taksitekleguncelle'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2820,7 +2946,7 @@ Future <String> tahsilet(BuildContext context, String Salonid,List<AdisyonKaleml
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/tahsilatekle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/tahsilatekle'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2929,7 +3055,7 @@ Future <String> senetolustur(BuildContext context, String Salonid,List<AdisyonKa
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/senetekleguncelle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/senetekleguncelle'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2988,7 +3114,7 @@ Future<AdisyonHizmet> adisyonhizmetekle(AdisyonHizmet hizmet,String musteriid,Bu
   };
   log(json.encode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/adisyonhizmetekle"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/adisyonhizmetekle"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3039,7 +3165,7 @@ Future<AdisyonUrun> adisyonurunekle(AdisyonUrun urun,String musteriid,BuildConte
   };
   log(json.encode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/adisyonurunekle"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/adisyonurunekle"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3083,7 +3209,7 @@ Future<dynamic> adisyonhizmetsil(AdisyonHizmet hizmet,BuildContext context) asyn
   };
   log(json.encode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/tahsilat-hizmet-sil"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/tahsilat-hizmet-sil"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3115,7 +3241,7 @@ Future<dynamic> adisyonurunsil(AdisyonUrun urun,BuildContext context) async{
   };
   log(json.encode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/tahsilat-urun-sil"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/tahsilat-urun-sil"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3142,7 +3268,7 @@ Future<dynamic> adisyonpaketsil(AdisyonPaket paket,BuildContext context) async{
   };
   log(json.encode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/tahsilat-paket-sil"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/tahsilat-paket-sil"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3174,7 +3300,7 @@ Future <List<Urun>> urun_liste(String Salonid) async {
 
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/urunler'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunler'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3208,7 +3334,7 @@ Future <List<Paket>> paket_liste(String Salonid) async {
 
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/paketler'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketler'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3241,7 +3367,7 @@ Future<String> musteriDanisanTuru(String salonid, String musteriid) async{
 
   };
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/musteri-danisan-turunu-getir"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/musteri-danisan-turunu-getir"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3283,7 +3409,7 @@ Future<Map<String, dynamic>> satislar(String Salonid , String currpage,String ta
 
   log('satış data filter '+jsonEncode(formData));
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/satislar?page='+currpage.toString()),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/satislar?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3404,6 +3530,12 @@ Future<void> randevuEkleGuncelle(
     'appBundle': await appBundleAl(),
   };
 
+  // GEÇİCİ: müşteri uygulama akışı (paket randevusu testi) apptest'e gider;
+  // işletme/salon tarafı prod'da kalır. Yayın öncesi app'e geri alınacak.
+  final String randevuHost = kaynak == 'uygulama'
+      ? 'app.randevumcepte.com.tr'
+      : 'app.randevumcepte.com.tr';
+
   http.Response response;
   try {
     log('randevuEkleGuncelle POST gönderiliyor — payload boyut: ${jsonEncode(formData).length} bytes');
@@ -3411,7 +3543,7 @@ Future<void> randevuEkleGuncelle(
     response = await http
         .post(
           Uri.parse(
-              'https://app.randevumcepte.com.trapi/v1/randevuekleguncelle'),
+              'https://$randevuHost/api/v1/randevuekleguncelle'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(formData),
         )
@@ -3620,7 +3752,7 @@ Future<Map<String, dynamic>> saatKapamaEkle({
 
   final response = await http
       .post(
-        Uri.parse('https://app.randevumcepte.com.trapi/v1/saatkapamaekle'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/saatkapamaekle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       )
@@ -3641,7 +3773,7 @@ Future<Map<String, dynamic>> saatKapamaEkle({
 Future<Map<String, dynamic>> kapaliSaatSil(String randevuId) async {
   final response = await http
       .post(
-        Uri.parse('https://app.randevumcepte.com.trapi/v1/kapalisaatsil'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/kapalisaatsil'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'randevu_id': randevuId}),
       )
@@ -3664,7 +3796,7 @@ Future<dynamic> satisyapilmadi(BuildContext context, String ongorusmeid,String a
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/ongorusmesatisyapilmadi'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmesatisyapilmadi'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3706,7 +3838,7 @@ Future<Map<String, dynamic>> personelgetir(String salonid, String currpage, Stri
   };
 
   final response = await http.post(
-      Uri.parse("https://app.randevumcepte.com.trapi/v1/personelgetir/$salonid?page=$currpage"),
+      Uri.parse("https://app.randevumcepte.com.tr/api/v1/personelgetir/$salonid?page=$currpage"),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3727,10 +3859,15 @@ Future<Map<String, dynamic>> personelgetir(String salonid, String currpage, Stri
     throw Exception('Failed to load data: ${response.reasonPhrase}');
   }
 }
-Future<List<PersonelMolaSaatleri>> fetchPersonelBreakHoursSettings(String personelid) async{
+Future<List<PersonelMolaSaatleri>> fetchPersonelBreakHoursSettings(String personelid, {String? salonId}) async{
 
+  // Beyaz etiket: personel bu salona ait degilse backend bos doner
+  final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelmolasaatleri/'+personelid)
+      .replace(queryParameters: (salonId != null && salonId.isNotEmpty)
+          ? {'salon_id': salonId}
+          : null);
   final response = await http.get(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelmolasaatleri/'+personelid),
+    uri,
 
     headers: {'Content-Type': 'application/json'},
 
@@ -3751,13 +3888,19 @@ Future<List<PersonelMolaSaatleri>> fetchPersonelBreakHoursSettings(String person
     throw Exception('Failed to load data: ${response.reasonPhrase}');
   }
 }
-Future<List<PersonelCalismaSaatleri>> fetchPersonelHoursSettings(String personelid) async {
+Future<List<PersonelCalismaSaatleri>> fetchPersonelHoursSettings(String personelid, {String? salonId}) async {
   final int maxRetries = 5;
   int attempt = 0;
 
+  // Beyaz etiket: personel bu salona ait degilse backend bos doner
+  final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelcalismasaatleri/$personelid')
+      .replace(queryParameters: (salonId != null && salonId.isNotEmpty)
+          ? {'salon_id': salonId}
+          : null);
+
   while (attempt < maxRetries) {
     final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/personelcalismasaatleri/$personelid'),
+      uri,
       headers: {'Content-Type': 'application/json'},
     );
 
@@ -3794,7 +3937,7 @@ Future <dynamic> randevudantahsilatagit(BuildContext context,String randevuid) a
     'olusturan':user["id"],
   };
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/randevutahsilet"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/randevutahsilet"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -3820,7 +3963,7 @@ Future<Map<String, dynamic>> hizmetgetir(String salonid, String currpage, String
   };
 
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/hizmet_liste_getir/$salonid?page=$currpage"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/hizmet_liste_getir/$salonid?page=$currpage"),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3848,7 +3991,7 @@ Future<List<Hizmet>> seciliolmayanhizmetgetir(String salonid) async {
   };
 
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.trapi/v1/seciliolmayanhizmetlerigetir"),
+    Uri.parse("https://app.randevumcepte.com.tr/api/v1/seciliolmayanhizmetlerigetir"),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3874,7 +4017,7 @@ Future<List<Hizmet>> seciliolmayanhizmetgetir(String salonid) async {
 }
 Future<List<HizmetKategorisi>> hizmetkategorileri() async{
   final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/hizmetkategorileri')
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetkategorileri')
   );
 
   if (response.statusCode == 200) {
@@ -3903,7 +4046,7 @@ void gelenaramagoster(String bildirimkimligi) async{
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/mobildegelenaramagoster'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/mobildegelenaramagoster'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3923,7 +4066,7 @@ Future<dynamic> arayanbilgi(String telefon,String seciliisletme) async {
     'sube': seciliisletme
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/arayanmusteribilgi'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/arayanmusteribilgi'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3943,7 +4086,7 @@ Future<OnGorusme> ongorsumebilgi(String ongorusmeid) async{
 
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/ongorusmebilgi'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmebilgi'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3955,28 +4098,32 @@ Future<OnGorusme> ongorsumebilgi(String ongorusmeid) async{
     throw Exception(response.reasonPhrase);
   }
 }
-void satisyapildi(BuildContext context, String ongorusmeid,String adet,String baslangictarih,String seansaralik) async {
+void satisyapildi(BuildContext context, String ongorusmeid,String adet,String baslangictarih,String seansaralik, {String fiyat = '', String seansSayisi = '', VoidCallback? onBasarili}) async {
   SharedPreferences localStorage = await SharedPreferences.getInstance();
 
   var user = jsonDecode(localStorage.getString('user')!);
 
   showProgressLoading(context);
+  final bugun = DateFormat('yyyy-MM-dd').format(DateTime.now());
   Map<String, dynamic> formData = {
     'ongorusmeid': ongorusmeid,
-    'baslangic_tarihi': baslangictarih,
+    'baslangic_tarihi': baslangictarih.isNotEmpty ? baslangictarih : bugun,
     'urun_adedi': adet,
     'seans_araligi': seansaralik,
+    'fiyat': fiyat,
+    'seans_sayisi': seansSayisi,
     'olusturan':user['id']
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/ongorusmesatisyapildi'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmesatisyapildi'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
   Navigator.of(context).pop();
   if (response.statusCode == 200) {
     Navigator.of(context).pop();
+    onBasarili?.call();
 
   } else {
 
@@ -3992,7 +4139,7 @@ Future<dynamic>personelprimhesapla(BuildContext context, String personelid,Strin
 
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelprimhesapla'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelprimhesapla'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -4012,12 +4159,15 @@ Future<Map<String, dynamic>> primHakedisToplu({
   required String salonid,
   required String ay,
   required String yil,
+  String? gun, // YYYY-MM-DD verilirse gunluk mod (tek gun)
 }) async {
   try {
+    final body = <String, dynamic>{'ay': ay, 'yil': yil};
+    if (gun != null && gun.isNotEmpty) body['gun'] = gun;
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/primHakedisToplu/$salonid'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/primHakedisToplu/$salonid'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'ay': ay, 'yil': yil}),
+      body: jsonEncode(body),
     );
     debugPrint('primHakedisToplu status: ${response.statusCode}');
     if (response.statusCode == 200) {
@@ -4038,6 +4188,31 @@ Future<Map<String, dynamic>> primHakedisToplu({
   }
 }
 
+// Personelin kalem bazli prim ekrani verisi: atanmis hizmetler + salon urun/paket
+// kataloglari, her kalemin kayitli orani (yuzde) ve detayli mod bayraklari (flags).
+// personelid "" / "0" ise yeni personel: hizmetler bos, urun/paket katalog gelir.
+Future<Map<String, dynamic>> personelPrimKalemleri({
+  required String personelid,
+  required String salonid,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelPrimKalemleri'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'personel_id': personelid, 'sube': salonid, 'salon_id': salonid}),
+    );
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic>) return decoded;
+    }
+    debugPrint('personelPrimKalemleri failed: ${response.statusCode}');
+    return {'basarili': false};
+  } catch (e) {
+    debugPrint('personelPrimKalemleri error: $e');
+    return {'basarili': false};
+  }
+}
+
 // Ay/yil filtreli prim hesaplama (personeldetay sayfasi icin).
 // Donus: hizmet/urun/paket toplam+hakedis (string + numeric), adisyon listesi.
 Future<Map<String, dynamic>?> personelPrimHesaplaAyYil({
@@ -4053,7 +4228,7 @@ Future<Map<String, dynamic>?> personelPrimHesaplaAyYil({
     'yil': yil,
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelPrimHesaplaAyYil'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelPrimHesaplaAyYil'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -4067,7 +4242,7 @@ Future<Map<String, dynamic>?> personelPrimHesaplaAyYil({
 // Personeli arsivle (soft delete): listeden gizler, gecmis veriler korunur.
 Future<bool> personelArsivle(String personelid, String salonid) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelArsivle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelArsivle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'personelid': personelid, 'sube': salonid}),
   );
@@ -4082,7 +4257,7 @@ Future<bool> personelArsivle(String personelid, String salonid) async {
 // Aktif personeller arasinda sirayi 1 kaydir. delta: -1 yukari, +1 asagi.
 Future<bool> personelSiralamaKaydir(String personelid, String salonid, int delta) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelSiralamaKaydir'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelSiralamaKaydir'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'personelid': personelid, 'sube': salonid, 'delta': delta}),
   );
@@ -4097,7 +4272,7 @@ Future<bool> personelSiralamaKaydir(String personelid, String salonid, int delta
 // takvimde_gorunsun toggle. Donus: yeni deger (0/1) veya null.
 Future<int?> personelTakvimdeGorunsunToggle(String personelid, String salonid) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelTakvimdeGorunsunToggle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelTakvimdeGorunsunToggle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'personelid': personelid, 'sube': salonid}),
   );
@@ -4115,7 +4290,7 @@ Future<int?> personelTakvimdeGorunsunToggle(String personelid, String salonid) a
 // (sfdatatable.dart icindeki versiyonlar SnackBar gosteriyor, biz cagiran yere brakacagiz).
 Future<bool> personelAktifYap(String personelid) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelaktifyap'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelaktifyap'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'personelid': personelid}),
   );
@@ -4124,7 +4299,7 @@ Future<bool> personelAktifYap(String personelid) async {
 
 Future<bool> personelPasifYap(String personelid) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelpasifyap'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelpasifyap'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'personelid': personelid}),
   );
@@ -4133,7 +4308,7 @@ Future<bool> personelPasifYap(String personelid) async {
 
 Future<bool> personelSifreGonder(String personelid) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelsifregonder'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelsifregonder'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'personelid': personelid}),
   );
@@ -4154,6 +4329,7 @@ Future<Map<String, dynamic>> primOde({
   String? odemeTarihi,    // 'YYYY-MM-DD' (default: bugun)
   String? odemeYontemi,   // serbest text (Nakit / Kart / Havale ...)
   String? aciklama,
+  String? primGun,        // 'YYYY-MM-DD' verilirse gunluk prim odemesi olarak isaretlenir
 }) async {
   final body = {
     'sube': salonid,
@@ -4164,9 +4340,10 @@ Future<Map<String, dynamic>> primOde({
     if (odemeTarihi != null) 'odeme_tarihi': odemeTarihi,
     if (odemeYontemi != null) 'odeme_yontemi': odemeYontemi,
     if (aciklama != null) 'aciklama': aciklama,
+    if (primGun != null && primGun.isNotEmpty) 'prim_gun': primGun,
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/primOde'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/primOde'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(body),
   );
@@ -4183,7 +4360,7 @@ Future<Map<String, dynamic>?> primOdemeListesi({
   required String donem, // 'YYYY-MM'
 }) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/primOdemeListesi'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/primOdemeListesi'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({
       'sube': salonid,
@@ -4200,7 +4377,7 @@ Future<Map<String, dynamic>?> primOdemeListesi({
 
 Future<bool> primOdemeSil({required String salonid, required int odemeId}) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/primOdemeSil'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/primOdemeSil'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'sube': salonid, 'id': odemeId}),
   );
@@ -4229,7 +4406,7 @@ Future<Map<String, dynamic>> primHareketEkle({
     if (aciklama != null) 'aciklama': aciklama,
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/primHareketEkle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/primHareketEkle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(body),
   );
@@ -4241,7 +4418,7 @@ Future<Map<String, dynamic>> primHareketEkle({
 
 Future<bool> primHareketSil({required String salonid, required int hareketId}) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/primHareketSil'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/primHareketSil'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'sube': salonid, 'id': hareketId}),
   );
@@ -4256,7 +4433,7 @@ Future<bool> primHareketSil({required String salonid, required int hareketId}) a
 // Tanimlar + sablonlar + kategori etiketleri (sayfa acilirken tek cagri).
 Future<Map<String, dynamic>?> personelYetkiSema() async {
   final response = await http.get(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelYetkiSema'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelYetkiSema'),
     headers: {'Content-Type': 'application/json'},
   );
   if (response.statusCode == 200) {
@@ -4272,7 +4449,7 @@ Future<Map<String, dynamic>?> personelYetkiGetir({
   required String personelid,
 }) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelYetkiGetir'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelYetkiGetir'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'sube': salonid, 'personel_id': personelid}),
   );
@@ -4293,7 +4470,7 @@ Future<Map<String, dynamic>> personelYetkiKaydet({
 }) async {
   try {
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/personelYetkiKaydet'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelYetkiKaydet'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'sube': salonid,
@@ -4329,7 +4506,7 @@ Future<Map<String, dynamic>> personelYetkiKaydet({
 }
 Future<MusteriDanisan> kullanicibilgimusteri(String userid) async {
   final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/kullaniciBilgiGetir/'+userid.toString())
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/kullaniciBilgiGetir/'+userid.toString())
   );
 
   if (response.statusCode == 200) {
@@ -4348,7 +4525,7 @@ Future<MusteriDanisan> kullanicibilgimusteri(String userid) async {
 }
 Future<List<Map<String, dynamic>>> fetchCustomerAppointments(String musteriId) async {
 
-  final String url = 'https://app.randevumcepte.com.trapi/v1/randevularimusteri/$musteriId';
+  final String url = 'https://app.randevumcepte.com.tr/api/v1/randevularimusteri/$musteriId';
   List<String> salonidler=["114","115"];
   final response = await http.post(
     Uri.parse(url),
@@ -4373,7 +4550,7 @@ Future<void>bildirimkimligiekleguncelle(String yetkiliId,String seciliisletme,St
   final String appBundle = await appBundleAl(); // Önce değişkene atayın
 
   var user = jsonDecode(localStorage.getString('user')!);
-    final String url = 'https://app.randevumcepte.com.trapi/v1/bildirimkimligiekleguncelle';
+    final String url = 'https://app.randevumcepte.com.tr/api/v1/bildirimkimligiekleguncelle';
   log("bildirim işin Seçili işletme : "+seciliisletme);
   log("bildirim için kimlik : "+bildirimkimligi);
   log("yetkili veya user id : "+user["id"].toString());
@@ -4446,7 +4623,7 @@ Future<MusteriOzet> dashboardGunlukRaporMusteri() async{
     // Add other form fields
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/musteriozet'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriozet'),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -4462,8 +4639,21 @@ Future<SalonYorumlarOzet> salonYorumlariGetir() async {
   final Map<String, dynamic> formData = {
     'appBundle': await appBundleAl(),
   };
+  // Giris yapmis musterinin id'si (varsa) — "yorum birak" formu icin gerekli.
+  try {
+    final SharedPreferences localStorage =
+        await SharedPreferences.getInstance();
+    final musteriStr = localStorage.getString('musteri');
+    if (musteriStr != null && musteriStr.isNotEmpty) {
+      final musteri = jsonDecode(musteriStr);
+      if (musteri is Map && musteri['id'] != null) {
+        formData['user_id'] = musteri['id'];
+      }
+    }
+  } catch (_) {}
+
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/salonyorumlari'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/salonyorumlari'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -4472,6 +4662,32 @@ Future<SalonYorumlarOzet> salonYorumlariGetir() async {
   }
   final jsonresponse = json.decode(response.body) as Map<String, dynamic>;
   return SalonYorumlarOzet.fromJson(jsonresponse);
+}
+
+/// Musteri panelinden salon icin yildiz + yorum gonderir.
+/// Kullanici + salon basina tek kayit (backend idempotent).
+Future<bool> yorumGonder(int salonId, int puan, String yorum) async {
+  final SharedPreferences localStorage = await SharedPreferences.getInstance();
+  final musteriStr = localStorage.getString('musteri');
+  if (musteriStr == null || musteriStr.isEmpty) {
+    throw Exception('Giris yapmalisiniz');
+  }
+  final musteri = jsonDecode(musteriStr);
+  final Map<String, dynamic> formData = {
+    'id': musteri['id'],
+    'yorum_isletmeid': salonId,
+    'yorumtext_yorum': yorum,
+    'puanlama': puan,
+  };
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/yorumyap'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+  if (response.statusCode != 200) {
+    throw Exception('Yorum gonderilemedi: ${response.statusCode}');
+  }
+  return true;
 }
 
 Future<Map<String, dynamic>> easistan(String salonid, String currpage, int bugunYarin) async {
@@ -4502,7 +4718,7 @@ Future<Map<String, dynamic>> easistan(String salonid, String currpage, int bugun
 Future<List<EAsistan>> easistandashboard(String salonid, int bugunYarin) async {
   try {
     final url = Uri.parse(
-      'https://app.randevumcepte.com.trapi/v1/easistandatadashboard/$bugunYarin/$salonid',
+      'https://app.randevumcepte.com.tr/api/v1/easistandatadashboard/$bugunYarin/$salonid',
     );
 
 
@@ -4541,7 +4757,7 @@ Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlS
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevuIcinGerekliVeriler'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuIcinGerekliVeriler'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -4554,8 +4770,8 @@ Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlS
     if(!randevuAlSayfasi)
       {
         loadedItems.addAll((data['paketler'] as List).map((item) => Paket.fromJson(item)).toList());
-        /*loadedItems.addAll((data['urunler'] as List).map((item) => Urun.fromJson(item)).toList());
-        loadedItems.addAll((data['hizmetler'] as List).map((item) => IsletmeHizmet.fromJson(item)).toList());*/
+        loadedItems.addAll((data['urunler'] as List).map((item) => Urun.fromJson(item)).toList());
+        loadedItems.addAll((data['hizmetler'] as List).map((item) => IsletmeHizmet.fromJson(item)).toList());
       }
 
     // v2 randevu-ekle-modal filtreleme mapleri — { id: [hizmet_id|personel_id] }
@@ -4609,7 +4825,7 @@ Future<Map<String, dynamic>> bosVeDoluSaatleriGetir(
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/randevuTarihSaatAdimi'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuTarihSaatAdimi'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -4636,7 +4852,7 @@ async {
   };
   log('token form data '+formData.toString());
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/voipTokenKaydet'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/voipTokenKaydet'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -4652,7 +4868,7 @@ async {
 }
 String arayanBilgiVer(String phone){
 
-  dynamic musteriAdi = arayanbilgi(phone,'368');
+  dynamic musteriAdi = arayanbilgi(phone,'254');
   log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
   return musteriAdi["musteri_adi"];
 }
@@ -4673,7 +4889,7 @@ Future<String> appBundleAl() async {
 
 Future<Map<String, dynamic>> salonAyarlariByBundle(String appBundle) async {
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/salonAyarlariByBundle'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/salonAyarlariByBundle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'appBundle': appBundle}),
   );
@@ -4715,7 +4931,7 @@ Future<Map<String, dynamic>> personelAdiminaGec(String salonid,String appbundle,
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.trapi/v1/personelAdiminaGec'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelAdiminaGec'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -4750,7 +4966,7 @@ Future<void> rehberdenTopluSec(BuildContext context,dynamic isletmebilgi,int kul
 Future<MusteriSayilari> musteriSayilariGetir(String salonId) async {
   try {
     final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/musteri_sayilari_getir/$salonId'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri_sayilari_getir/$salonId'),
       headers: {'Content-Type': 'application/json'},
     );
 
@@ -4831,7 +5047,7 @@ Future<List<dynamic>> hizmetRaporlari(String salonId,String tarih1,String tarih2
       // Add other form fields
     };
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/hizmetRaporlari'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetRaporlari'),
       headers: {'Content-Type': 'application/json'},
       body:jsonEncode(formData),
     );
@@ -4862,7 +5078,7 @@ Future<List<dynamic>> urunRaporlari(String salonId,String tarih1,String tarih2, 
       // Add other form fields
     };
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/urunRaporlari'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunRaporlari'),
       headers: {'Content-Type': 'application/json'},
       body:jsonEncode(formData),
     );
@@ -4892,7 +5108,7 @@ Future<List<dynamic>> paketRaporlari(String salonId,String tarih1,String tarih2,
       // Add other form fields
     };
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/paketRaporlari'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketRaporlari'),
       headers: {'Content-Type': 'application/json'},
       body:jsonEncode(formData),
     );
@@ -4923,7 +5139,7 @@ Future<List<dynamic>> personelRaporlari(String salonId,String tarih1,String tari
       // Add other form fields
     };
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/personelRaporlari'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelRaporlari'),
       headers: {'Content-Type': 'application/json'},
       body:jsonEncode(formData),
     );
@@ -4965,7 +5181,7 @@ Future<List<dynamic>> hizmetMusteriListesiGetir(
 
     log(jsonEncode(formData));
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/hizmet-musteri-listes'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmet-musteri-listes'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -5004,7 +5220,7 @@ Future<List<dynamic>> urunMusteriListesiGetir(
     }
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/urun-musteri-listesi'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/urun-musteri-listesi'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -5041,7 +5257,7 @@ Future<List<dynamic>> paketMusteriListesiGetir(
     }
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/paket-musteri-listesi'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paket-musteri-listesi'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -5060,7 +5276,8 @@ Future<List<dynamic>> paketMusteriListesiGetir(
 Future<Map<String, dynamic>> paketVarmiKontrolu(String userId, String salonId) async {
   try {
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/paketVarmiKontrolu'),
+      // GEÇİCİ: test ucu — yayın öncesi app.randevumcepte.com.tr'ye geri alınacak.
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketVarmiKontrolu'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'userId': userId,
@@ -5082,7 +5299,7 @@ Future<Map<String, dynamic>> paketVarmiKontrolu(String userId, String salonId) a
 Future<Map<String, dynamic>> adisyonSil(String adisyonId) async {
   try {
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/adisyonSil'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/adisyonSil'),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -5124,7 +5341,7 @@ Future<void> aramaYap(String phoneNumber, BuildContext context) async {
 // SMS YÖNETİMİ ENDPOINTS
 // =============================================================
 
-const String _smsApiBase = 'https://app.randevumcepte.com.trapi/v1';
+const String _smsApiBase = 'https://app.randevumcepte.com.tr/api/v1';
 
 Future<Map<String, dynamic>> smsYonetimInit(String salonid) async {
   SharedPreferences localStorage = await SharedPreferences.getInstance();
@@ -5320,7 +5537,7 @@ Future<Map<String, dynamic>> smsYonetimBakiye(String salonid) async {
 // ÇARKIFELEK ENDPOINTS
 // =============================================================
 
-const String _carkApiBase = 'https://app.randevumcepte.com.trapi/v1';
+const String _carkApiBase = 'https://app.randevumcepte.com.tr/api/v1';
 
 Future<Map<String, dynamic>> carkDurum(String salonId, String userId) async {
   final response = await http.post(
@@ -5350,7 +5567,7 @@ Future<Map<String, dynamic>> carkOdullerim(String userId) async {
   final response = await http.post(
     Uri.parse('$_carkApiBase/cark/odullerim'),
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'user_id': userId}),
+    body: jsonEncode({'user_id': userId, 'appBundle': await appBundleAl()}),
   );
   if (response.statusCode == 200) {
     return jsonDecode(response.body) as Map<String, dynamic>;
@@ -5359,7 +5576,10 @@ Future<Map<String, dynamic>> carkOdullerim(String userId) async {
 }
 
 Future<Map<String, dynamic>> carkPuanOdullerim(String userId, {String? salonId}) async {
-  final body = <String, dynamic>{'user_id': userId};
+  final body = <String, dynamic>{
+    'user_id': userId,
+    'appBundle': await appBundleAl(), // white-label: sadece bu isletmenin puanlari
+  };
   if (salonId != null && salonId.isNotEmpty) body['salon_id'] = salonId;
   final response = await http.post(
     Uri.parse('$_carkApiBase/cark/puanodullerim'),
@@ -5387,7 +5607,7 @@ Future<Map<String, dynamic>> carkPuanOdulTalep(String userId, String salonId, in
 // ============================================================
 // ANKET YONETIMI API (mobil admin)
 // ============================================================
-const String _apiBase = 'https://app.randevumcepte.com.trapi/v1';
+const String _apiBase = 'https://app.randevumcepte.com.tr/api/v1';
 Map<String, String> _jsonHeaders() => {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
@@ -5987,7 +6207,7 @@ Future<Map<String, dynamic>?> whatsappPaketTalep(String salonId, {
 Future<bool> adisyonFaturaIsaretle(String salonId, String userId, String adisyonId) async {
   try {
     final res = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/adisyonfaturaisaretle'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/adisyonfaturaisaretle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'salonid': salonId, 'user_id': userId, 'adisyon_id': adisyonId}),
     );
@@ -6004,7 +6224,7 @@ Future<bool> adisyonFaturaIsaretle(String salonId, String userId, String adisyon
 Future<int> faturasizGizleToggle(String salonId, String userId) async {
   try {
     final res = await http.post(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/faturasizgizletoggle'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/faturasizgizletoggle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'salonid': salonId, 'user_id': userId}),
     );
@@ -6021,7 +6241,7 @@ Future<int> faturasizGizleToggle(String salonId, String userId) async {
 Future<int> faturasizGizleDurum(String salonId) async {
   try {
     final res = await http.get(
-      Uri.parse('https://app.randevumcepte.com.trapi/v1/faturasizgizledurum/$salonId'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/faturasizgizledurum/$salonId'),
     );
     if (res.statusCode == 200) {
       final j = json.decode(res.body);
