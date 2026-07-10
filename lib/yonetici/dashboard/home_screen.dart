@@ -1431,6 +1431,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               tint: ext.successColor,
               progress: kasaProgress,
               onTap: () {
+                // Yetki yoksa hicbir yonlendirme olmaz — kart pasif.
+                if (!Yetki.varMi('rapor.kasa')) return;
                 Navigator.push(
                   context,
                   PageTransition(
@@ -1452,6 +1454,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               tint: ext.warningColor,
               progress: alacakProgress,
               onTap: () {
+                // Yetki yoksa hicbir yonlendirme olmaz — kart pasif.
+                if (!Yetki.varMi('finans.alacak_yonet')) return;
                 Navigator.push(
                   context,
                   PageTransition(
