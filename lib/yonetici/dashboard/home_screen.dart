@@ -367,34 +367,30 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               const SizedBox(height: 16),
               _premiumQuickStrip(context),
               const SizedBox(height: 18),
-              // Bugunun Ozeti — her kutu kendi yetkisinde
-              //  Randevular -> randevu.takvim_gor
-              //  On Gorusme -> gorusme.liste_gor
-              //  Paket/Urun Satis -> rapor.satis
-              // En az bir yetki acikken section gosterilir.
-              if (Yetki.varMi('randevu.takvim_gor') ||
+              // Bugunun Ozeti — Personel (rol 5) icin yetki bakilmadan herkes
+              // ayni layout'u gorur; icerideki kutular _premiumDailyGrid
+              // icinde ayrica yetki kontrolu yapmiyor.
+              if (kullanicirolu == 5 ||
+                  Yetki.varMi('randevu.takvim_gor') ||
                   Yetki.varMi('gorusme.liste_gor') ||
                   Yetki.varMi('rapor.satis')) ...[
                 _premiumSectionHeader(context, 'Bugünün Özeti', null),
                 const SizedBox(height: 10),
                 _premiumDailyGrid(context),
               ],
-              // Performans / Karsilastirma — sadece rapor.satis yetkisi ile gate.
-              // Rol kisitlamasi kaldirildi; Personel de kendi verisiyle gorur.
-              if (Yetki.varMi('rapor.satis')) ...[
+              // Performans / Karsilastirma — rol 5 icin yetki bagimsiz goster.
+              if (kullanicirolu == 5 || Yetki.varMi('rapor.satis')) ...[
                 const SizedBox(height: 18),
                 _periodChips(context),
                 const SizedBox(height: 10),
                 _premiumPerformanceRow(context),
                 const SizedBox(height: 12),
                 _comparisonCard(context),
-                // Top Performers — personel performans yetkisi
-                if (Yetki.varMi('rapor.personel_performans')) ...[
+                if (kullanicirolu == 5 || Yetki.varMi('rapor.personel_performans')) ...[
                   const SizedBox(height: 12),
                   _topPerformersCard(context),
                 ],
-                // Saatlik yogunluk + bos slot — randevu.takvim_gor yetkisi
-                if (Yetki.varMi('randevu.takvim_gor')) ...[
+                if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
                   const SizedBox(height: 12),
                   _hourlyDensityCard(context),
                   const SizedBox(height: 12),
@@ -405,13 +401,13 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   _branchPerformanceCard(context),
                 ],
               ],
-              // Santral — rol kisitlamasi kaldirildi; herkese gorunur.
+              // Santral — herkese gorunur.
               const SizedBox(height: 18),
               _premiumSectionHeader(context, 'Santral Aktivitesi', null),
               const SizedBox(height: 10),
               _premiumSantralRow(context),
-              // Bugunun Randevulari — randevu.takvim_gor yetkisi olan herkese
-              if (Yetki.varMi('randevu.takvim_gor')) ...[
+              // Bugunun Randevulari — rol 5 icin yetki bagimsiz goster.
+              if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
                 const SizedBox(height: 18),
                 _premiumSectionHeader(context, 'Bugünün Randevuları', null),
                 const SizedBox(height: 10),
@@ -825,8 +821,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   Widget _premiumQuickStrip(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     // SMS pill: pazarlama.sms_gonder veya pazarlama.toplu_sms yetkisinden
-    // biri acikken gosterilir; ikisi de kapaliysa gizlenir.
-    final smsGoster = Yetki.varMi('pazarlama.sms_gonder') ||
+    // biri acikken gosterilir. Rol 5 (Personel) icin ayni layout icin daima
+    // acik tutuyoruz (kalan_sms zaten salon geneli).
+    final smsGoster = kullanicirolu == 5 ||
+        Yetki.varMi('pazarlama.sms_gonder') ||
         Yetki.varMi('pazarlama.toplu_sms');
     final pills = <Widget>[];
     if (smsGoster) {
@@ -1017,7 +1015,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     //  - On Gorusme   -> gorusme.liste_gor
     //  - Paket/Urun S -> rapor.satis
     final items = <_DashItem>[];
-    if (Yetki.varMi('randevu.takvim_gor')) {
+    if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) {
       items.add(_DashItem(
         icon: Icons.calendar_month_rounded,
         title: 'Randevular',
@@ -1040,7 +1038,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ));
     }
-    if (Yetki.varMi('gorusme.liste_gor')) {
+    if (kullanicirolu == 5 || Yetki.varMi('gorusme.liste_gor')) {
       items.add(_DashItem(
         icon: Icons.chat_bubble_outline_rounded,
         title: 'Ön Görüşme',
@@ -1059,7 +1057,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ));
     }
-    if (Yetki.varMi('rapor.satis')) {
+    if (kullanicirolu == 5 || Yetki.varMi('rapor.satis')) {
       items.add(_DashItem(
         icon: Icons.shopping_bag_outlined,
         title: 'Paket Satışı',
