@@ -386,13 +386,18 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                 _premiumPerformanceRow(context),
                 const SizedBox(height: 12),
                 _comparisonCard(context),
-                if (kullanicirolu == 5 || Yetki.varMi('rapor.personel_performans')) ...[
+                // Zirvedekiler — Personel (rol 5) icin gizli.
+                if (kullanicirolu != 5 && Yetki.varMi('rapor.personel_performans')) ...[
                   const SizedBox(height: 12),
                   _topPerformersCard(context),
                 ],
+                // Saatlik yogunluk — Personel de kendi randevu yogunlugunu gorebilir.
                 if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
                   const SizedBox(height: 12),
                   _hourlyDensityCard(context),
+                ],
+                // Bos Slot Onerisi — Personel (rol 5) icin gizli.
+                if (kullanicirolu != 5 && Yetki.varMi('randevu.takvim_gor')) ...[
                   const SizedBox(height: 12),
                   _emptySlotOpportunitiesCard(context),
                 ],
