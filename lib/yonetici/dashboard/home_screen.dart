@@ -827,11 +827,13 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
 
   Widget _premiumQuickStrip(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // Rol 5 (Personel) icin SMS ve Bugunku Kasa pill'leri gosterilmez.
+    if (kullanicirolu == 5) {
+      return const SizedBox.shrink();
+    }
     // SMS pill: pazarlama.sms_gonder veya pazarlama.toplu_sms yetkisinden
-    // biri acikken gosterilir. Rol 5 (Personel) icin ayni layout icin daima
-    // acik tutuyoruz (kalan_sms zaten salon geneli).
-    final smsGoster = kullanicirolu == 5 ||
-        Yetki.varMi('pazarlama.sms_gonder') ||
+    // biri acikken gosterilir; ikisi de kapaliysa gizlenir.
+    final smsGoster = Yetki.varMi('pazarlama.sms_gonder') ||
         Yetki.varMi('pazarlama.toplu_sms');
     final pills = <Widget>[];
     if (smsGoster) {
