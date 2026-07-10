@@ -76,6 +76,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   late Map<String,dynamic> ajandalist;
   bool isloading = true;
   bool randevularYukleniyor = true;
+  // Ozet verisi (ozetsayfabilgi) basariyla yuklendi mi? late field oldugu icin
+  // network/parse hatasinda atanmazsa build erisince LateInitializationError
+  // firlatir. Bu bayrak ile build'de guard edip hata ekrani gosteriyoruz.
+  bool _ozetYuklendi = false;
 
   // Performans bölümünde seçilen periyot
   // 'gunluk' | 'haftalik' | 'aylik' | 'yillik'
@@ -204,6 +208,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
             .toString());
         _isletmeadi = isletmeadi;
         ozetsayfabilgi = ozet;
+        _ozetYuklendi = true;
         _ajandaDataGridSource = AjandaDataSource(
             isletmebilgi: widget.isletmebilgi,
             rowsPerPage: 10,
@@ -281,6 +286,46 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       );
     }
 
+    // Ozet verisi yuklenemediyse (network/parse/timeout) ozetsayfabilgi late
+    // field atanmamis olur; asagidaki dashboard onu okuyunca patlar. Bu yuzden
+    // once bir hata/yeniden-dene ekrani gosteriyoruz.
+    if (!_ozetYuklendi) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _refreshPage,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                const Icon(Icons.cloud_off_rounded,
+                    size: 56, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    'Panel verileri yüklenemedi.\nİnternet bağlantınızı kontrol edip '
+                    'yenilemek için aşağı çekin.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: OutlinedButton.icon(
+                    onPressed: _refreshDashboardData,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Yeniden Dene'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
@@ -330,8 +375,9 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                 const SizedBox(height: 10),
                 _premiumDailyGrid(context),
               ],
-              // Performans / Karsilastirma — rapor.satis + kullanicirolu kontrolu
-              if (kullanicirolu != 4 && Yetki.varMi('rapor.satis')) ...[
+              // Performans / Karsilastirma — sadece rapor.satis yetkisi ile gate.
+              // Rol kisitlamasi kaldirildi; Personel de kendi verisiyle gorur.
+              if (Yetki.varMi('rapor.satis')) ...[
                 const SizedBox(height: 18),
                 _periodChips(context),
                 const SizedBox(height: 10),
@@ -355,26 +401,23 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   _branchPerformanceCard(context),
                 ],
               ],
-              // Santral — ozel yetki yok, kullanicirolu < 5 kalsin
-              if (kullanicirolu < 5) ...[
-                const SizedBox(height: 18),
-                _premiumSectionHeader(context, 'Santral Aktivitesi', null),
-                const SizedBox(height: 10),
-                _premiumSantralRow(context),
-              ],
-              // Bugunun Randevulari (personel icin) — randevu.takvim_gor
-              // Asistanim (yonetici icin) — yetki gerekmez
-              if (kullanicirolu == 5 && Yetki.varMi('randevu.takvim_gor')) ...[
+              // Santral — rol kisitlamasi kaldirildi; herkese gorunur.
+              const SizedBox(height: 18),
+              _premiumSectionHeader(context, 'Santral Aktivitesi', null),
+              const SizedBox(height: 10),
+              _premiumSantralRow(context),
+              // Bugunun Randevulari — randevu.takvim_gor yetkisi olan herkese
+              if (Yetki.varMi('randevu.takvim_gor')) ...[
                 const SizedBox(height: 18),
                 _premiumSectionHeader(context, 'Bugünün Randevuları', null),
                 const SizedBox(height: 10),
                 _premiumTodayAppointments(context),
-              ] else if (kullanicirolu != 5) ...[
-                const SizedBox(height: 18),
-                _premiumSectionHeader(context, 'Asistanım', null),
-                const SizedBox(height: 10),
-                _premiumEAsistan(context),
               ],
+              // Asistanim — herkese gorunur (yetki kontrolu icermez)
+              const SizedBox(height: 18),
+              _premiumSectionHeader(context, 'Asistanım', null),
+              const SizedBox(height: 10),
+              _premiumEAsistan(context),
               const SizedBox(height: 16),
             ],
           ),
@@ -801,7 +844,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         icon: Icons.account_balance_wallet_outlined,
         // rapor.ciro_kar_gor yetkisi yoksa "****" goster.
         value: Yetki.tutarGoster('${ozetsayfabilgi.toplamkasa} ₺', 'rapor.ciro_kar_gor'),
-        label: kullanicirolu < 5 ? 'Bugünkü Kasa' : 'Toplam Satış',
+        label: 'Bugünkü Kasa',
         tint: const Color(0xFF10B981),
       ),
     ));
@@ -1322,10 +1365,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     } else {
       // Backend henüz yüklenmediyse: bugünkü ciro & alacak
       kasaReal = _parseAmount(ozetsayfabilgi.toplamkasa.toString()).toDouble();
-      alacakReal = _parseAmount(kullanicirolu < 5
-              ? ozetsayfabilgi.kalantutar.toString()
-              : ozetsayfabilgi.prim.toString())
-          .toDouble();
+      alacakReal = _parseAmount(ozetsayfabilgi.kalantutar.toString()).toDouble();
     }
 
     // Donut: toplam (kasa+alacak) içindeki oran — anlamlı bir yüzde
@@ -1353,7 +1393,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           Expanded(
             child: _premiumPerfCard(
               context,
-              title: kullanicirolu < 5 ? 'Kasa' : 'Satış',
+              title: 'Kasa',
               value: '${_formatAmount(kasaReal)} ₺',
               icon: Icons.account_balance_wallet_rounded,
               tint: ext.successColor,
@@ -1364,13 +1404,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   PageTransition(
                     type: PageTransitionType.rightToLeft,
                     duration: const Duration(milliseconds: 400),
-                    child: widget.kullanicirolu != 5
-                        ? KasaRaporu(isletmebilgi: widget.isletmebilgi)
-                        : AdisyonlarPage(
-                            kullanicirolu: widget.kullanicirolu,
-                            kullanici: widget.kullanici,
-                            isletmebilgi: widget.isletmebilgi,
-                            geriGitBtn: true),
+                    child: KasaRaporu(isletmebilgi: widget.isletmebilgi),
                   ),
                 );
               },
@@ -1380,7 +1414,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           Expanded(
             child: _premiumPerfCard(
               context,
-              title: kullanicirolu < 5 ? 'Alacak' : 'Prim Hakediş',
+              title: 'Alacak',
               value: '${_formatAmount(alacakReal)} ₺',
               icon: Icons.payments_outlined,
               tint: ext.warningColor,
@@ -1391,8 +1425,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   PageTransition(
                     type: PageTransitionType.rightToLeft,
                     duration: const Duration(milliseconds: 400),
-                    child: widget.kullanicirolu != 5
-                        ? RaporListeSayfa(
+                    child: RaporListeSayfa(
                             baslik: 'Alacaklar',
                             ikon: Icons.account_balance_wallet_outlined,
                             statLabel: 'Vadesi Gelen / Geçmiş Alacak',
@@ -1471,12 +1504,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                                 );
                               }
                             },
-                          )
-                        : AdisyonlarPage(
-                            kullanicirolu: widget.kullanicirolu,
-                            kullanici: widget.kullanici,
-                            isletmebilgi: widget.isletmebilgi,
-                            geriGitBtn: true),
+                          ),
                   ),
                 );
               },
