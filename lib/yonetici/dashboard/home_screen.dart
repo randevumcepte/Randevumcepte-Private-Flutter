@@ -635,8 +635,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _whatsappMiniBadge(context, ozetsayfabilgi.whatsappBagli),
-              const SizedBox(width: 8),
+              if (kullanicirolu != 5) ...[
+                _whatsappMiniBadge(context, ozetsayfabilgi.whatsappBagli),
+                const SizedBox(width: 8),
+              ],
               _circleAction(
                 context,
                 icon: Icons.person_outline_rounded,
