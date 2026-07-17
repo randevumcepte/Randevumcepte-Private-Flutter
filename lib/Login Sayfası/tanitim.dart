@@ -1,38 +1,69 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';
-import 'package:randevu_sistem/musteripaneli/anasayfa/anasayfa.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:video_player/video_player.dart';
-
 
 import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'login_page.dart';
 
-
-
+/// Açılış / tanıtım ekranı.
+/// Arka plandaki sabit video yerine, salonun kendi logosunu (images/randevumcepte.png)
+/// kullanan otomatik animasyonlu bir sahne gösterilir: beyaz zemin + efekt çizgiler +
+/// dönen ışınlar + nabız gibi atan halkalar + süzülen ışık topları + ortada logo.
 class OnBoardingPage extends StatefulWidget {
   @override
-  _VideoBackgroundHomePageState createState() => _VideoBackgroundHomePageState();
+  _OnBoardingPageState createState() => _OnBoardingPageState();
 }
 
-class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
-  late VideoPlayerController _controller;
+class _OnBoardingPageState extends State<OnBoardingPage>
+    with TickerProviderStateMixin {
+  // Animasyon kontrolcüleri
+  late final AnimationController _pulseCtrl; // halka nabzı
+  late final AnimationController _rayCtrl; // dönen ışın çizgileri
+  late final AnimationController _lineCtrl; // süzülen diyagonal çizgiler
+  late final AnimationController _orbCtrl; // ışık toplarının süzülmesi
+  late final AnimationController _logoInCtrl; // logo giriş animasyonu
+  late final AnimationController _logoFloatCtrl; // logo süzülmesi
+
   bool _onlineRandevuAktif = false;
   bool _lisansAktif = true; // lisans bittiyse 'Randevu Al' gizlenir
+  String _salonAdi = 'RandevumCepte';
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset('images/video3.mp4')
-      ..initialize().then((_) {
-        // Ensure the first frame is shown before setting state
-        setState(() {});
-        _controller.setVolume(0.0); // Mute the video
-        _controller.play();
-      });
-    _controller.setLooping(true); // Loop the video
+
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2100),
+    )..repeat(reverse: true);
+
+    _rayCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 45),
+    )..repeat();
+
+    _lineCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+
+    _orbCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 9),
+    )..repeat();
+
+    _logoInCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..forward();
+
+    _logoFloatCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
     _loadOnlineRandevuAyari();
   }
 
@@ -41,11 +72,13 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
       final bundle = await appBundleAl();
       final ayar = await salonAyarlariByBundle(bundle);
       if (!mounted) return;
+      final ad = (ayar['salon_adi'] ?? '').toString().trim();
       setState(() {
         _onlineRandevuAktif = musteriOnlineRandevuAktifMi(ayar);
         // Lisans bittiyse (lisans_aktif != 1) randevu al butonu gizlenir.
         final la = ayar is Map ? ayar['lisans_aktif'] : null;
         _lisansAktif = la == null || la == 1 || la.toString() == '1';
+        if (ad.isNotEmpty) _salonAdi = ad;
       });
     } catch (_) {
       if (!mounted) return;
@@ -54,193 +87,338 @@ class _VideoBackgroundHomePageState extends State<OnBoardingPage> {
   }
 
   @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    _rayCtrl.dispose();
+    _lineCtrl.dispose();
+    _orbCtrl.dispose();
+    _logoInCtrl.dispose();
+    _logoFloatCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
+    const morKoyu = Color(0xFF5C008E);
 
     return PopScope(
-        canPop: false, // direkt çıkışı engelle
-        onPopInvokedWithResult: (didPop, result) async {
-          if (!didPop) {
-            bool? confirmExit = await showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('Uygulamadan çık'),
-                content: Text('Çıkmak istediğinize emin misiniz?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('Hayır'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text('Evet'),
-                  ),
-                ],
-              ),
-            );
-
-            if (confirmExit == true) {
-              SystemNavigator.pop(); // uygulamayı kapat
-              // veya exit(0); // (zorla kapatma)
-            }
-          }
-        },
-      child:  Scaffold(
-        body: Stack(
-          children: <Widget>[
-            // Video background
-            _controller.value.isInitialized
-                ? SizedBox(
-              height: screenHeight, // Set the video height to the screen height
-              width: screenHeight * _controller.value.aspectRatio,
-              child: VideoPlayer(_controller),
-            )
-                : Container(),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                height: double.infinity, // Adjust the height of the transparently opaque bottom as needed
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(1.0), // Adjust opacity as needed
-
-
-                    ],
-                  ),
+      canPop: false, // direkt çıkışı engelle
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          bool? confirmExit = await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Uygulamadan çık'),
+              content: const Text('Çıkmak istediğinize emin misiniz?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Hayır'),
                 ),
-              ),
-            ),
-            // Other widgets on top of the video
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0,left: 16, right: 16),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Shemall Beauty',
-                      maxLines: 1,
-                      softWrap: false,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 33.0,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Evet'),
                 ),
-
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0,left: 16, right: 16),
-                  child: Text(
-                    'Randevularınızı kolayca oluşturun ve takip edin.\nSize özel kampanyalardan haberdar olun, tüm güzellik işlemlerinizi tek uygulamadan yönetin.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.0,
-
-                    ),
-                  ),
-                ),
-                SizedBox(height: 10,),
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () async {
-                          // Navigate to LoginPage when the button is pressed
-
-                          SharedPreferences prefs = await SharedPreferences.getInstance();
-
-                          _pauseVideo();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginPage(randevuSayfasinaYonlendir: false, seciliHizmetler: [], tarih: '', saat: '') /*CheckAuth()*/),
-                          ).then((_) {
-                            // Geri dönüldüğünde video tekrar başlasın
-                            _resumeVideo();
-                          });
-                        },
-                        child: Text(
-                          'Kullanıcı Girişi',
-                          style: TextStyle(fontSize: 20),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple[800],
-                          foregroundColor: Colors.white,
-                          elevation: 10,
-                          minimumSize: Size(180, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12), // <-- Radius
-                          ),
-                        ),
-                      ),
-
-                      if (_onlineRandevuAktif && _lisansAktif)
-                        OutlinedButton(
-                          onPressed: () {
-                            _pauseVideo();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => RandevuAl()),
-                            ).then((_) {
-                              // Geri dönüldüğünde video tekrar başlasın
-                              _resumeVideo();
-                            });
-                          },
-                          child: Text('Randevu Al',style: TextStyle(color: Colors.white,fontSize: 20),),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(width: 2.0,color: Colors.white),
-                            minimumSize: Size(150, 50),
-                            elevation: 20,
-                            shape: RoundedRectangleBorder(
-
-                              borderRadius: BorderRadius.circular(12),
-
-                            ),
-                          ),
-                        )
-                    ],
-                  ),
-                ),
-                SizedBox(height: 25,),
-
               ],
             ),
+          );
+          if (confirmExit == true) {
+            SystemNavigator.pop();
+          }
+        }
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(0, -0.25),
+              radius: 1.1,
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFFF7F3FC),
+                Color(0xFFEFE6F8),
+              ],
+              stops: [0.0, 0.55, 1.0],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: <Widget>[
+                // ===== Üst: Animasyonlu logo sahnesi =====
+                Expanded(
+                  child: ClipRect(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Efekt çizgiler + ışınlar + halkalar + ışık topları
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _EfektSahnePainter(
+                              ray: _rayCtrl,
+                              line: _lineCtrl,
+                              pulse: _pulseCtrl,
+                              orb: _orbCtrl,
+                            ),
+                          ),
+                        ),
+                        // Ortada salon logosu (giriş + süzülme animasyonu)
+                        AnimatedBuilder(
+                          animation:
+                              Listenable.merge([_logoInCtrl, _logoFloatCtrl]),
+                          builder: (context, child) {
+                            final entrance =
+                                Curves.easeOutCubic.transform(_logoInCtrl.value);
+                            final floatY = -12 *
+                                Curves.easeInOut.transform(_logoFloatCtrl.value);
+                            return Opacity(
+                              opacity: entrance,
+                              child: Transform.translate(
+                                offset: Offset(0, floatY),
+                                child: Transform.scale(
+                                  scale: 0.85 + 0.15 * entrance,
+                                  child: child,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 40),
+                            child: Image.asset(
+                              'images/randevumcepte.png',
+                              height: 130,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-
-          ],
+                // ===== Alt: Salon adı + açıklama + butonlar =====
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _salonAdi,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: const TextStyle(
+                            color: morKoyu,
+                            fontSize: 32.0,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Randevularınızı kolayca oluşturun ve takip edin.\nSize özel kampanyalardan haberdar olun, tüm güzellik işlemlerinizi tek uygulamadan yönetin.',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 15.5,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => LoginPage(
+                                      randevuSayfasinaYonlendir: false,
+                                      seciliHizmetler: [],
+                                      tarih: '',
+                                      saat: '',
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple[800],
+                                foregroundColor: Colors.white,
+                                elevation: 8,
+                                minimumSize: const Size(0, 52),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Kullanıcı Girişi',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                            ),
+                          ),
+                          if (_onlineRandevuAktif && _lisansAktif) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RandevuAl(),
+                                    ),
+                                  );
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                    width: 2.0,
+                                    color: Colors.purple[800]!,
+                                  ),
+                                  minimumSize: const Size(0, 52),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Randevu Al',
+                                  style: TextStyle(
+                                    color: Colors.purple[800],
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      )
+      ),
+    );
+  }
+}
+
+/// Beyaz zemin üzerinde: süzülen diyagonal çizgiler, merkezden yayılan dönen
+/// ışınlar, nabız gibi atan iki halka ve bulanık ışık topları çizer.
+class _EfektSahnePainter extends CustomPainter {
+  final Animation<double> ray;
+  final Animation<double> line;
+  final Animation<double> pulse;
+  final Animation<double> orb;
+
+  _EfektSahnePainter({
+    required this.ray,
+    required this.line,
+    required this.pulse,
+    required this.orb,
+  }) : super(repaint: Listenable.merge([ray, line, pulse, orb]));
+
+  static const Color _mor = Color(0xFF7C2FB8);
+  static const Color _magenta = Color(0xFFD946EF);
+  static const Color _lila = Color(0xFF9D5DC8);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // 1) Süzülen ince diyagonal çizgiler
+    const spacing = 28.0;
+    final lineOffset = line.value * spacing;
+    final linePaint = Paint()
+      ..color = _mor.withOpacity(0.05)
+      ..strokeWidth = 1.0;
+    final diag = size.width + size.height;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(118 * math.pi / 180);
+    for (double x = -diag; x < diag; x += spacing) {
+      final xx = x + lineOffset;
+      canvas.drawLine(Offset(xx, -diag), Offset(xx, diag), linePaint);
+    }
+    canvas.restore();
+
+    // 2) Merkezden yayılan, yavaşça dönen ışın çizgileri
+    const rayCount = 24;
+    const rInner = 22.0;
+    final rOuter = size.longestSide * 0.62;
+    final rayPaint = Paint()
+      ..color = _mor.withOpacity(0.06)
+      ..strokeWidth = 1.4;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(ray.value * 2 * math.pi);
+    for (int i = 0; i < rayCount; i++) {
+      final a = (i / rayCount) * 2 * math.pi;
+      final c = math.cos(a);
+      final s = math.sin(a);
+      canvas.drawLine(
+        Offset(c * rInner, s * rInner),
+        Offset(c * rOuter, s * rOuter),
+        rayPaint,
+      );
+    }
+    canvas.restore();
+
+    // 3) Bulanık ışık topları (süzülür)
+    final oy = math.sin(orb.value * 2 * math.pi) * 16;
+    const orbBlur = MaskFilter.blur(BlurStyle.normal, 18);
+    canvas.drawCircle(
+      Offset(size.width * 0.20, size.height * 0.24 + oy),
+      58,
+      Paint()
+        ..color = _magenta.withOpacity(0.22)
+        ..maskFilter = orbBlur,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.82, size.height * 0.72 - oy),
+      46,
+      Paint()
+        ..color = _mor.withOpacity(0.20)
+        ..maskFilter = orbBlur,
     );
 
-  }
-  void _pauseVideo() {
-    _controller.pause();
-    //_controller.dispose();
+    // 4) Nabız gibi atan halkalar
+    final p = pulse.value; // 0..1
+    final scale = 1 + 0.12 * p;
+    final ring1r = 116.0 * scale;
+    final ring2r = 150.0 * scale;
+
+    // Dış halka (magenta)
+    canvas.drawCircle(
+      center,
+      ring2r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = _magenta.withOpacity(0.14 + 0.14 * p),
+    );
+    // İç halkanın hafif ışıması
+    canvas.drawCircle(
+      center,
+      ring1r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.0
+        ..color = _lila.withOpacity(0.14 * p)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+    );
+    // İç halka (mor)
+    canvas.drawCircle(
+      center,
+      ring1r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = _mor.withOpacity(0.30 + 0.25 * p),
+    );
   }
 
-  void _resumeVideo() {
-    _controller = VideoPlayerController.asset('images/video3.mp4')
-      ..initialize().then((_) {
-        setState(() {});
-        _controller.setVolume(0.0);
-        _controller.play();
-        _controller.setLooping(true);
-      });
-  }
   @override
-  void dispose() {
-    _controller.dispose(); // Dispose of the video player controller
-    super.dispose();
-
-  }
+  bool shouldRepaint(covariant _EfektSahnePainter oldDelegate) => true;
 }
