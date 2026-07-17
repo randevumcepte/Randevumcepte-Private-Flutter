@@ -2117,12 +2117,14 @@ Future<Map<String, dynamic>> seansGuncelleApi(
 
 Future<Map<String, dynamic>> seansEkleApi(
     String paketHizmetId, String hizmetId, int paketMi, int geldi,
-    BuildContext context) async {
+    BuildContext context, {String? seansTarihi}) async {
   final formData = {
     'paketId': paketHizmetId,
     'hizmetId': hizmetId,
     'paket': paketMi,
     'geldi': geldi,
+    // Bos gonderilirse backend bugunun tarihini isler.
+    'seansTarihi': seansTarihi ?? '',
   };
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansEkle'),

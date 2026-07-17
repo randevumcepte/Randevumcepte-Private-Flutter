@@ -720,6 +720,7 @@ class _SeansTakibiState extends State<SeansTakibi> {
     SeansTakip item,
     _HizmetGroup group,
     int geldi,
+    DateTime seansTarihi,
   ) async {
     String? paketId = item.paketHizmetId;
     int? paketMi;
@@ -750,8 +751,13 @@ class _SeansTakibiState extends State<SeansTakibi> {
       return;
     }
     Navigator.of(dialogCtx).pop();
+    // Backend Y-m-d bekliyor; yerel saatle bicimlendir ki UTC kaymasi olmasin.
+    final tarihStr = '${seansTarihi.year}-'
+        '${seansTarihi.month.toString().padLeft(2, '0')}-'
+        '${seansTarihi.day.toString().padLeft(2, '0')}';
     try {
-      await seansEkleApi(paketId, group.hizmetId, paketMi, geldi, context);
+      await seansEkleApi(paketId, group.hizmetId, paketMi, geldi, context,
+          seansTarihi: tarihStr);
     } catch (e, st) {
       log('seans ekle hatasi: $e\n$st');
       if (mounted) {
@@ -768,48 +774,109 @@ class _SeansTakibiState extends State<SeansTakibi> {
     final musteriAdi = (item.musteri is Map && item.musteri['name'] != null)
         ? item.musteri['name'].toString()
         : '';
+    // Varsayilan seans tarihi = bugun; kullanici gecmise donuk secebilir.
+    DateTime secilenTarih = DateTime.now();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-        title: const Text(
-          'Yeni Seans Kullanımı',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _seansDetayRow(Icons.person, musteriAdi),
-            const SizedBox(height: 8),
-            _seansDetayRow(Icons.local_offer, group.adi),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _yuvarlakButon(
-                  label: 'Kullanıldı',
-                  icon: Icons.check,
-                  color: const Color(0xFF2E7D32),
-                  onTap: () => _yeniSeansEkle(ctx, item, group, 1),
-                ),
-                const SizedBox(width: 6),
-                _yuvarlakButon(
-                  label: 'Kullanılmadı',
-                  icon: Icons.close,
-                  color: const Color(0xFFD32F2F),
-                  onTap: () => _yeniSeansEkle(ctx, item, group, 0),
-                ),
-              ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          title: const Text(
+            'Yeni Seans Kullanımı',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _seansDetayRow(Icons.person, musteriAdi),
+              const SizedBox(height: 8),
+              _seansDetayRow(Icons.local_offer, group.adi),
+              const SizedBox(height: 8),
+              _seansTarihSecici(
+                tarih: secilenTarih,
+                onTap: () async {
+                  final secilen = await showDatePicker(
+                    context: ctx,
+                    initialDate: secilenTarih,
+                    firstDate: DateTime(2015),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    locale: const Locale('tr', 'TR'),
+                  );
+                  if (secilen != null) {
+                    setDialogState(() => secilenTarih = secilen);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _yuvarlakButon(
+                    label: 'Kullanıldı',
+                    icon: Icons.check,
+                    color: const Color(0xFF2E7D32),
+                    onTap: () =>
+                        _yeniSeansEkle(ctx, item, group, 1, secilenTarih),
+                  ),
+                  const SizedBox(width: 6),
+                  _yuvarlakButon(
+                    label: 'Kullanılmadı',
+                    icon: Icons.close,
+                    color: const Color(0xFFD32F2F),
+                    onTap: () =>
+                        _yeniSeansEkle(ctx, item, group, 0, secilenTarih),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('İPTAL'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('İPTAL'),
-          ),
-        ],
+      ),
+    );
+  }
+
+  // Seans tarihi secim satiri; _seansDetayRow ile ayni gorunum, dokunulabilir.
+  Widget _seansTarihSecici({
+    required DateTime tarih,
+    required VoidCallback onTap,
+  }) {
+    final gun = tarih.day.toString().padLeft(2, '0');
+    final ay = tarih.month.toString().padLeft(2, '0');
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7FA),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded,
+                color: Color(0xFF667EEA), size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Seans Tarihi: $gun.$ay.${tarih.year}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF2D3748),
+                ),
+              ),
+            ),
+            const Icon(Icons.edit, color: Color(0xFF667EEA), size: 14),
+          ],
+        ),
       ),
     );
   }
