@@ -4743,7 +4743,7 @@ Future<List<EAsistan>> easistandashboard(String salonid, int bugunYarin) async {
     throw Exception('API isteği başarısız oldu: $e');
   }
 }
-Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlSayfasi,String appbundle,String musteriArama,String hizmetArama,int limit, int offset) async {
+Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlSayfasi,String appbundle,String musteriArama,String hizmetArama,int limit, int offset, {String? randevuId}) async {
 
   Map<String, dynamic> formData = {
     'salonid': salonid,
@@ -4753,7 +4753,9 @@ Future<Map<String, dynamic>> isletmeVerileriGetir(String salonid,bool randevuAlS
     'hizmetArama':hizmetArama,
     'limit':limit,
     'offset':offset,
-
+    // Duzenleme ekraninda: bu randevuda kullanilan aktif=0 hizmetler de
+    // listeye dahil edilsin. Yeni randevu ekleme gondermez.
+    if (randevuId != null && randevuId.isNotEmpty) 'randevu_id': randevuId,
 
     // Add other form fields
   };
@@ -4870,7 +4872,7 @@ async {
 }
 String arayanBilgiVer(String phone){
 
-  dynamic musteriAdi = arayanbilgi(phone,'254');
+  dynamic musteriAdi = arayanbilgi(phone,'333');
   log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
   return musteriAdi["musteri_adi"];
 }
@@ -5798,12 +5800,21 @@ Future<Map<String, dynamic>?> carkAdminSistemGetir(String salonId) async {
   return null;
 }
 
-Future<Map<String, dynamic>?> carkAdminDilimKaydet(String salonId, List<Map<String, dynamic>> dilimler, {int aktifmi = 1}) async {
+Future<Map<String, dynamic>?> carkAdminDilimKaydet(
+  String salonId,
+  List<Map<String, dynamic>> dilimler, {
+  int aktifmi = 1,
+  int? kuponCarkGun,
+  int? kuponPuanGun,
+}) async {
   try {
+    final body = <String, dynamic>{'dilimler': dilimler, 'aktifmi': aktifmi};
+    if (kuponCarkGun != null) body['kupon_cark_gecerlilik_gun'] = kuponCarkGun;
+    if (kuponPuanGun != null) body['kupon_puan_gecerlilik_gun'] = kuponPuanGun;
     final res = await http.post(
       Uri.parse('$_apiBase/carkAdmin/dilim-kaydet/$salonId'),
       headers: _jsonHeaders(),
-      body: jsonEncode({'dilimler': dilimler, 'aktifmi': aktifmi}),
+      body: jsonEncode(body),
     ).timeout(const Duration(seconds: 12));
     if (res.statusCode == 200) {
       return Map<String, dynamic>.from(json.decode(res.body) as Map);

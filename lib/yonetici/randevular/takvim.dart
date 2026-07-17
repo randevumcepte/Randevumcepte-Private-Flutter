@@ -23,12 +23,15 @@ import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Frontend/route_observer.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/ongorusmeler.dart';
+import 'package:randevu_sistem/Models/odalar.dart';
+import 'package:randevu_sistem/Models/cihazlar.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/yukselt.dart';
 import '../adisyonlar/satislar/tahsilat.dart';
 import '../diger/menu/randvular/randevularmenu.dart';
 import 'appointment-editor.dart';
+import 'saat_kapama_form.dart';
 
 class Takvim extends StatefulWidget {
   final int selectedTab;
@@ -83,9 +86,16 @@ class TakvimState extends State<Takvim> with RouteAware {
 
   ScrollController _leftVerticalController = ScrollController();
   ScrollController _gridVerticalController = ScrollController();
-  final double _hourHeight = 120.0;
-  final double _quarterHeight = 15.0; // 15 dakika = 15px (60/4)
-  double _personelGenisligi = 150.0; // _buildCustomCalendar içinde güncellenir
+  // Web tarafindaki buyutec (zoom) ile ayni mantik: BASE * _zoom olarak olceklendir.
+  // Web: BASE_H=32.5 slot -> 1h = 130px. Mobilde 1h base = 130px (slot = 32.5px) — ayni oran.
+  static const double _hourHeightBase = 130.0;
+  static const double _personelGenisligiBase = 150.0;
+  static const double _zoomMin = 0.6;
+  static const double _zoomMax = 4.0;
+  static const double _zoomStep = 0.4;
+  double _zoom = 1.0;
+  double get _hourHeight => _hourHeightBase * _zoom;
+  double _personelGenisligi = _personelGenisligiBase; // _buildCustomCalendar icinde guncellenir
   bool _isSyncingHorizontal = false;
   bool _isSyncingVertical = false;
   bool _firstLoad = true; // İlk yüklemede scroll'u doğru offset'ten başlatmak için
@@ -128,6 +138,31 @@ class TakvimState extends State<Takvim> with RouteAware {
     }();
 
     _loadGapKampanyalari();
+    _loadZoom();
+  }
+
+  String get _zoomPrefsKey =>
+      'takvim_zoom_${widget.isletmebilgi["id"]}';
+
+  Future<void> _loadZoom() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final v = prefs.getDouble(_zoomPrefsKey);
+      if (v == null) return;
+      if (v < _zoomMin || v > _zoomMax) return;
+      if (!mounted) return;
+      setState(() => _zoom = v);
+    } catch (_) {}
+  }
+
+  Future<void> _setZoom(double z) async {
+    final clamped = z.clamp(_zoomMin, _zoomMax);
+    if (clamped == _zoom) return;
+    setState(() => _zoom = clamped);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_zoomPrefsKey, clamped);
+    } catch (_) {}
   }
 
   /// Tab'a her geri donuste cagrilir: o an seçili tarih icin randevulari
@@ -656,6 +691,39 @@ class TakvimState extends State<Takvim> with RouteAware {
     );
   }
 
+  /// Top bar 'lock_clock' ikonundan cagrilir. Personel/Oda/Cihaz listelerini
+  /// yukleyip Saat Kapama bottom sheet'ini acar; kaydedilirse takvimi yeniler.
+  Future<void> _saatKapamaAc() async {
+    final salonId = widget.isletmebilgi['id'].toString();
+    // Personel zaten state'te yuklu. Oda + Cihaz icin verileri cek.
+    List<Oda> odalar = const [];
+    List<Cihaz> cihazlar = const [];
+    try {
+      final veri = await isletmeVerileriGetir(salonId, false, '', '', '', 0, 0);
+      odalar = (veri['odalar'] as List?)?.cast<Oda>() ?? const [];
+      cihazlar = (veri['cihazlar'] as List?)?.cast<Cihaz>() ?? const [];
+    } catch (e) {
+      log('saat kapama icin oda/cihaz cekilemedi: $e');
+    }
+    if (!mounted) return;
+    final kaydedildi = await showSaatKapamaSheet(
+      context: context,
+      salonId: salonId,
+      takvimTuruId:
+          widget.isletmebilgi['randevu_takvim_turu']?.toString() ?? '1',
+      personeller: personelliste,
+      odalar: odalar,
+      cihazlar: cihazlar,
+    );
+    if (kaydedildi == true && mounted) {
+      await getUpdatedAppointments(
+        DateFormat('yyyy-MM-dd').format(seciliTarih),
+        DateFormat('yyyy-MM-dd').format(seciliTarih),
+        true,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = context.colors;
@@ -676,6 +744,7 @@ class TakvimState extends State<Takvim> with RouteAware {
                 child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
               ),
             ),
+          _buildZoomControl(),
           IconButton(
             tooltip: 'Yenile',
             onPressed: () async {
@@ -690,6 +759,13 @@ class TakvimState extends State<Takvim> with RouteAware {
             icon: const Icon(Icons.refresh),
             iconSize: 24,
           ),
+          if (Yetki.varMi('randevu.olustur'))
+            IconButton(
+              tooltip: 'Saat Kapama',
+              onPressed: _saatKapamaAc,
+              icon: const Icon(Icons.lock_clock),
+              iconSize: 24,
+            ),
           if (Yetki.varMi('randevu.olustur'))
             IconButton(
               onPressed: () {
@@ -740,6 +816,67 @@ class TakvimState extends State<Takvim> with RouteAware {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Buyutec — web tarafindaki .rc-zoom kontrolunun mobil karsiligi.
+  // Salon bazli SharedPreferences ile kalici, MIN/MAX/STEP web ile ayni.
+  Widget _buildZoomControl() {
+    final cs = context.colors;
+    final yuzde = (_zoom * 100).round();
+    final canOut = _zoom > _zoomMin + 0.001;
+    final canIn = _zoom < _zoomMax - 0.001;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: cs.outlineVariant),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            InkResponse(
+              radius: 18,
+              onTap: canOut ? () => _setZoom(_zoom - _zoomStep) : null,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(
+                  Icons.zoom_out,
+                  size: 20,
+                  color: canOut ? cs.primary : cs.onSurface.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 38,
+              child: Text(
+                '$yuzde%',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: cs.primary,
+                ),
+              ),
+            ),
+            InkResponse(
+              radius: 18,
+              onTap: canIn ? () => _setZoom(_zoom + _zoomStep) : null,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(
+                  Icons.zoom_in,
+                  size: 20,
+                  color: canIn ? cs.primary : cs.onSurface.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -843,7 +980,7 @@ class TakvimState extends State<Takvim> with RouteAware {
         final slotHeight = _hourHeight / 4;
         if (resources.isEmpty) return const SizedBox.shrink();
 
-        final double minPersonelWidth = 150.0;
+        final double minPersonelWidth = _personelGenisligiBase * _zoom;
         final double saatColumnWidth = 60.0;
         final availableWidth = constraints.maxWidth - saatColumnWidth;
 
@@ -1808,300 +1945,250 @@ List<Widget> _buildAppointmentsForResource(
 
                         (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Divider(color: cs.outlineVariant,
                           height: 30,): SizedBox.shrink(),
-                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(onPressed: () {
-                                Navigator.of(context,rootNavigator: true).pop();
-
-
-                                Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
-                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
-
-                                });
-
-                              }, child:
-                              Text('Düzenle'),
-                                style: ElevatedButton.styleFrom(
-                                    foregroundColor: cs.onPrimary,
-                                    backgroundColor: cs.primary,
-
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(0, 30)
-                                ),
-                              ),
-                            )
-                          ],
+                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') && !(randevutitle[0].contains("ÖN GÖRÜŞME") && (randevudetay.notes ?? "").contains("Satış Yapılmadı")) ? _detayBtn(
+                          label: 'Düzenle',
+                          icon: Icons.edit_outlined,
+                          color: cs.primary,
+                          fullWidth: true,
+                          onTap: () {
+                            Navigator.of(context, rootNavigator: true).pop();
+                            Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
+                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
+                            });
+                          },
                         ) : SizedBox.shrink(),
-                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          alignment: WrapAlignment.start,
-                          children: [
+                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Padding(padding: const EdgeInsets.only(top: 10), child: _detayGrid([
                             if (randevudurum![0] == "0")
-                              ElevatedButton(onPressed: () {
-                                randevuonayla(randevudetay.id.toString(), context);
-                                Navigator.of(context).pop();
-                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                              }, child:
-                              Text('Onayla'),
-                                style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: ext.successColor,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
+                              _detayBtn(
+                                label: 'Onayla',
+                                icon: Icons.check_circle_outline,
+                                color: ext.successColor,
+                                onTap: () {
+                                  randevuonayla(randevudetay.id.toString(), context);
+                                  Navigator.of(context).pop();
+                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                },
                               ),
                             if (randevudurum![0] == '0')
-                              ElevatedButton(onPressed: () {
-                                showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContex) {
-                                    return AlertDialog(
-                                      title: Text('EMİN MİSİNİZ?'),
-                                      content: Text("Randevu iptal etme işlemi geri alınamaz?"),
-                                      actions: <Widget>[
-                                        TextButton(
-                                          child: Text('VAZGEÇ'),
-                                          onPressed: () {
-                                            Navigator.of(dialogContex).pop();
-                                          },
-                                        ),
-                                        TextButton(
-                                          child: Text('İPTAL ET'),
-                                          onPressed: () async {
-                                            SharedPreferences prefs = await SharedPreferences.getInstance();
-                                            var usertype = prefs.getString('user_type');
-                                            await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
-                                            Navigator.of(dialogContex).pop();
-                                            getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                                            Navigator.of(context).pop();
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                                child:
-                                Text('İptal Et'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: cs.error,
-                                    foregroundColor: cs.onError,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
+                              _detayBtn(
+                                label: 'İptal Et',
+                                icon: Icons.cancel_outlined,
+                                color: cs.error,
+                                onTap: () {
+                                  showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContex) {
+                                      return AlertDialog(
+                                        title: Text('EMİN MİSİNİZ?'),
+                                        content: Text("Randevu iptal etme işlemi geri alınamaz?"),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            child: Text('VAZGEÇ'),
+                                            onPressed: () {
+                                              Navigator.of(dialogContex).pop();
+                                            },
+                                          ),
+                                          TextButton(
+                                            child: Text('İPTAL ET'),
+                                            onPressed: () async {
+                                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                                              var usertype = prefs.getString('user_type');
+                                              await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
+                                              Navigator.of(dialogContex).pop();
+                                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                              Navigator.of(context).pop();
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
                               ),
                             if (randevudurum![0] != "0" && randevudurum[1] != "0")
-                              ElevatedButton(onPressed: () async{
-                                await randevugelmediisaretle(randevudetay.id.toString(), context);
-                                if (!context.mounted) return;
-                                Navigator.of(context).pop();
-                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                              }, child:
-                              Text('Gelmedi'),
-                                style: ElevatedButton.styleFrom(
-                                    foregroundColor: cs.onError,
-                                    backgroundColor: cs.error,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
+                              _detayBtn(
+                                label: 'Gelmedi',
+                                icon: Icons.close_rounded,
+                                color: cs.error,
+                                onTap: () async {
+                                  await randevugelmediisaretle(randevudetay.id.toString(), context);
+                                  if (!context.mounted) return;
+                                  Navigator.of(context).pop();
+                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                },
                               ),
                             if (randevudurum![0] != "0" && randevudurum[1] == "0")
-                              ElevatedButton(onPressed: () async{
-                                await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString(), context);
-                                Navigator.of(context).pop();
-                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                              }, child:
-                              Text('Gelmedi İşaretini\nKaldır',style:TextStyle(fontSize: 10)),
-                                style: ElevatedButton.styleFrom(
-                                    foregroundColor: cs.onError,
-                                    backgroundColor: cs.error,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
+                              _detayBtn(
+                                label: 'Gelmedi İşaretini Kaldır',
+                                icon: Icons.undo_rounded,
+                                color: cs.error,
+                                onTap: () async {
+                                  await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString(), context);
+                                  Navigator.of(context).pop();
+                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                },
                               ),
                             if (randevudurum![0] != "0" && randevudurum[1] != "1")
-                              ElevatedButton(onPressed: () async {
-                                await randevugeldiisaretle(randevudetay.id.toString(), '', context, '');
-                                if (!context.mounted) return;
-                                Navigator.of(context).pop();
-                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                              }, child:
-                              Text('Geldi'),
-                                style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: ext.successColor,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
+                              _detayBtn(
+                                label: 'Geldi',
+                                icon: Icons.check_rounded,
+                                color: ext.successColor,
+                                onTap: () async {
+                                  await randevugeldiisaretle(randevudetay.id.toString(), '', context, '');
+                                  if (!context.mounted) return;
+                                  Navigator.of(context).pop();
+                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                },
                               ),
                             if (randevudurum![0] != "0" && randevudurum[1] == "1")
-                              ElevatedButton(onPressed: () async {
-                                await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context );
-                                Navigator.of(context).pop();
-                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                              },
-                                child: Text('Geldi İşaretini\nKaldır',style: TextStyle(fontSize: 10),),
-                                style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: ext.successColor,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
-                              ),
-                          ],
-                        ):SizedBox.shrink(),
-
-                        (randevudurum![0] == "0" || randevudurum![0] == "1" ) && randevudurum![3] != '1' && !randevutitle[0].contains("ÖN GÖRÜŞME") && (Yetki.varMi('satis.tahsilat_al') || Yetki.varMi('randevu.duzenle_iptal'))  ? Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          alignment: WrapAlignment.start,
-                          children: [
-                            if (randevudurum![0] != "0" && !randevutitle[0].contains("PAKET") && Yetki.varMi('satis.tahsilat_al'))
-                              ElevatedButton(onPressed: () async{
-                                if(randevudurum![2]!='1')
-                                  await randevudantahsilatagit(context,randevudetay.id.toString());
-
-                                Navigator.of(context).pop();
-                                Navigator.push(context, new MaterialPageRoute(builder: (context) => TahsilatEkrani(adisyonId: "", kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi, musteridanisanid: randevuliste.firstWhere((element) => element.id==randevudetay.id.toString()).user_id.toString()))).then((value) {
-                                  log('refresh yapıcak ');
+                              _detayBtn(
+                                label: 'Geldi İşaretini Kaldır',
+                                icon: Icons.undo_rounded,
+                                color: ext.successColor,
+                                onTap: () async {
+                                  await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context );
+                                  Navigator.of(context).pop();
                                   getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                                });
-                              }, child:
-                              Text('Tahsilat'),
-                                style: ElevatedButton.styleFrom(
-                                    foregroundColor: cs.onPrimary,
-                                    backgroundColor: cs.primary,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
+                                },
+                              ),
+                        ])):SizedBox.shrink(),
+
+                        (randevudurum![0] == "0" || randevudurum![0] == "1" ) && randevudurum![3] != '1' && !randevutitle[0].contains("ÖN GÖRÜŞME") && (Yetki.varMi('satis.tahsilat_al') || Yetki.varMi('randevu.duzenle_iptal'))  ? Padding(padding: const EdgeInsets.only(top: 10), child: _detayGrid([
+                            if (randevudurum![0] != "0" && !randevutitle[0].contains("PAKET") && Yetki.varMi('satis.tahsilat_al'))
+                              _detayBtn(
+                                label: 'Tahsilat',
+                                icon: Icons.payments_outlined,
+                                color: cs.primary,
+                                onTap: () async{
+                                  if(randevudurum![2]!='1')
+                                    await randevudantahsilatagit(context,randevudetay.id.toString());
+
+                                  Navigator.of(context).pop();
+                                  Navigator.push(context, new MaterialPageRoute(builder: (context) => TahsilatEkrani(adisyonId: "", kullanicirolu: widget.kullanicirolu, isletmebilgi: widget.isletmebilgi, musteridanisanid: randevuliste.firstWhere((element) => element.id==randevudetay.id.toString()).user_id.toString()))).then((value) {
+                                    log('refresh yapıcak ');
+                                    getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                  });
+                                },
                               ),
                             if (randevudurum![0] != '0' && Yetki.varMi('randevu.duzenle_iptal'))
-                              ElevatedButton(onPressed: () {
-                                showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContex) {
-                                    return AlertDialog(
-                                      title: Text('EMİN MİSİNİZ?'),
-                                      content: Text("Randevu iptal etme işlemi geri alınamaz?"),
-                                      actions: <Widget>[
-                                        TextButton(
-                                          child: Text('VAZGEÇ'),
-                                          onPressed: () {
-                                            Navigator.of(dialogContex).pop();
-                                          },
-                                        ),
-                                        TextButton(
-                                          child: Text('İPTAL ET'),
-                                          onPressed: () async {
-                                            SharedPreferences prefs = await SharedPreferences.getInstance();
-                                            var usertype = prefs.getString('user_type');
-                                            await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
-                                            Navigator.of(dialogContex).pop();
-                                            getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
-                                            Navigator.of(context).pop();
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                                child:
-                                Text('İptal Et'),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: cs.error,
-                                    foregroundColor: cs.onError,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(130, 30)
-                                ),
+                              _detayBtn(
+                                label: 'İptal Et',
+                                icon: Icons.cancel_outlined,
+                                color: cs.error,
+                                onTap: () {
+                                  showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContex) {
+                                      return AlertDialog(
+                                        title: Text('EMİN MİSİNİZ?'),
+                                        content: Text("Randevu iptal etme işlemi geri alınamaz?"),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            child: Text('VAZGEÇ'),
+                                            onPressed: () {
+                                              Navigator.of(dialogContex).pop();
+                                            },
+                                          ),
+                                          TextButton(
+                                            child: Text('İPTAL ET'),
+                                            onPressed: () async {
+                                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                                              var usertype = prefs.getString('user_type');
+                                              await randevuiptalet(randevudetay.id.toString(), context,usertype.toString());
+                                              Navigator.of(dialogContex).pop();
+                                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                              Navigator.of(context).pop();
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
                               ),
-                          ],
-                        ) : SizedBox.shrink(),
-                        (randevudurum![0] == "0" || randevudurum![0] == "1") && randevutitle[0].contains("ÖN GÖRÜŞME") && (randevudetay.notes ?? "").contains("Beklemede")  ? Row(
+                        ])) : SizedBox.shrink(),
+                        (randevudurum![0] == "0" || randevudurum![0] == "1") && randevutitle[0].contains("ÖN GÖRÜŞME") && (randevudetay.notes ?? "").contains("Beklemede")  ? Padding(padding: const EdgeInsets.only(top: 10), child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-
-                            Expanded(
-                              child: ElevatedButton(onPressed: () async{
-                                OnGorusme selectedItem = await ongorsumebilgi(randevudetay.recurrenceId.toString());
-                                if (selectedItem.paket_id != null && selectedItem.paket_id != "null") {
-                                  paketsatispopup(context, randevudetay.recurrenceId.toString());
-                                } else if (selectedItem.urun_id != null && selectedItem.urun_id != "null") {
-                                  urunsatispopup(context, randevudetay.recurrenceId.toString());
-                                }
-
-                              }, child:
-                              Text('Satış Yapıldı', textAlign: TextAlign.center),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: ext.successColor,
-                                    foregroundColor: Colors.white,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(0, 36)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _detayBtn(
+                                    label: 'Satış Yapıldı',
+                                    icon: Icons.point_of_sale_outlined,
+                                    color: ext.successColor,
+                                    onTap: () async{
+                                      OnGorusme selectedItem = await ongorsumebilgi(randevudetay.recurrenceId.toString());
+                                      bool _dolu(String? v) => v != null && v.isNotEmpty && v != "null" && v != "0";
+                                      final String _musteriId = randevuliste
+                                          .firstWhere((element) => element.id == randevudetay.id.toString())
+                                          .user_id
+                                          .toString();
+                                      if (_dolu(selectedItem.paket_id)) {
+                                        paketsatispopup(context, randevudetay.recurrenceId.toString(), musteriId: _musteriId);
+                                      } else if (_dolu(selectedItem.urun_id)) {
+                                        urunsatispopup(context, randevudetay.recurrenceId.toString());
+                                      } else if (_dolu(selectedItem.hizmet_id)) {
+                                        hizmetsatispopup(context, randevudetay.recurrenceId.toString());
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                            )
-                            ,
-                            SizedBox(width: 15,),
-
-                            Expanded(
-                              child: ElevatedButton(onPressed: () {
-
-                                showSatisYapilmamaNedeniDialog(context, randevudetay.recurrenceId.toString(),"1","",(value)=>getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false));
-
-                                ;
-
-                                // close the confirmation dialog
-
-
-
-                                //satisyapilmadi(context,  "",String aciklama,String currentPage,String aramaterimi,bool showprogress)
-                              }, child:
-                              Text('Satış Yapılmadı', textAlign: TextAlign.center),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: cs.error,
-                                    foregroundColor: cs.onError,
-                                    elevation: 5,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    minimumSize: Size(0, 36)
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: _detayBtn(
+                                    label: 'Satış Yapılmadı',
+                                    icon: Icons.remove_shopping_cart_outlined,
+                                    color: cs.error,
+                                    onTap: () {
+                                      showSatisYapilmamaNedeniDialog(context, randevudetay.recurrenceId.toString(),"1","",(value)=>getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false));
+                                    },
+                                  ),
                                 ),
+                              ],
+                            ),
+                            if (Yetki.varMi('randevu.duzenle_iptal')) ...[
+                              SizedBox(height: 10),
+                              _detayBtn(
+                                label: 'Randevuyu İptal Et',
+                                icon: Icons.event_busy_outlined,
+                                color: cs.error,
+                                fullWidth: true,
+                                onTap: () {
+                                  showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContex) {
+                                      return AlertDialog(
+                                        title: Text('EMİN MİSİNİZ?'),
+                                        content: Text("Ön görüşme randevusu iptal edilecek ve otomatik olarak satış yapılmadı (Randevu iptali) işaretlenecektir."),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            child: Text('VAZGEÇ'),
+                                            onPressed: () {
+                                              Navigator.of(dialogContex).pop();
+                                            },
+                                          ),
+                                          TextButton(
+                                            child: Text('İPTAL ET'),
+                                            onPressed: () async {
+                                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                                              var usertype = prefs.getString('user_type');
+                                              await satisyapilmadi(context, randevudetay.recurrenceId.toString(), "Randevu iptali", "1", "", false);
+                                              await randevuiptalet(randevudetay.id.toString(), context, usertype.toString());
+                                              Navigator.of(dialogContex).pop();
+                                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih), false);
+                                              Navigator.of(context).pop();
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
                               ),
-                            )
-
+                            ],
                           ],
-                        ) : SizedBox.shrink(),
+                        )) : SizedBox.shrink(),
 
                       ],
                     ),
@@ -2116,10 +2203,102 @@ List<Widget> _buildAppointmentsForResource(
     );
   }
 
-  void paketsatispopup(BuildContext context, String ongorusmeid) {
+  // Randevu detay popup'ı için kompakt dolu aksiyon butonu (küçük)
+  Widget _detayBtn({
+    required String label,
+    IconData? icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool fullWidth = false,
+    double fontSize = 12.5,
+  }) {
+    final btn = ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        minimumSize: const Size(0, 34),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600),
+      ),
+    );
+    if (fullWidth) return SizedBox(width: double.infinity, child: btn);
+    return btn;
+  }
+
+  // Aksiyon butonlarını 2 kolonlu grid olarak dizer (yan yana 2'şer)
+  Widget _detayGrid(List<Widget> items) {
+    final rows = <Widget>[];
+    for (var i = 0; i < items.length; i += 2) {
+      final hasSecond = i + 1 < items.length;
+      rows.add(Padding(
+        padding: EdgeInsets.only(bottom: (i + 2 < items.length) ? 10 : 0),
+        child: Row(
+          children: [
+            Expanded(child: items[i]),
+            const SizedBox(width: 10),
+            Expanded(child: hasSecond ? items[i + 1] : const SizedBox()),
+          ],
+        ),
+      ));
+    }
+    return Column(mainAxisSize: MainAxisSize.min, children: rows);
+  }
+
+  // Ön görüşme satış popup'ları için ortak alan başlığı
+  Widget _satisAlanLabel(String label, dynamic cs) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 0.0),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 12, color: cs.onSurface, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  // Ön görüşme satış popup'ları için ortak sayısal giriş alanı
+  Widget _satisNumField(TextEditingController controller, dynamic cs) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.only(left: 0, right: 20),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        maxLines: 1,
+        decoration: InputDecoration(
+          focusColor: cs.primary,
+          hoverColor: cs.primary,
+          hintStyle: TextStyle(color: cs.primary),
+          contentPadding: const EdgeInsets.all(15.0),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: cs.primary),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: cs.primary),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void paketsatispopup(BuildContext context, String ongorusmeid, {String musteriId = ''}) {
     final cs = context.colors;
-    TextEditingController ongorusmetarihi = TextEditingController();
-    TextEditingController seansaralik = TextEditingController();
+    TextEditingController seansSayisi = TextEditingController();
+    TextEditingController fiyat = TextEditingController();
 
     showDialog(
       context: context,
@@ -2127,92 +2306,19 @@ List<Widget> _buildAppointmentsForResource(
         return AlertDialog(
           scrollable: true,
           title: const Text(
-            'Paket satışına devam etmek için lütfen aşağıdan başlangıç tarihi seçip seans gün aralığını belirleyin!',
+            'Paket satışını tamamlamak için paket süresi, seans sayısı ve fiyatı giriniz.',
             style: TextStyle(fontSize: 14),
           ),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 0.0),
-                child: Text(
-                  'Seans Başlangıç Tarihi',
-                  style: TextStyle(fontSize: 12, color: cs.onSurface, fontWeight: FontWeight.bold),
-                ),
-              ),
+              _satisAlanLabel('Seans Sayısı', cs),
               const SizedBox(height: 10),
-              Container(
-                height: 40,
-                padding: const EdgeInsets.only(left: 0, right: 20),
-                child: TextFormField(
-                  controller: ongorusmetarihi,
-                  decoration: InputDecoration(
-                    focusColor: cs.primary,
-                    hoverColor: cs.primary,
-                    hintStyle: TextStyle(color: cs.primary),
-                    contentPadding: const EdgeInsets.all(15.0),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: cs.primary),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: cs.primary),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  readOnly: true,
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(1950),
-                      lastDate: DateTime(2100),
-                    );
-                    if (pickedDate != null) {
-                      String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
-                      ongorusmetarihi.text = formattedDate;
-                    }
-                  },
-                ),
-              ),
+              _satisNumField(seansSayisi, cs),
               const SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.only(left: 0.0),
-                child: Text(
-                  'Seans Aralığı (Gün)',
-                  style: TextStyle(fontSize: 12, color: cs.onSurface, fontWeight: FontWeight.bold),
-                ),
-              ),
+              _satisAlanLabel('Fiyat (₺)', cs),
               const SizedBox(height: 10),
-              Container(
-                height: 40,
-                padding: const EdgeInsets.only(left: 0, right: 20),
-                child: TextField(
-                  controller: seansaralik,
-                  keyboardType: TextInputType.number,
-                  maxLines: 1,
-                  decoration: InputDecoration(
-                    focusColor: cs.primary,
-                    hoverColor: cs.primary,
-                    hintStyle: TextStyle(color: cs.primary),
-                    contentPadding: const EdgeInsets.all(15.0),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: cs.primary),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: cs.primary),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                ),
-              ),
+              _satisNumField(fiyat, cs),
             ],
           ),
           actions: <Widget>[
@@ -2224,7 +2330,72 @@ List<Widget> _buildAppointmentsForResource(
             ),
             TextButton(
               onPressed: () {
-                satisyapildi(context, ongorusmeid, '', ongorusmetarihi.text, seansaralik.text);
+                satisyapildi(context, ongorusmeid, '', '', '',
+                    fiyat: fiyat.text, seansSayisi: seansSayisi.text,
+                    onBasarili: () {
+                      // Paket satışı kaydedildikten sonra tahsilat ekranına yönlendir
+                      Navigator.push(
+                        this.context,
+                        MaterialPageRoute(
+                          builder: (_) => TahsilatEkrani(
+                            adisyonId: "",
+                            kullanicirolu: widget.kullanicirolu,
+                            isletmebilgi: widget.isletmebilgi,
+                            musteridanisanid: musteriId,
+                          ),
+                        ),
+                      ).then((_) => getUpdatedAppointments(
+                            DateFormat('yyyy-MM-dd').format(seciliTarih),
+                            DateFormat('yyyy-MM-dd').format(seciliTarih),
+                            false,
+                          ));
+                    });
+              },
+              child: Text('Kaydet', style: TextStyle(color: cs.primary)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void urunsatispopup(BuildContext context, String ongorusmeid) {
+    final cs = context.colors;
+    TextEditingController quantityController = TextEditingController();
+    TextEditingController fiyat = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          scrollable: true,
+          title: const Text(
+              'Ürün satışını tamamlamak için adet ve fiyatı giriniz.',
+              style: TextStyle(fontSize: 16)
+          ),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _satisAlanLabel('Adet', cs),
+              const SizedBox(height: 10),
+              _satisNumField(quantityController, cs),
+              const SizedBox(height: 10),
+              _satisAlanLabel('Fiyat (₺)', cs),
+              const SizedBox(height: 10),
+              _satisNumField(fiyat, cs),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
+            ),
+            TextButton(
+              onPressed: () {
+                satisyapildi(context, ongorusmeid, quantityController.text, '', '',
+                    fiyat: fiyat.text);
                 getUpdatedAppointments(
                     DateFormat('yyyy-MM-dd').format(seciliTarih),
                     DateFormat('yyyy-MM-dd').format(seciliTarih),
@@ -2239,9 +2410,9 @@ List<Widget> _buildAppointmentsForResource(
     );
   }
 
-  void urunsatispopup(BuildContext context, String ongorusmeid) {
+  void hizmetsatispopup(BuildContext context, String ongorusmeid) {
     final cs = context.colors;
-    TextEditingController quantityController = TextEditingController();
+    TextEditingController fiyat = TextEditingController();
 
     showDialog(
       context: context,
@@ -2249,45 +2420,15 @@ List<Widget> _buildAppointmentsForResource(
         return AlertDialog(
           scrollable: true,
           title: const Text(
-              'Ürün satışına devam etmek için lütfen ürün adedini belirleyiniz!',
+              'Hizmet satışını tamamlamak için fiyatı giriniz.',
               style: TextStyle(fontSize: 16)
           ),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 0.0),
-                child: Text(
-                  'Adet',
-                  style: TextStyle(fontSize: 14, color: cs.onSurface, fontWeight: FontWeight.bold),
-                ),
-              ),
+              _satisAlanLabel('Fiyat (₺)', cs),
               const SizedBox(height: 10),
-              Container(
-                height: 50,
-                child: TextField(
-                  controller: quantityController,
-                  keyboardType: TextInputType.number,
-                  maxLines: 1,
-                  decoration: InputDecoration(
-                    focusColor: cs.primary,
-                    hoverColor: cs.primary,
-                    hintStyle: TextStyle(color: cs.primary),
-                    contentPadding: const EdgeInsets.all(15.0),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: cs.primary),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: cs.primary),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                ),
-              ),
+              _satisNumField(fiyat, cs),
             ],
           ),
           actions: <Widget>[
@@ -2299,7 +2440,7 @@ List<Widget> _buildAppointmentsForResource(
             ),
             TextButton(
               onPressed: () {
-                satisyapildi(context, ongorusmeid, quantityController.text, '', '');
+                satisyapildi(context, ongorusmeid, '', '', '', fiyat: fiyat.text);
                 getUpdatedAppointments(
                     DateFormat('yyyy-MM-dd').format(seciliTarih),
                     DateFormat('yyyy-MM-dd').format(seciliTarih),

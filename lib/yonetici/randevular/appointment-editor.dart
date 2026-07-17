@@ -143,9 +143,6 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   List<TextEditingController> cihaz = [];
   List<TextEditingController> hizmet = [];
 
-  // 0 = Yeni Randevu, 1 = Saat Kapama
-  int _aktifSekme = 0;
-
   int offset = 0;
   final int limit = 50;
   bool isLoading = false;
@@ -410,6 +407,77 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   // YENİ: Klavyeyi kapatma fonksiyonu
   void _closeKeyboard() {
     FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  /// "Ustteki ile aynı saatte (paralel)" checkbox'i — hizmet satiri >0 iken
+  /// gorunur. Semantik: satir i tiklandiginda satir i-1'in
+  /// `birusttekiileaynisaat` alani "1" olur; backend randevuekleguncelle
+  /// value["birlestir"]=="1" iken saat ilerletmedigi icin satir i, satir
+  /// i-1 ile ayni baslangic saatinde kaydedilir (web modali ile ayni akis).
+  Widget _buildBirlestirCheckbox(int i) {
+    if (i <= 0 || i - 1 >= randevuhizmetleri.length) {
+      return const SizedBox.shrink();
+    }
+    final scheme = Theme.of(context).colorScheme;
+    final aktif = randevuhizmetleri[i - 1].birusttekiileaynisaat == '1';
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          _closeKeyboard();
+          setState(() {
+            randevuhizmetleri[i - 1].birusttekiileaynisaat = aktif ? '' : '1';
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: aktif
+                ? scheme.primary.withValues(alpha: 0.08)
+                : Colors.transparent,
+            border: Border.all(
+              color: aktif
+                  ? scheme.primary.withValues(alpha: 0.35)
+                  : scheme.outline.withValues(alpha: 0.3),
+              width: 1,
+              style: BorderStyle.solid,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                aktif
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                size: 20,
+                color: aktif
+                    ? scheme.primary
+                    : scheme.onSurface.withValues(alpha: 0.55),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.link_rounded,
+                  size: 14, color: scheme.primary),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Üsttekiyle aynı saatte (paralel)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: aktif
+                        ? scheme.primary
+                        : scheme.onSurface.withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Onay gerekmeyen senaryoda: tum paket/hizmetleri dogrudan satirlara
@@ -758,28 +826,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
       if (result == null) return;
 
       if (result is TimeOfDay) {
-        DateTime now = DateTime.now();
-
-        if (randevutarihi.text == DateFormat('yyyy-MM-dd').format(now)) {
-          if (result.hour < now.hour ||
-              (result.hour == now.hour && result.minute < now.minute)) {
-            await showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('Hata'),
-                content: Text('Geçmiş saati seçemezsiniz!'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Tamam'),
-                  ),
-                ],
-              ),
-            );
-            continue;
-          }
-        }
-
+        // NOT: Gecmis saat kontrolu kasitli kaldirildi — salon calisani
+        // gecmis randevulari kaydedebilmeli (unutulmus/gecmis is randevusu).
         String dakika = result.minute.toString().padLeft(2, '0');
         setState(() {
           randevusaati.text = '${result.hour}:$dakika';
@@ -1148,7 +1196,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
               ),
               PremiumGradientPill(
                 icon: Icons.add_rounded,
-                label: 'Yeni Personel',
+                label: 'Hizmet Ekle',
                 onTap: () {
                   _closeKeyboard(); // YENİ: Butona tıklanınca klavyeyi kapat
                   setState(() {
@@ -1890,6 +1938,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                                     ),
                                   ],
                                 ),
+                                if (i > 0) _buildBirlestirCheckbox(i),
                               ],
                             ),
                             if (grupCokluHizmet)
@@ -1938,107 +1987,107 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                         ),
                       );
                     }),
-                    // Bu personele yeni hizmet ekle butonu
+                    // "Bu Personele Hizmet Ekle" ve "Grubu Sil" ayni satirda:
+                    // solda ekle, sagda sil (grup >1 iken).
                     const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () {
-                          _closeKeyboard();
-                          setState(() {
-                            // Yeni hizmet ayni grup'ta — personel/oda/cihaz
-                            // grup uzerinden paylasilir.
-                            final src = randevuhizmetleri[firstIndex];
-                            suredk.add(TextEditingController());
-                            fiyat.add(TextEditingController());
-                            oda.add(TextEditingController());
-                            cihaz.add(TextEditingController());
-                            hizmet.add(TextEditingController());
-                            secilipersonel.add(secilipersonel[firstIndex]);
-                            seciliyardimcipersonel.add([null]);
-                            secilihizmet.add(null);
-                            secilioda.add(secilioda[firstIndex]);
-                            secilicihaz.add(secilicihaz[firstIndex]);
-                            randevuhizmetleri.add(RandevuHizmet(
-                              hizmetler: null,
-                              hizmet_id: '',
-                              personel_id: src.personel_id,
-                              personeller: null,
-                              oda_id: src.oda_id,
-                              oda: null,
-                              cihaz_id: src.cihaz_id,
-                              cihaz: null,
-                              fiyat: '',
-                              sure_dk: '',
-                              saat: '',
-                              saat_bitis: '',
-                              yardimci_personel: '',
-                              birusttekiileaynisaat: '',
-                              groupId: gid,
-                            ));
-                          });
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: scheme.primary,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          tapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text(
-                          'Bu Personele Hizmet Ekle',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (toplamGrupSayisi > 1)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton.icon(
                           onPressed: () {
                             _closeKeyboard();
                             setState(() {
-                              // Sondan basa sil — index kaymalarini onler.
-                              final sortedDesc = [...indices]
-                                ..sort((a, b) => b.compareTo(a));
-                              for (final i in sortedDesc) {
-                                randevuhizmetleri.removeAt(i);
-                                secilihizmet.removeAt(i);
-                                suredk.removeAt(i);
-                                fiyat.removeAt(i);
-                                oda.removeAt(i);
-                                cihaz.removeAt(i);
-                                hizmet.removeAt(i);
-                                secilipersonel.removeAt(i);
-                                seciliyardimcipersonel.removeAt(i);
-                                secilioda.removeAt(i);
-                                secilicihaz.removeAt(i);
-                              }
+                              // Yeni hizmet ayni grup'ta — personel/oda/cihaz
+                              // grup uzerinden paylasilir.
+                              final src = randevuhizmetleri[firstIndex];
+                              suredk.add(TextEditingController());
+                              fiyat.add(TextEditingController());
+                              oda.add(TextEditingController());
+                              cihaz.add(TextEditingController());
+                              hizmet.add(TextEditingController());
+                              secilipersonel.add(secilipersonel[firstIndex]);
+                              seciliyardimcipersonel.add([null]);
+                              secilihizmet.add(null);
+                              secilioda.add(secilioda[firstIndex]);
+                              secilicihaz.add(secilicihaz[firstIndex]);
+                              randevuhizmetleri.add(RandevuHizmet(
+                                hizmetler: null,
+                                hizmet_id: '',
+                                personel_id: src.personel_id,
+                                personeller: null,
+                                oda_id: src.oda_id,
+                                oda: null,
+                                cihaz_id: src.cihaz_id,
+                                cihaz: null,
+                                fiyat: '',
+                                sure_dk: '',
+                                saat: '',
+                                saat_bitis: '',
+                                yardimci_personel: '',
+                                birusttekiileaynisaat: '',
+                                groupId: gid,
+                              ));
                             });
                           },
                           style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFFDC2626),
+                            foregroundColor: scheme.primary,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
                             tapTargetSize:
                                 MaterialTapTargetSize.shrinkWrap,
                           ),
-                          icon: const Icon(
-                              Icons.delete_outline_rounded,
-                              size: 18),
+                          icon: const Icon(Icons.add_rounded, size: 18),
                           label: const Text(
-                            'Grubu Sil',
+                            'Bu Personele Hizmet Ekle',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                      ),
+                        if (toplamGrupSayisi > 1)
+                          TextButton.icon(
+                            onPressed: () {
+                              _closeKeyboard();
+                              setState(() {
+                                // Sondan basa sil — index kaymalarini onler.
+                                final sortedDesc = [...indices]
+                                  ..sort((a, b) => b.compareTo(a));
+                                for (final i in sortedDesc) {
+                                  randevuhizmetleri.removeAt(i);
+                                  secilihizmet.removeAt(i);
+                                  suredk.removeAt(i);
+                                  fiyat.removeAt(i);
+                                  oda.removeAt(i);
+                                  cihaz.removeAt(i);
+                                  hizmet.removeAt(i);
+                                  secilipersonel.removeAt(i);
+                                  seciliyardimcipersonel.removeAt(i);
+                                  secilioda.removeAt(i);
+                                  secilicihaz.removeAt(i);
+                                }
+                              });
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFFDC2626),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18),
+                            label: const Text(
+                              'Grubu Sil',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               );
@@ -2587,22 +2636,12 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           elevation: 0,
           scrolledUnderElevation: 0,
           title: Text(
-            _aktifSekme == 1 ? 'Saat Kapama' : 'Yeni Randevu',
+            'Yeni Randevu',
             style: TextStyle(
               color: scheme.onSurface,
               fontWeight: FontWeight.w800,
               fontSize: 18,
               letterSpacing: -0.3,
-            ),
-          ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(46),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: _SekmeSecici(
-                aktif: _aktifSekme,
-                onChange: (i) => setState(() => _aktifSekme = i),
-              ),
             ),
           ),
           leading: Padding(
@@ -2645,31 +2684,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           ],
           toolbarHeight: 64,
         ),
-        body: IndexedStack(
-          index: _aktifSekme,
-          children: [
-            _getAppointmentEditor(context),
-            // Listeler yuklenmeden formu insa etmiyoruz — yoksa dropdown
-            // bos items uzerinde value bulamadigi icin onceden secili kaynagi
-            // gosteremiyor (DropdownButtonFormField davranisi).
-            isloading
-                ? const Center(child: CircularProgressIndicator())
-                : SaatKapamaFormu(
-                    salonId: widget.isletmebilgi['id'].toString(),
-                    takvimTuruId: widget.isletmebilgi['randevu_takvim_turu']?.toString() ?? '1',
-                    tarihsaat: widget.tarihsaat,
-                    onceSeciliKaynakId: widget.resourceId ?? '',
-                    onceSeciliKaynakTipi: widget.resourceType ?? 'personel',
-                    personeller: personelliste,
-                    odalar: odaliste,
-                    cihazlar: cihazliste,
-                    onKaydedildi: () {
-                      _closeKeyboard();
-                      Navigator.of(context).pop(true);
-                    },
-                  ),
-          ],
-        ),
+        body: _getAppointmentEditor(context),
       ),
     );
   }
@@ -2698,471 +2713,3 @@ class AppointmentEditorState extends State<AppointmentEditor> {
   }
 }
 
-// AppointmentEditor ust kismindaki sekme secici: "Yeni Randevu" / "Saat Kapama".
-class _SekmeSecici extends StatelessWidget {
-  final int aktif;
-  final ValueChanged<int> onChange;
-  const _SekmeSecici({required this.aktif, required this.onChange});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    Widget buton(int i, IconData icon, String label) {
-      final bool secili = aktif == i;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => onChange(i),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            height: 38,
-            decoration: BoxDecoration(
-              color: secili ? cs.primary : cs.surface.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: secili ? cs.primary : cs.outlineVariant),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 16, color: secili ? cs.onPrimary : cs.onSurface),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: secili ? cs.onPrimary : cs.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        buton(0, Icons.event_available, 'Yeni Randevu'),
-        const SizedBox(width: 8),
-        buton(1, Icons.lock_clock, 'Saat Kapama'),
-      ],
-    );
-  }
-}
-
-// AppointmentEditor icindeki "Saat Kapama" sekme icerigi.
-// Takvim hangi turde ise (personel/cihaz/oda), ilgili kaynak dropdown'i ve
-// tiklanan saat-tarih onceden secili gelir.
-class SaatKapamaFormu extends StatefulWidget {
-  final String salonId;
-  final String takvimTuruId; // 0/1=personel, 2=cihaz, 3=oda
-  final String tarihsaat; // ISO string; bos olabilir
-  final String onceSeciliKaynakId;
-  final String onceSeciliKaynakTipi; // 'personel' | 'cihaz' | 'oda' | 'hizmet'
-  final List<Personel> personeller;
-  final List<Oda> odalar;
-  final List<Cihaz> cihazlar;
-  final VoidCallback onKaydedildi;
-
-  const SaatKapamaFormu({
-    super.key,
-    required this.salonId,
-    required this.takvimTuruId,
-    required this.tarihsaat,
-    required this.onceSeciliKaynakId,
-    required this.onceSeciliKaynakTipi,
-    required this.personeller,
-    required this.odalar,
-    required this.cihazlar,
-    required this.onKaydedildi,
-  });
-
-  @override
-  State<SaatKapamaFormu> createState() => _SaatKapamaFormuState();
-}
-
-class _SaatKapamaFormuState extends State<SaatKapamaFormu> {
-  late DateTime _tarih;
-  TimeOfDay? _baslangic;
-  TimeOfDay? _bitis;
-  bool _tumGun = false;
-  bool _tekrarlayan = false;
-  String _tekrarSikligi = '+1 day';
-  final TextEditingController _tekrarSayisiCtrl = TextEditingController(text: '1');
-  final TextEditingController _notlarCtrl = TextEditingController();
-  String? _kaynakId;
-  bool _yukleniyor = false;
-
-  final List<MapEntry<String, String>> _siklikSecenekleri = const [
-    MapEntry('+1 day', 'Her gun'),
-    MapEntry('+2 days', '2 gunde bir'),
-    MapEntry('+3 days', '3 gunde bir'),
-    MapEntry('+1 week', 'Haftada bir'),
-    MapEntry('+2 weeks', '2 haftada bir'),
-    MapEntry('+1 month', 'Her ay'),
-  ];
-
-  String get _kaynakTipi {
-    // Once takvimde tiklanan satira gore (onceSeciliKaynakTipi) bakariz.
-    // Boyle bir bilgi yoksa isletmenin varsayilan takvim turune duseriz.
-    final t = widget.onceSeciliKaynakTipi;
-    if (t == 'cihaz' || t == 'oda' || t == 'personel') return t;
-    switch (widget.takvimTuruId) {
-      case '2':
-        return 'cihaz';
-      case '3':
-        return 'oda';
-      default:
-        return 'personel';
-    }
-  }
-
-  String get _kaynakEtiketi {
-    switch (_kaynakTipi) {
-      case 'cihaz':
-        return 'Cihaz';
-      case 'oda':
-        return 'Oda';
-      default:
-        return 'Personel';
-    }
-  }
-
-  List<MapEntry<String, String>> get _kaynakOgeleri {
-    switch (_kaynakTipi) {
-      case 'cihaz':
-        return widget.cihazlar.map((c) => MapEntry(c.id, c.cihaz_adi)).toList();
-      case 'oda':
-        return widget.odalar.map((o) => MapEntry(o.id, o.oda_adi)).toList();
-      default:
-        return widget.personeller.map((p) => MapEntry(p.id, p.personel_adi)).toList();
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // Tiklanan tarih ve saat
-    DateTime? gelen;
-    if (widget.tarihsaat.isNotEmpty) {
-      gelen = DateTime.tryParse(widget.tarihsaat);
-    }
-    final now = DateTime.now();
-    final base = gelen ?? now;
-    _tarih = DateTime(base.year, base.month, base.day);
-    if (gelen != null) {
-      _baslangic = TimeOfDay(hour: gelen.hour, minute: gelen.minute);
-      // Varsayilan: 30 dk sonrasi
-      final son = gelen.add(const Duration(minutes: 30));
-      _bitis = TimeOfDay(hour: son.hour, minute: son.minute);
-    }
-    // Onceden secili kaynak (takvimde tiklanan satira gore)
-    if (widget.onceSeciliKaynakId.isNotEmpty &&
-        widget.onceSeciliKaynakTipi == _kaynakTipi) {
-      _kaynakId = widget.onceSeciliKaynakId;
-    }
-  }
-
-  @override
-  void dispose() {
-    _tekrarSayisiCtrl.dispose();
-    _notlarCtrl.dispose();
-    super.dispose();
-  }
-
-  String _ikiHane(int n) => n.toString().padLeft(2, '0');
-  String _saatStr(TimeOfDay? t) =>
-      t == null ? '' : '${_ikiHane(t.hour)}:${_ikiHane(t.minute)}';
-
-  Future<void> _tarihSec() async {
-    final secilen = await showDatePicker(
-      context: context,
-      initialDate: _tarih,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-    );
-    if (secilen != null) setState(() => _tarih = secilen);
-  }
-
-  Future<void> _saatSec(bool baslangic) async {
-    final secilen = await showTimePicker(
-      context: context,
-      initialTime: baslangic
-          ? (_baslangic ?? const TimeOfDay(hour: 9, minute: 0))
-          : (_bitis ?? const TimeOfDay(hour: 18, minute: 0)),
-    );
-    if (secilen != null) {
-      setState(() {
-        if (baslangic) {
-          _baslangic = secilen;
-        } else {
-          _bitis = secilen;
-        }
-      });
-    }
-  }
-
-  Future<void> _kaydet() async {
-    if (_kaynakId == null || _kaynakId!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lutfen ${_kaynakEtiketi.toLowerCase()} secin.')),
-      );
-      return;
-    }
-    if (!_tumGun) {
-      if (_baslangic == null || _bitis == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Baslangic ve bitis saatini secin (veya Tum gun isaretleyin).')),
-        );
-        return;
-      }
-      final b = _baslangic!.hour * 60 + _baslangic!.minute;
-      final s = _bitis!.hour * 60 + _bitis!.minute;
-      if (s <= b) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bitis saati baslangictan sonra olmali.')),
-        );
-        return;
-      }
-    }
-
-    setState(() => _yukleniyor = true);
-    try {
-      final sonuc = await saatKapamaEkle(
-        salonId: widget.salonId,
-        tarih: DateFormat('yyyy-MM-dd').format(_tarih),
-        saat: _tumGun ? '' : _saatStr(_baslangic),
-        saatBitis: _tumGun ? '' : _saatStr(_bitis),
-        personelId: _kaynakTipi == 'personel' ? (_kaynakId ?? '') : '',
-        cihazId: _kaynakTipi == 'cihaz' ? (_kaynakId ?? '') : '',
-        odaId: _kaynakTipi == 'oda' ? (_kaynakId ?? '') : '',
-        personelNotu: _notlarCtrl.text.trim(),
-        tekrarlayan: _tekrarlayan,
-        tekrarSikligi: _tekrarSikligi,
-        tekrarSayisi: _tekrarlayan
-            ? (int.tryParse(_tekrarSayisiCtrl.text.trim()) ?? 0)
-            : 0,
-      );
-      if (!mounted) return;
-      if (sonuc['ok'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(sonuc['message']?.toString() ?? 'Saat kapama eklendi')),
-        );
-        widget.onKaydedildi();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(sonuc['error']?.toString() ?? sonuc['message']?.toString() ?? 'Hata olustu')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saat kapama eklenemedi: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _yukleniyor = false);
-    }
-  }
-
-  Widget _kaynakAlani() => DropdownButtonFormField<String>(
-        value: _kaynakId,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: _kaynakEtiketi,
-          isDense: true,
-          border: const OutlineInputBorder(),
-        ),
-        hint: Text('${_kaynakEtiketi} secin'),
-        items: _kaynakOgeleri
-            .map((e) => DropdownMenuItem<String>(
-                  value: e.key,
-                  child: Text(e.value, overflow: TextOverflow.ellipsis),
-                ))
-            .toList(),
-        onChanged: (v) => setState(() => _kaynakId = v),
-      );
-
-  Widget _tarihAlani() => InkWell(
-        onTap: _tarihSec,
-        child: InputDecorator(
-          decoration: const InputDecoration(
-            labelText: 'Tarih',
-            isDense: true,
-            border: OutlineInputBorder(),
-            suffixIcon: Icon(Icons.calendar_today, size: 18),
-          ),
-          child: Text(DateFormat('dd.MM.yyyy').format(_tarih)),
-        ),
-      );
-
-  Widget _saatAlanlari() => Row(
-        children: [
-          Expanded(
-            child: InkWell(
-              onTap: _tumGun ? null : () => _saatSec(true),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Baslangic',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
-                child: Text(_baslangic == null ? '--:--' : _saatStr(_baslangic)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: InkWell(
-              onTap: _tumGun ? null : () => _saatSec(false),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Bitis',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
-                child: Text(_bitis == null ? '--:--' : _saatStr(_bitis)),
-              ),
-            ),
-          ),
-        ],
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final bool wide = media.size.width >= 720 && media.orientation == Orientation.landscape;
-
-    final solKolon = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _kaynakAlani(),
-        const SizedBox(height: 12),
-        _tarihAlani(),
-        const SizedBox(height: 12),
-        _saatAlanlari(),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          title: const Text('Tum gun'),
-          value: _tumGun,
-          onChanged: (v) => setState(() {
-            _tumGun = v;
-            if (v) {
-              _baslangic = null;
-              _bitis = null;
-            }
-          }),
-        ),
-      ],
-    );
-
-    final sagKolon = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          title: const Text('Tekrarlayan'),
-          value: _tekrarlayan,
-          onChanged: (v) => setState(() => _tekrarlayan = v),
-        ),
-        if (_tekrarlayan) ...[
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: DropdownButtonFormField<String>(
-                  value: _tekrarSikligi,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Tekrar sikligi',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _siklikSecenekleri
-                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _tekrarSikligi = v ?? '+1 day'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _tekrarSayisiCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Tekrar sayisi',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-        ],
-        TextField(
-          controller: _notlarCtrl,
-          minLines: 2,
-          maxLines: wide ? 5 : 3,
-          decoration: const InputDecoration(
-            labelText: 'Notlar',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-        ),
-      ],
-    );
-
-    final form = wide
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: solKolon),
-              const SizedBox(width: 16),
-              Expanded(child: sagKolon),
-            ],
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [solKolon, const SizedBox(height: 8), sagKolon],
-          );
-
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: form,
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: _yukleniyor ? null : () => Navigator.of(context).pop(),
-                child: const Text('Iptal'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _yukleniyor ? null : _kaydet,
-                icon: _yukleniyor
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.save, size: 18),
-                label: const Text('Saat Kapama Kaydet'),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}

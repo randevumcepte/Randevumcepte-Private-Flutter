@@ -209,7 +209,8 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
 
   Future<void> initialize() async {
     seciliisletme = (await secilisalonid())!;
-    final isletmeVerileri = await isletmeVerileriGetir(seciliisletme,false,'','','',0,0);
+    final isletmeVerileri = await isletmeVerileriGetir(seciliisletme,false,'','','',0,0,
+        randevuId: widget.randevu.id.toString());
     List <MusteriDanisan> musteridanisanliste = isletmeVerileri['musteriler'];
     List<IsletmeHizmet> isletmehizmetleriliste =  isletmeVerileri['hizmetler'];
     List<Personel> isletmepersonellerliste =  isletmeVerileri['personeller'];
@@ -233,6 +234,18 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
     setState(() {
       final List<dynamic> hizmetdata = widget.randevu.hizmetler;
       randevuhizmetleri = hizmetdata.map((e) => RandevuHizmet.fromJson(e)).toList();
+
+      // Backend'den yuklenen ardisik hizmetlerin saat'i ayni ise
+      // "Ustteki ile paralel" checkbox'i acik gozukmeli. UI semantigi: satir
+      // i'nin checkbox durumu satir i-1'in birusttekiileaynisaat alaninda
+      // tutulur (bkz _buildBirlestirCheckbox).
+      for (int i = 1; i < randevuhizmetleri.length; i++) {
+        final onceki = randevuhizmetleri[i - 1].saat;
+        final mevcut = randevuhizmetleri[i].saat;
+        if (onceki.isNotEmpty && onceki == mevcut) {
+          randevuhizmetleri[i - 1].birusttekiileaynisaat = '1';
+        }
+      }
 
       secilimusteridanisan = MusteriDanisan.fromJson(widget.randevu.musteri);
       secilimusteridanisanid = widget.randevu.user_id;
@@ -330,6 +343,77 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
   // YENİ: Klavyeyi kapatma fonksiyonu
   void _closeKeyboard() {
     FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  /// "Ustteki ile aynı saatte (paralel)" checkbox'i — hizmet satiri >0 iken
+  /// gorunur. Semantik: satir i tiklandiginda satir i-1'in
+  /// `birusttekiileaynisaat` alani "1" olur; backend randevuekleguncelle
+  /// value["birlestir"]=="1" iken saat ilerletmedigi icin satir i, satir
+  /// i-1 ile ayni baslangic saatinde kaydedilir (web modali ile ayni akis).
+  Widget _buildBirlestirCheckbox(int i) {
+    if (i <= 0 || i - 1 >= randevuhizmetleri.length) {
+      return const SizedBox.shrink();
+    }
+    final scheme = Theme.of(context).colorScheme;
+    final aktif = randevuhizmetleri[i - 1].birusttekiileaynisaat == '1';
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          _closeKeyboard();
+          setState(() {
+            randevuhizmetleri[i - 1].birusttekiileaynisaat = aktif ? '' : '1';
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: aktif
+                ? scheme.primary.withValues(alpha: 0.08)
+                : Colors.transparent,
+            border: Border.all(
+              color: aktif
+                  ? scheme.primary.withValues(alpha: 0.35)
+                  : scheme.outline.withValues(alpha: 0.3),
+              width: 1,
+              style: BorderStyle.solid,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                aktif
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                size: 20,
+                color: aktif
+                    ? scheme.primary
+                    : scheme.onSurface.withValues(alpha: 0.55),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.link_rounded,
+                  size: 14, color: scheme.primary),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Üsttekiyle aynı saatte (paralel)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: aktif
+                        ? scheme.primary
+                        : scheme.onSurface.withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Onay gerekmeyen senaryoda: tum paket/hizmetleri dogrudan satirlara
@@ -604,28 +688,8 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
       if (result == null) return;
 
       if (result is TimeOfDay) {
-        DateTime now = DateTime.now();
-
-        /*if (randevutarihi.text == DateFormat('yyyy-MM-dd').format(now)) {
-          if (result.hour < now.hour ||
-              (result.hour == now.hour && result.minute < now.minute)) {
-            await showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('Hata'),
-                content: Text('Geçmiş saati seçemezsiniz!'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Tamam'),
-                  ),
-                ],
-              ),
-            );
-            continue;
-          }
-        }*/
-
+        // NOT: Gecmis saat kontrolu kasitli kaldirildi — salon calisani
+        // gecmis randevulari guncelleyebilmeli.
         String dakika = result.minute.toString().padLeft(2, '0');
         setState(() {
           randevusaati.text = '${result.hour}:$dakika';
@@ -1445,6 +1509,7 @@ class AppointmentEditorState extends State<RandevuDuzenle> {
                           ),
                         ],
                       ),
+                      if (index > 0) _buildBirlestirCheckbox(index),
                     ],
                   ),
                   if (randevuhizmetleri.length > 1)
