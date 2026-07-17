@@ -1906,6 +1906,24 @@ Future <Map<String, dynamic>> masrafraporu(String Salonid , String currpage,Stri
 
 }
 
+Future <bool> masrafsil(String salonid, String masrafid) async {
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/masrafsil/'+salonid),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'masraf_id': masrafid}),
+  );
+
+  if (response.statusCode == 200) {
+    try {
+      final decoded = json.decode(response.body);
+      return decoded['basarili'] == true;
+    } catch (_) {
+      return true;
+    }
+  }
+  return false;
+}
+
 Future <Map<String, dynamic>> kasaraporu(String Salonid , String tarih,String odemeyontemi) async {
 
 

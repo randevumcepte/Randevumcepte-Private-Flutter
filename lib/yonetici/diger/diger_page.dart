@@ -20,7 +20,7 @@ import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
 import '../dashboard/profilbilgileri.dart';
-import '../santral/santralraporlari.dart';
+// import '../santral/santralraporlari.dart'; // Apple deprecated-API: santral .bak
 import '../subesecimi.dart';
 import 'menu/anket/anket_yonetimi.dart';
 import 'menu/cark/cark_yonetimi.dart';
@@ -33,6 +33,7 @@ import 'menu/etkinlik/etkinikler.dart';
 import 'menu/kampanya/kampanyalar.dart';
 import 'menu/kasa/alacaklar.dart';
 import 'menu/kasa/kasaraporu.dart';
+import 'menu/kasa/masraflar.dart';
 import 'menu/musteriler/musteriliste.dart';
 import 'menu/ongorusmeler/ongorusmeler.dart';
 import 'menu/randvular/randevularmenu.dart';
@@ -533,13 +534,8 @@ class _MenuState extends State<Menu> {
                     icon: Icons.phone,
                     label: 'Santral',
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: Duration(milliseconds: 300),
-                          child: CDRRaporlari(scaffoldMessengerKey: widget.scaffoldMessengerKey , kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi ,kullanicirolu:kullanicirolu ,dialPadManager:widget.dialpadManager,),
-                        ),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Santral raporları şu an devre dışı')),
                       );
                     },
                   ),
@@ -810,6 +806,28 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: KasaRaporu(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
+
+                if (widget.uyelikturu > 1 &&
+                    (Yetki.varMi('finans.masraf_gor') ||
+                        Yetki.varMi('finans.masraf_ekle')))
+                  _buildMenuButton(
+                    icon: Icons.money_off_rounded,
+                    label: 'Masraflar',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: Masraflar(
+                            odeme_yontemi: '',
+                            tarih: '',
+                            isletmebilgi: widget.isletmebilgi,
+                          ),
                         ),
                       );
                     },
