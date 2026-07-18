@@ -15,7 +15,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
-import 'package:randevu_sistem/services/sip_service.dart';
 import 'package:randevu_sistem/services/notification_popup.dart';
 import 'package:randevu_sistem/services/notification_router.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
@@ -62,12 +61,7 @@ Future<void> rmcNotificationBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   log('🔔 [BG] FCM mesaj: ${message.messageId} data=${message.data}');
 
-  // Santral gelen cagri push'u: arka plan/kilitli ekranda CallKit goster.
-  // Kullanici Kabul'e basinca uygulama acilir, SipService register olup
-  // gelen INVITE'i otomatik yanitlar (bkz. SipService.initCallkitListener).
-  if (message.data['type'] == 'sip_incoming') {
-    await sipIncomingCallkitGoster(message.data);
-  }
+  // SIP/santral kaldirildi: gelen cagri CallKit push'u artik islenmiyor.
 }
 
 /// Token / izin durumu. UI bunu dinleyip uyarı banner'ı gösterebilir.

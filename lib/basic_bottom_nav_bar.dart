@@ -28,9 +28,7 @@ import 'package:randevu_sistem/yonetici/randevular/appointment-editor.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/takvim.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
-// import 'package:randevu_sistem/yonetici/santral/arama.dart'; // SIP devre dışı
-import 'package:randevu_sistem/yonetici/santral/santralraporlari.dart';
-import 'package:randevu_sistem/services/sip_service.dart';
+// SIP/santral tamamen kaldirildi (flutter_webrtc/callkit paketleri yok)
 
 import 'package:randevu_sistem/yonetici/subesecimi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -119,21 +117,14 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       DashBoard(kullanicirolu: kullanicirolu, kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi),
       _buildTakvim(),
       //YeniTakvim(),
-      (widget.uyelikturu > 2 && kullanicirolu < 5) ? CDRRaporlari(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi,dialPadManager: dialPadManager,scaffoldMessengerKey: widget.scaffoldMessengerKey,kullanici: widget.kullanici) : AjandaNotlar(isletmebilgi: widget.isletmebilgi),
+      AjandaNotlar(isletmebilgi: widget.isletmebilgi), // CDRRaporlari kaldirildi (santral SIP)
       (widget.uyelikturu > 1 ) ? AdisyonlarPage(kullanicirolu:kullanicirolu,kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi,geriGitBtn: false,) : OnGorusmeler(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi),
       DigerPage(scaffoldMessengerKey: widget.scaffoldMessengerKey, kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi,dialpadManager: dialPadManager,),
 
     ];
+    // SIP/softphone kaldirildi; FCM/VoIP token kaydi (bildirimler icin) korunur.
     if(dahili != null && dahili != "null" && dahili.isNotEmpty){
       setupVoipAndFcmTokenListener();
-
-      // Merkezi SIP servisi: tek helper ile register + gelen cagri yonetimi.
-      SipService.instance.attachUi(widget.kullanici, dialPadManager);
-      SipService.instance.baslat(dahiliNo: dahili, sifre: dahiliSifre);
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        dialPadManager.showDialPad(context,false,"",widget.kullanici,personelId);
-      });
     }
 
     // Bildirim tıklamasından gelen yönlendirme niyetlerini dinle.
@@ -283,7 +274,6 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
   void _handleLogout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userToken');
-    await SipService.instance.durdur();
     await Yetki.temizle();
 
     setState(() {

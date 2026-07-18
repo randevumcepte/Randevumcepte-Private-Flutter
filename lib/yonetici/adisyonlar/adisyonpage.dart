@@ -25,6 +25,9 @@
     final int kullanicirolu;
     final dynamic isletmebilgi;
     final bool geriGitBtn;
+    // Baslangic filtreleri (home_screen kisayollari): belirli musteri / satis turu
+    final String? ilkMusteriId;
+    final String? ilkSatisTuruId;
 
     AdisyonlarPage({
       Key? key,
@@ -32,6 +35,8 @@
       required this.isletmebilgi,
       required this.kullanicirolu,
       required this.geriGitBtn,
+      this.ilkMusteriId,
+      this.ilkSatisTuruId,
     }) : super(key: key);
 
     @override
@@ -200,8 +205,8 @@
             _selectedDateRange != null
                 ? DateFormat("yyyy-MM-dd").format(_selectedDateRange!.end.toLocal())
                 : DateFormat("yyyy-MM-dd").format(DateTime.now()),
-            selectedMusteri?.id ?? "",
-            selectedadisyonicerigi?.id ?? "",
+            selectedMusteri?.id ?? widget.ilkMusteriId ?? "",
+            selectedadisyonicerigi?.id ?? widget.ilkSatisTuruId ?? "",
             "",
             false,
             _satisFiltreUserId,
@@ -271,8 +276,8 @@
             _selectedDateRange != null
                 ? DateFormat("yyyy-MM-dd").format(_selectedDateRange!.end.toLocal())
                 : DateFormat("yyyy-MM-dd").format(DateTime.now()),
-            selectedMusteri?.id ?? "",
-            selectedadisyonicerigi?.id ?? "",
+            selectedMusteri?.id ?? widget.ilkMusteriId ?? "",
+            selectedadisyonicerigi?.id ?? widget.ilkSatisTuruId ?? "",
             "",
             false,
             _satisFiltreUserId,

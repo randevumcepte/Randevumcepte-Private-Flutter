@@ -503,7 +503,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
       if (res == null || res['basarili'] != true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: ext.errorColor,
+            backgroundColor: context.colors.error,
             behavior: SnackBarBehavior.floating,
             content: Text((res?['mesaj'] ?? 'Kupon doğrulanamadı').toString(),
                 style: const TextStyle(color: Colors.white)),
@@ -518,7 +518,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
       if (durum == 'kullanildi') {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: ext.errorColor,
+            backgroundColor: context.colors.error,
             behavior: SnackBarBehavior.floating,
             content: const Text('Bu kupon daha önce kullanılmış',
                 style: TextStyle(color: Colors.white)),
@@ -529,7 +529,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
       if (durum == 'sure_doldu') {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: ext.errorColor,
+            backgroundColor: context.colors.error,
             behavior: SnackBarBehavior.floating,
             content: const Text('Bu kuponun süresi dolmuş',
                 style: TextStyle(color: Colors.white)),
@@ -550,7 +550,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
       if (matchTutar <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: ext.errorColor,
+            backgroundColor: context.colors.error,
             behavior: SnackBarBehavior.floating,
             content: Text('Sepette ${_tipAdi(tip).toLowerCase()} bulunmadığı için kupon uygulanamadı',
                 style: const TextStyle(color: Colors.white)),

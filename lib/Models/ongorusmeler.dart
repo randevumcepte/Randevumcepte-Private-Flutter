@@ -21,6 +21,7 @@
     required this.cinsiyet,
     required this.il_id,
     this.oda_id = "",
+    this.hizmet_id = "",
   });
 
   final String id;
@@ -45,6 +46,7 @@
   final String il_id;
   // Takvim odaya gore ise (randevu_takvim_turu == 3) randevuya atanmis oda
   final String oda_id;
+  final String hizmet_id;
 
   factory OnGorusme.fromJson(Map<String, dynamic> json) {
     return OnGorusme(
@@ -66,6 +68,7 @@
       paket: json["paket"] is Map ? Map<String, dynamic>.from(json["paket"]) : {},
       urun_id: json["urun_id"]?.toString() ?? "",
       paket_id: json["paket_id"]?.toString() ?? "",
+      hizmet_id: json["hizmet_id"]?.toString() ?? "",
       cinsiyet: json["cinsiyet"]?.toString() ?? "",
       il_id: json["il_id"]?.toString() ?? "",
       oda_id: json["oda_id"]?.toString() ?? "",
