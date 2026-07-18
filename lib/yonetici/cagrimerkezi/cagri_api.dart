@@ -105,6 +105,15 @@ class CagriApi {
     return AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
   }
 
+  /// Telefon numarasi ile santral uzerinden arama baslat (musteri detay ekrani).
+  static Future<AramaBaslatSonuc> aramaBaslatNumara(String telefon, String sube) async {
+    final j = await _post('arama-baslat', {
+      'telefon': telefon,
+      'sube': sube,
+    });
+    return AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
+  }
+
   /// Gorusme sonucu kaydet. sonuc: 0,2,4,5,6,7 veya null (sadece not).
   /// santralnottarih/santralnotsaat verilirse (3 veya 6) geri arama planlanir.
   static Future<bool> notEkle({

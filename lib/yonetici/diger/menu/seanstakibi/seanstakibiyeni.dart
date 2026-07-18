@@ -9,7 +9,8 @@ import 'package:randevu_sistem/Models/seanstakibi.dart';
 
 class SeansTakibi extends StatefulWidget {
   final dynamic isletmebilgi;
-  const SeansTakibi({Key? key, required this.isletmebilgi}) : super(key: key);
+  final String? musteriId; // musteri detayindan acilinca o musteriye filtre (opsiyonel)
+  const SeansTakibi({Key? key, required this.isletmebilgi, this.musteriId}) : super(key: key);
 
   @override
   _SeansTakibiState createState() => _SeansTakibiState();

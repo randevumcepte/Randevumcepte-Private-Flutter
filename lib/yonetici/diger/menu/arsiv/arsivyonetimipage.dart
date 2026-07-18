@@ -13,7 +13,8 @@ import 'sozlesme_olustur.dart';
 
 class ArsivYonetimiPage extends StatefulWidget {
   final dynamic isletmebilgi;
-  const ArsivYonetimiPage({super.key, required this.isletmebilgi});
+  final String? musteriId; // musteri detayindan acilinca o musteriye filtre (opsiyonel)
+  const ArsivYonetimiPage({super.key, required this.isletmebilgi, this.musteriId});
 
   @override
   State<ArsivYonetimiPage> createState() => _ArsivYonetimiPageState();

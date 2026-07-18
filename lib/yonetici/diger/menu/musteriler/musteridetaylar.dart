@@ -5,12 +5,18 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
-import 'musteribilgileri/arsivdetay.dart';
-import 'islemlerveseanslar.dart';
-import 'musteriadisyonlari.dart';
-import 'musteridetayrandevular.dart';
+import 'package:randevu_sistem/Models/user.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/adisyonpage.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/seanstakibiyeni.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/arsiv/arsivyonetimipage.dart';
+import 'package:randevu_sistem/musteripaneli/menu/musteriresimleri.dart';
+import 'harici_tahsilat.dart';
 import 'musteribilgileri/musterisaglikbilgileri.dart';
 import 'musteriduzenle.dart';
 
@@ -37,13 +43,237 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	late final TabController _mainTab;
 	late final TabController _notTab;
 	Future<List<Map<String, dynamic>>>? _randevularFuture;
+	// Duzenleme sonrasi guncel verilerle yenilenebilmesi icin md'nin yerel kopyasi.
+	late MusteriDanisan _md;
+	// Kara liste durumu (null=yukleniyor/bilinmiyor, 0=hayir, 1=evet)
+	int? _karaListe;
+	bool _karaListeIsleniyor = false;
+	// Profil resmi: liste ucu profil_resim dondurmuyor, detayda ayri cekiyoruz
+	String? _profilResim;
 
 	@override
 	void initState() {
 		super.initState();
+		_md = widget.md;
 		_mainTab = TabController(length: 2, vsync: this);
 		_notTab = TabController(length: 2, vsync: this);
 		_randevularFuture = _fetchRandevular();
+		_karaListeDurumGetir();
+		_profilResimGetir();
+	}
+
+	// Liste ucu profil_resim vermiyor; musteri-detay ucundan cek
+	Future<void> _profilResimGetir() async {
+		try {
+			final salon = _salonId;
+			final qp = (salon != null && salon.isNotEmpty) ? '?sube=$salon' : '';
+			final res = await http.get(
+				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-detay/${_md.id}$qp'),
+			);
+			if (res.statusCode == 200) {
+				final data = jsonDecode(res.body);
+				String? pr;
+				if (data is List && data.isNotEmpty && data.first is Map) {
+					pr = data.first['profil_resim']?.toString();
+				} else if (data is Map) {
+					pr = data['profil_resim']?.toString();
+				}
+				if (pr != null && pr.isNotEmpty && pr != 'null') {
+					if (mounted) setState(() => _profilResim = pr);
+				}
+			}
+		} catch (_) {}
+	}
+
+	// Profil resmi tam URL'i (goreli yola base-url ekler)
+	String? _profilUrl() {
+		final raw = (_profilResim != null && _profilResim!.isNotEmpty)
+				? _profilResim
+				: _md.profil_resim;
+		if (raw == null || raw.isEmpty || raw == 'null') return null;
+		if (raw.startsWith('http')) return raw;
+		return 'https://app.randevumcepte.com.tr/$raw';
+	}
+
+	// ── KARA LISTE ──────────────────────────────────────────────────────────
+	Future<void> _karaListeDurumGetir() async {
+		final salon = _salonId;
+		if (salon == null || salon.isEmpty) return;
+		try {
+			final res = await http.post(
+				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-karaliste-durum'),
+				headers: {'Content-Type': 'application/json'},
+				body: jsonEncode({'user_id': _md.id, 'salon_id': salon}),
+			);
+			if (res.statusCode == 200) {
+				final j = jsonDecode(res.body);
+				if (mounted) setState(() => _karaListe = (j['kara_liste'] ?? 0) as int);
+			}
+		} catch (_) {}
+	}
+
+	Future<void> _karaListeToggle() async {
+		if (_karaListeIsleniyor) return;
+		final salon = _salonId;
+		if (salon == null || salon.isEmpty) {
+			if (mounted) {
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(content: Text('İşletme bilgisi bulunamadı')),
+				);
+			}
+			return;
+		}
+		final ekle = _karaListe != 1; // şu an listede değilse ekle
+		final onay = await showDialog<bool>(
+			context: context,
+			builder: (ctx) => AlertDialog(
+				shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+				title: Text(ekle ? 'Kara listeye ekle' : 'Kara listeden çıkar'),
+				content: Text(ekle
+						? '${_md.name} kara listeye eklenecek. Bu müşteriye kampanya/reklam SMS\'leri gönderilmez. Devam edilsin mi?'
+						: '${_md.name} kara listeden çıkarılacak. Devam edilsin mi?'),
+				actions: [
+					TextButton(
+						onPressed: () => Navigator.pop(ctx, false),
+						child: const Text('Vazgeç'),
+					),
+					ElevatedButton(
+						onPressed: () => Navigator.pop(ctx, true),
+						style: ElevatedButton.styleFrom(
+							backgroundColor: ekle ? const Color(0xFFD32F2F) : const Color(0xFF616161),
+							foregroundColor: Colors.white,
+						),
+						child: Text(ekle ? 'Kara Listeye Ekle' : 'Listeden Çıkar'),
+					),
+				],
+			),
+		);
+		if (onay != true) return;
+		setState(() => _karaListeIsleniyor = true);
+		try {
+			final res = await http.post(
+				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-karaliste-ayari'),
+				headers: {'Content-Type': 'application/json'},
+				body: jsonEncode({
+					'user_id': _md.id,
+					'salon_id': salon,
+					'karaliste': ekle ? 1 : 0,
+				}),
+			);
+			if (res.statusCode == 200) {
+				final j = jsonDecode(res.body);
+				if (mounted) {
+					setState(() => _karaListe = (j['kara_liste'] ?? (ekle ? 1 : 0)) as int);
+					ScaffoldMessenger.of(context).showSnackBar(
+						SnackBar(content: Text(ekle ? 'Kara listeye eklendi' : 'Kara listeden çıkarıldı')),
+					);
+				}
+			} else {
+				if (mounted) {
+					ScaffoldMessenger.of(context).showSnackBar(
+						SnackBar(content: Text('İşlem başarısız (${res.statusCode})')),
+					);
+				}
+			}
+		} catch (e) {
+			if (mounted) {
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(content: Text('İşlem sırasında bir hata oluştu')),
+				);
+			}
+		} finally {
+			if (mounted) setState(() => _karaListeIsleniyor = false);
+		}
+	}
+
+	// ── MEMNUNIYET ANKETI GONDER (WA-first + SMS fallback backend'de) ──────
+	Future<void> _anketGonder() async {
+		final salon = _salonId;
+		if (salon == null || salon.isEmpty) {
+			if (mounted) {
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(content: Text('İşletme bilgisi bulunamadı')),
+				);
+			}
+			return;
+		}
+		final onay = await showDialog<bool>(
+			context: context,
+			builder: (ctx) => AlertDialog(
+				shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+				title: const Text('Memnuniyet Anketi Gönder'),
+				content: Text('${_md.name} adlı müşteriye memnuniyet anketi WhatsApp veya SMS ile gönderilsin mi?'),
+				actions: [
+					TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
+					ElevatedButton(
+						onPressed: () => Navigator.pop(ctx, true),
+						style: ElevatedButton.styleFrom(
+							backgroundColor: const Color(0xFF25D366),
+							foregroundColor: Colors.white,
+						),
+						child: const Text('Evet, Gönder'),
+					),
+				],
+			),
+		);
+		if (onay != true) return;
+
+		// Preloader dialog
+		if (!mounted) return;
+		showDialog(
+			context: context,
+			barrierDismissible: false,
+			builder: (_) => const AlertDialog(
+				content: Row(
+					children: [
+						CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF25D366)),
+						SizedBox(width: 16),
+						Expanded(child: Text('Anket gönderiliyor…')),
+					],
+				),
+			),
+		);
+
+		String? mesaj;
+		bool basarili = false;
+		String? kanal;
+		try {
+			final res = await http.post(
+				Uri.parse('https://app.randevumcepte.com.tr/api/v1/anket-hizli-gonder'),
+				headers: {'Content-Type': 'application/json'},
+				body: jsonEncode({'salon_id': salon, 'user_id': _md.id}),
+			).timeout(const Duration(seconds: 20));
+			if (res.statusCode == 200) {
+				final j = jsonDecode(res.body);
+				basarili = (j['basarili'] ?? false) as bool;
+				mesaj    = j['mesaj']?.toString();
+				kanal    = j['kanal']?.toString();
+			} else {
+				mesaj = 'İstek başarısız (HTTP ${res.statusCode})';
+			}
+		} catch (e) {
+			mesaj = 'Ağ hatası: $e';
+		}
+
+		if (!mounted) return;
+		Navigator.of(context, rootNavigator: true).pop(); // preloader kapat
+
+		if (basarili) {
+			final kText = kanal == 'whatsapp' ? 'WhatsApp' : 'SMS';
+			ScaffoldMessenger.of(context).showSnackBar(
+				SnackBar(
+					backgroundColor: const Color(0xFF25D366),
+					content: Text('Anket $kText ile gönderildi'),
+				),
+			);
+		} else {
+			ScaffoldMessenger.of(context).showSnackBar(
+				SnackBar(
+					backgroundColor: const Color(0xFFD32F2F),
+					content: Text(mesaj ?? 'Gönderilemedi'),
+				),
+			);
+		}
 	}
 
 	@override
@@ -53,11 +283,26 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		super.dispose();
 	}
 
+	// Beyaz etiket: aktif isletmenin (salon) id'si — randevu/notlari izole etmek icin
+	String? get _salonId {
+		final b = widget.isletmebilgi;
+		if (b is Map) return b['id']?.toString();
+		try {
+			return b?.id?.toString();
+		} catch (_) {
+			return null;
+		}
+	}
+
 	Future<List<Map<String, dynamic>>> _fetchRandevular() async {
 		try {
-			final res = await http.get(
-				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-randevulari/${widget.md.id}'),
-			);
+			final salon = _salonId;
+			final uri = Uri.parse(
+				'https://app.randevumcepte.com.tr/api/v1/musteri-randevulari/${_md.id}',
+			).replace(queryParameters: (salon != null && salon.isNotEmpty)
+					? {'salon_id': salon}
+					: null);
+			final res = await http.get(uri);
 			if (res.statusCode == 200) {
 				final data = jsonDecode(res.body);
 				if (data is List) return data.cast<Map<String, dynamic>>();
@@ -101,7 +346,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		}
 	}
 
-	int get _randevuCount => int.tryParse(widget.md.randevu_sayisi) ?? 0;
+	int get _randevuCount => int.tryParse(_md.randevu_sayisi) ?? 0;
 
 	String _statusLabel() {
 		if (_randevuCount == 0) return 'Pasif';
@@ -130,94 +375,57 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		} catch (_) {}
 	}
 
-	Future<bool> _canOpen(String url) async {
-		try {
-			return await canLaunchUrl(Uri.parse(url));
-		} catch (_) {
-			return false;
-		}
-	}
+	bool _araniyor = false;
 
+	/// Click-to-call: çağrı merkezi/santral ekranlarındaki ile aynı akış.
+	/// Sunucu (santral) originate eder — önce arayan kullanıcının softphone'u
+	/// (Bria dahili) çalar, açınca müşteri salon hattından aranır. Numara cihaza
+	/// gitmez. (Eski davranış: cihazdaki Bria/Zoiper/yerel arayıcıyı açmaktı.)
 	Future<void> _onCallPressed() async {
-		final tel = _localNumber();
-		if (tel.isEmpty) return;
+		if (_araniyor) return;
+		final tel = _md.cep_telefon;
+		if (tel.isEmpty || tel == 'null') return;
 
-		final sipOptions = <_DialOption>[];
-		if (await _canOpen('zoiper:$tel')) {
-			sipOptions.add(_DialOption('Zoiper', Icons.phone_in_talk, 'zoiper:$tel'));
-		}
-		if (await _canOpen('zoiperpremium:$tel')) {
-			sipOptions.add(_DialOption('Zoiper Premium', Icons.phone_in_talk, 'zoiperpremium:$tel'));
-		}
-		if (await _canOpen('bria:$tel')) {
-			sipOptions.add(_DialOption('Bria', Icons.phone_in_talk, 'bria:$tel'));
-		}
-		if (await _canOpen('briax:$tel')) {
-			sipOptions.add(_DialOption('Bria X', Icons.phone_in_talk, 'briax:$tel'));
-		}
-
-		if (sipOptions.isEmpty) {
-			await _launch('tel:$tel');
+		final sube = widget.isletmebilgi is Map
+				? widget.isletmebilgi['id']?.toString()
+				: null;
+		if (sube == null || sube.isEmpty) {
+			if (mounted) {
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(content: Text('İşletme bilgisi bulunamadı')),
+				);
+			}
 			return;
 		}
 
-		if (sipOptions.length == 1) {
-			await _launch(sipOptions.first.url);
-			return;
-		}
-
-		if (!mounted) return;
-		await showModalBottomSheet(
-			context: context,
-			showDragHandle: true,
-			shape: const RoundedRectangleBorder(
-				borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-			),
-			builder: (ctx) => SafeArea(
-				child: Column(
-					mainAxisSize: MainAxisSize.min,
-					children: [
-						const Padding(
-							padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
-							child: Align(
-								alignment: Alignment.centerLeft,
-								child: Text(
-									'Aramayı hangi uygulamayla yapmak istersiniz?',
-									style: TextStyle(
-										fontSize: 15,
-										fontWeight: FontWeight.w600,
-									),
-								),
-							),
-						),
-						...sipOptions.map(
-							(o) => ListTile(
-								leading: Icon(o.icon, color: _primary),
-								title: Text(o.label),
-								onTap: () {
-									Navigator.pop(ctx);
-									_launch(o.url);
-								},
-							),
-						),
-						const Divider(height: 1),
-						ListTile(
-							leading: Icon(Icons.call, color: Colors.grey.shade700),
-							title: const Text('Telefon (varsayılan arayıcı)'),
-							onTap: () {
-								Navigator.pop(ctx);
-								_launch('tel:${_localNumber()}');
-							},
-						),
-						const SizedBox(height: 8),
-					],
-				),
-			),
+		setState(() => _araniyor = true);
+		ScaffoldMessenger.of(context).showSnackBar(
+			const SnackBar(content: Text('Arama başlatılıyor...'), duration: Duration(seconds: 2)),
 		);
+		try {
+			final sonuc = await CagriApi.aramaBaslatNumara(tel, sube);
+			if (!mounted) return;
+			ScaffoldMessenger.of(context).showSnackBar(
+				SnackBar(
+					content: Text(sonuc.message.isNotEmpty
+							? sonuc.message
+							: (sonuc.success ? 'Arama başlatıldı' : 'Arama başlatılamadı')),
+					backgroundColor: sonuc.success ? null : Colors.redAccent,
+					duration: const Duration(seconds: 5),
+				),
+			);
+		} catch (e) {
+			if (!mounted) return;
+			ScaffoldMessenger.of(context).showSnackBar(
+				SnackBar(content: Text('Arama hatası: $e'), backgroundColor: Colors.redAccent),
+			);
+		} finally {
+			if (mounted) setState(() => _araniyor = false);
+		}
 	}
 
 	String _waNumber() {
-		var p = widget.md.cep_telefon;
+		var p = _md.cep_telefon;
 		if (p.isEmpty || p == 'null') return '';
 		p = p.replaceAll(RegExp(r'\D'), '');
 		if (!p.startsWith('90')) {
@@ -228,7 +436,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 
 	// Tel/SMS/SIP için yerel format: 90/+90 atılır, başa 0 eklenir.
 	String _localNumber() {
-		var p = widget.md.cep_telefon;
+		var p = _md.cep_telefon;
 		if (p.isEmpty || p == 'null') return '';
 		p = p.replaceAll(RegExp(r'\D'), '');
 		if (p.startsWith('90') && p.length >= 12) {
@@ -240,17 +448,27 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		return p;
 	}
 
-	void _openDuzenle() {
-		Navigator.push(
+	Future<void> _openDuzenle() async {
+		final sonuc = await Navigator.push(
 			context,
 			MaterialPageRoute(
 				builder: (_) => MusteriDuzenle(
-					md: widget.md,
+					md: _md,
 					isletmebilgi: widget.isletmebilgi,
 					kullanicirolu: widget.kullanicirolu,
 				),
 			),
 		);
+		// Kayit yapildiysa detayda guncel bilgileri goster (listeye donmeden).
+		if (sonuc == true && mounted) {
+			try {
+				final guncel = await kullanicibilgimusteri(_md.id.toString());
+				if (mounted) setState(() => _md = guncel);
+				_profilResimGetir();
+			} catch (_) {
+				// Yenileme basarisiz olsa bile detayda kal; eski veriyi koru.
+			}
+		}
 	}
 
 	@override
@@ -351,12 +569,8 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	}
 
 	Widget _buildHero() {
-		final m = widget.md;
-		final url = (m.profil_resim != null &&
-				m.profil_resim != 'null' &&
-				m.profil_resim!.isNotEmpty)
-				? m.profil_resim!
-				: null;
+		final m = _md;
+		final url = _profilUrl();
 		return Container(
 			margin: const EdgeInsets.symmetric(horizontal: 12),
 			padding: const EdgeInsets.all(20),
@@ -467,7 +681,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	}
 
 	Widget _buildQuickActions() {
-		final tel = widget.md.cep_telefon;
+		final tel = _md.cep_telefon;
 		final hasTel = tel.isNotEmpty && tel != 'null';
 		// Ara/Mesaj/WhatsApp ve SMS musteri.telefon_gor yetkisine ve pazarlama
 		// yetkilerine bagimli. Yetki yoksa butonu hic gosterme.
@@ -577,7 +791,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	}
 
 	Widget _buildStatsRow() {
-		final m = widget.md;
+		final m = _md;
 		final randevu = _randevuCount.toString();
 		final sonRandevu = _formatDate(m.son_randevu_tarihi);
 		final uyelik = _formatDate(m.kayit_tarihi);
@@ -648,7 +862,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	}
 
 	Widget _buildGenelTab() {
-		final m = widget.md;
+		final m = _md;
 		return ListView(
 			key: const PageStorageKey('musteri_detay_genel'),
 			padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
@@ -697,10 +911,14 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				() => Navigator.push(
 					context,
 					MaterialPageRoute(
-						builder: (_) => MusteriRandevulariMenu(
+						builder: (_) => RandevularMenu(
 							kullanicirolu: widget.kullanicirolu,
 							isletmebilgi: widget.isletmebilgi,
-							md: widget.md,
+							personelid: "",
+							cihazid: "",
+							personel_adi: "",
+							cihaz_adi: "",
+							musteriId: _md.id.toString(),
 						),
 					),
 				),
@@ -714,9 +932,9 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				() => Navigator.push(
 					context,
 					MaterialPageRoute(
-						builder: (_) => IslemlerveSeanslar(
+						builder: (_) => SeansTakibi(
 							isletmebilgi: widget.isletmebilgi,
-							kullanici: widget.md,
+							musteriId: _md.id.toString(),
 						),
 					),
 				),
@@ -730,9 +948,9 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				() => Navigator.push(
 					context,
 					MaterialPageRoute(
-						builder: (_) => ArsivDetay(
+						builder: (_) => ArsivYonetimiPage(
 							isletmebilgi: widget.isletmebilgi,
-							md: widget.md,
+							musteriId: _md.id.toString(),
 						),
 					),
 				),
@@ -743,18 +961,59 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				'Satışlar',
 				Icons.shopping_bag_outlined,
 				const Color(0xFFFB8C00),
+				() async {
+					// Satis Takibi (AdisyonlarPage) bu musteriye filtreli acilir.
+					// Giris yapan kullaniciyi prefs'ten al (AdisyonlarPage ister).
+					final prefs = await SharedPreferences.getInstance();
+					final us = prefs.getString('user');
+					if (us == null || !mounted) return;
+					final girisKullanici = Kullanici.fromJson(jsonDecode(us));
+					if (!mounted) return;
+					Navigator.push(
+						context,
+						MaterialPageRoute(
+							builder: (_) => AdisyonlarPage(
+								kullanicirolu: widget.kullanicirolu,
+								kullanici: girisKullanici,
+								isletmebilgi: widget.isletmebilgi,
+								geriGitBtn: true,
+								ilkMusteriId: _md.id.toString(),
+							),
+						),
+					);
+				},
+			));
+		}
+		if (Yetki.varMi('satis.tahsilat_al')) {
+			items.add(_ActionItem(
+				'Harici Tahsilat',
+				Icons.receipt_long_outlined,
+				const Color(0xFF00897B),
 				() => Navigator.push(
 					context,
 					MaterialPageRoute(
-						builder: (_) => MusteriAdiayonlari(
-							kullanicirolu: widget.kullanicirolu,
+						builder: (_) => HariciTahsilat(
+							md: _md,
 							isletmebilgi: widget.isletmebilgi,
-							kullanici: widget.md,
 						),
 					),
 				),
 			));
 		}
+		items.add(_ActionItem(
+			'Müşteri Resimleri',
+			Icons.photo_library_outlined,
+			const Color(0xFF8E24AA),
+			() => Navigator.push(
+				context,
+				MaterialPageRoute(
+					builder: (_) => ImageGallery(
+						md: _md,
+						isletmebilgi: widget.isletmebilgi,
+					),
+				),
+			),
+		));
 		items.add(_ActionItem(
 			'Sağlık Bilgileri',
 			Icons.health_and_safety_outlined,
@@ -762,10 +1021,27 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			() => Navigator.push(
 				context,
 				MaterialPageRoute(
-					builder: (_) => MusteriSaglikBilgileri(md: widget.md),
+					builder: (_) => MusteriSaglikBilgileri(md: _md),
 				),
 			),
 		));
+		if (Yetki.varMi('musteri.duzenle')) {
+			final karada = _karaListe == 1;
+			items.add(_ActionItem(
+				karada ? 'Kara Listeden Çıkar' : 'Kara Listeye Ekle',
+				karada ? Icons.person_off_outlined : Icons.block_outlined,
+				karada ? const Color(0xFF616161) : const Color(0xFFD32F2F),
+				_karaListeToggle,
+			));
+		}
+		if (Yetki.varMi('pazarlama.anket_yonet')) {
+			items.add(_ActionItem(
+				'Memnuniyet Anketi Gönder',
+				Icons.chat_bubble_outline,
+				const Color(0xFF25D366),
+				_anketGonder,
+			));
+		}
 		return LayoutBuilder(
 			builder: (context, c) {
 				final cols = c.maxWidth >= 700 ? 5 : (c.maxWidth >= 500 ? 4 : 3);
@@ -989,12 +1265,22 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			);
 		}
 		final wide = MediaQuery.of(context).size.width >= 600;
+		// Tarih-saate gore azalan (yeni -> eski)
+		final sirali = List<Map<String, dynamic>>.from(randevular)
+			..sort((a, b) {
+				final da = DateTime.tryParse(a['tarih']?.toString() ?? '');
+				final db = DateTime.tryParse(b['tarih']?.toString() ?? '');
+				if (da == null && db == null) return 0;
+				if (da == null) return 1;
+				if (db == null) return -1;
+				return db.compareTo(da);
+			});
 		return ListView.builder(
 			key: PageStorageKey('musteri_detay_$field'),
 			padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-			itemCount: randevular.length,
+			itemCount: sirali.length,
 			itemBuilder: (context, i) {
-				final r = randevular[i];
+				final r = sirali[i];
 				final tarih = _formatDate(r['tarih']?.toString());
 				final hizmetler = (r['hizmetler'] as List?) ?? const [];
 				final hizmetIsimleri = hizmetler
@@ -1017,7 +1303,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 						raw.trim().isEmpty)
 						? null
 						: raw;
-				final isLast = i == randevular.length - 1;
+				final isLast = i == sirali.length - 1;
 				return IntrinsicHeight(
 					child: Row(
 						crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1204,13 +1490,6 @@ class _ActionItem {
 	final Color color;
 	final VoidCallback onTap;
 	_ActionItem(this.label, this.icon, this.color, this.onTap);
-}
-
-class _DialOption {
-	final String label;
-	final IconData icon;
-	final String url;
-	_DialOption(this.label, this.icon, this.url);
 }
 
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
