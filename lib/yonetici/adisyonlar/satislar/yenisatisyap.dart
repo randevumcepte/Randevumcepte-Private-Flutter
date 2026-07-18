@@ -11,6 +11,7 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
 import 'package:randevu_sistem/Models/adisyonurunler.dart';
+import 'package:randevu_sistem/Models/adisyonlar.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/taksitlitahsilatlar.dart';
@@ -32,6 +33,11 @@ import 'package:randevu_sistem/Models/urunler.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import '../../dashboard/hizmetsatisi.dart';
 import '../../dashboard/hizmetsatisiduzenleme.dart';
+import 'coklu_hizmet_secim.dart';
+import 'coklu_urun_secim.dart';
+import 'coklu_paket_secim.dart';
+import 'coklu_urun_secim.dart';
+import 'coklu_paket_secim.dart';
 import '../../dashboard/paketsatisi.dart';
 import '../../dashboard/paketsatisiduzenleme.dart';
 import '../../dashboard/urunsatisi.dart';
@@ -43,6 +49,9 @@ class SatisEkrani extends StatefulWidget {
   final String musteridanisanid;
   final int kullanicirolu;
   final Kullanici kullanici; // Yeni parametre
+  // Dolu geldiğinde düzenleme modu: mevcut adisyonun kalemleri yüklenir, yeni
+  // eklenen/düzenlenen kalemler bu adisyona işlenir (satış takibinden 'Düzenle').
+  final String mevcutAdisyonId;
 
 
   SatisEkrani({
@@ -51,6 +60,7 @@ class SatisEkrani extends StatefulWidget {
     required this.musteridanisanid,
     required this.kullanicirolu,
     required this.kullanici, // Yeni parametre
+    this.mevcutAdisyonId = '',
 
   }) : super(key: key);
 
@@ -164,6 +174,34 @@ class _SatisEkraniState extends State<SatisEkrani> {
     log('müşteri türü ' + musterituru.toString());
     final settings = await fetchSalonSettings(seciliisletme);
     if (!mounted) return;
+
+    // Müşterinin bugün açılmış, HİÇ ödemesi yapılmamış (açık) adisyonu varsa
+    // yeni kalemler o adisyona eklensin; yoksa boş bırak → ilk kalemde yeni adisyon açılır.
+    // NOT: Satış takibiyle aynı KANITLI geniş aralıkla çekip "bugün + ödemesiz"
+    // süzmeyi burada yapıyoruz (dar tarih aralığı / datetime saat riskini elemek için).
+    String acikAdisyonId = '';
+    try {
+      final String bugunListe = DateFormat("yyyy-MM-dd").format(DateTime.now());
+      final String bugunGosterim = DateFormat("dd.MM.yyyy").format(DateTime.now());
+      final resp = await satislar(seciliisletme ?? "", "1", "1970-01-01", bugunListe,
+          value.id.toString(), "", "", false, "", 1);
+      final List<dynamic> data = (resp['data'] as List?) ?? [];
+      for (final j in data) {
+        final Adisyon a = Adisyon.fromJson(j);
+        final double odenen =
+            double.tryParse(a.odenen_numeric.replaceAll(',', '.')) ?? 0;
+        if (odenen <= 0 && a.acilis_tarihi == bugunGosterim) {
+          acikAdisyonId = a.id;
+          break;
+        }
+      }
+      log('[acik-adisyon] musteri=${value.id} donen=${data.length} secilen=$acikAdisyonId');
+    } catch (e) {
+      log('[acik-adisyon] hata: $e');
+      acikAdisyonId = '';
+    }
+    if (!mounted) return;
+
     String indirimtext = "0";
     String aktifpasif = "";
 
@@ -185,6 +223,9 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
       // Sadece mevcut kalemleri temizle, alacakları getirme
       adisyonkalemleri.clear();
+
+      // Bugün ödemesiz açık adisyon varsa ona ekle; yoksa yeni adisyon açılır
+      yeniSatisAdisyonId = acikAdisyonId;
 
       // Taksit ve senet vadelerini temizle (alacakları getirmemek için)
       taksitvadeleri.clear();
@@ -221,10 +262,69 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
       if (musteridanisanliste != null) {
         secilimusteridanisan = musteridanisanliste;
-        loadbar(musteridanisanliste);
+        if (widget.mevcutAdisyonId.isNotEmpty) {
+          // Düzenleme modu: mevcut adisyonu ve kalemlerini yükle
+          _duzenlemeModuYukle(musteridanisanliste);
+        } else {
+          loadbar(musteridanisanliste);
+        }
       }
 
       isloading = false;
+    });
+  }
+
+  // Satış takibinden 'Düzenle' ile açıldığında: müşteri bilgisini yükler ve
+  // mevcut adisyonun hizmet/ürün/paket kalemlerini listeye getirir. Yeni
+  // eklenen/düzenlenen kalemler yeniSatisAdisyonId üzerinden aynı adisyona işlenir.
+  void _duzenlemeModuYukle(MusteriDanisan value) async {
+    String musterituru = await musteriDanisanTuru(seciliisletme, value.id.toString());
+    final settings = await fetchSalonSettings(seciliisletme);
+    if (!mounted) return;
+
+    String indirimtext = "0";
+    String aktifpasif = "";
+    if (musterituru == "1") {
+      aktifpasif = "Aktif";
+      aktifPasifRenk = context.colors.primary;
+      indirimtext = settings['aktif_musteri_indirim_yuzde']?.toString() ?? '0';
+    } else if (musterituru == "2") {
+      aktifPasifRenk = context.appTheme.successColor;
+      aktifpasif = "Sadık";
+      indirimtext = settings['sadik_musteri_indirim_yuzde']?.toString() ?? '0';
+    } else {
+      aktifPasifRenk = context.colors.onSurfaceVariant;
+      aktifpasif = "Pasif";
+    }
+
+    // Mevcut adisyonun kalemlerini getir (yalnızca hizmet/ürün/paket)
+    final List<AdisyonKalemleri> yuklenen = [];
+    try {
+      final data = await senetvetaksitler(
+          seciliisletme!, value.id.toString(), widget.mevcutAdisyonId);
+      for (final j in (data["adisyon_hizmet"] as List? ?? [])) {
+        yuklenen.add(AdisyonHizmet.fromJson(j));
+      }
+      for (final j in (data["adisyon_urun"] as List? ?? [])) {
+        yuklenen.add(AdisyonUrun.fromJson(j));
+      }
+      for (final j in (data["adisyon_paket"] as List? ?? [])) {
+        yuklenen.add(AdisyonPaket.fromJson(j));
+      }
+    } catch (e) {
+      log('[duzenleme] kalem yükleme hatası: $e');
+    }
+    if (!mounted) return;
+
+    setState(() {
+      secilimusteridanisan = value;
+      musteri_sabit_indirim.text = indirimtext;
+      aktifsadikpasif.text = aktifpasif;
+      musteridanisanadi.text = value.name ?? '';
+      yeniSatisAdisyonId = widget.mevcutAdisyonId;
+      adisyonkalemleri.clear();
+      adisyonkalemleri.addAll(yuklenen);
+      tutar_hesapla(false);
     });
   }
 
@@ -309,8 +409,31 @@ class _SatisEkraniState extends State<SatisEkrani> {
       return;
     }
 
-    final AdisyonHizmet? result = mevcutadisyonhizmet != null
-        ? await Navigator.push(
+    // Yeni ekleme: kuaför-dostu çoklu hizmet seçim ekranı (birden fazla hizmet)
+    if (mevcutadisyonhizmet == null) {
+      final List<AdisyonHizmet>? eklenenler = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CokluHizmetSecim(
+            musteriid: secilimusteridanisan?.id ?? "",
+            isletmebilgi: widget.isletmebilgi,
+            kullanicirolu: widget.kullanicirolu,
+            mevcutadisyonId: yeniSatisAdisyonId,
+          ),
+        ),
+      );
+      if (eklenenler != null && eklenenler.isNotEmpty) {
+        setState(() {
+          adisyonkalemleri.addAll(eklenenler);
+          yeniSatisAdisyonId = eklenenler.last.adisyon_id;
+          tutar_hesapla(false);
+        });
+      }
+      return;
+    }
+
+    // Düzenleme: tek hizmet düzenleme ekranı (mevcut akış)
+    final AdisyonHizmet? result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => HizmetSatisiDuzenleme(
@@ -319,19 +442,6 @@ class _SatisEkraniState extends State<SatisEkrani> {
           senetlisatis: false,
           isletmebilgi: widget.isletmebilgi,
           adisyonId: "",
-        ),
-      ),
-    )
-        : await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HizmetSatisi(
-          musteriid: secilimusteridanisan?.id ?? "",
-          senetlisatis: false,
-          isletmebilgi: widget.isletmebilgi,
-          kullanicirolu: widget.kullanicirolu,
-          mevcutadisyonId : yeniSatisAdisyonId,
-
         ),
       ),
     );
@@ -355,8 +465,31 @@ class _SatisEkraniState extends State<SatisEkrani> {
       return;
     }
 
-    final AdisyonUrun? result = mevcutadisyonurun != null
-        ? await Navigator.push(
+    // Yeni ekleme: çoklu ürün seçim ekranı (birden fazla ürün)
+    if (mevcutadisyonurun == null) {
+      final List<AdisyonUrun>? eklenenler = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CokluUrunSecim(
+            musteriid: secilimusteridanisan?.id ?? "",
+            isletmebilgi: widget.isletmebilgi,
+            kullanicirolu: widget.kullanicirolu,
+            mevcutadisyonId: yeniSatisAdisyonId,
+          ),
+        ),
+      );
+      if (eklenenler != null && eklenenler.isNotEmpty) {
+        setState(() {
+          adisyonkalemleri.addAll(eklenenler);
+          yeniSatisAdisyonId = eklenenler.last.adisyon_id;
+          tutar_hesapla(false);
+        });
+      }
+      return;
+    }
+
+    // Düzenleme: tek ürün düzenleme ekranı (mevcut akış)
+    final AdisyonUrun? result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => UrunSatisiDuzenleme(
@@ -366,29 +499,14 @@ class _SatisEkraniState extends State<SatisEkrani> {
           isletmebilgi: widget.isletmebilgi,
         ),
       ),
-    )
-        : await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UrunSatisi(
-          musteriid: secilimusteridanisan?.id ?? "",
-          senetlisatis: false,
-          isletmebilgi: widget.isletmebilgi,
-          kullanicirolu: widget.kullanicirolu,
-          mevcutadisyonId : yeniSatisAdisyonId,
-        ),
-      ),
     );
 
     if (result != null) {
       setState(() {
-        if (mevcutadisyonurun != null) {
-          adisyonkalemleri.removeWhere((element) => element is AdisyonUrun ? element.id == mevcutadisyonurun.id : false);
-        }
+        adisyonkalemleri.removeWhere((element) => element is AdisyonUrun ? element.id == mevcutadisyonurun.id : false);
         adisyonkalemleri.add(result);
         yeniSatisAdisyonId = result.adisyon_id;
         tutar_hesapla(false);
-
       });
     }
   }
@@ -399,8 +517,31 @@ class _SatisEkraniState extends State<SatisEkrani> {
       return;
     }
 
-    final AdisyonPaket? result = mevcutadisyonpaket != null
-        ? await Navigator.push(
+    // Yeni ekleme: çoklu paket seçim ekranı (birden fazla paket)
+    if (mevcutadisyonpaket == null) {
+      final List<AdisyonPaket>? eklenenler = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CokluPaketSecim(
+            musteriid: secilimusteridanisan?.id ?? "",
+            isletmebilgi: widget.isletmebilgi,
+            kullanicirolu: widget.kullanicirolu,
+            mevcutadisyonId: yeniSatisAdisyonId,
+          ),
+        ),
+      );
+      if (eklenenler != null && eklenenler.isNotEmpty) {
+        setState(() {
+          adisyonkalemleri.addAll(eklenenler);
+          yeniSatisAdisyonId = eklenenler.last.adisyon_id;
+          tutar_hesapla(false);
+        });
+      }
+      return;
+    }
+
+    // Düzenleme: tek paket düzenleme ekranı (mevcut akış)
+    final AdisyonPaket? result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PaketSatisiDuzenleme(
@@ -410,25 +551,11 @@ class _SatisEkraniState extends State<SatisEkrani> {
           isletmebilgi: widget.isletmebilgi,
         ),
       ),
-    )
-        : await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PaketSatisi(
-          musteriid: secilimusteridanisan?.id ?? "",
-          senetlisatis: false,
-          isletmebilgi: widget.isletmebilgi,
-          kullanicirolu: widget.kullanicirolu,
-          mevcutadisyonId : yeniSatisAdisyonId,
-        ),
-      ),
     );
 
     if (result != null) {
       setState(() {
-        if (mevcutadisyonpaket != null) {
-          adisyonkalemleri.removeWhere((element) => element is AdisyonPaket ? element.id == mevcutadisyonpaket.id : false);
-        }
+        adisyonkalemleri.removeWhere((element) => element is AdisyonPaket ? element.id == mevcutadisyonpaket.id : false);
         adisyonkalemleri.add(result);
         yeniSatisAdisyonId = result.adisyon_id;
         tutar_hesapla(false);
@@ -1077,7 +1204,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   } else {
                     satan = "Personel Yok";
                   }
-                  tutar = tryformat.format(double.parse(item.fiyat));
+                  tutar = tryformat.format(double.parse(item.fiyat.replaceAll(",", ".")));
                   icon = Icons.spa_rounded;
                   iconColor = _primaryColor;
                   backgroundColor = _primaryColor.withValues(alpha: 0.1);
@@ -1088,7 +1215,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   kalem = item.urun?["urun_adi"] ?? "";
                   adet = item.adet;
                   satan = item.personel?["personel_adi"] ?? "Personel Yok";
-                  tutar = tryformat.format(double.parse(item.fiyat));
+                  tutar = tryformat.format(double.parse(item.fiyat.replaceAll(",", ".")));
                   icon = Icons.shopping_bag_rounded;
                   iconColor = context.appTheme.infoColor;
                   backgroundColor = context.appTheme.infoColor.withValues(alpha: 0.1);
@@ -1099,7 +1226,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   kalem = item.paket?["paket_adi"] ?? "";
                   adet = "1";
                   satan = item.personel?["personel_adi"] ?? "Personel Yok";
-                  tutar = tryformat.format(double.parse(item.fiyat));
+                  tutar = tryformat.format(double.parse(item.fiyat.replaceAll(",", ".")));
                   icon = Icons.card_membership_rounded;
                   iconColor = _successColor;
                   backgroundColor = _successColor.withValues(alpha: 0.1);
@@ -1110,7 +1237,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   kalem = "${item.id} nolu Senet vadesi";
                   adet = "1";
                   satan = DateFormat('dd.MM.yyyy').format(DateTime.parse(item.vade_tarih));
-                  tutar = tryformat.format(double.parse(item.tutar));
+                  tutar = tryformat.format(double.parse(item.tutar.replaceAll(",", ".")));
                   icon = Icons.description_rounded;
                   iconColor = _warningColor;
                   backgroundColor = _warningColor.withValues(alpha: 0.1);
@@ -1121,7 +1248,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   kalem = "${item.id} nolu Taksit vadesi";
                   adet = "1";
                   satan = DateFormat('dd.MM.yyyy').format(DateTime.parse(item.vade_tarih));
-                  tutar = tryformat.format(double.parse(item.tutar));
+                  tutar = tryformat.format(double.parse(item.tutar.replaceAll(",", ".")));
                   icon = Icons.payment_rounded;
                   iconColor = _successColor;
                   backgroundColor = _successColor.withValues(alpha: 0.1);
@@ -2171,6 +2298,106 @@ class _SatisEkraniState extends State<SatisEkrani> {
     );
   }
 
+  // Alt bar: "Satış Takibi" butonu ekranı kapatıp satış takibi sekmesini açar
+  // (kalemler eklenince zaten adisyona yazıldığı için ekstra kayıt yapmaz).
+  // "TAHSİL ET" yalnızca tahsilat yetkisi (satis.tahsilat_al) olanlara gösterilir.
+  Widget _buildAltButonlar() {
+    final bool tahsilatYetkisi = Yetki.varMi('satis.tahsilat_al');
+    final bool aktif = adisyonkalemleri.isNotEmpty;
+
+    final Widget satisTakibiBtn = tahsilatYetkisi
+        ? OutlinedButton(
+            onPressed: aktif ? () => Navigator.of(context).pop({'refresh': true}) : null,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF2E7D32),
+              side: BorderSide(
+                  color: aktif ? const Color(0xFF2E7D32) : _borderColor, width: 1.4),
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.receipt_long_rounded, size: 20),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Text('Kaydet',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          )
+        : ElevatedButton(
+            onPressed: aktif ? () => Navigator.of(context).pop({'refresh': true}) : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  aktif ? const Color(0xFF2E7D32) : _textLightColor.withValues(alpha: 0.3),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 4,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.receipt_long_rounded, size: 22),
+                SizedBox(width: 10),
+                Text('Kaydet',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+              ],
+            ),
+          );
+
+    final Widget tahsilEtBtn = ElevatedButton(
+      onPressed: aktif ? () => _acHizliTahsilatBottomSheet() : null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor:
+            aktif ? const Color(0xFF2E7D32) : _textLightColor.withValues(alpha: 0.3),
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
+        shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.payments_rounded, size: 22),
+          SizedBox(width: 10),
+          Flexible(
+            child: Text('TAHSİL ET',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+          ),
+        ],
+      ),
+    );
+
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _surfaceColor,
+        border: Border(top: BorderSide(color: _borderColor, width: 1)),
+        boxShadow: [
+          BoxShadow(color: _shadowColor, blurRadius: 20, offset: Offset(0, -5)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(child: satisTakibiBtn),
+            if (tahsilatYetkisi) ...[
+              const SizedBox(width: 12),
+              Expanded(child: tahsilEtBtn),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
@@ -2178,58 +2405,11 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
     return Scaffold(
       backgroundColor: _backgroundColor,
-      // Kaydet Butonu - Scaffold'ın bottomNavigationBar'ına ekleyin
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: _surfaceColor,
-          border: Border(
-            top: BorderSide(color: _borderColor, width: 1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: _shadowColor,
-              blurRadius: 20,
-              offset: Offset(0, -5),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: adisyonkalemleri.isEmpty
-              ? null
-              : () => _acHizliTahsilatBottomSheet(),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: adisyonkalemleri.isEmpty
-                ? _textLightColor.withValues(alpha: 0.3)
-                : const Color(0xFF2E7D32),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            elevation: 4,
-            shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.payments_rounded, size: 22),
-              SizedBox(width: 10),
-              Text(
-                'TAHSİL ET',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      // Alt butonlar: "Kaydet ve Çık" her zaman; "TAHSİL ET" sadece tahsilat yetkisi varsa
+      bottomNavigationBar: _buildAltButonlar(),
       appBar: AppBar(
         title: Text(
-          'Yeni Satış',
+          widget.mevcutAdisyonId.isNotEmpty ? 'Adisyon Düzenle' : 'Yeni Satış',
           style: TextStyle(
             color: _textColor,
             fontWeight: FontWeight.bold,
@@ -2255,6 +2435,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
                 child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
               ),
             ),
+          // Yeni müşteri ekleme: düzenleme modunda gizli (müşteri sabit)
+          if (widget.mevcutAdisyonId.isEmpty)
           Container(
             margin: EdgeInsets.only(right: 16),
             child: IconButton(
@@ -2439,13 +2621,17 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                   ),
                                 ],
                               ),
-                              child: LazyDropdown(
-                                salonId: seciliisletme,
-                                selectedItem: secilimusteridanisan,
-                                onChanged: (value) {
-                                  secilimusteridanisan = value;
-                                  loadbar(value!);
-                                },
+                              // Düzenleme modunda müşteri değiştirilemez (adisyon o müşteriye ait)
+                              child: AbsorbPointer(
+                                absorbing: widget.mevcutAdisyonId.isNotEmpty,
+                                child: LazyDropdown(
+                                  salonId: seciliisletme,
+                                  selectedItem: secilimusteridanisan,
+                                  onChanged: (value) {
+                                    secilimusteridanisan = value;
+                                    loadbar(value!);
+                                  },
+                                ),
                               ),
                             ),
                           ],

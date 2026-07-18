@@ -36,6 +36,7 @@ import '../../dashboard/hizmetsatisiduzenleme.dart';
 import '../../dashboard/paketsatisi.dart';
 import '../../dashboard/paketsatisiduzenleme.dart';
 import '../../dashboard/urunsatisi.dart';
+import 'coklu_urun_secim.dart';
 import '../../diger/menu/musteriler/yeni_musteri.dart';
 
 class TahsilatEkrani extends StatefulWidget {
@@ -953,29 +954,36 @@ class _TahsilatState extends State<TahsilatEkrani> {
           );
         },
       );
-    else{
-      final AdisyonUrun result = mevcutadisyonurun != null ? await Navigator.push(
+    else if (mevcutadisyonurun == null) {
+      // Yeni urun: coklu + barkodlu secim ekrani
+      final List<AdisyonUrun>? eklenenler = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CokluUrunSecim(
+            musteriid: secilimusteridanisan?.id ?? "",
+            isletmebilgi: widget.isletmebilgi,
+            kullanicirolu: widget.kullanicirolu,
+            mevcutadisyonId: widget.adisyonId,
+          ),
+        ),
+      );
+      if (eklenenler != null && eklenenler.isNotEmpty) {
+        setState(() {
+          adisyonkalemleri.addAll(eklenenler);
+          tutar_hesapla(false);
+        });
+      }
+    } else {
+      // Duzenleme: mevcut tek urun duzenleme ekrani
+      final AdisyonUrun? result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => UrunSatisiDuzenleme(musteriid: secilimusteridanisan?.id ??"", mevcuturun:mevcutadisyonurun ,senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
-      ) : await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => UrunSatisi(kullanicirolu: widget.kullanicirolu, mevcutadisyonId: widget.adisyonId, musteriid: secilimusteridanisan?.id ??"",senetlisatis: false,isletmebilgi: widget.isletmebilgi)),
       );
-
-      if (result != null ) {
-
+      if (result != null) {
         setState(() {
-          if(mevcutadisyonurun != null)
-          {
-            adisyonkalemleri.removeWhere((element) => element is AdisyonUrun ? element.id == mevcutadisyonurun.id : false );
-
-          }
-
+          adisyonkalemleri.removeWhere((element) => element is AdisyonUrun ? element.id == mevcutadisyonurun.id : false );
           adisyonkalemleri.add(result);
           tutar_hesapla(false);
-
-
-
         });
       }
     }
