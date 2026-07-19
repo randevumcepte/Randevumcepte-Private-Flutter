@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Frontend/route_observer.dart';
@@ -1957,6 +1958,11 @@ List<Widget> _buildAppointmentsForResource(
                             });
                           },
                         ) : SizedBox.shrink(),
+                        // WhatsApp + Anket butonlari (web randevu detay kartindaki
+                        // .whatsapp-mesaj-ac ve .anket-hizli-gonder-btn karsiligi).
+                        // On gorusme haric randevularda gosterilir; telefon varsa WA,
+                        // pazarlama.anket_yonet yetkisi varsa Anket butonu.
+                        _iletisimButonlariRow(context, randevudetay, randevutitle, randevudurum!),
                         (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Padding(padding: const EdgeInsets.only(top: 10), child: _detayGrid([
                             if (randevudurum![0] == "0")
                               _detayBtn(
@@ -2252,6 +2258,165 @@ List<Widget> _buildAppointmentsForResource(
       ));
     }
     return Column(mainAxisSize: MainAxisSize.min, children: rows);
+  }
+
+  // Randevu detay popup'inda WhatsApp + Anket Gonder butonlarini gosterir.
+  // Web'deki randevu event kartinin (.whatsapp-mesaj-ac / .anket-hizli-gonder-btn)
+  // birebir mobil karsiligi. On gorusme randevularinda gizlenir.
+  Widget _iletisimButonlariRow(BuildContext context, dynamic randevudetay, List<String> randevutitle, List<String> randevudurum) {
+    final cs = context.colors;
+    final isOnGorusme = randevutitle.isNotEmpty && randevutitle[0].contains("ÖN GÖRÜŞME");
+    if (isOnGorusme) return const SizedBox.shrink();
+
+    // Randevu'ya bagli Randevu objesini bul (telefonno/user_id icin)
+    Randevu? rnd;
+    try {
+      rnd = randevuliste.firstWhere((e) => e.id.toString() == randevudetay.id.toString());
+    } catch (_) {
+      rnd = null;
+    }
+    if (rnd == null) return const SizedBox.shrink();
+
+    final tel = _sadeTelefon(rnd.telefonno);
+    final userId = rnd.user_id;
+    final hasWa = tel.isNotEmpty;
+    // Anket yetkisi backend: pazarlama.anket_yonet
+    final hasAnket = Yetki.varMi('pazarlama.anket_yonet') && userId.isNotEmpty;
+
+    if (!hasWa && !hasAnket) return const SizedBox.shrink();
+
+    final buttons = <Widget>[];
+    if (hasWa) {
+      buttons.add(_detayBtn(
+        label: 'WhatsApp',
+        icon: Icons.chat_outlined,
+        color: const Color(0xFF25D366),
+        onTap: () => _waAc(context, tel),
+      ));
+    }
+    if (hasAnket) {
+      buttons.add(_detayBtn(
+        label: 'Anket Gönder',
+        icon: Icons.mark_email_read_outlined,
+        color: const Color(0xFF17A589),
+        onTap: () => _anketGonder(context, userId, rnd!.musteriname),
+      ));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: _detayGrid(buttons),
+    );
+  }
+
+  // Telefon numarasini 5xxxxxxxxx / 90xxxxxxxxxx formatinda temizler.
+  String _sadeTelefon(String? raw) {
+    if (raw == null) return '';
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty || digits == 'null') return '';
+    return digits;
+  }
+
+  // WhatsApp sohbetini acar (wa.me).
+  Future<void> _waAc(BuildContext context, String tel) async {
+    // wa.me uluslararasi kod bekliyor; Turkiye numarasi ise 90 on ekle
+    var num = tel;
+    if (num.startsWith('0')) num = num.substring(1);
+    if (!num.startsWith('90')) num = '90' + num;
+    final url = 'https://wa.me/$num';
+    try {
+      final uri = Uri.parse(url);
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('WhatsApp açılamadı')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('WhatsApp acilirken hata: $e')),
+        );
+      }
+    }
+  }
+
+  // Musteri kartindaki anket gonder akisinin birebir karsiligi.
+  // Backend: /api/v1/anket-hizli-gonder (musteridetaylar.dart ile ayni endpoint).
+  Future<void> _anketGonder(BuildContext context, String userId, String musteriAdi) async {
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Memnuniyet Anketi Gönder'),
+        content: Text('$musteriAdi adlı müşteriye memnuniyet anketi WhatsApp veya SMS ile gönderilsin mi?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Evet, Gönder'),
+          ),
+        ],
+      ),
+    );
+    if (onay != true) return;
+    if (!context.mounted) return;
+
+    final salonId = widget.isletmebilgi["id"].toString();
+
+    // Preloader
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [
+          CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF25D366)),
+          SizedBox(width: 16),
+          Expanded(child: Text('Anket gönderiliyor…')),
+        ]),
+      ),
+    );
+
+    String? mesaj;
+    bool basarili = false;
+    String? kanal;
+    try {
+      final res = await http.post(
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/anket-hizli-gonder'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'salon_id': salonId, 'user_id': userId}),
+      ).timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final j = jsonDecode(res.body);
+        basarili = (j['basarili'] ?? false) as bool;
+        mesaj = j['mesaj']?.toString();
+        kanal = j['kanal']?.toString();
+      } else {
+        mesaj = 'İstek başarısız (HTTP ${res.statusCode})';
+      }
+    } catch (e) {
+      mesaj = 'Ağ hatası: $e';
+    }
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // preloader kapat
+
+    if (basarili) {
+      final kText = kanal == 'whatsapp' ? 'WhatsApp' : 'SMS';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: const Color(0xFF25D366),
+        content: Text('Anket $kText ile gönderildi'),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: const Color(0xFFD32F2F),
+        content: Text(mesaj ?? 'Gönderilemedi'),
+      ));
+    }
   }
 
   // Ön görüşme satış popup'ları için ortak alan başlığı
