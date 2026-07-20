@@ -728,7 +728,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 									salonId: widget.isletmebilgi["id"]?.toString() ?? '',
 									userId: _md.id,
 									musteriAdi: _md.name,
-									telefon: _md.telefonno,
+									telefon: _md.cep_telefon,
 								)
 							: null,
 				),

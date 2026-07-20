@@ -437,7 +437,7 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
             salonId: widget.isletmebilgi["id"]?.toString() ?? (_seciliisletme ?? ''),
             userId: m.id,
             musteriAdi: m.name,
-            telefon: m.telefonno,
+            telefon: m.cep_telefon,
           );
         } else if (value == 'anket') {
           IletisimHelper.gonderAnket(
@@ -455,7 +455,7 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
         _menuItem('bilgi', Icons.info_outline_rounded, 'Detaylı Bilgi'),
         if (Yetki.varMi('musteri.telefon_gor') &&
             Yetki.varMi('pazarlama.whatsapp_gonder') &&
-            (m.telefonno).isNotEmpty)
+            (m.cep_telefon).isNotEmpty)
           _menuItem('whatsapp', Icons.chat_bubble_outline, 'WhatsApp Mesaj'),
         if (Yetki.varMi('pazarlama.anket_yonet'))
           _menuItem('anket', Icons.mark_email_read_outlined, 'Anket Gönder'),
