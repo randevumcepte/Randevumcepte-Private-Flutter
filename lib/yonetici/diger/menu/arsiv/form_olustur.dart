@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/Frontend/MusteriDanisanSecimLazyLoad.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/sozlesme.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
@@ -87,9 +89,22 @@ class _FormOlusturState extends State<FormOlustur> {
       altYazi: (m) => Yetki.telefonGoster(m.cep_telefon),
       seciliId: _musteri?.id,
       ogeId: (m) => m.id,
+      // Musteri sayisi cok olabilir: on-yuklenen liste yerine SUNUCUDAN
+      // arama + sayfali yukleme (lazy load). Aksi halde sadece ilk sayfada
+      // gelen musteriler aranabiliyordu.
+      sunucudanGetir: (arama, offset) => MusteriDanisanSecimLazyLoad.fetch(
+        seciliMusteri: _musteri?.id ?? '',
+        salonId: _seciliSube,
+        search: arama,
+        offset: offset,
+        limit: _sayfaBoyutu,
+      ),
+      sayfaBoyutu: _sayfaBoyutu,
     );
     if (s != null) setState(() => _musteri = s);
   }
+
+  static const int _sayfaBoyutu = 50;
 
   Future<T?> _picker<T>({
     required String baslik,
@@ -98,6 +113,8 @@ class _FormOlusturState extends State<FormOlustur> {
     required String Function(T) altYazi,
     required String? seciliId,
     required String Function(T) ogeId,
+    Future<List<T>> Function(String arama, int offset)? sunucudanGetir,
+    int sayfaBoyutu = 50,
   }) {
     return showModalBottomSheet<T?>(
       context: context,
@@ -110,6 +127,8 @@ class _FormOlusturState extends State<FormOlustur> {
         altYazi: altYazi,
         seciliId: seciliId,
         ogeId: ogeId,
+        sunucudanGetir: sunucudanGetir,
+        sayfaBoyutu: sayfaBoyutu,
       ),
     );
   }
@@ -471,6 +490,12 @@ class _PickerSheet<T> extends StatefulWidget {
   final String Function(T) altYazi;
   final String? seciliId;
   final String Function(T) ogeId;
+
+  /// Verilirse arama/sayfalama SUNUCUDAN yapilir (lazy load); verilmezse
+  /// [ogeler] listesi bellek icinde filtrelenir (kucuk listeler icin).
+  final Future<List<T>> Function(String arama, int offset)? sunucudanGetir;
+  final int sayfaBoyutu;
+
   const _PickerSheet({
     required this.baslik,
     required this.ogeler,
@@ -478,6 +503,8 @@ class _PickerSheet<T> extends StatefulWidget {
     required this.altYazi,
     required this.seciliId,
     required this.ogeId,
+    this.sunucudanGetir,
+    this.sayfaBoyutu = 50,
   });
 
   @override
@@ -488,21 +515,87 @@ class _PickerSheetState<T> extends State<_PickerSheet<T>> {
   String _arama = '';
   final _aramaController = TextEditingController();
 
+  // Sunucu taraflı (lazy load) mod durumu
+  bool get _uzaktan => widget.sunucudanGetir != null;
+  final List<T> _uzakOgeler = [];
+  final ScrollController _kaydirma = ScrollController();
+  Timer? _aramaGecikmesi;
+  int _offset = 0;
+  bool _yukleniyor = false;
+  bool _dahaVar = true;
+  int _istekNo = 0; // yarış durumunu önlemek için
+
+  @override
+  void initState() {
+    super.initState();
+    if (_uzaktan) {
+      _dahaGetir(sifirla: true);
+      _kaydirma.addListener(() {
+        if (_kaydirma.position.pixels >=
+                _kaydirma.position.maxScrollExtent - 200 &&
+            !_yukleniyor &&
+            _dahaVar) {
+          _dahaGetir();
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _aramaGecikmesi?.cancel();
+    _kaydirma.dispose();
     _aramaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _dahaGetir({bool sifirla = false}) async {
+    if (_yukleniyor || (!sifirla && !_dahaVar)) return;
+    if (sifirla) {
+      _offset = 0;
+      _dahaVar = true;
+    }
+    final istek = ++_istekNo;
+    setState(() => _yukleniyor = true);
+    try {
+      final sonuc = await widget.sunucudanGetir!(_arama, _offset);
+      // Daha yeni bir arama başladıysa bu cevabı yok say.
+      if (!mounted || istek != _istekNo) return;
+      setState(() {
+        if (sifirla) _uzakOgeler.clear();
+        _uzakOgeler.addAll(sonuc);
+        _offset += widget.sayfaBoyutu;
+        if (sonuc.length < widget.sayfaBoyutu) _dahaVar = false;
+      });
+    } catch (_) {
+      if (mounted && istek == _istekNo) setState(() => _dahaVar = false);
+    } finally {
+      if (mounted && istek == _istekNo) setState(() => _yukleniyor = false);
+    }
+  }
+
+  void _aramaDegisti(String v) {
+    setState(() => _arama = v);
+    if (!_uzaktan) return;
+    // Her tuşta istek atmamak için kısa gecikme.
+    _aramaGecikmesi?.cancel();
+    _aramaGecikmesi = Timer(const Duration(milliseconds: 350), () {
+      _dahaGetir(sifirla: true);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final filtreli = widget.ogeler.where((o) {
-      if (_arama.isEmpty) return true;
-      final q = _arama.toLowerCase();
-      return widget.etiket(o).toLowerCase().contains(q) ||
-          widget.altYazi(o).toLowerCase().contains(q);
-    }).toList();
+    // Uzaktan modda filtreleme sunucuda yapılır; yerel modda bellekte.
+    final filtreli = _uzaktan
+        ? List<T>.from(_uzakOgeler)
+        : widget.ogeler.where((o) {
+            if (_arama.isEmpty) return true;
+            final q = _arama.toLowerCase();
+            return widget.etiket(o).toLowerCase().contains(q) ||
+                widget.altYazi(o).toLowerCase().contains(q);
+          }).toList();
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.4,
@@ -543,7 +636,7 @@ class _PickerSheetState<T> extends State<_PickerSheet<T>> {
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
                 child: TextField(
                   controller: _aramaController,
-                  onChanged: (v) => setState(() => _arama = v),
+                  onChanged: _aramaDegisti,
                   decoration: InputDecoration(
                     hintText: 'Ara...',
                     isDense: true,
@@ -563,17 +656,39 @@ class _PickerSheetState<T> extends State<_PickerSheet<T>> {
               Expanded(
                 child: filtreli.isEmpty
                     ? Center(
-                        child: Text(
-                          'Sonuç yok',
-                          style: TextStyle(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              fontSize: 13),
-                        ),
+                        child: _uzaktan && _yukleniyor
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                'Sonuç yok',
+                                style: TextStyle(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                    fontSize: 13),
+                              ),
                       )
                     : ListView.builder(
-                        controller: scroll,
-                        itemCount: filtreli.length,
+                        // Uzaktan modda kendi kaydırma denetleyicimiz gerekiyor
+                        // (sayfa sonuna gelince yeni sayfa çekiliyor).
+                        controller: _uzaktan ? _kaydirma : scroll,
+                        itemCount:
+                            filtreli.length + (_uzaktan && _dahaVar ? 1 : 0),
                         itemBuilder: (ctx, i) {
+                          if (i >= filtreli.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                ),
+                              ),
+                            );
+                          }
                           final o = filtreli[i];
                           final aktif = widget.seciliId == widget.ogeId(o);
                           return ListTile(
