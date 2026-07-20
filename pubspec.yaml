@@ -79,6 +79,8 @@ dependencies:
   video_player: ^2.7.2
   chewie: ^1.7.1
   youtube_player_flutter: ^9.0.4
+  # Logodan otomatik renk paleti (tanitim ekrani salon rengine boyanir)
+  palette_generator: ^0.3.3
 
   # WebView, URLƒ
   webview_flutter: ^4.4.1
