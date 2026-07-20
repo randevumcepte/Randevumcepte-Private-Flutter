@@ -325,15 +325,6 @@ class _CDRState extends State<CDRRaporlari> {
               onPressed: _showFilterBottomSheet,
               tooltip: 'Filtrele'
           ),
-          _buildActionButton(
-              icon: Icons.phone,
-              onPressed: () {
-                widget.dialPadManager.updateDialPad(
-                    context, true, "", widget.kullanici
-                );
-              },
-              tooltip: 'Tuş Takımı'
-          ),
         ],
       ),
       body: Container(
@@ -872,13 +863,17 @@ class _CDRState extends State<CDRRaporlari> {
               ),
 
               // Müşteri ekle (sadece müşteri adı yoksa VE telefonu görme yetkisi varsa)
-              if (cdr.musteri.isEmpty && Yetki.varMi('musteri.telefon_gor'))
+              // Bu isletmenin aktif portfoyunde kayit yoksa (backend 'kayitli')
+              // VE telefonu gorme yetkisi varsa musteri eklenebilir.
+              if (!cdr.kayitli && Yetki.varMi('musteri.telefon_gor'))
                 _buildActionButtonSmall(
                   icon: Icons.person_add,
                   label: 'Müşteri Ekle',
                   color: Colors.orange,
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    // sadeceekranikapat: true -> kayit sonrasi musteri listesine
+                    // GITMEZ, pop ile bu santral raporu ekranina geri doner.
+                    final eklenen = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => Yenimusteri(
@@ -890,6 +885,10 @@ class _CDRState extends State<CDRRaporlari> {
                         ),
                       ),
                     );
+                    // Eklendiyse raporu tazele ki isim listede gorunsun.
+                    if (eklenen != null && mounted) {
+                      initialize();
+                    }
                   },
                 ),
             ],
@@ -1233,9 +1232,11 @@ class _CDRState extends State<CDRRaporlari> {
                       onPressed: () async {
                         final position = await _audioPlayer.getCurrentPosition();
                         if (position != null) {
-                          await _audioPlayer.seek(Duration(
-                            milliseconds: position.inMilliseconds - 10000,
-                          ));
+                          // 0'in altina inmesin (negatif pozisyon slider'i patlatiyor)
+                          final hedef = position.inMilliseconds - 10000;
+                          await _audioPlayer.seek(
+                            Duration(milliseconds: hedef < 0 ? 0 : hedef),
+                          );
                         }
                       },
                     ),
@@ -1278,9 +1279,13 @@ class _CDRState extends State<CDRRaporlari> {
                       onPressed: () async {
                         final position = await _audioPlayer.getCurrentPosition();
                         if (position != null) {
-                          await _audioPlayer.seek(Duration(
-                            milliseconds: position.inMilliseconds + 10000,
-                          ));
+                          // Toplam sureyi asmasin
+                          final toplam = await _audioPlayer.getDuration();
+                          var hedef = position.inMilliseconds + 10000;
+                          if (toplam != null && hedef > toplam.inMilliseconds) {
+                            hedef = toplam.inMilliseconds;
+                          }
+                          await _audioPlayer.seek(Duration(milliseconds: hedef));
                         }
                       },
                     ),
@@ -1317,6 +1322,14 @@ class _CDRState extends State<CDRRaporlari> {
                       stream: _audioPlayer.onDurationChanged,
                       builder: (context, snapshot) {
                         final duration = snapshot.data ?? Duration.zero;
+                        // Slider assert'i (value >= min && value <= max) patlamasin:
+                        // - sure daha gelmemisken (0) pozisyon max'i asabiliyor,
+                        // - 10sn geri sarmada pozisyon negatife dusebiliyor.
+                        final double maxMs = duration.inMilliseconds <= 0
+                            ? 1.0
+                            : duration.inMilliseconds.toDouble();
+                        final double valueMs =
+                            position.inMilliseconds.toDouble().clamp(0.0, maxMs);
                         return Column(
                           children: [
                             SliderTheme(
@@ -1333,10 +1346,8 @@ class _CDRState extends State<CDRRaporlari> {
                                 thumbColor: Colors.green[400],
                               ),
                               child: Slider(
-                                value: position.inMilliseconds.toDouble(),
-                                max: duration.inMilliseconds.toDouble() == 0
-                                    ? 1.0
-                                    : duration.inMilliseconds.toDouble(),
+                                value: valueMs,
+                                max: maxMs,
                                 onChanged: (value) async {
                                   await _audioPlayer.seek(
                                     Duration(milliseconds: value.toInt()),
