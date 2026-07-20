@@ -32,7 +32,7 @@ import '../adisyonlar/adisyonpage.dart';
 import '../adisyonlar/yeniadisyon.dart';
 import '../diger/menu/ajanda/ajandaekle.dart';
 import '../diger/menu/musteriler/yeni_musteri.dart';
-// import '../santral/santralraporlari.dart'; // Apple deprecated-API: santral .bak
+import '../santral/santralraporlari.dart';
 import 'bildirimler/bildirimler.dart';
 import 'deneme.dart';
 import 'gunlukRaporlar/gunlukajandanotlari.dart';
@@ -3816,8 +3816,21 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Santral raporları şu an devre dışı')),
+          onTap: () => Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 300),
+              child: CDRRaporlari(
+                isletmebilgi: widget.isletmebilgi,
+                kullanici: widget.kullanici,
+                kullanicirolu: widget.kullanicirolu,
+                // Bu ekran icin islevsel degil (tus takimi butonu kaldirildi);
+                // zorunlu parametreleri karsilamak icin bos ornekler.
+                dialPadManager: DialPadManager(),
+                scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
+              ),
+            ),
           ),
           borderRadius: BorderRadius.circular(18),
           child: Padding(
