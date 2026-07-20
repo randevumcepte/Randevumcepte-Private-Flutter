@@ -12,6 +12,7 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/adisyonpage.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/iletisim_helper.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/seanstakibiyeni.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/arsiv/arsivyonetimipage.dart';
@@ -722,7 +723,13 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 					const Color(0xFF25D366),
 					enabled: hasTel,
 					onTap: hasTel
-							? () => _launch('https://wa.me/${_waNumber()}')
+							? () => IletisimHelper.gonderWhatsapp(
+									context,
+									salonId: widget.isletmebilgi["id"]?.toString() ?? '',
+									userId: _md.id,
+									musteriAdi: _md.name,
+									telefon: _md.telefonno,
+								)
 							: null,
 				),
 			));

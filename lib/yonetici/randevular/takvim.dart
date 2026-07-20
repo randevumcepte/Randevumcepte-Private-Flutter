@@ -14,6 +14,7 @@ import 'package:randevu_sistem/Models/takvimturu.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevuduzenle.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/iletisim_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
@@ -2290,13 +2291,22 @@ List<Widget> _buildAppointmentsForResource(
 
     if (!hasWa && !hasAnket) return const SizedBox.shrink();
 
+    // Salon id (isletmebilgi'den)
+    final String salonIdStr = widget.isletmebilgi["id"]?.toString() ?? '';
+
     final buttons = <Widget>[];
     if (hasWa) {
       buttons.add(_detayBtn(
         label: 'WhatsApp',
         icon: Icons.chat_outlined,
         color: const Color(0xFF25D366),
-        onTap: () => _waAc(context, tel),
+        onTap: () => IletisimHelper.gonderWhatsapp(
+          context,
+          salonId: salonIdStr,
+          userId: userId,
+          musteriAdi: rnd!.musteriname,
+          telefon: tel,
+        ),
       ));
     }
     if (hasAnket) {
@@ -2304,7 +2314,12 @@ List<Widget> _buildAppointmentsForResource(
         label: 'Anket Gönder',
         icon: Icons.mark_email_read_outlined,
         color: const Color(0xFF17A589),
-        onTap: () => _anketGonder(context, userId, rnd!.musteriname),
+        onTap: () => IletisimHelper.gonderAnket(
+          context,
+          salonId: salonIdStr,
+          userId: userId,
+          musteriAdi: rnd!.musteriname,
+        ),
       ));
     }
 

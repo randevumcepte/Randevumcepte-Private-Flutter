@@ -8,6 +8,7 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 
 import 'musteridetaylar.dart';
 import 'musteriduzenle.dart';
+import 'iletisim_helper.dart';
 
 class MusteriKartListesi extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -430,6 +431,21 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
               ),
             ),
           );
+        } else if (value == 'whatsapp') {
+          IletisimHelper.gonderWhatsapp(
+            context,
+            salonId: widget.isletmebilgi["id"]?.toString() ?? (_seciliisletme ?? ''),
+            userId: m.id,
+            musteriAdi: m.name,
+            telefon: m.telefonno,
+          );
+        } else if (value == 'anket') {
+          IletisimHelper.gonderAnket(
+            context,
+            salonId: widget.isletmebilgi["id"]?.toString() ?? (_seciliisletme ?? ''),
+            userId: m.id,
+            musteriAdi: m.name,
+          );
         } else if (value == 'sil') {
           _ds!.showMusteriSilmeConfirmationDialog(
               context, m.id, _seciliisletme!);
@@ -437,6 +453,12 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
       },
       itemBuilder: (context) => [
         _menuItem('bilgi', Icons.info_outline_rounded, 'Detaylı Bilgi'),
+        if (Yetki.varMi('musteri.telefon_gor') &&
+            Yetki.varMi('pazarlama.whatsapp_gonder') &&
+            (m.telefonno).isNotEmpty)
+          _menuItem('whatsapp', Icons.chat_bubble_outline, 'WhatsApp Mesaj'),
+        if (Yetki.varMi('pazarlama.anket_yonet'))
+          _menuItem('anket', Icons.mark_email_read_outlined, 'Anket Gönder'),
         if (Yetki.varMi('musteri.ekle_duzenle'))
           _menuItem('duzenle', Icons.edit_outlined, 'Düzenle'),
         if (Yetki.varMi('musteri.sil'))
