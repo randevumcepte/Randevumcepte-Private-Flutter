@@ -20,7 +20,7 @@ import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
 import '../dashboard/profilbilgileri.dart';
-// import '../santral/santralraporlari.dart'; // Apple deprecated-API: santral .bak
+import '../santral/santralraporlari.dart';
 import '../subesecimi.dart';
 import 'menu/anket/anket_yonetimi.dart';
 import 'menu/cark/cark_yonetimi.dart';
@@ -534,8 +534,19 @@ class _MenuState extends State<Menu> {
                     icon: Icons.phone,
                     label: 'Santral',
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Santral raporları şu an devre dışı')),
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: CDRRaporlari(
+                            scaffoldMessengerKey: widget.scaffoldMessengerKey,
+                            kullanici: widget.kullanici,
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
+                            dialPadManager: widget.dialpadManager,
+                          ),
+                        ),
                       );
                     },
                   ),
