@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/cihaz_bilgileri_modal.dart';
 
 import 'package:randevu_sistem/Models/seanstakibi.dart';
 
@@ -600,9 +601,87 @@ class _SeansTakibiState extends State<SeansTakibi> {
               ],
             ),
           ),
+          if (_isLazer(group.adi) || _isLazer(item.paket)) ...[
+            const SizedBox(height: 8),
+            _cihazBilgileriButon(item, group),
+          ],
         ],
       ),
     );
+  }
+
+  bool _isLazer(String? ad) {
+    if (ad == null) return false;
+    final l = ad.toLowerCase();
+    return l.contains('lazer') || l.contains('laser');
+  }
+
+  Widget _cihazBilgileriButon(SeansTakip item, _HizmetGroup group) {
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: const Color(0xFF4F46E5),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: () => _cihazBilgileriAc(item, group),
+          borderRadius: BorderRadius.circular(8),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.bolt_rounded, color: Colors.white, size: 16),
+                SizedBox(width: 5),
+                Text(
+                  'Cihaz Bilgileri',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cihazBilgileriAc(SeansTakip item, _HizmetGroup group) async {
+    // Sadece olusmus (id'li) seanslar; en son seans varsayilan secili.
+    final mevcut = group.seanslar
+        .where((s) => s is Map && s['id'] != null)
+        .cast<Map>()
+        .toList();
+    if (mevcut.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Bu bölgede henüz oluşmuş seans yok. Randevu "geldi" işaretlenince veya daireye tıklayıp "Kullanıldı" deyince seans oluşur.'),
+        ),
+      );
+      return;
+    }
+    final liste = <Map<String, dynamic>>[];
+    for (var i = 0; i < mevcut.length; i++) {
+      final s = mevcut[i];
+      liste.add({
+        'id': s['id'].toString(),
+        'no': i + 1,
+        'tarih': (s['seans_tarih'] ?? '').toString(),
+        'geldi': s['geldi'],
+      });
+    }
+    final def = liste.last['id'] as String;
+    final kaydedildi = await cihazBilgileriModalGoster(
+      context,
+      seansId: def,
+      seanslar: liste,
+    );
+    if (kaydedildi == true && mounted) {
+      await _refresh();
+    }
   }
 
   Widget _miniStat(String label, String value, Color color) {

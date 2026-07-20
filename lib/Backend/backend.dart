@@ -2156,6 +2156,48 @@ Future<Map<String, dynamic>> seansEkleApi(
   throw Exception(response.reasonPhrase);
 }
 
+// ===== Lazer epilasyon seans cihaz verileri (Enerji/Hiz/MS/Atis) =====
+// Bir seansin cihaz parametrelerini + personel listesini getirir.
+Future<Map<String, dynamic>> seansCihazVeriGetir(String seansId) async {
+  final formData = {
+    'seansId': seansId,
+    'salonid': await secilisalonid(),
+    'appBundle': await appBundleAl(),
+  };
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansCihazVeriGetir'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  logyaz(response.statusCode, response.reasonPhrase);
+  throw Exception(response.reasonPhrase);
+}
+
+// Bir seansin cihaz parametrelerini kaydeder. bolgeler: [{uygulama_bolgesi,
+// enerji, hiz, ms, atis_sayisi, personel_id, notlar}] (genelde tek eleman).
+Future<Map<String, dynamic>> seansCihazVeriKaydet(
+    String seansId, List<Map<String, dynamic>> bolgeler) async {
+  final formData = {
+    'seansId': seansId,
+    'bolgeler': bolgeler,
+    'salonid': await secilisalonid(),
+    'appBundle': await appBundleAl(),
+  };
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansCihazVeriKaydet'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+  if (response.statusCode == 200) {
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+  logyaz(response.statusCode, response.reasonPhrase);
+  throw Exception(response.reasonPhrase);
+}
+
 Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tarih1, String tarih2,bool yukleniyor,BuildContext context ,String takvimTuru) async {
   if(yukleniyor)
     showProgressLoading(context);
