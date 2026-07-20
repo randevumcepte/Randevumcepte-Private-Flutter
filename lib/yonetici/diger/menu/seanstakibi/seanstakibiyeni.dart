@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Frontend/cihaz_bilgileri_modal.dart';
@@ -323,6 +325,24 @@ class _SeansTakibiState extends State<SeansTakibi> {
                       ],
                     ),
                   ),
+                  // Web'deki gibi: lazer paket/hizmetlerde mor "Seans Dökümü" PDF ikonu
+                  if (_itemLazerMi(item))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1, right: 2),
+                      child: Material(
+                        color: const Color(0xFF5C008E),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => _seansDokumuAc(item),
+                          child: const Padding(
+                            padding: EdgeInsets.all(7),
+                            child: Icon(Icons.picture_as_pdf,
+                                color: Colors.white, size: 18),
+                          ),
+                        ),
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 4, vertical: 2),
@@ -614,6 +634,89 @@ class _SeansTakibiState extends State<SeansTakibi> {
     if (ad == null) return false;
     final l = ad.toLowerCase();
     return l.contains('lazer') || l.contains('laser');
+  }
+
+  // Bu kayıt (paket/hizmet) lazer mi? — paket adı veya içindeki hizmet adları.
+  bool _itemLazerMi(SeansTakip item) {
+    if (_isLazer(item.paket)) return true;
+    for (final h in item.hizmetler) {
+      if (h is Map && _isLazer((h['hizmet_adi'] ?? '').toString())) return true;
+    }
+    for (final s in item.seanslar) {
+      if (s is Map) {
+        final hz = s['hizmet'];
+        if (hz is Map && _isLazer((hz['hizmet_adi'] ?? '').toString())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // PDF için adisyon_paket_id (paket) veya adisyon_hizmet_id (tek hizmet) çıkar.
+  (String?, bool) _pdfParametreleri(SeansTakip item) {
+    String? paketId = item.paketHizmetId;
+    bool? paketMi;
+    if (item.tip == 'paket') {
+      paketMi = true;
+    } else if (item.tip == 'hizmet') {
+      paketMi = false;
+    }
+    if (paketId == null || paketMi == null) {
+      final ornek = item.seanslar.isNotEmpty ? item.seanslar.first : null;
+      if (ornek is Map) {
+        if (ornek['adisyon_paket_id'] != null) {
+          paketId = ornek['adisyon_paket_id'].toString();
+          paketMi = true;
+        } else if (ornek['adisyon_hizmet_id'] != null) {
+          paketId = ornek['adisyon_hizmet_id'].toString();
+          paketMi = false;
+        }
+      }
+      paketMi ??= item.paket.contains('(P)');
+    }
+    return (paketId, paketMi ?? false);
+  }
+
+  // Mor PDF ikonu → sunucudan seans dökümü PDF'ini çekip önizlemede göster.
+  Future<void> _seansDokumuAc(SeansTakip item) async {
+    final (paketId, paketMi) = _pdfParametreleri(item);
+    if (paketId == null || paketId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Bu kayıt için paket/hizmet bilgisi bulunamadı.')),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final bytes = await seansDokumuPdfGetir(
+        adisyonPaketId: paketMi ? paketId : null,
+        adisyonHizmetId: paketMi ? null : paketId,
+      );
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // yükleniyor kapat
+      if (bytes.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF içeriği boş döndü.')),
+        );
+        return;
+      }
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => _SeansDokumuPdfPage(pdfBytes: bytes),
+      ));
+    } catch (e, st) {
+      log('seans dokumu pdf hata: $e\n$st');
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PDF alınırken bir hata oluştu.')),
+      );
+    }
   }
 
   Widget _cihazBilgileriButon(SeansTakip item, _HizmetGroup group) {
@@ -1111,4 +1214,35 @@ class _HizmetGroup {
   final String hizmetId;
   final List<dynamic> seanslar = [];
   _HizmetGroup({required this.adi, required this.hizmetId});
+}
+
+/// Sunucudan gelen seans dökümü PDF'ini önizleyen sayfa (yazdır/paylaş dahil).
+class _SeansDokumuPdfPage extends StatelessWidget {
+  final Uint8List pdfBytes;
+  const _SeansDokumuPdfPage({required this.pdfBytes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Seans Dökümü',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+        ),
+      ),
+      body: PdfPreview(
+        build: (format) => pdfBytes,
+        canChangePageFormat: false,
+        canChangeOrientation: false,
+        canDebug: false,
+        pdfFileName: 'seans-dokumu.pdf',
+      ),
+    );
+  }
 }

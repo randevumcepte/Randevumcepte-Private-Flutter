@@ -291,42 +291,51 @@ class _RaporListeSayfaState extends State<RaporListeSayfa> {
                 ),
                 if (k.tarih != null || k.altBilgi != null) ...[
                   const SizedBox(height: 8),
-                  Row(
+                  // Tarih + alt bilgi: Row yerine Wrap — dar ekranda taşmak
+                  // yerine alt satıra kayar (RenderFlex overflow olmaz).
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 4,
                     children: [
-                      if (k.tarih != null) ...[
-                        Icon(Icons.event_rounded,
-                            size: 14,
-                            color: cs.onSurfaceVariant.withValues(alpha: 0.8)),
-                        const SizedBox(width: 4),
-                        Text(
-                          k.tarih!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                      if (k.tarih != null && k.altBilgi != null)
-                        const SizedBox(width: 12),
-                      if (k.altBilgi != null) ...[
-                        Icon(k.altBilgiIcon,
-                            size: 14,
-                            color: cs.onSurfaceVariant.withValues(alpha: 0.8)),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            k.altBilgi!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: cs.onSurfaceVariant,
+                      if (k.tarih != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.event_rounded,
+                                size: 14,
+                                color: cs.onSurfaceVariant
+                                    .withValues(alpha: 0.8)),
+                            const SizedBox(width: 4),
+                            Text(
+                              k.tarih!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: cs.onSurfaceVariant,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      if (k.altBilgi != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(k.altBilgiIcon,
+                                size: 14,
+                                color: cs.onSurfaceVariant
+                                    .withValues(alpha: 0.8)),
+                            const SizedBox(width: 4),
+                            Text(
+                              k.altBilgi!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ],

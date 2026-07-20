@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:typed_data';
 
 
 import 'package:firebase_core/firebase_core.dart';
@@ -4949,6 +4950,39 @@ Future<String> appBundleAl() async {
   final packageInfo = await PackageInfo.fromPlatform();
   _cachedAppBundle = packageInfo.packageName;
   return _cachedAppBundle!;
+}
+
+/// Seans dökümü / cihaz bilgileri PDF'ini (web ile birebir ayni) sunucudan
+/// byte olarak ceker. Paket icin [adisyonPaketId], tek hizmet icin
+/// [adisyonHizmetId] gonderilir.
+Future<Uint8List> seansDokumuPdfGetir({
+  String? adisyonPaketId,
+  String? adisyonHizmetId,
+}) async {
+  final qp = <String, String>{'appBundle': await appBundleAl()};
+  if (adisyonPaketId != null && adisyonPaketId.isNotEmpty) {
+    qp['adisyonpaketid'] = adisyonPaketId;
+  }
+  if (adisyonHizmetId != null && adisyonHizmetId.isNotEmpty) {
+    qp['adisyonhizmetid'] = adisyonHizmetId;
+  }
+  final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansDokumuPdf')
+      .replace(queryParameters: qp);
+  final response = await http.get(uri, headers: {'Accept': 'application/pdf'});
+  final bytes = response.bodyBytes;
+  // Gerçekten PDF mi? (baştaki baytlar '%PDF' olmalı) — değilse sunucu HTML/hata
+  // döndürmüştür (ör. route henüz deploy olmadıysa), önizlemeye bozuk veri gitmesin.
+  final pdfMi = bytes.length >= 4 &&
+      bytes[0] == 0x25 && // %
+      bytes[1] == 0x50 && // P
+      bytes[2] == 0x44 && // D
+      bytes[3] == 0x46; // F
+  if (response.statusCode == 200 && pdfMi) {
+    return bytes;
+  }
+  throw Exception(
+      'Seans dökümü PDF alınamadı (durum: ${response.statusCode}). '
+      'Sunucu güncellemesi henüz yayına alınmamış olabilir.');
 }
 
 Future<Map<String, dynamic>> salonAyarlariByBundle(String appBundle) async {
