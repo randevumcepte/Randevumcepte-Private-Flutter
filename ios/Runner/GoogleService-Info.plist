@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCHy0FNX1_8QBC8TgO2ScvkZKINYIU5PbU</string>
+	<string>AIzaSyBdR_7cdj1VPTTYy_ht6Mbslx8a4hBFRRk</string>
 	<key>GCM_SENDER_ID</key>
 	<string>279726530132</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.randevumcepte.cerenceviz</string>
+	<string>com.randevumcepte.eymlife</string>
 	<key>PROJECT_ID</key>
 	<string>randevumcepte-uygulamala-5ff4d</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:279726530132:ios:d077bbd1517bb1bb9f57c1</string>
+	<string>1:279726530132:ios:6c0f0372408a60389f57c1</string>
 </dict>
 </plist>

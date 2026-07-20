@@ -33,7 +33,7 @@
         android:maxSdkVersion="29" />
 
     <application
-        android:label="Ceren Ceviz Estetik"
+        android:label="EYM Life Güzellik Merkezi"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:largeHeap="true">

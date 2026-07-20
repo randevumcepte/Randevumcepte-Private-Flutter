@@ -1,4 +1,4 @@
-package com.randevumcepte.cerenceviz
+package com.randevumcepte.eymlife
 
 import io.flutter.embedding.android.FlutterActivity
 

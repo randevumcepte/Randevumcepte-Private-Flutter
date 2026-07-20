@@ -165,14 +165,14 @@ class _HomeState extends State<LoginPage> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(10),
                                   child: Image.asset(
-                                    'images/cc.png',
+                                    'images/eymlifeicon.png',
                                     fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 18),
                               Image.asset(
-                                'images/cc.png',
+                                'images/eymlifeicon.png',
                                 height: 28,
                                 fit: BoxFit.contain,
                               ),
@@ -535,7 +535,7 @@ class _HomeState extends State<LoginPage> {
       } else {
         MusteriDanisan musteri = MusteriDanisan.fromJson(userMap);
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '355')['salonlar'];
+        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '391')['salonlar'];
 
         // FCM cihaz kaydı (müşteri)
         NotificationService.instance.registerForUser(

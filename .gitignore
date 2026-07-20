@@ -52,3 +52,6 @@ app.*.map.json
 
 # Claude Code local settings
 .claude/
+
+# SIP/pjsip kaynak klasoru (build cache dahil) - repoya girmesin
+pjproject/**/.gradle/

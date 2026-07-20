@@ -179,27 +179,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
     // yeni kalemler o adisyona eklensin; yoksa boş bırak → ilk kalemde yeni adisyon açılır.
     // NOT: Satış takibiyle aynı KANITLI geniş aralıkla çekip "bugün + ödemesiz"
     // süzmeyi burada yapıyoruz (dar tarih aralığı / datetime saat riskini elemek için).
-    String acikAdisyonId = '';
-    try {
-      final String bugunListe = DateFormat("yyyy-MM-dd").format(DateTime.now());
-      final String bugunGosterim = DateFormat("dd.MM.yyyy").format(DateTime.now());
-      final resp = await satislar(seciliisletme ?? "", "1", "1970-01-01", bugunListe,
-          value.id.toString(), "", "", false, "", 1);
-      final List<dynamic> data = (resp['data'] as List?) ?? [];
-      for (final j in data) {
-        final Adisyon a = Adisyon.fromJson(j);
-        final double odenen =
-            double.tryParse(a.odenen_numeric.replaceAll(',', '.')) ?? 0;
-        if (odenen <= 0 && a.acilis_tarihi == bugunGosterim) {
-          acikAdisyonId = a.id;
-          break;
-        }
-      }
-      log('[acik-adisyon] musteri=${value.id} donen=${data.length} secilen=$acikAdisyonId');
-    } catch (e) {
-      log('[acik-adisyon] hata: $e');
-      acikAdisyonId = '';
-    }
+    final String acikAdisyonId = await _acikAdisyonBul(value.id.toString());
     if (!mounted) return;
 
     String indirimtext = "0";
@@ -403,6 +383,44 @@ class _SatisEkraniState extends State<SatisEkrani> {
     });
   }
 
+  /// Müşterinin BUGÜN açılmış, hiç ödemesi yapılmamış (açık) adisyonunu bulur.
+  /// Bulursa id'sini döner; yoksa '' (→ ilk kalemde yeni adisyon açılır).
+  /// Satış takibiyle aynı geniş aralıkla çekip "bugün + ödemesiz" süzülür
+  /// (dar tarih aralığı / datetime saat riskini elemek için).
+  Future<String> _acikAdisyonBul(String musteriId) async {
+    if (musteriId.isEmpty) return '';
+    try {
+      final String bugunListe = DateFormat("yyyy-MM-dd").format(DateTime.now());
+      final String bugunGosterim = DateFormat("dd.MM.yyyy").format(DateTime.now());
+      final resp = await satislar(seciliisletme ?? "", "1", "1970-01-01", bugunListe,
+          musteriId, "", "", false, "", 1);
+      final List<dynamic> data = (resp['data'] as List?) ?? [];
+      for (final j in data) {
+        final Adisyon a = Adisyon.fromJson(j);
+        final double odenen =
+            double.tryParse(a.odenen_numeric.replaceAll(',', '.')) ?? 0;
+        if (odenen <= 0 && a.acilis_tarihi == bugunGosterim) {
+          log('[acik-adisyon] musteri=$musteriId secilen=${a.id}');
+          return a.id;
+        }
+      }
+      log('[acik-adisyon] musteri=$musteriId donen=${data.length} secilen=YOK');
+    } catch (e) {
+      log('[acik-adisyon] hata: $e');
+    }
+    return '';
+  }
+
+  /// Kalem eklemeden HEMEN ÖNCE açık adisyonu tazeler. Müşteri seçildikten sonra
+  /// (ayni ya da baska hesaptan) acilmis odemesiz adisyon varsa kalemler ona gider.
+  Future<void> _acikAdisyonTazele() async {
+    if (yeniSatisAdisyonId.isNotEmpty) return; // zaten bir adisyona bagliyiz
+    final id = await _acikAdisyonBul(secilimusteridanisan?.id.toString() ?? '');
+    if (id.isNotEmpty && mounted) {
+      setState(() => yeniSatisAdisyonId = id);
+    }
+  }
+
   void hizmetsatisi(AdisyonHizmet? mevcutadisyonhizmet) async {
     if (secilimusteridanisan == null) {
       _showUyariDialog('Devam etmek için önce müşteri seçiniz veya ekleyiniz.');
@@ -411,6 +429,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
     // Yeni ekleme: kuaför-dostu çoklu hizmet seçim ekranı (birden fazla hizmet)
     if (mevcutadisyonhizmet == null) {
+      await _acikAdisyonTazele(); // ayni gun odemesiz adisyon varsa ona ekle
+      if (!mounted) return;
       final List<AdisyonHizmet>? eklenenler = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -467,6 +487,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
     // Yeni ekleme: çoklu ürün seçim ekranı (birden fazla ürün)
     if (mevcutadisyonurun == null) {
+      await _acikAdisyonTazele(); // ayni gun odemesiz adisyon varsa ona ekle
+      if (!mounted) return;
       final List<AdisyonUrun>? eklenenler = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -519,6 +541,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
     // Yeni ekleme: çoklu paket seçim ekranı (birden fazla paket)
     if (mevcutadisyonpaket == null) {
+      await _acikAdisyonTazele(); // ayni gun odemesiz adisyon varsa ona ekle
+      if (!mounted) return;
       final List<AdisyonPaket>? eklenenler = await Navigator.push(
         context,
         MaterialPageRoute(

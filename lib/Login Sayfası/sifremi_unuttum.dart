@@ -59,7 +59,7 @@ TextEditingController ceptelefon = TextEditingController();
                 margin: const EdgeInsets.only(top: 80),
                 child:
                   Image.asset(
-                    'images/cc.png',
+                    'images/eymlifeicon.png',
                     width: MediaQuery.of(context).size.width > 520 ? 500 : MediaQuery.of(context).size.width - 20,
                     height: 100,
                     fit: BoxFit.contain,
@@ -272,10 +272,10 @@ TextEditingController ceptelefon = TextEditingController();
       'cep_telefon':tel,
       'sms_baslik' : '',
       'sms_apikey' : '',
-      'salonidler' : '355',
+      'salonidler' : '391',
       'sms_username':'',
       'sms_secret':'',
-      'isletmeadi': 'Ceren Ceviz Estetik',
+      'isletmeadi': 'EYM Life Güzellik Merkezi',
       'appBundle': appBundle
       // Add other form fields
     };

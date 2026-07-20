@@ -11,6 +11,7 @@
 
   import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
   import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
+  import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
   import 'package:randevu_sistem/Backend/backend.dart';
   import 'package:randevu_sistem/Backend/yetki.dart';
   import 'package:randevu_sistem/Frontend/lazyload.dart';
@@ -457,6 +458,26 @@
         }
       });
     }
+    // Satış takibinden 'Düzenle': mevcut adisyonu Yeni Satış arayüzünde açar.
+    // Dönüşte açık/kapalı listeleri tazelenir.
+    Future<void> _adisyonDuzenle(BuildContext context, Adisyon adisyon) async {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SatisEkrani(
+            isletmebilgi: widget.isletmebilgi,
+            musteridanisanid: adisyon.user_id,
+            kullanicirolu: widget.kullanicirolu,
+            kullanici: widget.kullanici,
+            mevcutAdisyonId: adisyon.id,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      await fetchAcikAdisyonlar(resetPage: true);
+      await fetchAdisyonlar(resetPage: true);
+    }
+
     // _AdisyonlarPageState sınıfına ekleyin
     Future<void> _deleteAdisyon(Adisyon adisyon, bool isOpenTab) async {
       // Silme onayı göster
@@ -524,6 +545,12 @@
                             backgroundColor: Colors.green,
                           ),
                         );
+
+                        // Listeyi backend'den tazele: lokal removeWhere yanlis
+                        // sekmede calisirsa kart ekranda kaliyordu ("siliyor ama
+                        // tepki vermiyor"). Tazeleme sayaclari da duzeltir.
+                        await fetchAcikAdisyonlar(resetPage: true);
+                        await fetchAdisyonlar(resetPage: true);
                       }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1025,6 +1052,9 @@
               borderRadius: BorderRadius.circular(10)),
           onSelected: (value) {
             switch (value) {
+              case 'duzenle':
+                _adisyonDuzenle(context, adisyon);
+                break;
               case 'hizmet':
                 hizmetsatisiEkle(context, adisyon);
                 break;
@@ -1044,6 +1074,16 @@
           },
           itemBuilder: (context) => [
             if (!isKapali) ...[
+              if (Yetki.varMi('satis.adisyon_olustur'))
+                PopupMenuItem(
+                  value: 'duzenle',
+                  child: Row(children: [
+                    Icon(Icons.edit_outlined,
+                        size: 18, color: Colors.purple.shade700),
+                    SizedBox(width: 10),
+                    Text('Düzenle'),
+                  ]),
+                ),
               if (Yetki.varMi('satis.adisyon_olustur'))
                 PopupMenuItem(
                   value: 'hizmet',

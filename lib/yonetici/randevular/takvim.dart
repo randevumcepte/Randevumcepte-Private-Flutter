@@ -2243,6 +2243,11 @@ List<Widget> _buildAppointmentsForResource(
 
   // Aksiyon butonlarını 2 kolonlu grid olarak dizer (yan yana 2'şer)
   Widget _detayGrid(List<Widget> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    // Tek eleman -> full-width (aksi halde solda yarim durur, orphan gorunur)
+    if (items.length == 1) {
+      return SizedBox(width: double.infinity, child: items.first);
+    }
     final rows = <Widget>[];
     for (var i = 0; i < items.length; i += 2) {
       final hasSecond = i + 1 < items.length;
