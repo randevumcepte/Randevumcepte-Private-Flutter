@@ -2,13 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'login_page.dart';
 
 /// Açılış / tanıtım ekranı.
-/// Arka plandaki sabit video yerine, salonun kendi logosunu (images/randevumcepte.png)
+/// Arka plandaki sabit video yerine, salonun kendi logosunu (images/eymlife.png)
 /// kullanan otomatik animasyonlu bir sahne gösterilir: beyaz zemin + efekt çizgiler +
 /// dönen ışınlar + nabız gibi atan halkalar + süzülen ışık topları + ortada logo.
 class OnBoardingPage extends StatefulWidget {
@@ -28,7 +29,11 @@ class _OnBoardingPageState extends State<OnBoardingPage>
 
   bool _onlineRandevuAktif = false;
   bool _lisansAktif = true; // lisans bittiyse 'Randevu Al' gizlenir
-  String _salonAdi = 'RandevumCepte';
+  // Beyaz etiket kurulumda jenerik "RandevumCepte" yazip sonra isletme adina
+  // atlamamak icin bos baslar; en son bilinen ad SharedPreferences'tan aninda
+  // yazilir, ag cevabi gelince guncellenir ve yeniden onbellege alinir.
+  String _salonAdi = '';
+  static const String _salonAdiCacheKey = 'tanitim_salon_adi';
 
   @override
   void initState() {
@@ -64,7 +69,18 @@ class _OnBoardingPageState extends State<OnBoardingPage>
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
 
+    _loadCachedSalonAdi();
     _loadOnlineRandevuAyari();
+  }
+
+  /// Ag cevabini beklemeden en son bilinen isletme adini goster (yanip sonme olmasin).
+  Future<void> _loadCachedSalonAdi() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ad = (prefs.getString(_salonAdiCacheKey) ?? '').trim();
+      if (!mounted || ad.isEmpty) return;
+      setState(() => _salonAdi = ad);
+    } catch (_) {}
   }
 
   Future<void> _loadOnlineRandevuAyari() async {
@@ -73,6 +89,14 @@ class _OnBoardingPageState extends State<OnBoardingPage>
       final ayar = await salonAyarlariByBundle(bundle);
       if (!mounted) return;
       final ad = (ayar['salon_adi'] ?? '').toString().trim();
+      if (ad.isNotEmpty) {
+        // Bir sonraki acilista aninda gosterebilmek icin onbellege al.
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_salonAdiCacheKey, ad);
+        } catch (_) {}
+        if (!mounted) return;
+      }
       setState(() {
         _onlineRandevuAktif = musteriOnlineRandevuAktifMi(ayar);
         // Lisans bittiyse (lisans_aktif != 1) randevu al butonu gizlenir.
@@ -184,7 +208,7 @@ class _OnBoardingPageState extends State<OnBoardingPage>
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 40),
                             child: Image.asset(
-                              'images/randevumcepte.png',
+                              'images/eymlife.png',
                               height: 130,
                               fit: BoxFit.contain,
                             ),
