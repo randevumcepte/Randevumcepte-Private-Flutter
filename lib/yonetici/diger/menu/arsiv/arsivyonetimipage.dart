@@ -21,14 +21,19 @@ class ArsivYonetimiPage extends StatefulWidget {
 }
 
 class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
+  // Yeni form/sozlesme/belge eklendikten sonra listeleri yeniden yuklemek
+  // icin token. Deger degisince ArsivKartListe didUpdateWidget'inde resetler.
+  int _yenileToken = 0;
+
   /// Bottom sheet'ten sayfa acan helper. Sheet'i kapatir, kisa bir frame
   /// gecikmesi ile push yapar — boylece pointer event sheet kapanir kapanmaz
   /// yeni sayfanin altindaki bir butona dusmez (auto-tap bug fix).
+  /// Sayfa kapaninca listeler yenilensin diye push await edilir.
   Future<void> _acSayfa(BuildContext ctx, Widget sayfa) async {
     Navigator.pop(ctx);
     await Future.delayed(const Duration(milliseconds: 80));
     if (!mounted) return;
-    Navigator.push(
+    await Navigator.push(
       context,
       PageTransition(
         type: PageTransitionType.rightToLeft,
@@ -36,6 +41,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
         child: sayfa,
       ),
     );
+    if (mounted) setState(() => _yenileToken++);
   }
 
   void _yeniSec(BuildContext context) {
@@ -164,40 +170,45 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                   Expanded(
                     child: TabBarView(
                       children: <Widget>[
-                        const ArsivKartListe(
+                        ArsivKartListe(
                           durum: '',
                           cevapladi: '',
                           cevapladi2: '',
                           bosMesaj: 'Henüz form yok',
                           bosIkon: Icons.inbox_outlined,
+                          refreshToken: _yenileToken,
                         ),
-                        const ArsivKartListe(
+                        ArsivKartListe(
                           durum: '1',
                           cevapladi: '1',
                           cevapladi2: '1',
                           bosMesaj: 'Onaylanmış form yok',
                           bosIkon: Icons.check_circle_outline,
+                          refreshToken: _yenileToken,
                         ),
-                        const ArsivKartListe(
+                        ArsivKartListe(
                           durum: 'null',
                           cevapladi: 'b',
                           cevapladi2: 'b',
                           bosMesaj: 'Bekleyen form yok',
                           bosIkon: Icons.hourglass_empty_rounded,
+                          refreshToken: _yenileToken,
                         ),
-                        const ArsivKartListe(
+                        ArsivKartListe(
                           durum: '0',
                           cevapladi: '',
                           cevapladi2: '',
                           bosMesaj: 'İptal edilmiş form yok',
                           bosIkon: Icons.cancel_outlined,
+                          refreshToken: _yenileToken,
                         ),
-                        const ArsivKartListe(
+                        ArsivKartListe(
                           durum: 'null',
                           cevapladi: 'null',
                           cevapladi2: 'null',
                           bosMesaj: 'Harici belge yok',
                           bosIkon: Icons.upload_file_rounded,
+                          refreshToken: _yenileToken,
                         ),
                         FormSablonlari(isletmebilgi: widget.isletmebilgi),
                       ],

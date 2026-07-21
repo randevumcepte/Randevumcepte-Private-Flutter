@@ -13,6 +13,9 @@ class ArsivKartListe extends StatefulWidget {
   final String cevapladi2;
   final String bosMesaj;
   final IconData bosIkon;
+  // Disaridan (orn. yeni form eklenince) listeyi yeniden yuklemek icin token.
+  // Deger degisince didUpdateWidget tetiklenir ve liste resetlenir.
+  final int refreshToken;
 
   const ArsivKartListe({
     super.key,
@@ -21,6 +24,7 @@ class ArsivKartListe extends StatefulWidget {
     required this.cevapladi2,
     this.bosMesaj = 'Kayıt bulunamadı',
     this.bosIkon = Icons.inbox_outlined,
+    this.refreshToken = 0,
   });
 
   @override
@@ -59,6 +63,14 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
   Future<void> _baslat() async {
     _seciliSube = await secilisalonid();
     await _yukle(reset: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant ArsivKartListe oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshToken != widget.refreshToken && _seciliSube != null) {
+      _yukle(reset: true);
+    }
   }
 
   void _scrollDinle() {
@@ -304,7 +316,11 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
                                 durumRenk: durum.color,
                                 durumYazi: durum.text,
                                 onTap: () =>
-                                    ArsivDetayGosterDialog(context, a),
+                                    ArsivDetayGosterDialog(
+                                  context,
+                                  a,
+                                  onDegisti: () => _yukle(reset: true),
+                                ),
                               ),
                             );
                           },
