@@ -103,6 +103,49 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
     _ds!.setPage(page, _selectedDurum, _selectedOlusturma, _selectedTarih);
   }
 
+  // Sadece aktif (onay bekleyen/onayli), tahsilati eklenmemis ve gelecek tarihli
+  // randevular musteri tarafindan iptal edilebilir.
+  bool _iptalEdilebilir(Randevu r) {
+    if (r.durum != '0' && r.durum != '1') return false;
+    if (r.tahsilat_eklendi == '1' || r.tahsilat_eklendi == 'true') return false;
+    final dt = _parseTarih(r.tarih);
+    if (dt != null && dt.isBefore(DateTime.now())) return false;
+    return true;
+  }
+
+  Future<void> _iptalEt(Randevu r) async {
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        title: const Text('Randevuyu İptal Et'),
+        content: const Text(
+            'Bu randevuyu iptal etmek istediğinize emin misiniz? Bu işlem geri alınamaz.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, true),
+            child: const Text('İptal Et'),
+          ),
+        ],
+      ),
+    );
+    if (onay != true || !mounted) return;
+
+    // usertype "0" => durum 3 (musteri tarafindan iptal); paket randevusu ise
+    // backend ayrica adisyon_paket_seanslar kaydini siler.
+    final ok = await randevuiptalet(r.id, context, '0');
+    if (!mounted) return;
+    if (ok) {
+      _goToPage(_currentPage);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Randevunuz iptal edildi.')),
+      );
+    }
+  }
+
   int get _activeFilterCount {
     int n = 0;
     if (_selectedTarih != 'Tümü') n++;
@@ -1013,6 +1056,28 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
                     icon: Icons.history_rounded,
                     label: 'Oluşturulma',
                     value: _safeText(r.olusturulma)),
+                if (_iptalEdilebilir(r)) ...[
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _iptalEt(r);
+                      },
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('Randevuyu İptal Et'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: scheme.error,
+                        foregroundColor: scheme.onError,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             );
           },

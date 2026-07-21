@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -12,6 +13,8 @@ import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
 import 'package:randevu_sistem/Models/salonlar.dart';
 import 'package:randevu_sistem/randevualma/randevuozetonay.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
+import 'package:randevu_sistem/yonetici/randevular/musteri_paketleri_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RandevuAl extends StatefulWidget {
   @override
@@ -109,6 +112,8 @@ class AppointmentEditorState extends State<RandevuAl> {
           hizmetSecimHintText.map((e) => 'Hizmet seç...').toList();
       isletmehizmetliste = isletmehizmetleriliste;
     });
+    // Hizmet listesi hazir — musterinin paketi varsa paketten randevu teklif et.
+    await _paketKontrolu();
   }
 
   Future<void> initialize() async {
@@ -139,6 +144,8 @@ class AppointmentEditorState extends State<RandevuAl> {
       personelSecimHintText.add('Önce hizmet seçmeniz gerekir!');
       isloading = false;
     });
+    // Tek subeli isletmede hizmetler ilk yuklemede geldi — paket kontrolu burada.
+    if (seciliSube != null) await _paketKontrolu();
   }
 
   DateTime stringiDateTimeYap(String tarihString) {
@@ -241,6 +248,234 @@ class AppointmentEditorState extends State<RandevuAl> {
   void _hizmetSil(int index) {
     tarihSaatAdiminaGec();
     setState(() => randevuhizmetleri.removeAt(index));
+  }
+
+  // ── PAKETTEN RANDEVU ─────────────────────────────────────────────────────
+  // Musteri kendi paketinden randevu olusturabilsin. Yonetici tarafindaki
+  // appointment-editor._musteriPaketKontrolu ile AYNI mantik; tek fark musteri
+  // sabittir (SharedPreferences 'musteri'), oda/cihaz secimi yoktur.
+  //   paketRandevuOnayiGerekli=true  => popup ile secim
+  //   paketRandevuOnayiGerekli=false => popup yok, hepsi otomatik eklenir
+
+  /// Ayni salon icin popup'i bir kez sor (sube degisirse tekrar sorulur).
+  String? _paketKontroluSalonId;
+
+  /// Onay gerekmeyen senaryoda tum paket/hizmetleri satirlara ceviren yardimci.
+  List<Map<String, dynamic>> _tumPaketleriHizmetSatirlarinaCevir(
+      List<Map<String, dynamic>> paketDetaylari) {
+    final out = <Map<String, dynamic>>[];
+    for (final item in paketDetaylari) {
+      final isPaket = item['type'] == 'paket';
+      final icerik = (item['icerik'] as List?) ?? [];
+      for (final h in icerik) {
+        out.add({
+          'hizmet_id': h['id'],
+          'hizmet_adi': h['text']?.toString() ?? '',
+          'sure': h['sure'],
+          'seans': h['seans'],
+          'paket_sure': isPaket ? item['sure'] : null,
+          'paket_adi': isPaket ? item['adi']?.toString() : null,
+          'adisyon_paket_id': item['adisyon_paket_id'],
+          'adisyon_hizmet_id': item['adisyon_hizmet_id'],
+          'dusum_miktari': '1',
+        });
+      }
+    }
+    return out;
+  }
+
+  /// Hizmet suresini cozumle: paketten gelen sure > salon hizmet listesi > 30 dk.
+  int _hizmetSuresiCozumle(Map secim) {
+    final s1 = int.tryParse(secim['sure']?.toString() ?? '');
+    if (s1 != null && s1 > 0) return s1;
+    final hid = secim['hizmet_id']?.toString() ?? '';
+    if (hid.isNotEmpty) {
+      for (final h in isletmehizmetliste) {
+        if (h.hizmet_id == hid) {
+          final s2 = int.tryParse(h.sure.toString());
+          if (s2 != null && s2 > 0) return s2;
+          break;
+        }
+      }
+    }
+    return 30;
+  }
+
+  Future<void> _paketKontrolu() async {
+    final salonId = seciliSube?.id;
+    if (salonId == null || salonId.isEmpty) return;
+    if (_paketKontroluSalonId == salonId) return;
+    _paketKontroluSalonId = salonId;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final musteriRaw = prefs.getString('musteri');
+      if (musteriRaw == null || musteriRaw.isEmpty) return; // giris yapilmamis
+      final musteri = jsonDecode(musteriRaw);
+      final musteriId = musteri is Map ? musteri['id']?.toString() : null;
+      if (musteriId == null || musteriId.isEmpty) return;
+
+      final yanit = await paketVarmiKontrolu(musteriId, salonId);
+      if (!mounted) return;
+      if (yanit['paketVarMi'] != true) return;
+
+      final paketDetaylari = (yanit['paketDetaylari'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          <Map<String, dynamic>>[];
+      if (paketDetaylari.isEmpty) return;
+
+      final bool onayGerekli = yanit['paketRandevuOnayiGerekli'] == true;
+      final String? onayMetni = yanit['onayMetni']?.toString();
+
+      List<Map<String, dynamic>>? secilenler;
+      if (onayGerekli) {
+        secilenler = await showPaketSecimBottomSheet(
+          context: context,
+          userName: (yanit['userName'] as String?) ??
+              (musteri is Map ? (musteri['name']?.toString() ?? '') : ''),
+          paketDetaylari: paketDetaylari,
+          onayMetni: onayMetni,
+        );
+      } else {
+        secilenler = _tumPaketleriHizmetSatirlarinaCevir(paketDetaylari);
+      }
+      if (secilenler == null || secilenler.isEmpty || !mounted) return;
+
+      // Paket-bazli toplam sure: ayni pakete ait ILK satira paketin toplam
+      // suresi yazilir, sonrakiler 0 dk olur ki takvimde tek slot kaplasin.
+      final Map<String, int> paketToplamSure = {};
+      final Map<String, int> paketKalemToplam = {};
+      for (final s in secilenler) {
+        final pAdi = s['paket_adi']?.toString();
+        if (pAdi == null || pAdi.isEmpty) continue;
+        final pid = s['adisyon_paket_id']?.toString() ?? pAdi;
+        final pSure = int.tryParse(s['paket_sure']?.toString() ?? '');
+        if (pSure != null && pSure > 0) paketToplamSure[pid] = pSure;
+        paketKalemToplam[pid] =
+            (paketKalemToplam[pid] ?? 0) + _hizmetSuresiCozumle(s);
+      }
+      for (final pid in paketKalemToplam.keys) {
+        paketToplamSure.putIfAbsent(pid, () => paketKalemToplam[pid]!);
+      }
+      final Set<String> paketIlkAtildi = {};
+
+      // Hangi satirlara yazildigini tut — sonrasinda personel listesi cekilecek.
+      final List<MapEntry<int, String>> personelYuklenecek = [];
+
+      setState(() {
+        // Son satir bossa once onu doldur, sonrakiler yeni satir acar.
+        int? bosSatirIndex;
+        if (randevuhizmetleri.isNotEmpty &&
+            secilihizmet.isNotEmpty &&
+            secilihizmet.last == null) {
+          bosSatirIndex = randevuhizmetleri.length - 1;
+        }
+
+        for (final secim in secilenler!) {
+          final hizmetIdStr = secim['hizmet_id']?.toString() ?? '';
+          if (hizmetIdStr.isEmpty) {
+            log('paket secim atlandi: bos hizmet_id - $secim');
+            continue;
+          }
+
+          // Salon hizmet listesinde ara; yoksa yapay obje uret ve LISTEYE EKLE.
+          // (Aksi halde DropdownButton2 "exactly one item with value" atar.)
+          IsletmeHizmet hizmetObj;
+          final eslesen = isletmehizmetliste
+              .where((h) => h.hizmet_id == hizmetIdStr)
+              .toList();
+          if (eslesen.isNotEmpty) {
+            hizmetObj = eslesen.first;
+          } else {
+            hizmetObj = IsletmeHizmet(
+              hizmet_id: hizmetIdStr,
+              hizmet: {'hizmet_adi': secim['hizmet_adi']?.toString() ?? ''},
+              hizmet_kategorisi: null,
+              sure: secim['sure']?.toString() ?? '0',
+              fiyat: '0',
+              bolum: '',
+            );
+            isletmehizmetliste.add(hizmetObj);
+          }
+
+          final hamSureStr = _hizmetSuresiCozumle(secim).toString();
+          final paketAdi = secim['paket_adi']?.toString();
+          final adisyonPaketId = secim['adisyon_paket_id'];
+          final adisyonHizmetId = secim['adisyon_hizmet_id'];
+
+          String sureStr = hamSureStr;
+          if (paketAdi != null && paketAdi.isNotEmpty) {
+            final pid = adisyonPaketId?.toString() ?? paketAdi;
+            if (!paketIlkAtildi.contains(pid)) {
+              sureStr = (paketToplamSure[pid] ?? int.tryParse(hamSureStr) ?? 30)
+                  .toString();
+              paketIlkAtildi.add(pid);
+            } else {
+              sureStr = '0';
+            }
+          }
+
+          final yeniHizmet = RandevuHizmet(
+            hizmetler: hizmetObj.hizmet,
+            hizmet_id: hizmetIdStr,
+            personel_id: '',
+            personeller: null,
+            oda_id: '',
+            oda: null,
+            cihaz_id: '',
+            cihaz: null,
+            fiyat: '0', // paket — zaten odenmis
+            sure_dk: sureStr,
+            saat: '',
+            saat_bitis: '',
+            yardimci_personel: '',
+            birusttekiileaynisaat: '',
+            paket_adi: paketAdi,
+            adisyon_paket_id: adisyonPaketId,
+            adisyon_hizmet_id: adisyonHizmetId,
+            dusum_miktari: secim['dusum_miktari']?.toString() ?? '1',
+          );
+
+          int hedefIndex;
+          if (bosSatirIndex != null) {
+            hedefIndex = bosSatirIndex;
+            secilihizmet[hedefIndex] = hizmetObj;
+            randevuhizmetleri[hedefIndex] = yeniHizmet;
+            bosSatirIndex = null;
+          } else {
+            hedefIndex = randevuhizmetleri.length;
+            hizmet.add(TextEditingController());
+            personel.add(TextEditingController());
+            secilipersonel.add(null);
+            secilihizmet.add(hizmetObj);
+            filtreliPersonelListesi.add([]);
+            randevuhizmetleri.add(yeniHizmet);
+            hizmetSecimHintText.add('Hizmet seç...');
+            personelSecimHintText.add('Personel seç...');
+          }
+          personelYuklenecek.add(MapEntry(hedefIndex, hizmetIdStr));
+        }
+      });
+
+      // Her paket satiri icin personel listesini yukle (musteri kendi secer).
+      for (final e in personelYuklenecek) {
+        personelSecAdiminaGec(e.key, e.value);
+      }
+
+      if (mounted && personelYuklenecek.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '${personelYuklenecek.length} paket hizmeti randevuya eklendi. Personel ve saat seçin.'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e, st) {
+      log('musteri paket kontrolu hatasi: $e', stackTrace: st);
+    }
   }
 
   @override
