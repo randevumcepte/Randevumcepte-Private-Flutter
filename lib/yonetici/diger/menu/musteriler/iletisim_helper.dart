@@ -41,6 +41,156 @@ class IletisimHelper {
     }
   }
 
+  /// WhatsApp hazir link ayarlarini sunucuya kaydeder (web ile senkron).
+  /// Basarili ise {ok:true, konum_linki, instagram_linki, web_linki,
+  /// instagram_baslik, web_baslik} doner.
+  static Future<Map<String, dynamic>?> _ayarKaydet({
+    required String salonId,
+    required String konumLinki,
+    required String instaLinki,
+    required String instaBaslik,
+    required String webLinki,
+    required String webBaslik,
+  }) async {
+    try {
+      final r = await http
+          .post(
+            Uri.parse('$_api/whatsapp-ayar-kaydet'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'salon_id': salonId,
+              'konum_linki': konumLinki,
+              'instagram_linki': instaLinki,
+              'instagram_baslik': instaBaslik,
+              'web_linki': webLinki,
+              'web_baslik': webBaslik,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      final j = jsonDecode(r.body);
+      if (j is Map) return Map<String, dynamic>.from(j);
+      return {'ok': false, 'mesaj': 'Sunucu yaniti okunamadi.'};
+    } catch (e) {
+      return {'ok': false, 'mesaj': 'Baglanti hatasi: $e'};
+    }
+  }
+
+  /// Salon WhatsApp hazir link ayarlarini (link + baslik) duzenleme dialogu.
+  /// Kaydedilirse guncel degerleri (Map) doner, iptalde null.
+  static Future<Map<String, dynamic>?> _linkAyarDuzenle(
+    BuildContext context, {
+    required String salonId,
+    required String konumLinki,
+    required String instaLinki,
+    required String webLinki,
+    required String instaBaslik,
+    required String webBaslik,
+  }) {
+    final konumC = TextEditingController(text: konumLinki);
+    final instaLinkC = TextEditingController(text: instaLinki);
+    final instaBaslikC =
+        TextEditingController(text: instaBaslik == 'Instagram' ? '' : instaBaslik);
+    final webLinkC = TextEditingController(text: webLinki);
+    final webBaslikC =
+        TextEditingController(text: webBaslik == 'Web Sitesi' ? '' : webBaslik);
+    bool kaydediliyor = false;
+
+    return showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setSt) {
+          Widget alan(String label, TextEditingController c,
+              {String? hint, TextInputType? tip}) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: TextField(
+                controller: c,
+                keyboardType: tip,
+                decoration: InputDecoration(
+                  labelText: label,
+                  hintText: hint,
+                  isDense: true,
+                  border:
+                      OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            );
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('Baglantilari Duzenle', style: TextStyle(fontSize: 16)),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    alan('Konum linki', konumC,
+                        hint: 'https://maps.app.goo.gl/...',
+                        tip: TextInputType.url),
+                    const Divider(),
+                    alan('Instagram baslik', instaBaslikC, hint: 'Instagram'),
+                    alan('Instagram linki', instaLinkC,
+                        hint: 'https://instagram.com/...',
+                        tip: TextInputType.url),
+                    const Divider(),
+                    alan('Web baslik', webBaslikC, hint: 'Web Sitesi'),
+                    alan('Web linki', webLinkC,
+                        hint: 'https://...', tip: TextInputType.url),
+                    const Text(
+                      'Not: Bos birakilan link kaldirilir. Degisiklikler web ile senkron calisir.',
+                      style: TextStyle(fontSize: 11, color: Colors.black45),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: kaydediliyor ? null : () => Navigator.pop(ctx, null),
+                child: const Text('Vazgec'),
+              ),
+              ElevatedButton(
+                onPressed: kaydediliyor
+                    ? null
+                    : () async {
+                        setSt(() => kaydediliyor = true);
+                        final sonuc = await _ayarKaydet(
+                          salonId: salonId,
+                          konumLinki: konumC.text.trim(),
+                          instaLinki: instaLinkC.text.trim(),
+                          instaBaslik: instaBaslikC.text.trim(),
+                          webLinki: webLinkC.text.trim(),
+                          webBaslik: webBaslikC.text.trim(),
+                        );
+                        if (!ctx.mounted) return;
+                        if (sonuc != null && sonuc['ok'] == true) {
+                          Navigator.pop(ctx, sonuc);
+                        } else {
+                          setSt(() => kaydediliyor = false);
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                                content: Text(sonuc?['mesaj']?.toString() ??
+                                    'Kaydedilemedi.')),
+                          );
+                        }
+                      },
+                child: kaydediliyor
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Kaydet'),
+              ),
+            ],
+          );
+        });
+      },
+    );
+  }
+
   /// WhatsApp mesaj gonder akisi (web whatsapp_mesaj_modal ile ayni).
   /// - Salon WhatsApp bagliysa: mesaj yaz dialog (hazir link chip'leri + karakter sayaci)
   ///   -> sistemden gonder
@@ -61,17 +211,18 @@ class IletisimHelper {
     // Durumu ve linkleri al
     final durum = await _durumAl(salonId, userId: userId);
     final bagli = durum['bagli'] == true;
-    final konumLinki = (durum['konum_linki']?.toString() ?? '');
-    final instaLinki = (durum['instagram_linki']?.toString() ?? '');
-    final webLinki   = (durum['web_linki']?.toString() ?? '');
+    // Guncellenebilir (Duzenle sonrasi setSt ile tazelenir).
+    String konumLinki = (durum['konum_linki']?.toString() ?? '');
+    String instaLinki = (durum['instagram_linki']?.toString() ?? '');
+    String webLinki   = (durum['web_linki']?.toString() ?? '');
     // Ozel basliklar sunucudan (salon web'den degistirebiliyor) — web modal ile ayni.
     String basAl(String key, String vars) {
       final v = (durum[key]?.toString() ?? '').trim();
       return v.isEmpty ? vars : v;
     }
-    final konumBaslik = basAl('konum_baslik', 'Konumumuz');
-    final instaBaslik = basAl('instagram_baslik', 'Instagram');
-    final webBaslik   = basAl('web_baslik', 'Web Sitesi');
+    String konumBaslik = basAl('konum_baslik', 'Konumumuz');
+    String instaBaslik = basAl('instagram_baslik', 'Instagram');
+    String webBaslik   = basAl('web_baslik', 'Web Sitesi');
     final musteriOnay = durum['musteri_onay'] is int
         ? durum['musteri_onay'] as int
         : (int.tryParse(durum['musteri_onay']?.toString() ?? '0') ?? 0);
@@ -200,10 +351,57 @@ class IletisimHelper {
                         counterText: '$len / 1000',
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Text('Hazir Baglantilar:',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: () async {
+                            final yeni = await _linkAyarDuzenle(
+                              context,
+                              salonId: salonId,
+                              konumLinki: konumLinki,
+                              instaLinki: instaLinki,
+                              webLinki: webLinki,
+                              instaBaslik: instaBaslik,
+                              webBaslik: webBaslik,
+                            );
+                            if (yeni != null) {
+                              konumLinki = (yeni['konum_linki']?.toString() ?? '');
+                              instaLinki = (yeni['instagram_linki']?.toString() ?? '');
+                              webLinki = (yeni['web_linki']?.toString() ?? '');
+                              instaBaslik = ((yeni['instagram_baslik']?.toString().trim().isNotEmpty ?? false)
+                                  ? yeni['instagram_baslik'].toString()
+                                  : 'Instagram');
+                              webBaslik = ((yeni['web_baslik']?.toString().trim().isNotEmpty ?? false)
+                                  ? yeni['web_baslik'].toString()
+                                  : 'Web Sitesi');
+                              setSt(() {});
+                            }
+                          },
+                          icon: const Icon(Icons.edit, size: 15),
+                          label: const Text('Duzenle', style: TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            minimumSize: const Size(0, 30),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (konumLinki.isEmpty && instaLinki.isEmpty && webLinki.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 2),
+                        child: Text(
+                          'Henuz baglanti yok. "Duzenle" ile konum / Instagram / web ekleyin.',
+                          style: TextStyle(fontSize: 11, color: Colors.black45),
+                        ),
+                      ),
                     if (konumLinki.isNotEmpty || instaLinki.isNotEmpty || webLinki.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      const Text('Hazir Baglantilar:',
-                          style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6,
