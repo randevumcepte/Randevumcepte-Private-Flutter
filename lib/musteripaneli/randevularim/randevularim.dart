@@ -660,6 +660,35 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
                             ],
                           ),
                         ],
+                        // Onay bekleyen VE onayli randevular listeden dogrudan
+                        // iptal edilebilir (detay popup'ini acmaya gerek yok).
+                        if (_iptalEdilebilir(r)) ...[
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () => _iptalEt(r),
+                              icon: Icon(Icons.cancel_outlined,
+                                  size: 16, color: scheme.error),
+                              label: Text(
+                                'İptal Et',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: scheme.error,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(0, 32),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 2),
+                                tapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
