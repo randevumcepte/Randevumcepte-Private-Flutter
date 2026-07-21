@@ -312,37 +312,36 @@ class _SeansTakibiState extends State<SeansTakibi> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          '${item.paket}  ·  $baslangicTarih',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.black54,
-                            height: 1.15,
-                          ),
+                        // Tarih önemli: paket adı gerekirse kısalır ("..."),
+                        // başlangıç tarihi ise her zaman tam görünür.
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                item.paket,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                  height: 1.15,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '  ·  $baslangicTarih',
+                              maxLines: 1,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.black54,
+                                height: 1.15,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  // Web'deki gibi: lazer paket/hizmetlerde mor "Seans Dökümü" PDF ikonu
-                  if (_itemLazerMi(item))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1, right: 2),
-                      child: Material(
-                        color: const Color(0xFF5C008E),
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => _seansDokumuAc(item),
-                          child: const Padding(
-                            padding: EdgeInsets.all(7),
-                            child: Icon(Icons.picture_as_pdf,
-                                color: Colors.white, size: 18),
-                          ),
-                        ),
-                      ),
-                    ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 4, vertical: 2),
@@ -360,30 +359,55 @@ class _SeansTakibiState extends State<SeansTakibi> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-            child: Wrap(
-              spacing: 4,
-              runSpacing: 4,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _statChip(
-                    label: toplam.toString(),
-                    icon: Icons.add,
-                    bg: _primary,
-                    fg: Colors.white),
-                _statChip(
-                    label: item.bekleyenSeansSayisi.toString(),
-                    icon: Icons.calendar_month,
-                    bg: const Color(0xFFFFC107),
-                    fg: Colors.black87),
-                _statChip(
-                    label: item.gelinenSeansSayisi.toString(),
-                    icon: Icons.check,
-                    bg: const Color(0xFF2E7D32),
-                    fg: Colors.white),
-                _statChip(
-                    label: item.gelinmeyenSeansSayisi.toString(),
-                    icon: Icons.close,
-                    bg: const Color(0xFFD32F2F),
-                    fg: Colors.white),
+                Expanded(
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: [
+                      _statChip(
+                          label: toplam.toString(),
+                          icon: Icons.add,
+                          bg: _primary,
+                          fg: Colors.white),
+                      _statChip(
+                          label: item.bekleyenSeansSayisi.toString(),
+                          icon: Icons.calendar_month,
+                          bg: const Color(0xFFFFC107),
+                          fg: Colors.black87),
+                      _statChip(
+                          label: item.gelinenSeansSayisi.toString(),
+                          icon: Icons.check,
+                          bg: const Color(0xFF2E7D32),
+                          fg: Colors.white),
+                      _statChip(
+                          label: item.gelinmeyenSeansSayisi.toString(),
+                          icon: Icons.close,
+                          bg: const Color(0xFFD32F2F),
+                          fg: Colors.white),
+                    ],
+                  ),
+                ),
+                // Web'deki gibi mor "Seans Dökümü" PDF ikonu — sayaç satırının
+                // sağında, dikeyde ortalı (başlık/tarih satırını sıkıştırmaz).
+                if (_itemLazerMi(item)) ...[
+                  const SizedBox(width: 6),
+                  Material(
+                    color: const Color(0xFF5C008E),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => _seansDokumuAc(item),
+                      child: const Padding(
+                        padding: EdgeInsets.all(7),
+                        child: Icon(Icons.picture_as_pdf,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

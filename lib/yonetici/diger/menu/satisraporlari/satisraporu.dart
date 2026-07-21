@@ -93,7 +93,9 @@ class _SalesReportsPageState extends State<SalesReportsPage>
       if (force) _loaded[tab] = false;
     });
 
-    final salonId = widget.isletmebilgi['id'].toString();
+    // Seçili şube (Seans Takibi vb. ekranlarla tutarlı). isletmebilgi['id']
+    // çok şubeli hesapta seçili şubeden farklı olabiliyor -> rapor boş geliyordu.
+    final salonId = (await secilisalonid()) ?? widget.isletmebilgi['id'].toString();
     final start = DateFormat('yyyy-MM-dd').format(_ranges[tab]!.start);
     final end = DateFormat('yyyy-MM-dd').format(_ranges[tab]!.end);
     final personelId = _staff[tab]?.id ?? '';
@@ -142,7 +144,7 @@ class _SalesReportsPageState extends State<SalesReportsPage>
     _personellerLoading = true;
     try {
       _personeller = await personellistegetir(
-        widget.isletmebilgi['id'].toString(),
+        (await secilisalonid()) ?? widget.isletmebilgi['id'].toString(),
       );
     } catch (_) {
       _personeller = <Personel>[];
@@ -181,6 +183,9 @@ class _SalesReportsPageState extends State<SalesReportsPage>
           indicatorWeight: 3,
           indicatorColor: scheme.primary,
           labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+          // Eşit genişlikli sekmelerde "Personel"(+aktif nokta) sığmayıp 0.31px
+          // taşıyordu; iç boşluğu küçültünce içeriğe yer açılır, taşma biter.
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
           tabs: _tabs.map((t) {
             final active = _tabHasFilter(t);
             return Tab(
