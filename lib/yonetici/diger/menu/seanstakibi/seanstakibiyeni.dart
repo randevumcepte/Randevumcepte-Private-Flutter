@@ -702,8 +702,10 @@ class _SeansTakibiState extends State<SeansTakibi> {
     return (paketId, paketMi ?? false);
   }
 
-  // Mor PDF ikonu → sunucudan seans dökümü PDF'ini çekip önizlemede göster.
-  Future<void> _seansDokumuAc(SeansTakip item) async {
+  // Mor PDF ikonu → seans dökümü sayfasını HEMEN aç; PDF indirme sayfanın
+  // içinde yapılır (önce tam ekran spinner beklemek yerine sayfa geçişi ile
+  // ağ isteği paralel yürür → algılanan açılış süresi belirgin kısalır).
+  void _seansDokumuAc(SeansTakip item) {
     final (paketId, paketMi) = _pdfParametreleri(item);
     if (paketId == null || paketId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -712,35 +714,17 @@ class _SeansTakibiState extends State<SeansTakibi> {
       );
       return;
     }
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      final bytes = await seansDokumuPdfGetir(
+    final cacheKey = '${paketMi ? 'p' : 'h'}:$paketId';
+    // Ayni kayit ikinci kez acilirsa ag istegi tekrarlanmasin.
+    final onbellek = _SeansDokumuPdfPage.onbellek[cacheKey];
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _SeansDokumuPdfPage(
+        cacheKey: cacheKey,
+        hazirBytes: onbellek,
         adisyonPaketId: paketMi ? paketId : null,
         adisyonHizmetId: paketMi ? null : paketId,
-      );
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // yükleniyor kapat
-      if (bytes.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF içeriği boş döndü.')),
-        );
-        return;
-      }
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => _SeansDokumuPdfPage(pdfBytes: bytes),
-      ));
-    } catch (e, st) {
-      log('seans dokumu pdf hata: $e\n$st');
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF alınırken bir hata oluştu.')),
-      );
-    }
+      ),
+    ));
   }
 
   Widget _cihazBilgileriButon(SeansTakip item, _HizmetGroup group) {
@@ -1241,12 +1225,63 @@ class _HizmetGroup {
 }
 
 /// Sunucudan gelen seans dökümü PDF'ini önizleyen sayfa (yazdır/paylaş dahil).
-class _SeansDokumuPdfPage extends StatelessWidget {
-  final Uint8List pdfBytes;
-  const _SeansDokumuPdfPage({required this.pdfBytes});
+/// PDF'i kendisi indirir; sayfa aninda acilir, indirme sirasinda spinner gosterir.
+class _SeansDokumuPdfPage extends StatefulWidget {
+  /// Oturum boyu PDF onbellegi (ayni kayit tekrar acilinca aninda gelir).
+  static final Map<String, Uint8List> onbellek = {};
+
+  final String cacheKey;
+  final Uint8List? hazirBytes;
+  final String? adisyonPaketId;
+  final String? adisyonHizmetId;
+
+  const _SeansDokumuPdfPage({
+    required this.cacheKey,
+    this.hazirBytes,
+    this.adisyonPaketId,
+    this.adisyonHizmetId,
+  });
+
+  @override
+  State<_SeansDokumuPdfPage> createState() => _SeansDokumuPdfPageState();
+}
+
+class _SeansDokumuPdfPageState extends State<_SeansDokumuPdfPage> {
+  static const Color _primary = Color(0xFF6A1B9A);
+
+  Uint8List? _bytes;
+  String? _hata;
+
+  @override
+  void initState() {
+    super.initState();
+    _bytes = widget.hazirBytes;
+    if (_bytes == null) _yukle();
+  }
+
+  Future<void> _yukle() async {
+    try {
+      final bytes = await seansDokumuPdfGetir(
+        adisyonPaketId: widget.adisyonPaketId,
+        adisyonHizmetId: widget.adisyonHizmetId,
+      );
+      if (!mounted) return;
+      if (bytes.isEmpty) {
+        setState(() => _hata = 'PDF içeriği boş döndü.');
+        return;
+      }
+      _SeansDokumuPdfPage.onbellek[widget.cacheKey] = bytes;
+      setState(() => _bytes = bytes);
+    } catch (e, st) {
+      log('seans dokumu pdf hata: $e\n$st');
+      if (!mounted) return;
+      setState(() => _hata = 'PDF alınırken bir hata oluştu.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bytes = _bytes;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -1260,13 +1295,40 @@ class _SeansDokumuPdfPage extends StatelessWidget {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
         ),
       ),
-      body: PdfPreview(
-        build: (format) => pdfBytes,
-        canChangePageFormat: false,
-        canChangeOrientation: false,
-        canDebug: false,
-        pdfFileName: 'seans-dokumu.pdf',
-      ),
+      body: _hata != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  _hata!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.black54),
+                ),
+              ),
+            )
+          : bytes == null
+              ? const Center(
+                  child: CircularProgressIndicator(color: _primary),
+                )
+              : PdfPreview(
+                  build: (format) => bytes,
+                  canChangePageFormat: false,
+                  canChangeOrientation: false,
+                  canDebug: false,
+                  // Sunucudan gelen PDF sabit; format degisimi ile yeniden
+                  // uretim/raster tetiklenmesin.
+                  dynamicLayout: false,
+                  // Raster maliyeti dpi'nin karesiyle artiyor; ekranda okunakli
+                  // kalan daha dusuk bir dpi ile ilk kare belirgin hizlaniyor.
+                  dpi: 110,
+                  pdfFileName: 'seans-dokumu.pdf',
+                  // Alt bardaki yazdir/paylas ikonlari beyaz olsun.
+                  actionBarTheme: const PdfActionBarTheme(
+                    backgroundColor: _primary,
+                    iconColor: Colors.white,
+                    textStyle: TextStyle(color: Colors.white),
+                  ),
+                ),
     );
   }
 }
