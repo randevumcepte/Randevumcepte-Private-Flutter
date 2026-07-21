@@ -45,6 +45,8 @@ import 'Login Sayfası/checklogin.dart';
 import 'Login Sayfası/tanitim.dart';
 import 'Models/masrafkategorileri.dart';
 import 'Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Frontend/lisans_uyari.dart';
+import 'package:randevu_sistem/yonetici/hesabim/hesabim_ekrani.dart';
 import 'Models/personel.dart';
 import 'Models/user.dart';
 
@@ -97,6 +99,10 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
   @override
   void initState()  {
     super.initState();
+    // Lisans bittiyse panel yerine yalnizca Hesabim ekrani gosterilir;
+    // bildirim yonlendirmeleri (bloklu ekranlara) ve token kaydi kurulmaz.
+    final lisansBitti = lisansBittiMi(
+        widget.isletmebilgi is Map ? widget.isletmebilgi['uyelik_bitis_tarihi'] : null);
     giderleriGetir();
     _isPageBuilt.setAll(0, [true, false, false, false, false]);
     // Yetki cache'i ekran acilirken bir kez daha tazele. Login/SubeSecimi'nde
@@ -123,13 +129,15 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
     ];
     // SIP/softphone kaldirildi; FCM/VoIP token kaydi (bildirimler icin) korunur.
-    if(dahili != null && dahili != "null" && dahili.isNotEmpty){
+    if(!lisansBitti && dahili != null && dahili != "null" && dahili.isNotEmpty){
       setupVoipAndFcmTokenListener();
     }
 
     // Bildirim tıklamasından gelen yönlendirme niyetlerini dinle.
-    NotificationNavigationBus.current.addListener(_handleNotificationIntent);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationIntent());
+    if (!lisansBitti) {
+      NotificationNavigationBus.current.addListener(_handleNotificationIntent);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationIntent());
+    }
   }
 
   void _handleNotificationIntent() {
@@ -910,6 +918,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
   @override
   Widget build(BuildContext context) {
+    // Lisans bitti / henuz aktif degil -> panel yerine yalnizca Hesabim
+    // ekranina erisim ver; uyari banner'i orada gosterilir.
+    if (lisansBittiMi(
+        widget.isletmebilgi is Map ? widget.isletmebilgi['uyelik_bitis_tarihi'] : null)) {
+      return HesabimEkrani(isletmebilgi: widget.isletmebilgi, lisansBitti: true);
+    }
     return WillPopScope(
       onWillPop: () async {
         if (_isMenuOpen) {

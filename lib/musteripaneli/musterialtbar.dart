@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/Frontend/lisans_uyari.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -145,6 +146,11 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
 
   @override
   Widget build(BuildContext context) {
+    // Secili isletmenin lisansi bittiyse musteriye iletisim/adres ekrani goster.
+    if (lisansBittiMi(
+        widget.isletmebilgi is Map ? widget.isletmebilgi['uyelik_bitis_tarihi'] : null)) {
+      return LisansBittiEkrani(isletmebilgi: widget.isletmebilgi, isMusteri: true);
+    }
     return WillPopScope(
       onWillPop: () async {
         if (_selectedTab != 0) {
