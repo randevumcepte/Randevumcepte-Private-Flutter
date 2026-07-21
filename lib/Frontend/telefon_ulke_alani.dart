@@ -596,6 +596,31 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
 
     final renk = widget.renk ?? Theme.of(context).colorScheme.primary;
 
+    // Ulke kodu ve numara AYNI yazi stilini kullanmali; yoksa "+90" ile rakamlar
+    // farkli punto/taban cizgisinde durup kayik gorunuyor.
+    final metinStili = widget.style ?? Theme.of(context).textTheme.titleMedium;
+
+    // Cerceve yoksa alan, disaridaki kutunun (InputDecorator) icine gomuluyor:
+    // temanin dolgu/kenarlik/padding'i ikinci bir input gibi gorunmesin diye
+    // sifirlanir. Cagiran contentPadding verdiyse ona dokunulmaz.
+    var alanSusleme = taban.copyWith(
+      hintText: widget.hint ?? (tr ? '### ### ## ##' : 'Numara'),
+    );
+    if (!widget.cerceveli) {
+      alanSusleme = alanSusleme.copyWith(
+        filled: false,
+        isDense: true,
+        isCollapsed: true,
+        contentPadding: taban.contentPadding ?? EdgeInsets.zero,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+      );
+    }
+
     return Row(
       crossAxisAlignment:
           widget.cerceveli ? CrossAxisAlignment.start : CrossAxisAlignment.center,
@@ -607,8 +632,8 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
             borderRadius: BorderRadius.circular(8),
             child: Container(
               padding: EdgeInsets.symmetric(
-                  horizontal: widget.cerceveli ? 10 : 4,
-                  vertical: widget.cerceveli ? 14 : 6),
+                  horizontal: widget.cerceveli ? 10 : 0,
+                  vertical: widget.cerceveli ? 14 : 0),
               decoration: widget.cerceveli
                   ? BoxDecoration(
                       border: Border.all(color: Colors.grey.shade400),
@@ -619,11 +644,11 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(u?.bayrak ?? '🌐',
-                      style: const TextStyle(fontSize: 18)),
+                      style: TextStyle(fontSize: (metinStili?.fontSize ?? 16) + 2)),
                   const SizedBox(width: 4),
                   Text(
                     _kod,
-                    style: (widget.style ?? const TextStyle())
+                    style: (metinStili ?? const TextStyle())
                         .copyWith(fontWeight: FontWeight.w700),
                   ),
                   if (widget.enabled)
@@ -646,11 +671,9 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
             enabled: widget.enabled,
             keyboardType: TextInputType.phone,
             maxLines: 1,
-            style: widget.style,
+            style: metinStili,
             cursorColor: widget.cursorColor ?? renk,
-            decoration: taban.copyWith(
-              hintText: widget.hint ?? (tr ? '### ### ## ##' : 'Numara'),
-            ),
+            decoration: alanSusleme,
             inputFormatters: tr
                 ? [_trFmt]
                 : [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
