@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
@@ -36,10 +36,6 @@ class Yenimusteri extends StatefulWidget {
 }
 
 class _YenimusteriState extends State<Yenimusteri> {
-  final phoneMask = MaskTextInputFormatter(
-    mask: '0### ### ## ##',
-    filter: {"#": RegExp(r'[0-9]')},
-  );
   final List<Referans> musterireferans = [
     Referans(id: "", referans: "Yok"),
     Referans(id: "1", referans: "İnternet"),
@@ -177,30 +173,7 @@ class _YenimusteriState extends State<Yenimusteri> {
                 const SizedBox(height: 18),
                 _sectionTitle(
                     'İletişim', Icons.contact_mail_outlined, primary),
-                _buildField(
-                  label: 'Telefon Numarası',
-                  icon: Icons.phone_outlined,
-                  controller: telefon,
-                  primary: primary,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [phoneMask],
-                  onTap: () {
-                    if (telefon.text.length < 2) {
-                      telefon.text = "0";
-                    }
-                    telefon.selection = TextSelection.fromPosition(
-                      TextPosition(offset: telefon.text.length),
-                    );
-                  },
-                  onChanged: (value) {
-                    if (!value.startsWith("0")) {
-                      telefon.text = "0";
-                      telefon.selection = TextSelection.fromPosition(
-                        TextPosition(offset: telefon.text.length),
-                      );
-                    }
-                  },
-                ),
+                _buildTelefonField(primary),
                 _buildField(
                   label: 'E-posta',
                   icon: Icons.email_outlined,
@@ -320,6 +293,57 @@ class _YenimusteriState extends State<Yenimusteri> {
               fontSize: 14.5,
               color: Colors.grey[800],
               letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Telefon: ulke kodu secici + numara. Diger alanlarla ayni kutu tasarimi.
+  Widget _buildTelefonField(Color primary) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(
+              'Telefon Numarası',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey[200]!, width: 1),
+            ),
+            child: TelefonUlkeAlani(
+              controller: telefon,
+              cerceveli: false,
+              cursorColor: primary,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[900],
+              ),
+              decoration: InputDecoration(
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13.5,
+                ),
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+              ),
             ),
           ),
         ],

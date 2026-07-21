@@ -4,7 +4,7 @@ import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 
 // ! import here file animate
@@ -27,10 +27,6 @@ class SifremiUnuttum extends StatefulWidget {
 }
 
 class _SifremiUnuttumState extends State<SifremiUnuttum> {
-  final phoneMask = MaskTextInputFormatter(
-    mask: '0### ### ## ##',
-    filter: { "#": RegExp(r'[0-9]') },
-  );
 TextEditingController ceptelefon = TextEditingController();
   @override
   void initState() {
@@ -166,37 +162,11 @@ TextEditingController ceptelefon = TextEditingController();
                               Expanded(
                                 child: Container(
                                   margin: const EdgeInsets.only(left: 10),
-                                  child: TextFormField(
-                                    inputFormatters: [phoneMask],
+                                  child: TelefonUlkeAlani(
                                     controller: ceptelefon,
-                                    onSaved: (value) {
-                                      ceptelefon.text = value!;
-                                    },
-                                    onTap: () {
-                                      if (ceptelefon.text.length < 2) {
-                                        ceptelefon.text = "0";
-                                      }
-                                      ceptelefon.selection =
-                                          TextSelection.fromPosition(
-                                            TextPosition(
-                                                offset: ceptelefon.text.length),
-                                          );
-                                    },
-                                    onChanged: (value) {
-                                      if (!value.startsWith("0")) {
-                                        ceptelefon.text = "0";
-                                        ceptelefon.selection =
-                                            TextSelection.fromPosition(
-                                              TextPosition(
-                                                  offset: ceptelefon.text.length),
-                                            );
-                                      }
-                                    },
-                                    keyboardType: TextInputType.number,
-                                    maxLines: 1,
+                                    cerceveli: false,
+                                    hint: " Telefon Numarası",
                                     decoration: const InputDecoration(
-                                      hintText:
-                                      " Telefon Numarası (başında 0 olmadan)",
                                       hintStyle: TextStyle(fontSize: 14.2),
                                       border: InputBorder.none,
                                     ),

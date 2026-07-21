@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
@@ -63,10 +63,8 @@ class _HomeState extends State<LoginPage> {
         _autoValidate = AutovalidateMode.always;
       });
     }
-  } final phoneMask = MaskTextInputFormatter(
-    mask: '0### ### ## ##',
-    filter: { "#": RegExp(r'[0-9]') },
-  );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -218,47 +216,15 @@ class _HomeState extends State<LoginPage> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          TextFormField(
-                            keyboardType: TextInputType.number,
-                            maxLines: 1,
+                          TelefonUlkeAlani(
                             controller: ceptelefon,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Telefon',
-                              hintText: '0### ### ## ##',
-                              prefixIcon: const Icon(Icons.phone_in_talk_rounded),
+                              prefixIcon: Icon(Icons.phone_in_talk_rounded),
                             ),
-                            inputFormatters: [phoneMask],
-                            validator: (telefonNo) {
-                              if (telefonNo!.isEmpty) {
-                                return 'Telefon alanı gereklidir';
-                              }
-                              cep_telefon = telefonNo;
-                              ceptelefon.text = telefonNo;
-                              return null;
-                            },
-                            onSaved: (String? val) {
-                              cep_telefon = val;
-                              ceptelefon.text = val!;
-                            },
-                            onTap: () {
-                              if (ceptelefon.text.length < 2) {
-                                ceptelefon.text = "0";
-                              }
-                              ceptelefon.selection =
-                                  TextSelection.fromPosition(
-                                TextPosition(offset: ceptelefon.text.length),
-                              );
-                            },
-                            onChanged: (value) {
-                              if (!value.startsWith("0")) {
-                                ceptelefon.text = "0";
-                                ceptelefon.selection =
-                                    TextSelection.fromPosition(
-                                  TextPosition(
-                                      offset: ceptelefon.text.length),
-                                );
-                              }
-                            },
+                            // ceptelefon.text = backend'e gidecek deger
+                            // (TR: 5321234567 / yabanci: +355691234567)
+                            onChanged: (deger) => cep_telefon = deger,
                           ),
                           const SizedBox(height: 14),
                           TextFormField(
@@ -452,6 +418,8 @@ class _HomeState extends State<LoginPage> {
   }
 
   void _login() async {
+    // Telefon alani ulke kodunu da iceren backend degerini controller'da tutar
+    cep_telefon = ceptelefon.text;
     SharedPreferences localStorage = await SharedPreferences.getInstance();
     var oneSignalId = localStorage.getString('onesignal_player_id');
     showProgressLoading(context);
