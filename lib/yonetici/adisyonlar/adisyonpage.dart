@@ -810,7 +810,11 @@
                                         adisyonId: adisyon.id,
                                       ),
                                     ),
-                                  ).then((_) async {
+                                  ).then((sonuc) async {
+                                    // Sadece tahsilat gercekten yapildiysa (ekran
+                                    // true dondurur) yenile + bildirim goster.
+                                    // Carpi/geri ile cikista sonuc null gelir.
+                                    if (sonuc != true) return;
                                     await _refreshAdisyonAfterPayment(
                                         adisyon, isOpenTab);
                                   });

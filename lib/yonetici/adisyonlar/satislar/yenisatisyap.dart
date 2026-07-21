@@ -399,8 +399,20 @@ class _SatisEkraniState extends State<SatisEkrani> {
         final Adisyon a = Adisyon.fromJson(j);
         final double odenen =
             double.tryParse(a.odenen_numeric.replaceAll(',', '.')) ?? 0;
-        if (odenen <= 0 && a.acilis_tarihi == bugunGosterim) {
-          log('[acik-adisyon] musteri=$musteriId secilen=${a.id}');
+        final double kalan =
+            double.tryParse(a.kalan_tutar_numeric.replaceAll(',', '.')) ?? 0;
+        // BIRLESTIRME KURALI (kati): yalnizca AYNI GUN acilmis ve HIC odeme
+        // alinmamis adisyon. Kismi odeme de kapsam disi. Kapanmis adisyona
+        // kalem yazmak muhasebeyi bozdugu icin uc ayri guvence birlikte aranir:
+        //  1) odenen_numeric <= 0  → kalem bazli hic tahsilat yok
+        //  2) son_tahsilat_tarihi bos → adisyon bazli hic tahsilat kaydi yok
+        //     (kalemlere baglanmamis tahsilati da yakalar; odenen 0 gorunse bile eler)
+        //  3) kalan_tutar_numeric > 0 → hala odenecek bakiye var
+        //     (indirim/hediye ile sifirlanip fiilen kapanmis adisyonu eler)
+        final bool hicOdemeYok =
+            odenen <= 0 && a.son_tahsilat_tarihi.trim().isEmpty && kalan > 0;
+        if (hicOdemeYok && a.acilis_tarihi == bugunGosterim) {
+          log('[acik-adisyon] musteri=$musteriId secilen=${a.id} (odenen=$odenen kalan=$kalan)');
           return a.id;
         }
       }

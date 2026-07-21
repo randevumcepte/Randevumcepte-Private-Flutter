@@ -2346,7 +2346,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                  onPressed: (){
+                  onPressed: () async {
                     bool formisvalid = true;
                     String warningtext = "Tahsilatı kaydetmeden önce aşağıdaki hataları düzeltmeniz gerekmektedir!";
                     if(odenecek_tutar.text=="" || odenecek_tutar.text=="0,00")
@@ -2379,7 +2379,18 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       );
 
                     else{
-                      tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
+                      // await sart: tahsilet kendi progress dialog'unu acip
+                      // kapatiyor. Await edilmezse asagidaki pop en ustteki
+                      // route'u (progress dialog) kapatir, ekran ise backend'in
+                      // pop'u ile sonucsuz kapanir -> cagiran taraf tahsilatin
+                      // yapildigini anlayamaz.
+                      try {
+                        await tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
+                      } catch (e) {
+                        // Hata mesajini tahsilet kendisi gosterdi; ekranda kal.
+                        return;
+                      }
+                      if (!mounted) return;
 
                       setState(() {
                         adisyonkalemleri.clear();
@@ -2391,7 +2402,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                       });
                       initialize();
-                      Navigator.of(context).pop(); //tahsilat yaptıktan sonra kapanması için eklendi bu satır.
+                      // true dondur: cagiran taraf tahsilatin gercekten yapildigini
+                      // bu sonuctan anlar. Carpi ile cikista sonuc null kalir ve
+                      // "Tahsilat islemi tamamlandi" bildirimi gosterilmez.
+                      Navigator.of(context).pop(true); //tahsilat yaptıktan sonra kapanması için eklendi bu satır.
                     }
 
 
