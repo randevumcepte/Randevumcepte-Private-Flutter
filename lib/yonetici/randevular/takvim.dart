@@ -946,11 +946,18 @@ class TakvimState extends State<Takvim> with RouteAware {
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () => _changeDateByDays(-1),
                 ),
-                GestureDetector(
-                  onTap: _pickDate,
-                  child: Text(
-                    formattedDate,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                Flexible(
+                  child: GestureDetector(
+                    onTap: _pickDate,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        formattedDate,
+                        maxLines: 1,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
                 ),
                 IconButton(
