@@ -64,6 +64,14 @@ class IletisimHelper {
     final konumLinki = (durum['konum_linki']?.toString() ?? '');
     final instaLinki = (durum['instagram_linki']?.toString() ?? '');
     final webLinki   = (durum['web_linki']?.toString() ?? '');
+    // Ozel basliklar sunucudan (salon web'den degistirebiliyor) — web modal ile ayni.
+    String basAl(String key, String vars) {
+      final v = (durum[key]?.toString() ?? '').trim();
+      return v.isEmpty ? vars : v;
+    }
+    final konumBaslik = basAl('konum_baslik', 'Konumumuz');
+    final instaBaslik = basAl('instagram_baslik', 'Instagram');
+    final webBaslik   = basAl('web_baslik', 'Web Sitesi');
     final musteriOnay = durum['musteri_onay'] is int
         ? durum['musteri_onay'] as int
         : (int.tryParse(durum['musteri_onay']?.toString() ?? '0') ?? 0);
@@ -204,33 +212,35 @@ class IletisimHelper {
                           if (konumLinki.isNotEmpty)
                             _linkChip(
                               icon: '📍',
-                              label: 'Konum Ekle',
+                              label: '$konumBaslik Ekle',
                               bg: const Color(0xFFEFF6FF),
                               fg: const Color(0xFF1D4ED8),
                               onTap: () {
-                                ekleLink('📍', 'Konumumuz', konumLinki);
+                                // Web ile ayni: emoji 📍, etiket ozel baslik
+                                ekleLink('📍', konumBaslik, konumLinki);
                                 setSt(() {});
                               },
                             ),
                           if (instaLinki.isNotEmpty)
                             _linkChip(
                               icon: '📷',
-                              label: 'Instagram Ekle',
+                              label: '$instaBaslik Ekle',
                               bg: const Color(0xFFFDF2F8),
                               fg: const Color(0xFFBE185D),
                               onTap: () {
-                                ekleLink('📷', 'Instagram', instaLinki);
+                                // Web ile ayni: emoji 🔗, etiket salonun ozel basligi
+                                ekleLink('🔗', instaBaslik, instaLinki);
                                 setSt(() {});
                               },
                             ),
                           if (webLinki.isNotEmpty)
                             _linkChip(
                               icon: '🌐',
-                              label: 'Web Ekle',
+                              label: '$webBaslik Ekle',
                               bg: const Color(0xFFECFDF5),
                               fg: const Color(0xFF047857),
                               onTap: () {
-                                ekleLink('🌐', 'Web', webLinki);
+                                ekleLink('🔗', webBaslik, webLinki);
                                 setSt(() {});
                               },
                             ),
