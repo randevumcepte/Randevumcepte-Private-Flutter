@@ -42,6 +42,13 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
   final _metin = TextEditingController();
   final _not = TextEditingController();
 
+  // Odeme sekli / taksit (opsiyonel)
+  String _odemeSekli = 'pesin'; // pesin | taksit | kredi_karti
+  final _taksitSayisi = TextEditingController();
+  final _taksitTutari = TextEditingController();
+  DateTime? _ilkTaksit;
+  DateTime? _gecerlilik;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +63,8 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
     _kapora.dispose();
     _metin.dispose();
     _not.dispose();
+    _taksitSayisi.dispose();
+    _taksitTutari.dispose();
     super.dispose();
   }
 
@@ -80,27 +89,94 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
     if (mounted) setState(() => _yukleniyor = false);
   }
 
-  String _isletmeAdi() {
-    final v = widget.isletmebilgi;
-    if (v is Map) {
-      for (final k in const ['salon_adi', 'isletme_adi', 'ad', 'name']) {
-        final val = v[k];
-        if (val != null && val.toString().trim().isNotEmpty) {
-          return val.toString();
-        }
-      }
-    }
-    return 'İşletmemiz';
+  String _varsayilanMetin() {
+    // Web ile ayni 8 maddelik genel sozlesme metni (MERKEZ = isletme).
+    return '''1- SÖZLEŞMENİN KONUSU VE KAPSAMI
+İşbu sözleşmenin konusu, MÜŞTERİ tarafından MERKEZ'den satın aldığı aşağıda detayları belirtilen lazer, bakım ve güzellik hizmetlerinin (bundan böyle "HİZMET" olarak anılacaktır) şartlarının, hizmetlerin sunulmasının, ödeme koşullarının ve tarafların hak ve yükümlülüklerinin belirlenmesidir.
+2- ÖDEME ŞEKLİ VE KOŞULLARI
+2.1- ÖDEME YÖNTEMİ
+Nakit, Kredi Kart (tek çekim, taksit), elden taksit (vade tarihleri ekli ödeme planında belirtilir)
+2.2- Müşteri taksitli işlemlerde ödemeleri belirtilen vadelerde yapmakla yükümlüdür. Ödemelerin gecikmesi durumunda MERKEZ, yasal faiz talep etme ve kalan borcunun tamamını muaccel kılma hakkını saklı tutar.
+2.3- Hizmet bedeli ödenmeden veya ödeme planına uygulamadan hizmetin ifasına devam edilip edilmeyeceği MERKEZ'in inisiyatifindedir.
+3- TARAFLARIN HAK VE YÜKÜMLÜLÜKLERİ
+3.1- MERKEZ'İN YÜKÜMLÜLÜKLERİ
+Merkez, hizmeti mesleki standartlara uygun, hijyen kurallarına bağlı, konusunda uzman personel tarafından ve taahhüt edilen standartlarda sunmak, kullanılan cihaz ve ürünlerin standartlara uygunluğunu sağlamak ve müşteriye sözleşme şartlarına uygun olarak hizmet vermekle yükümlüdür.
+3.2- MÜŞTERİ'NİN YÜKÜMLÜLÜKLERİ VE SAĞLIK BEYANI
+Sağlık Beyanı: Müşteri, hamilelik, epilepsi, kalp pili, açık yara, cilt hastalıkları, kanser tedavisi, hormon bozuklukları veya düzenli kullandığı ilaçlar gibi hizmetin uygulanmasında engel olabilecek veya risk oluşturabilecek tüm sağlık durumlarını MERKEZ'e yazılı olarak bildirmek zorundadır.
+Müşteri, yanlış veya eksik sağlık beyanından kaynaklanabilecek komplikasyonlardan, yan etkilerden veya hizmetin sonuç vermemesinden MERKEZ'in sorumlu tutulmayacağını kabul ve beyan eder.
+İşlem Sonrası Bakım: Müşteri, işlem sonrasında kendisine iletilen (güneşten korunma, su teması vb.) bakım talimatlarına uymak zorundadır. Talimatlara uyulmaması sonucu oluşacak leke, tahriş veya sonuç almama durumlarında MERKEZ sorumlu değildir. Müşteri, işbu sorumluluğun kendisinde olduğunu kabul ve beyan edip, tüm talimatlara eksiksiz uyacağını taahhüt eder.
+3.3- TIBBİ İŞLEM UYARISI
+Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık teşhis, tedavi yöntemi" olmadığını ve bakım amaçlı uygulamalar olduğunu, %100 sonuç garantisi verilmeyeceğini (kıl yapısı, hormon dengesi, cilt tipi gibi biyolojik faktörlere bağlı olarak) bildiğini kabul eder. Ve hizmetin etkilerinin kişisel özelliklere göre değişebileceğini, garanti sonuç talep etmeyeceğini, kendisinden kaynaklı bir durum ortaya çıktığında bunun MERKEZ'den kaynaklı olmadığını kabul ve beyan eder.
+4- RANDEVU, İPTAL VE ERTELEME POLİTİKASI
+4.1- MERKEZ, planlanmış randevulara ilişkin hatırlatma mesajını müşterinin bildirdiği telefon numarasına SMS, WhatsApp yolu ile bilgilendirme yapmakla yükümlüdür.
+4.2- Müşteri de randevu saatine tam zamanında gelmekle yükümlüdür. 15 dakikayı aşan gecikmelerde MERKEZ, seansı iptal etme ve süreyi kısaltma hakkına sahiptir.
+4.3- Randevu iptali veya erteleme talepleri, randevu saatinden en az 24 saat önce MERKEZ'e bildirilmelidir.
+4.4- Mazeretsiz Gelmeme (No-Show): 24 saat önceden haber verilmeksizin randevuya gelinmemesi durumunda, ilgili seans "kullanılmış, yapılmış" sayılır ve paket hakkından düşülür. Müşteri bu durumda herhangi bir hak iddia edemez. Müşteri bu durumu eksiksiz kabul ve beyan eder.
+4.5- Alınan hizmet paketleri, sözleşmede belirtilen süre içerisinde kullanılmalıdır. MÜŞTERİ'nin kendi kusurlarından kaynaklanan gecikmelerde süre uzatımı talep edemez. Ancak MERKEZ mücbir bir sebep varlığında ya da işletmeden kaynaklı zorunluluklar halinde süre uzatımı yapabilir.
+5- CAYMA HAKKI, FESİH VE İADE KOŞULLARI
+5.1- Cayma Hakkı: Müşteri sözleşmenin imzalandığı tarihten itibaren 14 (on dört) gün içinde, hizmet alımına başlanmamış olması kaydıyla, herhangi bir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahiptir.
+5.2- Hizmet Başladıktan Sonra Fesih: Hizmetin ifasına başlandıktan (ilk seans yapıldıktan) sonra mücbir nedenlerle sözleşmenin feshedilmesi durumunda; kullanılan seanslar liste fiyatı (indirimli paket fiyatı değil, tek seans birim fiyatı) üzerinden hesaplanır. Toplam ödenen tutardan, kullanılan seansların liste fiyatı bedeli düşülerek kalan tutar iade edilir. Ancak MÜŞTERİ tarafından keyfi nedenlerle sözleşmenin feshedilmesi durumunda işbu sözleşme muaccel hale gelir ve ödenen bedeller geri iade edilmez. Müşteri bunu kabul ettiğini beyan eder.
+5.3- MERKEZ'den kaynaklanan kusurlu hizmet (ayıplı hizmet) durumunda, MÜŞTERİ'nin 6502 sayılı kanundan doğan bedel iadesi veya hizmetin yeniden görülmesi hakları saklıdır.
+6- HİZMETİN DEVİR VE İADESİ
+6.1- İşbu yapılan hizmet sözleşmesi sadece sözleşmeyi imzalayan MÜŞTERİ'yi bağlar. Alınan hizmet herhangi başka birine devredilemez.
+6.2- MÜŞTERİ tarafından alınan hizmet bir başkasına satılamaz ve ücret yerine kullanılamaz.
+6.3- Müşteri getireceği Resmi Sağlık Kurumu Raporu ile hizmetin kesin olarak alınamayacağını belgelemesi halinde kullanılmayan seansların bedeli iade edilir.
+6.4- Peşin ödemelerde yasal zorunluluklar dışında iade yapılmaz.
+6.5- MÜŞTERİ, kendisi adına uygulanmış olan kampanya, indirim veya özel fiyatla alınan hizmetleri farklı biri üzerinde kullanamaz.
+7- KİŞİSEL VERİLERİN KORUNMASI (KVKK)
+7.1- MÜŞTERİ, bu sözleşme kapsamında verdiği kişisel verilerin (kimlik, iletişim, sağlık bilgileri, işlem öncesi ve sonrası fotoğraflar, rıza dahilinde çekilen videolar ve fotoğraflar vb.) 6698 sayılı KVKK kapsamında hizmetin ifası, randevu takibi ve yasal yükümlülükler nedeniyle MERKEZ tarafından işlenmesine, saklanmasına ve mevzuatın izin verdiği kurumlarla, MERKEZ'in yönettiği sosyal medya hesaplarında (Instagram, Facebook, TikTok vb.) paylaşılmasına açık rıza gösterdiğini beyan eder.
+7.2- Müşteri yukarıda belirtilen ve MERKEZ'in sosyal medya hesaplarında paylaşılması için video, fotoğraf, görüntü vb. gibi alınan içeriklerin paylaşılmasına açık rıza göstermiyorsa işbu sözleşme ile birlikte imzalanan KVKK aydınlatma metni ve açık rıza formu imzalatılmıştır.
+8- YETKİLİ MAHKEMELER VE YÜRÜRLÜK
+İşbu sözleşmeden doğacak uyuşmazlıklarda, Tüketici Hakem Heyetleri ve ......................................... Mahkemeleri ve İcra daireleri yetkilidir. İşbu sözleşme 8 (sekiz) maddeden ibaret olup taraflarca iki nüsha olarak tanzim ve imza edilmiştir.''';
   }
 
-  String _varsayilanMetin() {
-    final ad = _isletmeAdi();
-    return '1. Bu sözleşme $ad ile yukarıda bilgileri yazılı müşteri arasında akdedilmiştir.\n'
-        '2. Müşteri, alacağı hizmet/paket karşılığında belirtilen toplam ücreti ödemeyi kabul ve taahhüt eder.\n'
-        '3. Kapora/ön ödeme alındığı durumda kalan bakiye, hizmet süresi içerisinde tahsil edilecektir.\n'
-        '4. Müşteri belirlenen randevu saatlerinde hazır bulunmakla yükümlüdür. Mazeretsiz iptaller veya gelmemeler için ücret iadesi yapılmaz.\n'
-        '5. İşletme, hizmeti taahhüt edilen kalitede sunmakla yükümlüdür.\n'
-        '6. Taraflar bu sözleşmeyi okuyup, anladığını ve kabul ettiğini beyan eder.';
+  String _ikiHane(int n) => n < 10 ? '0$n' : '$n';
+  String _isoTarih(DateTime d) => '${d.year}-${_ikiHane(d.month)}-${_ikiHane(d.day)}';
+  String _gosterTarih(DateTime? d) =>
+      d == null ? 'Seçin' : '${_ikiHane(d.day)}.${_ikiHane(d.month)}.${d.year}';
+
+  // Canli taksit plani (sunucudaki mantigin aynisi — onizleme icin).
+  List<Map<String, dynamic>> _taksitPlani() {
+    final toplam = double.tryParse(_toplam.text.replaceAll(',', '.')) ?? 0;
+    final kapora = double.tryParse(_kapora.text.replaceAll(',', '.')) ?? 0;
+    double kalan = toplam - kapora;
+    if (kalan < 0) kalan = 0;
+    final sayi = int.tryParse(_taksitSayisi.text) ?? 0;
+    if (sayi < 1) return [];
+    final elle = double.tryParse(_taksitTutari.text.replaceAll(',', '.')) ?? 0;
+    final birim = elle > 0
+        ? elle
+        : double.parse((kalan / sayi).toStringAsFixed(2));
+    final plan = <Map<String, dynamic>>[];
+    double toplandi = 0;
+    for (int i = 1; i <= sayi; i++) {
+      double tutar = (i == sayi)
+          ? double.parse((kalan - toplandi).toStringAsFixed(2))
+          : birim;
+      if (tutar < 0) tutar = 0;
+      toplandi = double.parse((toplandi + tutar).toStringAsFixed(2));
+      DateTime? tarih;
+      if (_ilkTaksit != null) {
+        tarih = DateTime(_ilkTaksit!.year, _ilkTaksit!.month + (i - 1),
+            _ilkTaksit!.day);
+      }
+      plan.add({'sira': i, 'tarih': tarih, 'tutar': tutar});
+    }
+    return plan;
+  }
+
+  String _paraFormat(num v) {
+    // Basit 1.234,56 formati
+    final s = v.toStringAsFixed(2);
+    final parcalar = s.split('.');
+    final tam = parcalar[0];
+    final ondalik = parcalar[1];
+    final sb = StringBuffer();
+    for (int i = 0; i < tam.length; i++) {
+      if (i > 0 && (tam.length - i) % 3 == 0) sb.write('.');
+      sb.write(tam[i]);
+    }
+    return '$sb,$ondalik';
   }
 
   Future<void> _musteriSec() async {
@@ -243,6 +319,15 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
         'kapora': double.tryParse(_kapora.text.replaceAll(',', '.')) ?? 0,
         'sozlesme_metni': _metin.text,
         'sozlesme_notu': _not.text,
+        'odeme_sekli': _odemeSekli,
+        if (_odemeSekli == 'taksit')
+          'taksit_sayisi': int.tryParse(_taksitSayisi.text) ?? 0,
+        if (_odemeSekli == 'taksit')
+          'taksit_tutari':
+              double.tryParse(_taksitTutari.text.replaceAll(',', '.')) ?? 0,
+        if (_odemeSekli == 'taksit' && _ilkTaksit != null)
+          'ilk_taksit_tarihi': _isoTarih(_ilkTaksit!),
+        if (_gecerlilik != null) 'gecerlilik_tarihi': _isoTarih(_gecerlilik!),
         'sadece_kaydet': sadeceKaydet,
       };
       final resp = await http.post(
@@ -482,6 +567,8 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
           ),
         ),
         const SizedBox(height: 12),
+        _buildOdemeKart(scheme),
+        const SizedBox(height: 12),
         PremiumGlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,6 +599,223 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _tarihSec(bool ilkTaksit) async {
+    final now = DateTime.now();
+    final secili = await showDatePicker(
+      context: context,
+      initialDate: (ilkTaksit ? _ilkTaksit : _gecerlilik) ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 6),
+      locale: const Locale('tr', 'TR'),
+    );
+    if (secili != null) {
+      setState(() {
+        if (ilkTaksit) {
+          _ilkTaksit = secili;
+        } else {
+          _gecerlilik = secili;
+        }
+      });
+    }
+  }
+
+  Widget _tarihAlani({
+    required String etiket,
+    required DateTime? deger,
+    required VoidCallback onTap,
+    ColorScheme? scheme,
+  }) {
+    final s = scheme ?? Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Etiket(etiket),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            decoration: BoxDecoration(
+              color: s.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.event_outlined,
+                    size: 18, color: s.primary.withValues(alpha: 0.7)),
+                const SizedBox(width: 8),
+                Text(
+                  _gosterTarih(deger),
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: deger == null
+                        ? Colors.black.withValues(alpha: 0.45)
+                        : s.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOdemeKart(ColorScheme scheme) {
+    final taksitli = _odemeSekli == 'taksit';
+    final plan = taksitli ? _taksitPlani() : <Map<String, dynamic>>[];
+    final secenekler = const [
+      ['pesin', 'Peşin'],
+      ['taksit', 'Taksitli'],
+      ['kredi_karti', 'Kredi Kartı'],
+    ];
+    return PremiumGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _Etiket('Ödeme Şekli'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: secenekler.map((o) {
+              final aktif = _odemeSekli == o[0];
+              return ChoiceChip(
+                label: Text(o[1]),
+                selected: aktif,
+                onSelected: (_) => setState(() => _odemeSekli = o[0]),
+                labelStyle: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: aktif ? scheme.onPrimary : scheme.onSurface,
+                ),
+                selectedColor: scheme.primary,
+                backgroundColor: scheme.primary.withValues(alpha: 0.06),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+          _tarihAlani(
+            etiket: 'Hizmet/Paket Geçerlilik Tarihi (opsiyonel)',
+            deger: _gecerlilik,
+            onTap: () => _tarihSec(false),
+            scheme: scheme,
+          ),
+          if (taksitli) ...[
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _Etiket('Taksit Sayısı'),
+                      TextField(
+                        controller: _taksitSayisi,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        onChanged: (_) => setState(() {}),
+                        decoration: _inputDeko('Örn: 6', scheme),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _Etiket('Taksit Tutarı (oto)'),
+                      TextField(
+                        controller: _taksitTutari,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        onChanged: (_) => setState(() {}),
+                        decoration: _inputDeko('Boş = eşit böl', scheme),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _tarihAlani(
+              etiket: 'İlk Taksit Tarihi',
+              deger: _ilkTaksit,
+              onTap: () => _tarihSec(true),
+              scheme: scheme,
+            ),
+            const SizedBox(height: 12),
+            if (plan.isNotEmpty)
+              Container(
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: scheme.primary.withValues(alpha: 0.15)),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                      child: Row(
+                        children: [
+                          Icon(Icons.credit_card_rounded,
+                              size: 16, color: scheme.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${plan.length} Taksitlik Plan',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...plan.map((t) {
+                      final DateTime? tarih = t['tarih'] as DateTime?;
+                      return Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 26,
+                              child: Text('${t['sira']}.',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                            Expanded(
+                              child: Text(
+                                tarih != null ? _gosterTarih(tarih) : '—',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            Text(
+                              '${_paraFormat(t['tutar'] as num)} ₺',
+                              style: const TextStyle(
+                                  fontSize: 12.5, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+          ],
+        ],
+      ),
     );
   }
 
