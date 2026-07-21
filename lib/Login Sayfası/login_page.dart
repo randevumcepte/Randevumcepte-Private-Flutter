@@ -216,15 +216,24 @@ class _HomeState extends State<LoginPage> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          TelefonUlkeAlani(
-                            controller: ceptelefon,
+                          InputDecorator(
+                            isEmpty: false,
                             decoration: const InputDecoration(
                               labelText: 'Telefon',
                               prefixIcon: Icon(Icons.phone_in_talk_rounded),
                             ),
-                            // ceptelefon.text = backend'e gidecek deger
-                            // (TR: 5321234567 / yabanci: +355691234567)
-                            onChanged: (deger) => cep_telefon = deger,
+                            child: TelefonUlkeAlani(
+                              controller: ceptelefon,
+                              renk: scheme.primary,
+                              cerceveli: false,
+                              // ceptelefon.text = backend'e gidecek deger
+                              // (TR: 5321234567 / yabanci: +355691234567)
+                              onChanged: (deger) => cep_telefon = deger,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isCollapsed: true,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 14),
                           TextFormField(

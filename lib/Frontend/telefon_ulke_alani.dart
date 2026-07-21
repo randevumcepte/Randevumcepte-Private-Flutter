@@ -373,7 +373,6 @@ class _UlkeSecSheetState extends State<_UlkeSecSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final aramaVar = _q.isNotEmpty;
     final one = aramaVar ? const <UlkeKodu>[] : _one;
     final tumu = (aramaVar ? ulkeKodlari : _tumu).where(_uyar).toList();
@@ -385,9 +384,9 @@ class _UlkeSecSheetState extends State<_UlkeSecSheet> {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: BoxDecoration(
-            color: theme.canvasColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
@@ -457,14 +456,15 @@ class _UlkeSecSheetState extends State<_UlkeSecSheet> {
   Widget _satir(UlkeKodu u) {
     final secili = u.kod == widget.seciliKod;
     return ListTile(
-      dense: true,
-      leading: Text(u.bayrak, style: const TextStyle(fontSize: 22)),
-      title: Text(u.ad),
+      leading: Text(u.bayrak, style: const TextStyle(fontSize: 24)),
+      title: Text(u.ad,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
       trailing: Text(
         u.kod,
         style: TextStyle(
-          color: secili ? Theme.of(context).primaryColor : Colors.grey.shade600,
-          fontWeight: secili ? FontWeight.bold : FontWeight.normal,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: secili ? Theme.of(context).colorScheme.primary : Colors.grey[600],
         ),
       ),
       selected: secili,
@@ -490,6 +490,9 @@ class TelefonUlkeAlani extends StatefulWidget {
   final TextStyle? style;
   final Color? cursorColor;
 
+  /// Vurgu rengi (acilir ok + imlec). Verilmezse temanin primary rengi.
+  final Color? renk;
+
   const TelefonUlkeAlani({
     Key? key,
     required this.controller,
@@ -502,6 +505,7 @@ class TelefonUlkeAlani extends StatefulWidget {
     this.cerceveli = true,
     this.style,
     this.cursorColor,
+    this.renk,
   }) : super(key: key);
 
   @override
@@ -576,6 +580,8 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
           prefixIcon: const Icon(Icons.phone_outlined),
         );
 
+    final renk = widget.renk ?? Theme.of(context).colorScheme.primary;
+
     return Row(
       crossAxisAlignment:
           widget.cerceveli ? CrossAxisAlignment.start : CrossAxisAlignment.center,
@@ -587,8 +593,8 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
             borderRadius: BorderRadius.circular(8),
             child: Container(
               padding: EdgeInsets.symmetric(
-                  horizontal: widget.cerceveli ? 10 : 6,
-                  vertical: widget.cerceveli ? 14 : 4),
+                  horizontal: widget.cerceveli ? 10 : 4,
+                  vertical: widget.cerceveli ? 14 : 6),
               decoration: widget.cerceveli
                   ? BoxDecoration(
                       border: Border.all(color: Colors.grey.shade400),
@@ -601,13 +607,24 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
                   Text(u?.bayrak ?? '🌐',
                       style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 4),
-                  Text(_kod, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const Icon(Icons.arrow_drop_down, size: 18),
+                  Text(
+                    _kod,
+                    style: (widget.style ?? const TextStyle())
+                        .copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  if (widget.enabled)
+                    Icon(Icons.arrow_drop_down, color: renk, size: 20),
                 ],
               ),
             ),
           ),
         ),
+        // Cerceve yoksa (mevcut kutunun icine gomuluyorsa) ince ayirac cizgisi
+        if (!widget.cerceveli) ...[
+          const SizedBox(width: 6),
+          Container(width: 1, height: 22, color: Colors.grey.shade300),
+          const SizedBox(width: 8),
+        ],
         SizedBox(width: widget.cerceveli ? 8 : 0),
         Expanded(
           child: TextFormField(
@@ -616,7 +633,7 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
             keyboardType: TextInputType.phone,
             maxLines: 1,
             style: widget.style,
-            cursorColor: widget.cursorColor,
+            cursorColor: widget.cursorColor ?? renk,
             decoration: taban.copyWith(
               hintText: widget.hint ?? (tr ? '0### ### ## ##' : 'Numara'),
             ),

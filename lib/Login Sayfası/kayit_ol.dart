@@ -163,13 +163,15 @@ class _KayitOlState extends State<KayitOl> {
                               const Icon(Icons.phone_in_talk),
                               Expanded(
                                 child: Container(
-                                  margin: const EdgeInsets.only(left: 10),
+                                  margin: const EdgeInsets.only(left: 6),
                                   child: TelefonUlkeAlani(
                                     controller: ceptelefon,
+                                    renk: Colors.purple,
                                     cerceveli: false,
-                                    hint: " Telefon Numarası ...",
+                                    hint: "Telefon Numarası ...",
                                     decoration: const InputDecoration(
                                       border: InputBorder.none,
+                                      isCollapsed: true,
                                     ),
                                   ),
                                 ),
