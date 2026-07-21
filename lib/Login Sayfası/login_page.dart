@@ -69,7 +69,6 @@ class _HomeState extends State<LoginPage> {
   void initState() {
     super.initState();
     cep_telefon = "0";  // Format en başta görünsün
-    ceptelefon.text = '0';
   }
 
 

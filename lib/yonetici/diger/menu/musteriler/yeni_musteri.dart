@@ -61,7 +61,6 @@ class _YenimusteriState extends State<Yenimusteri> {
   @override
   void initState() {
     dogumtarihi.text = "";
-    telefon.text = "0";
     super.initState();
     initialize();
   }

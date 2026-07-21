@@ -32,7 +32,6 @@ class _KayitOlState extends State<KayitOl> {
   @override
   void initState() {
     super.initState();
-    ceptelefon.text = "0";  // Format en başta görünsün
   }
   @override
   Widget build(BuildContext context) {
@@ -150,33 +149,23 @@ class _KayitOlState extends State<KayitOl> {
 
                         Container(
                           width: double.infinity,
-                          height: 50,
                           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.purple, width: 1),
-                            color: Colors.white,
-                            borderRadius: const BorderRadius.all(Radius.circular(20)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.phone_in_talk),
-                              Expanded(
-                                child: Container(
-                                  margin: const EdgeInsets.only(left: 6),
-                                  child: TelefonUlkeAlani(
-                                    controller: ceptelefon,
-                                    renk: Colors.purple,
-                                    cerceveli: false,
-                                    hint: "Telefon Numarası ...",
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      isCollapsed: true,
-                                    ),
-                                  ),
-                                ),
+                          // Giris Yap ekranindaki telefon alaninin aynisi
+                          child: InputDecorator(
+                            isEmpty: false,
+                            decoration: const InputDecoration(
+                              labelText: 'Telefon',
+                              prefixIcon: Icon(Icons.phone_in_talk_rounded),
+                            ),
+                            child: TelefonUlkeAlani(
+                              controller: ceptelefon,
+                              renk: Colors.purple,
+                              cerceveli: false,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isCollapsed: true,
                               ),
-                            ],
+                            ),
                           ),
                         ),
 

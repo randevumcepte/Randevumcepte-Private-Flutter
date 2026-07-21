@@ -12,7 +12,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class UlkeKodu {
   final String ad;
@@ -278,12 +277,14 @@ class TelefonUlke {
         .replaceAll('é', 'e');
   }
 
-  /// TR gosterim bicimi: "0532 123 45 67"
+  /// TR gosterim bicimi: "532 123 45 67"
+  /// Ulke kodu zaten "+90" gosterdigi icin basta 0 YOK (web ile ayni).
+  /// Bastaki 0(lar) ve rakam disi karakterler atilir, 10 hane ile sinirlanir.
   static String trBicim(String? s) {
     var d = ulusal(s);
     if (d.length > 10) d = d.substring(0, 10);
-    if (d.isEmpty) return '0';
-    final sb = StringBuffer('0');
+    if (d.isEmpty) return '';
+    final sb = StringBuffer();
     for (var i = 0; i < d.length; i++) {
       if (i == 3 || i == 6 || i == 8) sb.write(' ');
       sb.write(d[i]);
@@ -303,7 +304,7 @@ class TelefonUlke {
   static MapEntry<String, String> coz(String? stored) {
     final s = (stored ?? '').trim();
     if (s.isEmpty || s == 'null' || s == '0') {
-      return const MapEntry(varsayilanKod, '0');
+      return const MapEntry(varsayilanKod, '');
     }
     if (s.startsWith('+')) {
       var best = '';
@@ -512,13 +513,26 @@ class TelefonUlkeAlani extends StatefulWidget {
   State<TelefonUlkeAlani> createState() => _TelefonUlkeAlaniState();
 }
 
+/// TR numarasi icin bicimlendirici: rakam disini atar, bastaki 0(lar)i siler,
+/// 10 hane ile sinirlar ve "### ### ## ##" bicimine sokar.
+/// (Sabit maske yerine bunu kullaniyoruz ki yapistirilan "0532..." veya
+///  "+90 532..." degerleri de dogru bicimlensin.)
+class _TrTelefonFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = TelefonUlke.trBicim(newValue.text);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
+
 class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
   late String _kod;
   late TextEditingController _num;
-  final _trMask = MaskTextInputFormatter(
-    mask: '0### ### ## ##',
-    filter: {'#': RegExp(r'[0-9]')},
-  );
+  final _trFmt = _TrTelefonFormatter();
   String _sonYazilan = ''; // disaridan gelen degisikligi ayirt etmek icin
 
   @override
@@ -635,28 +649,14 @@ class _TelefonUlkeAlaniState extends State<TelefonUlkeAlani> {
             style: widget.style,
             cursorColor: widget.cursorColor ?? renk,
             decoration: taban.copyWith(
-              hintText: widget.hint ?? (tr ? '0### ### ## ##' : 'Numara'),
+              hintText: widget.hint ?? (tr ? '### ### ## ##' : 'Numara'),
             ),
             inputFormatters: tr
-                ? [_trMask]
+                ? [_trFmt]
                 : [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
             validator: widget.validator ??
                 (v) => TelefonUlke.bos(v) ? 'Telefon alanı gereklidir' : null,
-            onTap: () {
-              if (tr && _num.text.length < 2) _num.text = '0';
-              _num.selection = TextSelection.fromPosition(
-                TextPosition(offset: _num.text.length),
-              );
-            },
-            onChanged: (v) {
-              if (tr && !v.startsWith('0')) {
-                _num.text = '0';
-                _num.selection = TextSelection.fromPosition(
-                  TextPosition(offset: _num.text.length),
-                );
-              }
-              _yaz();
-            },
+            onChanged: (v) => _yaz(),
           ),
         ),
       ],
