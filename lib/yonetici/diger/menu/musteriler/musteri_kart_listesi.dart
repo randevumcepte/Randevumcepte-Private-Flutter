@@ -229,8 +229,14 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
 
   Widget _buildCard(MusteriDanisan m) {
     final scheme = Theme.of(context).colorScheme;
-    final pr = m.profil_resim;
-    final hasImage = pr != null && pr.isNotEmpty && pr != 'null';
+    final prRaw = m.profil_resim;
+    final hasImage = prRaw != null && prRaw.isNotEmpty && prRaw != 'null';
+    // Goreli yola sunucu adresini ekle (NetworkImage mutlak URL ister; aksi ArgumentError).
+    final pr = hasImage
+        ? (prRaw!.startsWith('http')
+            ? prRaw
+            : 'https://app.randevumcepte.com.tr/$prRaw')
+        : '';
 
     return Material(
       color: Colors.white,

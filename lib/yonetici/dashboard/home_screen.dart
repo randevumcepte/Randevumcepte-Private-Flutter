@@ -708,7 +708,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                     color: tint.withValues(alpha: 0.14),
                   ),
                   child: Icon(
-                    Icons.chat_rounded,
+                    FontAwesomeIcons.whatsapp,
                     size: 14,
                     color: tint,
                   ),

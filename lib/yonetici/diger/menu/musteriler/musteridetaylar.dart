@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -718,7 +719,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
 			actions.add(Expanded(
 				child: _actionBtn(
-					Icons.chat_bubble_outline,
+					FontAwesomeIcons.whatsapp,
 					'WhatsApp',
 					const Color(0xFF25D366),
 					enabled: hasTel,
