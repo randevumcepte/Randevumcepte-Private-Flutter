@@ -8996,6 +8996,10 @@ class PersonelDataSource extends DataGridSource{
     final Map<String, dynamic> formData = {
       'salon_id': salonId,
       'personel_id': personelid,
+      // personel_id doluysa bu bir DUZENLEME. guncelleme=true gonderilmezse sunucu
+      // login'li mevcut personeli "mukerrer telefon" sanip uyari verip HIC kaydetmiyordu
+      // (rol/maas/prim dahil hicbir degisiklik kaydolmuyordu). Bu yuzden acikca gonderiyoruz.
+      'guncelleme': personelid.trim().isNotEmpty && personelid.trim() != 'null',
       'personel_adi':personeladi,
       'unvan':unvan,
       'personel_maas':sabitmaas,
