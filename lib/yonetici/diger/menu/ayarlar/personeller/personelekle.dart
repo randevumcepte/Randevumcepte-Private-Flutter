@@ -715,20 +715,24 @@ class _PersonelEkleState extends State<PersonelEkle> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: aktif ? accent.withValues(alpha: 0.4) : _border),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.access_time, color: aktif ? accent : _muted, size: 13),
-            const SizedBox(width: 5),
-            Text(
-              ctrl.text.isEmpty ? '00:00' : ctrl.text,
-              style: TextStyle(
-                color: aktif ? _text : _muted,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.access_time, color: aktif ? accent : _muted, size: 13),
+              const SizedBox(width: 5),
+              Text(
+                ctrl.text.isEmpty ? '00:00' : ctrl.text,
+                style: TextStyle(
+                  color: aktif ? _text : _muted,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
