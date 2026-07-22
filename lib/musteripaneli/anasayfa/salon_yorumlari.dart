@@ -27,10 +27,21 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
   String? _hata;
   int _puanFiltre = 0; // 0 = tümü
 
+  // Yorum birakma formu
+  final TextEditingController _yorumCtrl = TextEditingController();
+  int _verilenPuan = 0;
+  bool _gonderiliyor = false;
+
   @override
   void initState() {
     super.initState();
     _yukle();
+  }
+
+  @override
+  void dispose() {
+    _yorumCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _yukle() async {
@@ -88,6 +99,10 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
                     children: [
                       const SizedBox(height: 14),
                       _ozetKart(context),
+                      if (_ozet!.yorumYapabilir && _ozet!.salonId != null) ...[
+                        const SizedBox(height: 14),
+                        _yorumBirakKart(context),
+                      ],
                       const SizedBox(height: 18),
                       _filtreSatiri(context),
                       const SizedBox(height: 12),
@@ -123,6 +138,131 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
               onPressed: _yukle,
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Tekrar Dene'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _gonder() async {
+    final salonId = _ozet?.salonId;
+    if (salonId == null || _gonderiliyor) return;
+
+    if (_verilenPuan < 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen puan verin.')),
+      );
+      return;
+    }
+
+    setState(() => _gonderiliyor = true);
+    try {
+      await yorumGonder(salonId, _verilenPuan, _yorumCtrl.text.trim());
+      if (!mounted) return;
+      _yorumCtrl.clear();
+      setState(() {
+        _verilenPuan = 0;
+        _gonderiliyor = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Değerlendirmeniz için teşekkürler!')),
+      );
+      await _yukle(); // liste + ozet yenilensin, kart kaybolsun
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _gonderiliyor = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Yorum gönderilemedi. Tekrar deneyin.')),
+      );
+    }
+  }
+
+  Widget _yorumBirakKart(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: AppShadows.soft(scheme.primary),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Deneyimini değerlendir',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Puanın ve yorumun diğer müşterilere yardımcı olur.',
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: List.generate(5, (i) {
+                final dolu = i < _verilenPuan;
+                return IconButton(
+                  onPressed: _gonderiliyor
+                      ? null
+                      : () => setState(() => _verilenPuan = i + 1),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 42,
+                    minHeight: 42,
+                  ),
+                  icon: Icon(
+                    dolu ? Icons.star_rounded : Icons.star_border_rounded,
+                    size: 34,
+                    color: dolu
+                        ? const Color(0xFFF5A623)
+                        : scheme.onSurface.withValues(alpha: 0.28),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _yorumCtrl,
+              enabled: !_gonderiliyor,
+              maxLines: 4,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Yorumunuz (isteğe bağlı)',
+                filled: true,
+                fillColor: scheme.onSurface.withValues(alpha: 0.04),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _gonderiliyor ? null : _gonder,
+                icon: _gonderiliyor
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded, size: 18),
+                label: Text(_gonderiliyor ? 'Gönderiliyor...' : 'Gönder'),
+              ),
             ),
           ],
         ),

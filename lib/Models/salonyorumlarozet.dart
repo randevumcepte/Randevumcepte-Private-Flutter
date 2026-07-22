@@ -33,12 +33,20 @@ class SalonYorumlarOzet {
   final Map<int, int> dagilim;
   final List<SalonYorumItem> yorumlar;
 
+  /// Bu uygulamanin (app_bundle) salonu — yorum gonderirken gerekli.
+  final int? salonId;
+
+  /// Giris yapmis musteri bu salona henuz yorum yazmadiysa true.
+  final bool yorumYapabilir;
+
   const SalonYorumlarOzet({
     required this.ortalama,
     required this.toplamPuan,
     required this.toplamYorum,
     required this.dagilim,
     required this.yorumlar,
+    this.salonId,
+    this.yorumYapabilir = false,
   });
 
   factory SalonYorumlarOzet.fromJson(Map<String, dynamic> json) {
@@ -61,6 +69,8 @@ class SalonYorumlarOzet {
       toplamYorum: int.tryParse(json['toplam_yorum']?.toString() ?? '0') ?? 0,
       dagilim: dg,
       yorumlar: yList,
+      salonId: int.tryParse(json['salon_id']?.toString() ?? ''),
+      yorumYapabilir: json['kullanici_yorum_yapabilir'] == true,
     );
   }
 }
