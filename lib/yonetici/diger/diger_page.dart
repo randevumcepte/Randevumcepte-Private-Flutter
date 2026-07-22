@@ -28,6 +28,7 @@ import 'menu/whatsapp/whatsapp_yonetimi.dart';
 import 'menu/arsiv/arsivyonetimipage.dart';
 import 'menu/asistanim/asistanpage.dart';
 import 'menu/ayarlar/ayarlar.dart';
+import 'menu/ayarlar/personeller/hakedislerim.dart';
 import 'menu/ayarlar/personeller/personeller.dart';
 import 'menu/etkinlik/etkinikler.dart';
 import 'menu/kampanya/kampanyalar.dart';
@@ -693,6 +694,32 @@ class _MenuState extends State<Menu> {
                           ),
                         );
                       },
+                  ),
+                // Personel (rol 5): kendi hakedis/maas/prim/odeme gecmisi (read-only)
+                if (kullanicirolu == 5)
+                  _buildMenuButton(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: 'Hakedişlerim',
+                    onTap: () {
+                      String personelid = "";
+                      widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
+                        if (element["salon_id"].toString() ==
+                            widget.isletmebilgi["id"].toString())
+                          personelid = element["id"].toString();
+                      });
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: Hakedislerim(
+                            isletmebilgi: widget.isletmebilgi,
+                            personelId: personelid,
+                            personelAdi: widget.kullanici.name ?? '',
+                          ),
+                        ),
+                      );
+                    },
                   ),
 
                 // Yönetim Bölümü
