@@ -182,14 +182,29 @@
       }
     }
 
+    // Istek hatasinda (429 rate-limit / timeout / kopuk baglanti) kullaniciya
+    // bilgi ver. Liste ARTIK silinmiyor; ekranda ne varsa kalir.
+    void _istekHatasiGoster(Object e) {
+      if (!mounted) return;
+      final metin = e.toString();
+      final cokIstek = metin.contains('429') ||
+          metin.toLowerCase().contains('too many');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(cokIstek
+              ? 'Cok fazla istek gonderildi, liste yenilenemedi. Birkac saniye sonra tekrar deneyin.'
+              : 'Liste yenilenemedi, baglanti hatasi. Asagi cekerek tekrar deneyin.'),
+          backgroundColor: Colors.orange.shade800,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
     Future<void> fetchAdisyonlar({bool resetPage = true}) async {
       if (!mounted) return;
 
       if (resetPage) {
         _currentPage = 1;
-        _expandedItems.clear();
-        _currentlyExpandedId = null;
-        _kapaliAdisyonlar = [];
       }
 
       setState(() {
@@ -216,11 +231,15 @@
 
         if (!mounted) return;
 
-        List<dynamic> data = jsonResponse['data'];
+        List<dynamic> data = (jsonResponse['data'] as List<dynamic>?) ?? [];
         List<Adisyon> newAdisyonlar = data.map<Adisyon>((json) => Adisyon.fromJson(json)).toList();
 
         setState(() {
           if (resetPage) {
+            // Liste yalnizca istek BASARILI olunca degistirilir; boylece hata
+            // durumunda ekran bosalmaz.
+            _expandedItems.clear();
+            _currentlyExpandedId = null;
             _kapaliAdisyonlar = newAdisyonlar;
           } else {
             // Yeni gelenleri ekle, aynı ID varsa güncelle
@@ -248,8 +267,12 @@
       } catch (e) {
         if (!mounted) return;
         setState(() {
+          // Sayfa artirilmisti; basarisiz oldugu icin geri al ki bir sonraki
+          // kaydirmada ayni sayfa tekrar denensin (kayit atlanmasin).
+          if (!resetPage && _currentPage > 1) _currentPage--;
           _isLoadingMore = false;
         });
+        _istekHatasiGoster(e);
       }
     }
 
@@ -258,9 +281,6 @@
 
       if (resetPage) {
         _currentPageAcik = 1;
-        _expandedAcikItems.clear();
-        _currentlyExpandedId = null;
-        _acikAdisyonlar = [];
       }
 
       setState(() {
@@ -287,11 +307,15 @@
 
         if (!mounted) return;
 
-        List<dynamic> data = jsonResponse['data'];
+        List<dynamic> data = (jsonResponse['data'] as List<dynamic>?) ?? [];
         List<Adisyon> newAdisyonlar = data.map<Adisyon>((json) => Adisyon.fromJson(json)).toList();
 
         setState(() {
           if (resetPage) {
+            // Liste yalnizca istek BASARILI olunca degistirilir; boylece hata
+            // durumunda ekran bosalmaz.
+            _expandedAcikItems.clear();
+            _currentlyExpandedId = null;
             _acikAdisyonlar = newAdisyonlar;
           } else {
             // Yeni gelenleri ekle, aynı ID varsa güncelle
@@ -319,8 +343,10 @@
       } catch (e) {
         if (!mounted) return;
         setState(() {
+          if (!resetPage && _currentPageAcik > 1) _currentPageAcik--;
           _isLoadingAcikMore = false;
         });
+        _istekHatasiGoster(e);
       }
     }
     void _loadMoreData() {
@@ -1261,7 +1287,7 @@
             -1 // tümü
         );
 
-        List<dynamic> data = jsonResponse['data'];
+        List<dynamic> data = (jsonResponse['data'] as List<dynamic>?) ?? [];
         List<Adisyon> updatedAdisyonlar = data.map<Adisyon>((json) => Adisyon.fromJson(json)).toList();
 
         // Güncellenmiş adisyonu bul
@@ -1305,10 +1331,19 @@
         }
 
       } catch (e) {
-        await fetchAcikAdisyonlar(resetPage: true);
-        if (_kapaliFetched) {
-          await fetchAdisyonlar(resetPage: true);
-        }
+        // Tahsilat KAYDEDILDI, sadece guncel veriyi cekemedik (429/timeout).
+        // Burada tum listeyi yeniden cekmek hem 2 istek daha harcar hem de
+        // basarisiz olursa ekrani bosaltirdi. Onun yerine listeyi oldugu gibi
+        // birakip kullaniciya bilgi veriyoruz.
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Tahsilat kaydedildi, liste su an yenilenemedi. Asagi cekerek yenileyin.'),
+            backgroundColor: Colors.orange.shade800,
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
     }
     Widget _buildFilterBottomSheet() {
