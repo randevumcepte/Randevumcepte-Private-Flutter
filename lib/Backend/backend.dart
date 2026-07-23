@@ -5673,6 +5673,36 @@ Future<Map<String, dynamic>> carkOdullerim(String userId) async {
   throw Exception(response.reasonPhrase);
 }
 
+// =============================================================
+// BİLDİRİM REKLAMLARI ENDPOINTS (resimli/tıklanabilir kartlar)
+// =============================================================
+
+/// Uygulama-içi gösterilecek aktif reklamlar. salon_id + appBundle gönderir.
+Future<Map<String, dynamic>> reklamListe(String salonId) async {
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/reklam/liste'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'salon_id': salonId, 'appBundle': await appBundleAl()}),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+/// Görsele dokununca: tek dokunuşla kuponu kap. user_id + reklam_id gönderir.
+Future<Map<String, dynamic>> reklamKuponKap(String userId, String reklamId) async {
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/reklam/kupon-kap'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'user_id': userId, 'reklam_id': reklamId}),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
 Future<Map<String, dynamic>> carkPuanOdullerim(String userId, {String? salonId}) async {
   final body = <String, dynamic>{
     'user_id': userId,

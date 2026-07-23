@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
@@ -52,6 +54,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   MusteriOzet? ozetsayfabilgi;
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
+  List<Map<String, dynamic>> _reklamlar = [];
 
   bool get _onlineRandevuAktif =>
       musteriOnlineRandevuAktifMi(widget.isletmebilgi);
@@ -84,10 +87,31 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   void initState() {
     super.initState();
     initialize();
+    _reklamlariYukle();
+  }
+
+  /// Uygulama-içi bildirim reklamlarını çeker (hata olursa sessizce geçer).
+  Future<void> _reklamlariYukle() async {
+    try {
+      final salonId = widget.isletmebilgi?['id']?.toString() ?? '';
+      if (salonId.isEmpty) return;
+      final res = await reklamListe(salonId);
+      if (!mounted) return;
+      if (res['success'] == true) {
+        setState(() {
+          _reklamlar = (res['data'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        });
+      }
+    } catch (_) {
+      // reklam yüklenemezse ana sayfa normal çalışmaya devam eder
+    }
   }
 
   Future<void> _refreshPage() async {
     await initialize();
+    await _reklamlariYukle();
     await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 
@@ -226,6 +250,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       const SizedBox(height: 22),
                       _sectionHeader(context, 'Sana Özel'),
                       const SizedBox(height: 10),
+                      _reklamKartlari(context),
                       _carkPromoCard(context),
                       const SizedBox(height: 10),
                       _puanKuponRow(context),
@@ -1273,6 +1298,263 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     );
   }
 
+  // ── BİLDİRİM REKLAMLARI (resimli/tıklanabilir kartlar) ───────────────────
+  Widget _reklamKartlari(BuildContext context) {
+    if (_reklamlar.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: _reklamlar
+          .map((r) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _reklamKart(context, r),
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _reklamKart(BuildContext context, Map<String, dynamic> r) {
+    final scheme = Theme.of(context).colorScheme;
+    final gorsel = r['gorsel']?.toString();
+    final baslik = r['baslik']?.toString() ?? '';
+    final mesaj = r['mesaj']?.toString() ?? '';
+    final aksiyon = r['aksiyon_tipi']?.toString() ?? 'kupon';
+    final kuponVar = aksiyon == 'kupon';
+
+    // İndirim rozeti (%20 / 100 ₺)
+    String? rozet;
+    final kupon = r['kupon'];
+    if (kuponVar && kupon is Map && kupon['deger'] != null) {
+      final deger = kupon['deger'];
+      final tip = kupon['indirim_tipi']?.toString();
+      if (deger is num) {
+        rozet = tip == 'tutar'
+            ? '${deger % 1 == 0 ? deger.toInt() : deger} ₺'
+            : '%${deger.toInt()}';
+      }
+    }
+
+    final ipucu = kuponVar
+        ? 'Dokun, kuponu kap 🎟️'
+        : (aksiyon == 'randevu' ? 'Dokun, randevu al 📅' : '');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: () => _reklamTikla(r),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: (gorsel != null && gorsel.isNotEmpty)
+                ? Stack(
+                    children: [
+                      Image.network(
+                        gorsel,
+                        width: double.infinity,
+                        height: 168,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(
+                          height: 168,
+                          color: scheme.primary.withValues(alpha: 0.10),
+                          child: Icon(Icons.image_not_supported_outlined,
+                              color: scheme.primary.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.60),
+                              ],
+                              stops: const [0.45, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (rozet != null)
+                        Positioned(top: 12, left: 12, child: _reklamRozet(rozet)),
+                      Positioned(
+                        left: 14,
+                        right: 14,
+                        bottom: 12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              baslik,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                height: 1.15,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (ipucu.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                ipucu,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : Container(
+                    // Görselsiz: gradient metin kartı
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          scheme.primary,
+                          Color.lerp(scheme.primary, scheme.tertiary, 0.6) ??
+                              scheme.primary,
+                        ],
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                    child: Row(
+                      children: [
+                        if (rozet != null) ...[
+                          _reklamRozet(rozet),
+                          const SizedBox(width: 14),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                baslik,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (mesaj.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  mesaj,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                              if (ipucu.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  ipucu,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _reklamRozet(String metin) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        metin,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reklamTikla(Map<String, dynamic> r) async {
+    final aksiyon = r['aksiyon_tipi']?.toString() ?? 'kupon';
+    if (aksiyon == 'randevu') {
+      _onRandevuAlPressed();
+      return;
+    }
+    if (aksiyon != 'kupon') return; // 'yok' → sadece görsel
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      ),
+    );
+
+    try {
+      final res =
+          await reklamKuponKap(widget.md.id.toString(), r['id'].toString());
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // yükleniyor kapat
+      if (res['success'] == true) {
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (_) => _KuponKapildiDialog(
+            mesaj: res['message']?.toString() ?? '🎉 Kuponun tanımlandı!',
+            zaten: res['zaten'] == true,
+          ),
+        );
+        _reklamlariYukle(); // toplam adet / durum tazele
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message']?.toString() ?? 'İşlem başarısız oldu'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bağlantı hatası, tekrar deneyin')),
+      );
+    }
+  }
+
   // ── MÜŞTERİ YORUMLARI CARD ───────────────────────────────────────────────
   Widget _yorumlarCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -1978,6 +2260,126 @@ class ListCard extends StatelessWidget {
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
       children: const [],
+    );
+  }
+}
+
+/// Reklam görseline dokunup kupon kapıldığında gösterilen kutlama dialog'u.
+/// zaten=true ise (kupon zaten alınmışsa) konfeti/haptic çalmaz.
+class _KuponKapildiDialog extends StatefulWidget {
+  final String mesaj;
+  final bool zaten;
+  const _KuponKapildiDialog({required this.mesaj, this.zaten = false});
+
+  @override
+  State<_KuponKapildiDialog> createState() => _KuponKapildiDialogState();
+}
+
+class _KuponKapildiDialogState extends State<_KuponKapildiDialog> {
+  late final ConfettiController _confetti;
+
+  @override
+  void initState() {
+    super.initState();
+    _confetti = ConfettiController(duration: const Duration(seconds: 2));
+    if (!widget.zaten) {
+      _confetti.play();
+      HapticFeedback.mediumImpact();
+    }
+  }
+
+  @override
+  void dispose() {
+    _confetti.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: [
+        Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.zaten ? '👍' : '🎉',
+                  style: const TextStyle(fontSize: 54),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  widget.zaten ? 'Zaten Senin' : 'Tebrikler!',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.mesaj,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'Harika!',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                if (!widget.zaten) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Kuponların "Ödüllerim" sayfasında',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        ConfettiWidget(
+          confettiController: _confetti,
+          blastDirectionality: BlastDirectionality.explosive,
+          numberOfParticles: 16,
+          gravity: 0.25,
+          emissionFrequency: 0.05,
+          colors: const [
+            Color(0xFF6C5CE7),
+            Color(0xFFFD79A8),
+            Color(0xFF00B894),
+            Color(0xFFFDCB6E),
+          ],
+        ),
+      ],
     );
   }
 }
