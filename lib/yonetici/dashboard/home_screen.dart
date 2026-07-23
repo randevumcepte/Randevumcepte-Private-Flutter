@@ -378,8 +378,11 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                 const SizedBox(height: 10),
                 _premiumDailyGrid(context),
               ],
-              // Performans / Karsilastirma — rol 5 icin yetki bagimsiz goster.
-              if (kullanicirolu == 5 || Yetki.varMi('rapor.satis')) ...[
+              // Performans / Karsilastirma
+              //  - Rol 5 (Personel): personel.kendi_ciro_gor yetkisi açıksa görür.
+              //  - Diger roller: rapor.satis yetkisiyle gate.
+              if ((kullanicirolu == 5 && Yetki.varMi('personel.kendi_ciro_gor')) ||
+                  (kullanicirolu != 5 && Yetki.varMi('rapor.satis'))) ...[
                 const SizedBox(height: 18),
                 _periodChips(context),
                 const SizedBox(height: 10),
