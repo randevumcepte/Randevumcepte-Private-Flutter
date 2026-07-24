@@ -427,7 +427,10 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: deger ? _mor : const Color(0xFFE5E7EB), width: 1.5)),
         child: SwitchListTile(
           value: deger,
-          activeColor: _mor,
+          activeThumbColor: Colors.white,
+          activeTrackColor: _mor,
+          inactiveThumbColor: Colors.white,
+          inactiveTrackColor: const Color(0xFFCBD5E1),
           onChanged: onDegis,
           secondary: Icon(ic, color: deger ? _mor : const Color(0xFF94A3B8), size: 22),
           title: Text(t, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
