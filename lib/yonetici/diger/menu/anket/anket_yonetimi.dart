@@ -865,6 +865,26 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
                   labelStyle: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600, fontSize: 11),
                   visualDensity: VisualDensity.compact,
                 ),
+              if ((s['odul_tipi']?.toString() ?? 'yok') == 'kupon')
+                Chip(
+                  avatar: Icon(Icons.card_giftcard, size: 14, color: Color(0xFF8A5A00)),
+                  label: Text(
+                    s['odul_kupon_indirim_tipi']?.toString() == 'tutar'
+                        ? '${_numStr(s['odul_kupon_deger'])} ₺ Kupon'
+                        : '${_numStr(s['odul_kupon_deger'])}% Kupon',
+                  ),
+                  backgroundColor: Color(0xFFFFF3D6),
+                  labelStyle: TextStyle(color: Color(0xFF8A5A00), fontWeight: FontWeight.w700, fontSize: 11),
+                  visualDensity: VisualDensity.compact,
+                ),
+              if ((s['odul_tipi']?.toString() ?? 'yok') == 'puan')
+                Chip(
+                  avatar: Icon(Icons.stars, size: 14, color: Color(0xFF1A4B8A)),
+                  label: Text('${_numStr(s['odul_puan'])} Puan'),
+                  backgroundColor: Color(0xFFE6F0FF),
+                  labelStyle: TextStyle(color: Color(0xFF1A4B8A), fontWeight: FontWeight.w700, fontSize: 11),
+                  visualDensity: VisualDensity.compact,
+                ),
               _sablonAction(
                 Icons.send, 'Test Gönder', Colors.blue.shade600,
                 () => _testGonderAc(s),
@@ -1040,6 +1060,15 @@ class _AnketYonetimiPageState extends State<AnketYonetimiPage>
       ),
       child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 10)),
     );
+  }
+
+  // Sayisal degeri temiz string'e cevirir (10.0 -> "10", 10.5 -> "10.5", null -> "")
+  String _numStr(dynamic v) {
+    if (v == null) return '';
+    final d = (v is num) ? v.toDouble() : double.tryParse(v.toString());
+    if (d == null) return '';
+    if (d == d.roundToDouble()) return d.toInt().toString();
+    return d.toString();
   }
 
   Widget _loadingCard() {

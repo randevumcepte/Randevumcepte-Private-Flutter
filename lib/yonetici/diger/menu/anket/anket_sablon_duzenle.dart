@@ -22,6 +22,14 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
   List<Map<String, dynamic>> _sorular = [];
   bool _kaydediliyor = false;
 
+  // Anket tamamlama odulu (kupon/puan)
+  String _odulTipi = 'yok'; // yok | kupon | puan
+  String _odulKuponIndirimTipi = 'yuzde'; // yuzde | tutar
+  late TextEditingController _odulDegerCtrl;
+  late TextEditingController _odulGecerlilikCtrl;
+  late TextEditingController _odulPuanCtrl;
+  late TextEditingController _odulBaslikCtrl;
+
   static const _soruTipleri = [
     {'tip': 'nps', 'lbl': 'NPS (0-10)', 'icon': Icons.thumb_up_outlined},
     {'tip': 'csat_yildiz', 'lbl': 'CSAT (1-5 ⭐)', 'icon': Icons.star_outline},
@@ -45,6 +53,15 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
     _varsayilan = s != null && ((s['varsayilan'] as num?)?.toInt() == 1 || s['varsayilan'] == true);
     _aktif = s == null ? true : ((s['aktif'] as num?)?.toInt() == 1 || s['aktif'] == true);
 
+    // Odul ayarlari
+    _odulTipi = s?['odul_tipi']?.toString() ?? 'yok';
+    if (!['yok', 'kupon', 'puan'].contains(_odulTipi)) _odulTipi = 'yok';
+    _odulKuponIndirimTipi = (s?['odul_kupon_indirim_tipi']?.toString() == 'tutar') ? 'tutar' : 'yuzde';
+    _odulDegerCtrl = TextEditingController(text: _numStr(s?['odul_kupon_deger']));
+    _odulGecerlilikCtrl = TextEditingController(text: s == null ? '30' : _numStr(s['odul_kupon_gecerlilik_gun']));
+    _odulPuanCtrl = TextEditingController(text: _numStr(s?['odul_puan']));
+    _odulBaslikCtrl = TextEditingController(text: s?['odul_baslik']?.toString() ?? '');
+
     final raw = s?['sorular_json'];
     if (raw != null && raw.toString().isNotEmpty) {
       try {
@@ -67,7 +84,20 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
   void dispose() {
     _adCtrl.dispose();
     _aciklamaCtrl.dispose();
+    _odulDegerCtrl.dispose();
+    _odulGecerlilikCtrl.dispose();
+    _odulPuanCtrl.dispose();
+    _odulBaslikCtrl.dispose();
     super.dispose();
+  }
+
+  // Sayisal degeri temiz string'e cevirir (10.0 -> "10", 10.5 -> "10.5", null -> "")
+  String _numStr(dynamic v) {
+    if (v == null) return '';
+    final d = (v is num) ? v.toDouble() : double.tryParse(v.toString());
+    if (d == null) return '';
+    if (d == d.roundToDouble()) return d.toInt().toString();
+    return d.toString();
   }
 
   Future<void> _kaydet() async {
@@ -83,6 +113,21 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
       );
       return;
     }
+    // Odul dogrulama: tip secildiyse degeri girilmis olmali
+    final odulDeger = double.tryParse(_odulDegerCtrl.text.trim().replaceAll(',', '.')) ?? 0;
+    final odulPuan = double.tryParse(_odulPuanCtrl.text.trim().replaceAll(',', '.')) ?? 0;
+    if (_odulTipi == 'kupon' && odulDeger <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kupon ödülü için geçerli bir indirim değeri girin'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_odulTipi == 'puan' && odulPuan <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Puan ödülü için geçerli bir puan değeri girin'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
     setState(() => _kaydediliyor = true);
     final data = {
@@ -92,6 +137,17 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
       'otomatik_gonder': _otomatik,
       'gonder_saat_sonra': _saatSonra,
       'varsayilan': _varsayilan,
+      'odul_tipi': _odulTipi,
+      if (_odulTipi == 'kupon') ...{
+        'odul_kupon_indirim_tipi': _odulKuponIndirimTipi,
+        'odul_kupon_deger': odulDeger,
+        'odul_kupon_gecerlilik_gun': int.tryParse(_odulGecerlilikCtrl.text.trim()) ?? 0,
+        'odul_baslik': _odulBaslikCtrl.text.trim(),
+      },
+      if (_odulTipi == 'puan') ...{
+        'odul_puan': odulPuan,
+        'odul_baslik': _odulBaslikCtrl.text.trim(),
+      },
     };
 
     bool ok = false;
@@ -251,6 +307,89 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
                   contentPadding: EdgeInsets.zero,
                 ),
             ]),
+            SizedBox(height: 12),
+            _kart(scheme, 'Anketi Tamamlayana Ödül', [
+              Text(
+                'Anketi dolduran müşteriye otomatik kupon veya puan verin. Tamamlama oranını artırır; davet mesajında da otomatik vurgulanır. (Yalnızca kayıtlı müşteriye, herkese; puanına bakılmaz.)',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+              ),
+              SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: [
+                  _odulChip(scheme, 'yok', 'Ödül yok'),
+                  _odulChip(scheme, 'kupon', 'İndirim Kuponu'),
+                  _odulChip(scheme, 'puan', 'Sadakat Puanı'),
+                ],
+              ),
+              if (_odulTipi == 'kupon') ...[
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _odulKuponIndirimTipi,
+                        decoration: InputDecoration(labelText: 'İndirim Tipi', border: OutlineInputBorder(), isDense: true),
+                        items: [
+                          DropdownMenuItem(value: 'yuzde', child: Text('Yüzde (%)')),
+                          DropdownMenuItem(value: 'tutar', child: Text('Tutar (₺)')),
+                        ],
+                        onChanged: (v) => setState(() => _odulKuponIndirimTipi = v ?? 'yuzde'),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _odulDegerCtrl,
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'Değer',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          suffixText: _odulKuponIndirimTipi == 'tutar' ? '₺' : '%',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                TextField(
+                  controller: _odulGecerlilikCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Geçerlilik (gün)',
+                    hintText: 'Boş = süresiz',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ],
+              if (_odulTipi == 'puan') ...[
+                SizedBox(height: 12),
+                TextField(
+                  controller: _odulPuanCtrl,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Verilecek Puan',
+                    hintText: 'Örn: 50',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ],
+              if (_odulTipi != 'yok') ...[
+                SizedBox(height: 10),
+                TextField(
+                  controller: _odulBaslikCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Ödül Başlığı (opsiyonel)',
+                    hintText: 'Boş = otomatik (örn: %10 İndirim)',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ],
+            ]),
             SizedBox(height: 16),
             _sectionHeader(scheme, 'Sorular (${_sorular.length})'),
             SizedBox(height: 8),
@@ -304,6 +443,21 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
 
   Widget _sectionHeader(ColorScheme scheme, String title) {
     return Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16));
+  }
+
+  Widget _odulChip(ColorScheme scheme, String value, String label) {
+    final selected = _odulTipi == value;
+    return ChoiceChip(
+      label: Text(label, style: TextStyle(fontSize: 12.5, color: selected ? Colors.white : scheme.onSurface)),
+      selected: selected,
+      selectedColor: scheme.primary,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: scheme.primary.withValues(alpha: 0.25)),
+      ),
+      onSelected: (_) => setState(() => _odulTipi = value),
+    );
   }
 
   Widget _soruKart(ColorScheme scheme, int i, Map<String, dynamic> soru) {
