@@ -55,6 +55,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
   List<Map<String, dynamic>> _reklamlar = [];
+  bool _popupGosterildi = false; // açılış tam ekran reklam oturumda 1 kez
 
   bool get _onlineRandevuAktif =>
       musteriOnlineRandevuAktifMi(widget.isletmebilgi);
@@ -103,10 +104,143 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
         });
+        _acilisPopupGoster();
       }
     } catch (_) {
       // reklam yüklenemezse ana sayfa normal çalışmaya devam eder
     }
+  }
+
+  /// Açılışta tam ekran (interstitial) reklam popup'ı — oturumda 1 kez gösterilir.
+  void _acilisPopupGoster() {
+    if (_popupGosterildi || !mounted) return;
+    Map<String, dynamic>? hedef;
+    for (final r in _reklamlar) {
+      final t = r['tam_ekran'];
+      if (t == true || t == 1) {
+        hedef = r;
+        break;
+      }
+    }
+    if (hedef == null) return;
+    _popupGosterildi = true;
+    final r = hedef;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierColor: Colors.black.withValues(alpha: 0.85),
+        builder: (ctx) => _reklamPopup(ctx, r),
+      );
+    });
+  }
+
+  Widget _reklamPopup(BuildContext ctx, Map<String, dynamic> r) {
+    final scheme = Theme.of(ctx).colorScheme;
+    final gorsel = r['gorsel']?.toString();
+    final baslik = r['baslik']?.toString() ?? '';
+    final mesaj = r['mesaj']?.toString() ?? '';
+    final kuponVar = (r['aksiyon_tipi']?.toString() ?? 'kupon') == 'kupon';
+    return Dialog(
+      insetPadding: const EdgeInsets.all(20),
+      backgroundColor: Colors.transparent,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (gorsel != null && gorsel.isNotEmpty)
+                    Image.network(
+                      gorsel,
+                      width: double.infinity,
+                      height: 300,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => const SizedBox.shrink(),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          baslik,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (mesaj.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            mesaj,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              color: Colors.grey.shade700,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: scheme.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              if (kuponVar) _reklamTikla(r);
+                            },
+                            child: Text(
+                              kuponVar ? 'Kuponu Kap 🎟️' : 'İncele',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: -12,
+            right: -4,
+            child: GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 22, color: Colors.black87),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _refreshPage() async {
