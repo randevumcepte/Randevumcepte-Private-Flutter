@@ -13,7 +13,7 @@ class BildirimReklamlariPage extends StatefulWidget {
 }
 
 class _BildirimReklamlariPageState extends State<BildirimReklamlariPage> {
-  static const _mor = Color(0xFF7C3AED);
+  Color get _mor => Theme.of(context).colorScheme.primary; // uygulama tema rengi
   bool _yukleniyor = true;
   List<Map<String, dynamic>> _reklamlar = [];
 
@@ -131,17 +131,19 @@ class _BildirimReklamlariPageState extends State<BildirimReklamlariPage> {
       appBar: AppBar(
         backgroundColor: _mor,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
-        title: const Text('Bildirim Reklamları', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text('Bildirim Reklamları', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _mor,
+        foregroundColor: Colors.white,
         onPressed: () => _formAc(),
-        icon: const Icon(Icons.add),
-        label: const Text('Yeni Reklam'),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Yeni Reklam', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
       ),
       body: _yukleniyor
-          ? const Center(child: CircularProgressIndicator(color: _mor))
+          ? Center(child: CircularProgressIndicator(color: _mor))
           : RefreshIndicator(
               color: _mor,
               onRefresh: _yukle,

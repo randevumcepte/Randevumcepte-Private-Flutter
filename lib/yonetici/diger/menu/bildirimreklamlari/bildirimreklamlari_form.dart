@@ -18,7 +18,7 @@ class BildirimReklamiForm extends StatefulWidget {
 }
 
 class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
-  static const _mor = Color(0xFF7C3AED);
+  Color get _mor => Theme.of(context).colorScheme.primary; // uygulama tema rengi
   String get _salonId => '${widget.isletmebilgi?['id'] ?? ''}';
 
   final _baslik = TextEditingController();
@@ -248,8 +248,9 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
       appBar: AppBar(
         backgroundColor: _mor,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
-        title: Text(widget.reklam == null ? 'Yeni Reklam' : 'Reklamı Düzenle', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(widget.reklam == null ? 'Yeni Reklam' : 'Reklamı Düzenle', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
@@ -340,7 +341,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
                     padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E7EB))),
                     child: Row(children: [
-                      const Icon(Icons.search, size: 18, color: _mor),
+                      Icon(Icons.search, size: 18, color: _mor),
                       const SizedBox(width: 8),
                       Expanded(child: Text(_segUserAd.isEmpty ? 'Kişi seç (isim/telefon ara)' : _segUserAd, style: TextStyle(color: _segUserAd.isEmpty ? const Color(0xFF94A3B8) : const Color(0xFF1E293B)))),
                     ]),
@@ -389,7 +390,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
           filled: true,
           fillColor: Colors.white,
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: _mor, width: 1.5)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: BorderSide(color: _mor, width: 1.5)),
         ),
       );
 
@@ -452,7 +453,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFCBD5E1), width: 2, style: BorderStyle.solid)),
             clipBehavior: Clip.antiAlias,
             child: _gorselYukleniyor
-                ? const Center(child: CircularProgressIndicator(color: _mor))
+                ? Center(child: CircularProgressIndicator(color: _mor))
                 : (_gorselUrl != null && _gorselUrl!.isNotEmpty
                     ? Image.network(_gorselUrl!, fit: BoxFit.cover, width: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image, color: Color(0xFF94A3B8))))
                     : const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.cloud_upload_outlined, size: 32, color: Color(0xFF94A3B8)), SizedBox(height: 6), Text('Görsel yükle', style: TextStyle(color: Color(0xFF94A3B8)))]))),
