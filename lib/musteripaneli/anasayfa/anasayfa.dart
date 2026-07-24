@@ -142,103 +142,130 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     final baslik = r['baslik']?.toString() ?? '';
     final mesaj = r['mesaj']?.toString() ?? '';
     final kuponVar = (r['aksiyon_tipi']?.toString() ?? 'kupon') == 'kupon';
+    // Instagram Story (9:16) formatinda tam ekran popup. Salon sahibi dikey
+    // story gorselini bozulmadan (BoxFit.cover, ayni oranda) tam kaplar sekilde paylasir.
     return Dialog(
-      insetPadding: const EdgeInsets.all(20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
       backgroundColor: Colors.transparent,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (gorsel != null && gorsel.isNotEmpty)
-                    Image.network(
-                      gorsel,
-                      width: double.infinity,
-                      height: 300,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const SizedBox.shrink(),
+      child: Center(
+        child: AspectRatio(
+          aspectRatio: 9 / 16,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Story gorseli — ekrani tam kaplar, oran korunur (bozulmaz)
+                if (gorsel != null && gorsel.isNotEmpty)
+                  Image.network(
+                    gorsel,
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) => Container(color: scheme.primary),
+                  )
+                else
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [scheme.primary, scheme.tertiary],
+                      ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  ),
+                // Alt karartma + baslik + mesaj + buton
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(18, 46, 18, 22),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.78),
+                        ],
+                      ),
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          baslik,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
+                        if (baslik.isNotEmpty)
+                          Text(
+                            baslik,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              height: 1.15,
+                            ),
                           ),
-                        ),
                         if (mesaj.isNotEmpty) ...[
                           const SizedBox(height: 6),
                           Text(
                             mesaj,
                             textAlign: TextAlign.center,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.92),
                               fontSize: 13.5,
-                              color: Colors.grey.shade700,
-                              height: 1.35,
+                              height: 1.3,
                             ),
                           ),
                         ],
-                        const SizedBox(height: 18),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: scheme.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
                             ),
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              if (kuponVar) _reklamTikla(r);
-                            },
-                            child: Text(
-                              kuponVar ? 'Kuponu Kap 🎟️' : 'İncele',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            if (kuponVar) _reklamTikla(r);
+                          },
+                          child: Text(
+                            kuponVar ? 'Kuponu Kap 🎟️' : 'İncele',
+                            style: TextStyle(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: -12,
-            right: -4,
-            child: GestureDetector(
-              onTap: () => Navigator.of(ctx).pop(),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, size: 22, color: Colors.black87),
-              ),
+                // Kapat (X) — sag ust
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(ctx).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 22, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -378,10 +405,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       ],
                       _membershipCard(context),
                       const SizedBox(height: 22),
-                      _sectionHeader(context, 'Hızlı Erişim'),
-                      const SizedBox(height: 10),
-                      _quickAccessGrid(context),
-                      const SizedBox(height: 22),
                       _sectionHeader(context, 'Sana Özel'),
                       const SizedBox(height: 10),
                       _reklamKartlari(context),
@@ -392,6 +415,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       _yorumlarCard(context),
                       const SizedBox(height: 12),
                       _duyurularCard(context),
+                      const SizedBox(height: 22),
+                      _sectionHeader(context, 'Hızlı Erişim'),
+                      const SizedBox(height: 10),
+                      _quickAccessGrid(context),
                       const SizedBox(height: 22),
                       _sectionHeader(context, 'İletişim'),
                       const SizedBox(height: 10),
