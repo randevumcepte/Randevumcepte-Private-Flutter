@@ -929,19 +929,32 @@ class AppointmentEditorState extends State<RandevuAl> {
                   value: '${randevuhizmetleri[index].sure_dk} dk',
                   tint: ext.infoColor,
                 ),
-                const SizedBox(width: 8),
-                _miniStat(
-                  context,
-                  icon: Icons.payments_outlined,
-                  value: '${randevuhizmetleri[index].fiyat} ₺',
-                  tint: ext.successColor,
-                ),
+                // Fiyat girilmemis/0 ise "null ₺" yerine ciplen hic gosterme
+                if (_fiyatEtiketi(randevuhizmetleri[index].fiyat) != null) ...[
+                  const SizedBox(width: 8),
+                  _miniStat(
+                    context,
+                    icon: Icons.payments_outlined,
+                    value: _fiyatEtiketi(randevuhizmetleri[index].fiyat)!,
+                    tint: ext.successColor,
+                  ),
+                ],
               ],
             ),
           ],
         ],
       ),
     );
+  }
+
+  /// Fiyat cipi etiketi. Fiyat null/bos/0 ise null doner (cip gizlenir).
+  /// Ornek: "1500" -> "1500 ₺", "80.5" -> "80,50 ₺".
+  String? _fiyatEtiketi(dynamic fiyat) {
+    final n = double.tryParse((fiyat?.toString() ?? '').trim().replaceAll(',', '.'));
+    if (n == null || n <= 0) return null;
+    final tam = n % 1 == 0;
+    final s = tam ? n.toInt().toString() : n.toStringAsFixed(2).replaceAll('.', ',');
+    return '$s ₺';
   }
 
   Widget _fieldLabel(BuildContext context, String text, IconData icon) {
