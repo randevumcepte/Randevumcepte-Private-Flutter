@@ -17,6 +17,19 @@ import 'package:randevu_sistem/yonetici/randevular/musteri_paketleri_dialog.dart
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RandevuAl extends StatefulWidget {
+  /// Reklamdan (boş slot kampanyası) gelindiğinde ekranı belirli bir tarih ve
+  /// saat aralığına kısıtlar. null ise normal (tüm gün) davranış.
+  final String? kisitTarih; // "yyyy-MM-dd"
+  final String? kisitSaatBas; // "10:00"
+  final String? kisitSaatBit; // "12:00"
+
+  const RandevuAl({
+    Key? key,
+    this.kisitTarih,
+    this.kisitSaatBas,
+    this.kisitSaatBit,
+  }) : super(key: key);
+
   @override
   AppointmentEditorState createState() => AppointmentEditorState();
 }
@@ -79,6 +92,19 @@ class AppointmentEditorState extends State<RandevuAl> {
     initialize();
     tarihListesi = tarihleriOlustur();
     secilenTarih = tarihListesi.first;
+    // Reklam kısıtı: kampanya tarihini önden seç
+    if (widget.kisitTarih != null && widget.kisitTarih!.isNotEmpty) {
+      try {
+        final hedef = DateTime.parse(widget.kisitTarih!);
+        final bugun = DateTime.now();
+        final fark = DateTime(hedef.year, hedef.month, hedef.day)
+            .difference(DateTime(bugun.year, bugun.month, bugun.day))
+            .inDays;
+        if (fark >= 0 && fark < tarihListesi.length) {
+          secilenTarih = tarihListesi[fark];
+        }
+      } catch (_) {}
+    }
   }
 
   List<String> tarihleriOlustur() {
@@ -205,9 +231,19 @@ class AppointmentEditorState extends State<RandevuAl> {
           await appBundleAl());
       if (randevuSaatleri["saatler"] != null &&
           randevuSaatleri["saatler"] is List) {
-        saatler = (randevuSaatleri["saatler"] as List)
+        var tumSaatler = (randevuSaatleri["saatler"] as List)
             .map((e) => BosDoluSaatler.fromJson(e))
             .toList();
+        // Reklam kısıtı: sadece kampanya saat aralığındaki slotları göster
+        final bas = widget.kisitSaatBas;
+        final bit = widget.kisitSaatBit;
+        if (bas != null && bas.isNotEmpty && bit != null && bit.isNotEmpty) {
+          tumSaatler = tumSaatler.where((s) {
+            final t = s.saat; // "HH:mm" — aynı formatta sözlüksel karşılaştırma çalışır
+            return t.compareTo(bas) >= 0 && t.compareTo(bit) <= 0;
+          }).toList();
+        }
+        saatler = tumSaatler;
       } else {
         saatler = [];
       }
@@ -1247,7 +1283,15 @@ class AppointmentEditorState extends State<RandevuAl> {
           ),
         ],
       ),
-      child: !selectionComplete
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.kisitSaatBas != null && widget.kisitSaatBas!.isNotEmpty) ...[
+            _kampanyaBanner(context),
+            const SizedBox(height: 12),
+          ],
+          !selectionComplete
           ? _saatlerEmpty(
               context,
               icon: Icons.touch_app_rounded,
@@ -1350,6 +1394,39 @@ class AppointmentEditorState extends State<RandevuAl> {
                     );
                   }).toList(),
                 )),
+        ],
+      ),
+    );
+  }
+
+  /// Reklam (boş slot) kampanyası aktifken saatlerin üstünde gösterilen uyarı şeridi.
+  Widget _kampanyaBanner(BuildContext context) {
+    final bas = widget.kisitSaatBas ?? '';
+    final bit = widget.kisitSaatBit ?? '';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.local_offer_rounded, size: 18, color: Color(0xFF2563EB)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Kampanya saatleri: $bas – $bit. Bu aralıktan randevu al, indirim kuponun geçerli olsun.',
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: Color(0xFF1E3A8A),
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -141,7 +141,11 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     final gorsel = r['gorsel']?.toString();
     final baslik = r['baslik']?.toString() ?? '';
     final mesaj = r['mesaj']?.toString() ?? '';
-    final kuponVar = (r['aksiyon_tipi']?.toString() ?? 'kupon') == 'kupon';
+    final aksiyon = r['aksiyon_tipi']?.toString() ?? 'kupon';
+    final aksiyonVar = aksiyon != 'yok';
+    final butonMetni = aksiyon == 'randevu'
+        ? 'Randevu Al 📅'
+        : (r['kupon'] != null ? 'Kuponu Kap 🎟️' : 'İncele');
     // Instagram Story (9:16) formatinda tam ekran popup. Salon sahibi dikey
     // story gorselini bozulmadan (BoxFit.cover, ayni oranda) tam kaplar sekilde paylasir.
     return Dialog(
@@ -231,10 +235,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                           ),
                           onPressed: () {
                             Navigator.of(ctx).pop();
-                            if (kuponVar) _reklamTikla(r);
+                            if (aksiyonVar) _reklamTikla(r);
                           },
                           child: Text(
-                            kuponVar ? 'Kuponu Kap 🎟️' : 'İncele',
+                            butonMetni,
                             style: TextStyle(
                               color: scheme.primary,
                               fontWeight: FontWeight.w800,
@@ -1478,12 +1482,12 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     final baslik = r['baslik']?.toString() ?? '';
     final mesaj = r['mesaj']?.toString() ?? '';
     final aksiyon = r['aksiyon_tipi']?.toString() ?? 'kupon';
-    final kuponVar = aksiyon == 'kupon';
-
-    // İndirim rozeti (%20 / 100 ₺)
-    String? rozet;
     final kupon = r['kupon'];
-    if (kuponVar && kupon is Map && kupon['deger'] != null) {
+    final kuponVar = kupon is Map && kupon['deger'] != null;
+
+    // İndirim rozeti (%20 / 100 ₺) — kupon varsa (kupon veya randevu reklamı)
+    String? rozet;
+    if (kuponVar) {
       final deger = kupon['deger'];
       final tip = kupon['indirim_tipi']?.toString();
       if (deger is num) {
@@ -1493,9 +1497,9 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
       }
     }
 
-    final ipucu = kuponVar
-        ? 'Dokun, kuponu kap 🎟️'
-        : (aksiyon == 'randevu' ? 'Dokun, randevu al 📅' : '');
+    final ipucu = aksiyon == 'randevu'
+        ? (kuponVar ? 'Dokun: indirimli randevu 📅🎟️' : 'Dokun, randevu al 📅')
+        : (kuponVar ? 'Dokun, kuponu kap 🎟️' : '');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1671,8 +1675,38 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
 
   Future<void> _reklamTikla(Map<String, dynamic> r) async {
     final aksiyon = r['aksiyon_tipi']?.toString() ?? 'kupon';
+
+    // Boş slot / randevu: (varsa) kuponu tanımla, sonra kısıtlı randevu ekranını aç
     if (aksiyon == 'randevu') {
-      _onRandevuAlPressed();
+      final kupon = r['kupon'];
+      if (kupon != null) {
+        try {
+          final res = await reklamKuponKap(
+              widget.md.id.toString(), r['id'].toString());
+          if (mounted && res['success'] == true) {
+            final zaten = res['zaten'] == true;
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(zaten
+                  ? 'Kuponun cebinde 👍 Kampanya saatinden randevunu al.'
+                  : '🎉 İndirim kuponun tanımlandı! Kampanya saatinden randevunu al.'),
+            ));
+          }
+        } catch (_) {}
+      }
+      if (!mounted) return;
+      final randevu = r['randevu'];
+      Navigator.push(
+        context,
+        PageTransition(
+          type: PageTransitionType.rightToLeft,
+          duration: const Duration(milliseconds: 400),
+          child: RandevuAl(
+            kisitTarih: randevu is Map ? randevu['tarih']?.toString() : null,
+            kisitSaatBas: randevu is Map ? randevu['saat_bas']?.toString() : null,
+            kisitSaatBit: randevu is Map ? randevu['saat_bit']?.toString() : null,
+          ),
+        ),
+      );
       return;
     }
     if (aksiyon != 'kupon') return; // 'yok' → sadece görsel
