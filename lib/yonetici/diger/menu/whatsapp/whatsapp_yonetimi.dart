@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
@@ -1010,16 +1012,13 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                           onTap: () => _aliciGecmisAc(a['telefon']?.toString() ?? '', musteri),
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
-                            padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border(
-                                left: BorderSide(color: Color(0xFF25D366), width: 4),
-                                top: BorderSide(color: Colors.grey.shade300, width: 1),
-                                right: BorderSide(color: Colors.grey.shade300, width: 1),
-                                bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-                              ),
+                              // NOT: borderRadius ancak UNIFORM renkli border ile
+                              // kullanilabilir. Sol yesil aksan artik ayri bir bar
+                              // (asagidaki 4px Container) ile ciziliyor.
+                              border: Border.all(color: Colors.grey.shade300, width: 1),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.06),
@@ -1028,7 +1027,17 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                                 ),
                               ],
                             ),
-                            child: Row(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Container(width: 4, color: Color(0xFF25D366)),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: Row(
                               children: [
                                 CircleAvatar(
                                   backgroundColor: Color(0xFF25D366).withValues(alpha: 0.15),
@@ -1065,6 +1074,12 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                                 ),
                                 Icon(Icons.chevron_right, color: Colors.grey.shade400),
                               ],
+                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         );
@@ -1648,7 +1663,16 @@ class _KontorWebViewState extends State<_KontorWebView> {
     }
     return Stack(
       children: [
-        if (_controller != null) WebViewWidget(controller: _controller!),
+        if (_controller != null)
+          WebViewWidget(
+            controller: _controller!,
+            // WebView dikey kaydirmayi kendi sahiplensin; aksi halde
+            // TabBarView/parent scroll araya girip kaydirma kasiyor/takiliyordu.
+            gestureRecognizers: {
+              Factory<VerticalDragGestureRecognizer>(
+                  () => VerticalDragGestureRecognizer()),
+            },
+          ),
         if (_loading) const Center(child: CircularProgressIndicator()),
       ],
     );
