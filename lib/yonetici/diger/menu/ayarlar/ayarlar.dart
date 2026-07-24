@@ -7,6 +7,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/odalar/odalar.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/calisma_saatleri.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/personeller.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/randevuayarlari.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/online_randevu_saatleri.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/urunler/urunler.dart';
 import 'cihazlar/cihazlar.dart';
 import 'hizmetler/hizmetler.dart';
@@ -81,6 +82,13 @@ class _AyarlarState extends State<Ayarlar> {
         iconColor: const Color(0xFF42A5F5),
         gradientColors: [const Color(0xFF64B5F6), const Color(0xFF42A5F5)],
         route: RandevuAyarlari(isletmebilgi: widget.isletmebilgi),
+      ));
+      _ayarlarListesi.add(AyarlarItem(
+        title: 'Online Randevu Saatleri',
+        icon: Icons.schedule_rounded,
+        iconColor: const Color(0xFF7B2FB8),
+        gradientColors: [const Color(0xFF9D5DC8), const Color(0xFF5C008E)],
+        route: OnlineRandevuSaatleri(isletmebilgi: widget.isletmebilgi),
       ));
     }
     if (Yetki.varMi('satis.indirim_uygula')) {
