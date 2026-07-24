@@ -1701,7 +1701,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
           type: PageTransitionType.rightToLeft,
           duration: const Duration(milliseconds: 400),
           child: RandevuAl(
-            kisitTarih: randevu is Map ? randevu['tarih']?.toString() : null,
+            kisitTarihBas: randevu is Map ? randevu['tarih_bas']?.toString() : null,
+            kisitTarihBit: randevu is Map ? randevu['tarih_bit']?.toString() : null,
             kisitSaatBas: randevu is Map ? randevu['saat_bas']?.toString() : null,
             kisitSaatBit: randevu is Map ? randevu['saat_bit']?.toString() : null,
           ),

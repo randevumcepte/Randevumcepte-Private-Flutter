@@ -17,15 +17,17 @@ import 'package:randevu_sistem/yonetici/randevular/musteri_paketleri_dialog.dart
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RandevuAl extends StatefulWidget {
-  /// Reklamdan (boş slot kampanyası) gelindiğinde ekranı belirli bir tarih ve
-  /// saat aralığına kısıtlar. null ise normal (tüm gün) davranış.
-  final String? kisitTarih; // "yyyy-MM-dd"
+  /// Reklamdan (boş slot kampanyası) gelindiğinde ekranı belirli bir tarih
+  /// ARALIĞINA ve saat aralığına kısıtlar. null ise normal (tüm gün) davranış.
+  final String? kisitTarihBas; // başlangıç "yyyy-MM-dd"
+  final String? kisitTarihBit; // bitiş "yyyy-MM-dd"
   final String? kisitSaatBas; // "10:00"
   final String? kisitSaatBit; // "12:00"
 
   const RandevuAl({
     Key? key,
-    this.kisitTarih,
+    this.kisitTarihBas,
+    this.kisitTarihBit,
     this.kisitSaatBas,
     this.kisitSaatBit,
   }) : super(key: key);
@@ -92,16 +94,23 @@ class AppointmentEditorState extends State<RandevuAl> {
     initialize();
     tarihListesi = tarihleriOlustur();
     secilenTarih = tarihListesi.first;
-    // Reklam kısıtı: kampanya tarihini önden seç
-    if (widget.kisitTarih != null && widget.kisitTarih!.isNotEmpty) {
+    // Reklam kısıtı: kampanya tarih ARALIĞINI uygula — yalnız o günler seçilebilir
+    if (widget.kisitTarihBas != null && widget.kisitTarihBas!.isNotEmpty) {
       try {
-        final hedef = DateTime.parse(widget.kisitTarih!);
-        final bugun = DateTime.now();
-        final fark = DateTime(hedef.year, hedef.month, hedef.day)
-            .difference(DateTime(bugun.year, bugun.month, bugun.day))
-            .inDays;
-        if (fark >= 0 && fark < tarihListesi.length) {
-          secilenTarih = tarihListesi[fark];
+        final bas = DateTime.parse(widget.kisitTarihBas!);
+        final bit = (widget.kisitTarihBit != null && widget.kisitTarihBit!.isNotEmpty)
+            ? DateTime.parse(widget.kisitTarihBit!)
+            : bas;
+        final basG = DateTime(bas.year, bas.month, bas.day);
+        final bitG = DateTime(bit.year, bit.month, bit.day);
+        final filtreli = tarihListesi.where((t) {
+          final d = stringiDateTimeYap(t);
+          final dg = DateTime(d.year, d.month, d.day);
+          return !dg.isBefore(basG) && !dg.isAfter(bitG);
+        }).toList();
+        if (filtreli.isNotEmpty) {
+          tarihListesi = filtreli;
+          secilenTarih = tarihListesi.first;
         }
       } catch (_) {}
     }
