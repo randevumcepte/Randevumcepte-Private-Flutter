@@ -6338,6 +6338,48 @@ Future<Map<String, dynamic>?> whatsappPaketTalep(String salonId, {
 }
 
 // ============================================================
+// MOBIL WEBVIEW KOPRUSU
+// Uygulama Bearer token'iyla /mobil/webview-token cagirir; 2 dk gecerli
+// tek kullanimlik imzali giris linki alir. WhatsApp kontor ekrani WebView'da
+// bu linkle acilir -> salon kendi oturumuyla, kendi bakiyesi/paketleriyle gorur.
+// Boylece fiyat/paket degisiklikleri uygulama guncellemesi gerektirmez.
+// ============================================================
+Future<String?> mobilWebViewUrl(String salonId, {String hedef = 'kontor'}) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    String? token;
+    final rawToken = prefs.getString('token');
+    if (rawToken != null && rawToken.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawToken);
+        token = decoded is String ? decoded : decoded?.toString();
+      } catch (_) {
+        token = rawToken; // direkt string olabilir
+      }
+    }
+    if (token == null || token.isEmpty) return null;
+
+    final res = await http.get(
+      Uri.parse('$_apiBase/mobil/webview-token?hedef=$hedef&sube=$salonId'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      if (body is Map && body['ok'] == true && body['url'] != null) {
+        return body['url'].toString();
+      }
+    }
+    log('mobilWebViewUrl: status ${res.statusCode}');
+  } catch (e) {
+    log('mobilWebViewUrl: $e');
+  }
+  return null;
+}
+
+// ============================================================
 // FATURA ISARETLEME / FATURASIZ GIZLE (gizli muhasebe modu)
 // ============================================================
 

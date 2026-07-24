@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 
@@ -1145,6 +1146,14 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
   // ============ PAKET TAB ============
 
   Widget _paketTab(ColorScheme scheme) {
+    // Kontor ekrani artik web'den (WebView + otomatik-giris koprusu) geliyor.
+    // Salon kendi oturumuyla, kendi bakiyesi/paketleriyle gorur; fiyat/paket
+    // degisikligi uygulama guncellemesi gerektirmez (server-side).
+    return _KontorWebView(salonId: _salonId);
+  }
+
+  // ignore: unused_element
+  Widget _paketTabEski(ColorScheme scheme) {
     if (_paketLoading) return Center(child: CircularProgressIndicator());
     if (_paket == null) {
       return Center(child: TextButton.icon(onPressed: _yuklePaket, icon: Icon(Icons.refresh), label: Text('Yükle')));
@@ -1555,4 +1564,93 @@ class _Ozellik {
   final bool var_;
   final bool bold;
   const _Ozellik(this.metin, this.var_, {this.bold = false});
+}
+
+/// WhatsApp "Paket" sekmesi: kontor ekranini web'den WebView ile gosterir.
+/// Uygulama Bearer token'iyla tek kullanimlik imzali giris linki alir,
+/// WebView o linki acar -> salon kendi oturumuyla kendi bakiyesi/paketlerini
+/// gorur. Fiyat/paket degisikligi uygulama guncellemesi gerektirmez.
+class _KontorWebView extends StatefulWidget {
+  final String salonId;
+  const _KontorWebView({Key? key, required this.salonId}) : super(key: key);
+
+  @override
+  State<_KontorWebView> createState() => _KontorWebViewState();
+}
+
+class _KontorWebViewState extends State<_KontorWebView> {
+  WebViewController? _controller;
+  bool _loading = true;
+  String? _hata;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    setState(() {
+      _hata = null;
+      _loading = true;
+    });
+    try {
+      final url = await mobilWebViewUrl(widget.salonId, hedef: 'kontor');
+      if (url == null) {
+        if (!mounted) return;
+        setState(() {
+          _hata = 'Kontör ekranı açılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.';
+          _loading = false;
+        });
+        return;
+      }
+      final c = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setNavigationDelegate(NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) setState(() => _loading = false);
+          },
+        ))
+        ..loadRequest(Uri.parse(url));
+      if (!mounted) return;
+      setState(() => _controller = c);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _hata = 'Bir hata oluştu, lütfen tekrar deneyin.';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hata != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.wifi_off, size: 42, color: Colors.grey),
+              const SizedBox(height: 12),
+              Text(_hata!, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[700])),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _init,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tekrar Dene'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Stack(
+      children: [
+        if (_controller != null) WebViewWidget(controller: _controller!),
+        if (_loading) const Center(child: CircularProgressIndicator()),
+      ],
+    );
+  }
 }
