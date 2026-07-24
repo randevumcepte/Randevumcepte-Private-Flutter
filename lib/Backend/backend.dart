@@ -5677,12 +5677,18 @@ Future<Map<String, dynamic>> carkOdullerim(String userId) async {
 // BİLDİRİM REKLAMLARI ENDPOINTS (resimli/tıklanabilir kartlar)
 // =============================================================
 
-/// Uygulama-içi gösterilecek aktif reklamlar. salon_id + appBundle gönderir.
-Future<Map<String, dynamic>> reklamListe(String salonId) async {
+/// Uygulama-içi gösterilecek aktif reklamlar. salon_id + appBundle + user_id gönderir.
+/// user_id verilirse, kullanıcının zaten kaptığı kupon reklamları listeden düşer.
+Future<Map<String, dynamic>> reklamListe(String salonId, {String? userId}) async {
+  final body = <String, dynamic>{
+    'salon_id': salonId,
+    'appBundle': await appBundleAl(),
+  };
+  if (userId != null && userId.isNotEmpty) body['user_id'] = userId;
   final response = await http.post(
     Uri.parse('$_carkApiBase/reklam/liste'),
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'salon_id': salonId, 'appBundle': await appBundleAl()}),
+    body: jsonEncode(body),
   );
   if (response.statusCode == 200) {
     return jsonDecode(response.body) as Map<String, dynamic>;

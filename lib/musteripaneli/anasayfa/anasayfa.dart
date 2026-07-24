@@ -96,7 +96,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     try {
       final salonId = widget.isletmebilgi?['id']?.toString() ?? '';
       if (salonId.isEmpty) return;
-      final res = await reklamListe(salonId);
+      final res = await reklamListe(salonId, userId: widget.md.id.toString());
       if (!mounted) return;
       if (res['success'] == true) {
         setState(() {
