@@ -5709,6 +5709,56 @@ Future<Map<String, dynamic>> reklamKuponKap(String userId, String reklamId) asyn
   throw Exception(response.reasonPhrase);
 }
 
+// ============================================================
+// BİLDİRİM REKLAMLARI — YÖNETİM (Flutter admin, web ile eş zamanlı)
+// ============================================================
+
+Future<int> _reklamAdminUserId() async {
+  final ls = await SharedPreferences.getInstance();
+  try {
+    final u = jsonDecode(ls.getString('user')!);
+    final id = u['id'];
+    return id is int ? id : (int.tryParse('$id') ?? 0);
+  } catch (_) {
+    return 0;
+  }
+}
+
+Future<Map<String, dynamic>> _reklamAdminPost(
+    String yol, String salonId, Map<String, dynamic> ekstra) async {
+  final uid = await _reklamAdminUserId();
+  final body = <String, dynamic>{'user_id': uid};
+  body.addAll(ekstra);
+  final response = await http.post(
+    Uri.parse('$_carkApiBase/reklam/admin/$yol/$salonId'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(body),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+  throw Exception(response.reasonPhrase);
+}
+
+Future<Map<String, dynamic>> reklamAdminListe(String salonId) =>
+    _reklamAdminPost('liste', salonId, {});
+Future<Map<String, dynamic>> reklamAdminKaydet(
+        String salonId, Map<String, dynamic> veri) =>
+    _reklamAdminPost('kaydet', salonId, veri);
+Future<Map<String, dynamic>> reklamAdminDurum(
+        String salonId, dynamic id, String durum) =>
+    _reklamAdminPost('durum', salonId, {'id': id, 'durum': durum});
+Future<Map<String, dynamic>> reklamAdminSil(String salonId, dynamic id) =>
+    _reklamAdminPost('sil', salonId, {'id': id});
+Future<Map<String, dynamic>> reklamAdminGorsel(String salonId, String base64) =>
+    _reklamAdminPost('gorsel', salonId, {'gorsel': base64});
+Future<Map<String, dynamic>> reklamAdminGonder(String salonId, dynamic id) =>
+    _reklamAdminPost('gonder', salonId, {'id': id});
+Future<Map<String, dynamic>> reklamAdminMusteriler(String salonId) =>
+    _reklamAdminPost('musteriler', salonId, {});
+Future<Map<String, dynamic>> reklamAdminHizmetler(String salonId) =>
+    _reklamAdminPost('hizmetler', salonId, {});
+
 Future<Map<String, dynamic>> carkPuanOdullerim(String userId, {String? salonId}) async {
   final body = <String, dynamic>{
     'user_id': userId,

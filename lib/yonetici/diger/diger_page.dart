@@ -32,6 +32,7 @@ import 'menu/ayarlar/personeller/hakedislerim.dart';
 import 'menu/ayarlar/personeller/personeller.dart';
 import 'menu/etkinlik/etkinikler.dart';
 import 'menu/kampanya/kampanyalar.dart';
+import 'menu/bildirimreklamlari/bildirimreklamlari.dart';
 import 'menu/kasa/alacaklar.dart';
 import 'menu/kasa/kasaraporu.dart';
 import 'menu/kasa/masraflar.dart';
@@ -551,6 +552,21 @@ class _MenuState extends State<Menu> {
                       );
                     },
                   ),
+
+                _buildMenuButton(
+                  icon: Icons.campaign_rounded,
+                  label: 'Bildirim Reklamları',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.rightToLeft,
+                        duration: Duration(milliseconds: 300),
+                        child: BildirimReklamlariPage(isletmebilgi: widget.isletmebilgi),
+                      ),
+                    );
+                  },
+                ),
 
                 if (widget.uyelikturu > 2 && Yetki.varMi('gorusme.liste_gor'))
                   _buildMenuButton(
