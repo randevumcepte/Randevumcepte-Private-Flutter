@@ -708,7 +708,9 @@
                                 size: 11, color: Colors.grey.shade500),
                             SizedBox(width: 3),
                             Text(
-                              adisyon.acilis_tarihi,
+                              adisyon.acilis_saati.isNotEmpty
+                                  ? '${adisyon.acilis_tarihi} ${adisyon.acilis_saati}'
+                                  : adisyon.acilis_tarihi,
                               style: TextStyle(
                                   fontSize: 12, color: Colors.grey.shade600),
                             ),
@@ -968,7 +970,9 @@
                             _modalInfoRow(
                               Icons.event_outlined,
                               'Açılış Tarihi',
-                              adisyon.acilis_tarihi,
+                              adisyon.acilis_saati.isNotEmpty
+                                  ? '${adisyon.acilis_tarihi} ${adisyon.acilis_saati}'
+                                  : adisyon.acilis_tarihi,
                               Colors.grey.shade600,
                             ),
                             if (adisyon.son_tahsilat_tarihi.isNotEmpty) ...[

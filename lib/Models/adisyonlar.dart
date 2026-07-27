@@ -16,6 +16,7 @@
     required this.paket_hakedis_numeric,
     required this.hakedis_numeric,
     required this.acilis_tarihi,
+    this.acilis_saati = '',
     required this.musteri,
     required this.user_id,
     required this.satis_turu,
@@ -51,6 +52,7 @@
   final String paket_hakedis_numeric;
   final String hakedis_numeric;
   final String acilis_tarihi;
+  final String acilis_saati;
   final String musteri;
   final String satis_turu;
   final String icerik;
@@ -87,6 +89,7 @@
         paket_hakedis_numeric:json["paket_hakedis_numeric"].toString(),
         hakedis_numeric:json["hakedis_numeric"].toString(),
         acilis_tarihi:json["acilis_tarihi"].toString(),
+        acilis_saati: json["acilis_saati"]?.toString() ?? '',
         musteri:json["musteri"].toString(),
         satis_turu:json["satis_turu"].toString(),
         icerik:json["icerik"].toString(),
