@@ -1255,45 +1255,149 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   Future<void> _kuponDogrulaDialog() async {
     final ctrl = TextEditingController();
-    Map<String, dynamic>? sonuc;
-    bool yuklu = false;
+    Map<String, dynamic>? sonuc; // {basarili:true, odul:{...}} veya {basarili:false, mesaj:...}
+    bool islemde = false;
 
     await showDialog(
       context: context,
       builder: (c) => StatefulBuilder(builder: (c, setSt) {
+        final scheme = Theme.of(context).colorScheme;
+        final Map? odul = (sonuc != null && sonuc!['basarili'] == true) ? sonuc!['odul'] as Map? : null;
+        final String? hataMsj = (sonuc != null && sonuc!['basarili'] != true)
+            ? (sonuc!['mesaj']?.toString() ?? 'Kupon bulunamadı')
+            : null;
+        final String? durum = odul?['durum']?.toString();
+
+        String durumEtiket(String? d) {
+          switch (d) {
+            case 'gecerli':
+              return '● Geçerli';
+            case 'kullanildi':
+              return '✓ Zaten Kullanıldı';
+            case 'sure_doldu':
+              return '⊘ Süresi Dolmuş';
+            default:
+              return d ?? '-';
+          }
+        }
+
+        // 1. adım: kodu API'ye sorup bilgileri getir
+        Future<void> dogrula() async {
+          final kod = ctrl.text.trim();
+          if (kod.isEmpty) return;
+          setSt(() => islemde = true);
+          final r = await carkAdminKuponDogrula(_salonId, kod);
+          setSt(() {
+            sonuc = r;
+            islemde = false;
+          });
+        }
+
+        // 2. adım: kuponu kullanıldı işaretle (veya geri al)
+        Future<void> isaretle({String aksiyon = 'kullan'}) async {
+          if (odul == null) return;
+          setSt(() => islemde = true);
+          final r = await carkAdminKuponKullan(_salonId, (odul['id'] as num).toInt(), aksiyon: aksiyon);
+          if (r != null && r['basarili'] == true) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(aksiyon == 'kullan' ? '✓ Kupon kullanıldı olarak işaretlendi' : '↺ Kullanım geri alındı'),
+                backgroundColor: aksiyon == 'kullan' ? Colors.green : Colors.grey[700],
+              ));
+            }
+            Navigator.pop(c);
+            _yukleKazananlar();
+          } else {
+            setSt(() => islemde = false);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('İşlem başarısız, tekrar deneyin')));
+            }
+          }
+        }
+
+        // Alt ana buton: doğrulama durumuna göre şekil değiştirir
+        Widget anaButon() {
+          if (islemde) {
+            return const ElevatedButton(
+              onPressed: null,
+              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+            );
+          }
+          if (durum == 'gecerli') {
+            return ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+              onPressed: () => isaretle(),
+              icon: const Icon(Icons.check),
+              label: const Text('Kullanıldı İşaretle'),
+            );
+          }
+          if (durum == 'kullanildi') {
+            return ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[600], foregroundColor: Colors.white),
+              onPressed: () => isaretle(aksiyon: 'geri_al'),
+              icon: const Icon(Icons.undo),
+              label: const Text('Kullanımı Geri Al'),
+            );
+          }
+          // henüz doğrulanmadı ya da süresi dolmuş → tekrar doğrula
+          return ElevatedButton(onPressed: dogrula, child: const Text('Doğrula'));
+        }
+
         return AlertDialog(
-          title: Text('Kupon Doğrula'),
+          title: const Text('Kupon Doğrula'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: ctrl,
                 textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(labelText: 'Kupon Kodu', border: OutlineInputBorder()),
+                onChanged: (_) {
+                  if (sonuc != null) setSt(() => sonuc = null); // kod değişince eski sonucu temizle
+                },
+                decoration: const InputDecoration(labelText: 'Kupon Kodu', border: OutlineInputBorder()),
               ),
-              if (sonuc != null) ...[
-                SizedBox(height: 12),
+              if (hataMsj != null) ...[
+                const SizedBox(height: 12),
                 Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(8)),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                  child: Row(children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(hataMsj, style: const TextStyle(color: Colors.red))),
+                  ]),
+                ),
+              ],
+              if (odul != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(8)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(sonuc!['odul']?['baslik']?.toString() ?? '-', style: TextStyle(fontWeight: FontWeight.w800)),
-                      Text('Müşteri: ${sonuc!['odul']?['musteri_adi'] ?? '-'}'),
-                      Text('Durum: ${sonuc!['odul']?['durum']}'),
-                      Text('Geçerlilik: ${sonuc!['odul']?['gecerlilik']}'),
-                      if (sonuc!['odul']?['durum'] == 'gecerli')
-                        ElevatedButton(
-                          onPressed: () async {
-                            final r = await carkAdminKuponKullan(_salonId, (sonuc!['odul']['id'] as num).toInt());
-                            if (mounted && r != null && r['basarili'] == true) {
-                              Navigator.pop(c);
-                              _yukleKazananlar();
-                            }
-                          },
-                          child: Text('Kullanıldı Olarak İşaretle'),
+                      Text(odul['baslik']?.toString() ?? '-', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      const SizedBox(height: 4),
+                      Text('Müşteri: ${odul['musteri_adi'] ?? '-'}'),
+                      Text(
+                        'Durum: ${durumEtiket(durum)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: durum == 'gecerli'
+                              ? Colors.green[700]
+                              : durum == 'kullanildi'
+                                  ? Colors.red[700]
+                                  : Colors.grey[600],
                         ),
+                      ),
+                      Text('Geçerlilik: ${odul['gecerlilik'] ?? 'Süresiz'}'),
+                      if (durum == 'gecerli') ...[
+                        const SizedBox(height: 6),
+                        Text('Onaylamak için aşağıdaki "Kullanıldı İşaretle" butonuna basın.',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      ],
                     ],
                   ),
                 ),
@@ -1301,20 +1405,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: Text('Kapat')),
-            ElevatedButton(
-              onPressed: yuklu
-                  ? null
-                  : () async {
-                      setSt(() => yuklu = true);
-                      final r = await carkAdminKuponDogrula(_salonId, ctrl.text.trim());
-                      setSt(() {
-                        sonuc = r;
-                        yuklu = false;
-                      });
-                    },
-              child: Text('Doğrula'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat')),
+            anaButon(),
           ],
         );
       }),
