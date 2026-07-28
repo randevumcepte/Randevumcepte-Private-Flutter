@@ -296,8 +296,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   List<Map<String, dynamic>> _ornekDilimler() => [
         {'name': '100 Puan', 'probability': 100, 'color': _renkler[0], 'tip': 'puan', 'deger': 100, 'kupon_mu': 0},
-        {'name': '%20 Hizmet', 'probability': 0, 'color': _renkler[1], 'tip': 'hizmet_indirimi', 'deger': 20, 'kupon_mu': 1},
-        {'name': '%10 Ürün', 'probability': 0, 'color': _renkler[2], 'tip': 'urun_indirimi', 'deger': 10, 'kupon_mu': 1},
+        {'name': '%20 Hizmet', 'probability': 0, 'color': _renkler[1], 'tip': 'hizmet_indirimi', 'deger': 20, 'indirim_tipi': 'yuzde', 'kupon_mu': 1},
+        {'name': '%10 Ürün', 'probability': 0, 'color': _renkler[2], 'tip': 'urun_indirimi', 'deger': 10, 'indirim_tipi': 'yuzde', 'kupon_mu': 1},
         {'name': '50 Puan', 'probability': 0, 'color': _renkler[3], 'tip': 'puan', 'deger': 50, 'kupon_mu': 0},
         {'name': 'Tekrar Dene', 'probability': 0, 'color': _renkler[4], 'tip': 'tekrar_dene', 'deger': null, 'kupon_mu': 0},
         {'name': 'Boş', 'probability': 0, 'color': _renkler[5], 'tip': 'bos', 'deger': null, 'kupon_mu': 0},
@@ -803,7 +803,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(8)),
                   child: Text(
-                    _tipText(sec['tip']?.toString() ?? '', sec['deger']),
+                    _tipText(sec['tip']?.toString() ?? '', sec['deger'], sec['indirim_tipi']?.toString()),
                     style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ),
@@ -834,11 +834,15 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     );
   }
 
-  String _tipText(String tip, dynamic deger) {
+  String _tipText(String tip, dynamic deger, [String? indirimTipi]) {
+    // İndirim değeri: tutar ise "50 ₺", değilse "%50"
+    final tutar = indirimTipi == 'tutar';
+    final ind = tutar ? '${deger ?? '?'} ₺' : '%${deger ?? '?'}';
     switch (tip) {
       case 'puan': return '+ ${deger ?? '?'} Puan';
-      case 'hizmet_indirimi': return '%${deger ?? '?'} Hizmet İndirimi';
-      case 'urun_indirimi': return '%${deger ?? '?'} Ürün İndirimi';
+      case 'hizmet_indirimi': return '$ind Hizmet İndirimi';
+      case 'urun_indirimi': return '$ind Ürün İndirimi';
+      case 'paket_indirimi': return '$ind Paket İndirimi';
       case 'tekrar_dene': return 'Tekrar Dene';
       default: return tip;
     }
@@ -1966,12 +1970,40 @@ class _DilimSatiriState extends State<_DilimSatiri> {
     return Color(int.parse('FF$h', radix: 16));
   }
 
+  // % / ₺ birim butonu (seçiliyse tema renginde dolu)
+  Widget _birimSecenek(ColorScheme scheme, String sembol, String etiket, bool secili, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: secili ? scheme.primary : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: secili ? scheme.primary : Colors.grey.shade300, width: 1.5),
+        ),
+        child: Text(
+          '$sembol $etiket',
+          style: TextStyle(
+            color: secili ? Colors.white : Colors.grey.shade700,
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tip = widget.dilim['tip']?.toString() ?? 'bos';
     final color = _hexToColor(widget.dilim['color']?.toString());
-    final degerEnabled = tip == 'puan' || tip == 'hizmet_indirimi' || tip == 'urun_indirimi';
+    final isIndirim = tip == 'hizmet_indirimi' || tip == 'urun_indirimi' || tip == 'paket_indirimi';
+    final indirimTipi = (widget.dilim['indirim_tipi'] ?? 'yuzde').toString();
+    final degerEnabled = tip == 'puan' || isIndirim;
+    // Değer birimi: puan / % / ₺ (indirim dilimlerinde salon sahibi seçer)
+    final birim = tip == 'puan' ? 'puan' : (isIndirim ? (indirimTipi == 'tutar' ? '₺' : '%') : '');
     final kazanan = (widget.dilim['probability'] as num?)?.toInt() == 100;
 
     return Container(
@@ -2071,8 +2103,12 @@ class _DilimSatiriState extends State<_DilimSatiri> {
                   onChanged: (v) {
                     setState(() {
                       widget.dilim['tip'] = v;
-                      if (v == 'hizmet_indirimi' || v == 'urun_indirimi') {
+                      if (v == 'hizmet_indirimi' || v == 'urun_indirimi' || v == 'paket_indirimi') {
                         widget.dilim['kupon_mu'] = 1;
+                        // İndirim tipine geçince birim varsayılanı % (salon sahibi değiştirebilir)
+                        if (widget.dilim['indirim_tipi'] != 'tutar') {
+                          widget.dilim['indirim_tipi'] = 'yuzde';
+                        }
                       } else {
                         widget.dilim['kupon_mu'] = 0;
                         if (v == 'tekrar_dene' || v == 'bos') {
@@ -2096,11 +2132,35 @@ class _DilimSatiriState extends State<_DilimSatiri> {
                     widget.dilim['deger'] = double.tryParse(v);
                     widget.onDegisti();
                   },
-                  decoration: InputDecoration(labelText: 'Değer', border: OutlineInputBorder(), isDense: true),
+                  decoration: InputDecoration(
+                    labelText: 'Değer',
+                    suffixText: birim.isEmpty ? null : birim,
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
                 ),
               ),
             ],
           ),
+          // İndirim dilimlerinde birim seçimi: % (yüzde) veya sabit ₺ (tutar)
+          if (isIndirim) ...[
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text('İndirim birimi:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+                SizedBox(width: 10),
+                _birimSecenek(scheme, '%', 'Yüzde', indirimTipi != 'tutar', () {
+                  setState(() => widget.dilim['indirim_tipi'] = 'yuzde');
+                  widget.onDegisti();
+                }),
+                SizedBox(width: 6),
+                _birimSecenek(scheme, '₺', 'Tutar', indirimTipi == 'tutar', () {
+                  setState(() => widget.dilim['indirim_tipi'] = 'tutar');
+                  widget.onDegisti();
+                }),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -2287,8 +2347,10 @@ class _CarkPainter extends CustomPainter {
         final numFs = n <= 8 ? 17.0 : 14.0;
         final catFs = n <= 8 ? 11.0 : 9.0;
 
-        // Rakam — dış kenara teğet
-        final numStr = tip.contains('indirimi') ? '%${_fmt(deger)}' : _fmt(deger);
+        // Rakam — dış kenara teğet (indirim: tutar ise "50₺", değilse "%50")
+        final numStr = tip.contains('indirimi')
+            ? (dilimler[i]['indirim_tipi'] == 'tutar' ? '${_fmt(deger)}₺' : '%${_fmt(deger)}')
+            : _fmt(deger);
         final numDist = _R - (n <= 8 ? 16 : 13);
         final nx = _cx + numDist * math.cos(tRad);
         final ny = _cy + numDist * math.sin(tRad);

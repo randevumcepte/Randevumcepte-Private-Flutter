@@ -757,6 +757,7 @@ class _Dilim {
   final Color renk;
   final String tip;
   final double? deger;
+  final String indirimTipi; // yuzde | tutar
   final int sira;
 
   _Dilim({
@@ -765,6 +766,7 @@ class _Dilim {
     required this.renk,
     required this.tip,
     required this.deger,
+    required this.indirimTipi,
     required this.sira,
   });
 
@@ -775,6 +777,7 @@ class _Dilim {
       renk: _hexToColor((j['renk'] ?? '#6C5CE7').toString()),
       tip: (j['tip'] ?? 'bos').toString(),
       deger: j['deger'] == null ? null : double.tryParse(j['deger'].toString()),
+      indirimTipi: (j['indirim_tipi'] ?? 'yuzde').toString(),
       sira: (j['sira'] is int) ? j['sira'] as int : int.tryParse(j['sira'].toString()) ?? 0,
     );
   }
@@ -792,8 +795,9 @@ class _Dilim {
 
   String? get rakamEtiket {
     if (deger == null) return null;
-    if (tip == 'hizmet_indirimi' || tip == 'urun_indirimi') {
-      return '%${deger!.toInt()}';
+    if (tip.contains('indirimi')) {
+      // İndirim birimi: tutar ise "50₺", değilse "%50"
+      return indirimTipi == 'tutar' ? '${deger!.toInt()}₺' : '%${deger!.toInt()}';
     }
     if (tip == 'puan') return '${deger!.toInt()}';
     return null;
