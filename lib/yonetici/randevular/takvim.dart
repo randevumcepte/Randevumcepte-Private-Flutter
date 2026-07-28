@@ -2375,7 +2375,7 @@ List<Widget> _buildAppointmentsForResource(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Memnuniyet Anketi Gönder'),
+        title: const Text('Anket Gönder'),
         content: Text('$musteriAdi adlı müşteriye memnuniyet anketi WhatsApp veya SMS ile gönderilsin mi?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),

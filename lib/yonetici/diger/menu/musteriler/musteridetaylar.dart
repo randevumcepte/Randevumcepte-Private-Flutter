@@ -203,7 +203,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			context: context,
 			builder: (ctx) => AlertDialog(
 				shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-				title: const Text('Memnuniyet Anketi Gönder'),
+				title: const Text('Anket Gönder'),
 				content: Text('${_md.name} adlı müşteriye memnuniyet anketi WhatsApp veya SMS ile gönderilsin mi?'),
 				actions: [
 					TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
@@ -1044,7 +1044,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		}
 		if (Yetki.varMi('pazarlama.anket_yonet')) {
 			items.add(_ActionItem(
-				'Memnuniyet Anketi Gönder',
+				'Anket Gönder',
 				Icons.chat_bubble_outline,
 				const Color(0xFF25D366),
 				_anketGonder,
