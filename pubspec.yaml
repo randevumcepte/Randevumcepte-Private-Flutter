@@ -156,6 +156,8 @@ flutter:
     - images/ring.mp3
     - images/announcement.png
     - images/hesapsil.png
+    - assets/google_fonts/Poppins-Regular.ttf
+    - assets/google_fonts/Poppins-Bold.ttf
 
 flutter_launcher_icons:
   android: "launcher_icon"

@@ -2007,6 +2007,58 @@ Future <Map<String, dynamic>> kasaraporu(String Salonid , String tarih,String od
 
 }
 
+// GÜN SONU RAPORU (mobil) — /api/v1/gunsonuraporu/{salonid}
+// Web'deki Gün Sonu ile ayni cikti: odeme yontemi kirilimi, personel ciro,
+// en cok satanlar, Tam Detay/saglama kalemleri. tarih: 'Bugün'/'Dün'/'Bu ay'/'Geçen ay'
+// ya da dogrudan 'YYYY-MM-DD / YYYY-MM-DD' (ozel aralik).
+Future<Map<String, dynamic>> gunSonuRaporu(String salonId, String tarih) async {
+  String tarih1 = '';
+  String tarih2 = '';
+  final now = DateTime.now();
+  final yesterday = DateTime.now().subtract(const Duration(days: 1));
+  final thismonth1 = DateTime(now.year, now.month, 1);
+  final lastmonth1 = DateTime(now.year, now.month - 1, 1);
+  final lastmonth2 = DateTime(now.year, now.month, 0);
+
+  if (tarih == 'Bugün' || tarih == '') {
+    tarih1 = DateFormat('yyyy-MM-dd').format(now);
+    tarih2 = DateFormat('yyyy-MM-dd').format(now);
+  } else if (tarih == 'Dün') {
+    tarih1 = DateFormat('yyyy-MM-dd').format(yesterday);
+    tarih2 = DateFormat('yyyy-MM-dd').format(yesterday);
+  } else if (tarih == 'Bu ay') {
+    tarih1 = DateFormat('yyyy-MM-dd').format(thismonth1);
+    tarih2 = DateFormat('yyyy-MM-dd').format(now);
+  } else if (tarih == 'Geçen ay') {
+    tarih1 = DateFormat('yyyy-MM-dd').format(lastmonth1);
+    tarih2 = DateFormat('yyyy-MM-dd').format(lastmonth2);
+  } else if (tarih.contains(' / ')) {
+    // Ozel aralik: 'YYYY-MM-DD / YYYY-MM-DD'
+    final p = tarih.split(' / ');
+    tarih1 = p[0];
+    tarih2 = p.length > 1 ? p[1] : p[0];
+  } else {
+    // Tek tarih dizesi geldiyse ikisine de yaz
+    tarih1 = tarih;
+    tarih2 = tarih;
+  }
+
+  Map<String, dynamic> formData = {'tarih1': tarih1, 'tarih2': tarih2};
+
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/gunsonuraporu/' + salonId),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+
+  if (response.statusCode == 200) {
+    return json.decode(response.body);
+  } else {
+    logyaz(response.statusCode, response.reasonPhrase);
+    throw Exception(response.reasonPhrase);
+  }
+}
+
 // backend.dart dosyasına ekleyin
 
 Future<Map<String, dynamic>> devredenAylar(String salonId, int year) async {

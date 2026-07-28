@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/kasa/gunsonu_raporu.dart';
 
 class KasaRaporu extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -234,6 +235,10 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
             child: Column(
               children: [
                 const SizedBox(height: 16),
+                if (Yetki.varMi('rapor.kasa')) ...[
+                  _buildGunSonuButton(),
+                  const SizedBox(height: 16),
+                ],
                 _buildStatsCards(),
                 const SizedBox(height: 24),
                 _buildChart(),
@@ -405,6 +410,77 @@ class _KasaRaporuState extends State<KasaRaporu> with SingleTickerProviderStateM
       ),
     );
   }
+  // Gün Sonu Raporu'na giden belirgin buton (kasa raporu ustunde)
+  Widget _buildGunSonuButton() {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => GunSonuRaporu(isletmebilgi: widget.isletmebilgi),
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [scheme.primary, scheme.tertiary],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: 0.30),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.event_available_rounded, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Gün Sonu Raporu',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Günün finansal özeti ve kasa sağlaması',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   //üst kartlar bölümü
   Widget _buildStatsCards() {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
