@@ -1127,6 +1127,22 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
   late double _uyariCsat;
   bool _kaydediliyor = false;
 
+  // Google yorumu odulu
+  String _googleOdulTipi = 'yok';
+  String _googleOdulIndirimTipi = 'yuzde';
+  late TextEditingController _googleOdulDeger;
+  late TextEditingController _googleOdulGecerlilik;
+  late TextEditingController _googleOdulPuan;
+  late TextEditingController _googleOdulBaslik;
+
+  String _numStr(dynamic v) {
+    if (v == null) return '';
+    final d = (v is num) ? v.toDouble() : double.tryParse(v.toString());
+    if (d == null) return '';
+    if (d == d.roundToDouble()) return d.toInt().toString();
+    return d.toString();
+  }
+
   int _toInt(dynamic v, int def) {
     if (v == null) return def;
     if (v is num) return v.toInt();
@@ -1149,33 +1165,61 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
     _esikCsat = _toDouble(widget.ayarlar['google_review_esik_csat'], 4.5);
     _uyariNps = _toInt(widget.ayarlar['kotu_puan_uyari_esik_nps'], 6);
     _uyariCsat = _toDouble(widget.ayarlar['kotu_puan_uyari_esik_csat'], 3.0);
+
+    _googleOdulTipi = widget.ayarlar['google_odul_tipi']?.toString() ?? 'yok';
+    if (!['yok', 'kupon', 'puan'].contains(_googleOdulTipi)) _googleOdulTipi = 'yok';
+    _googleOdulIndirimTipi = (widget.ayarlar['google_odul_kupon_indirim_tipi']?.toString() == 'tutar') ? 'tutar' : 'yuzde';
+    _googleOdulDeger = TextEditingController(text: _numStr(widget.ayarlar['google_odul_kupon_deger']));
+    _googleOdulGecerlilik = TextEditingController(text: widget.ayarlar['google_odul_kupon_gecerlilik_gun'] != null ? _numStr(widget.ayarlar['google_odul_kupon_gecerlilik_gun']) : '30');
+    _googleOdulPuan = TextEditingController(text: _numStr(widget.ayarlar['google_odul_puan']));
+    _googleOdulBaslik = TextEditingController(text: widget.ayarlar['google_odul_baslik']?.toString() ?? '');
   }
 
   @override
   void dispose() {
     _googleUrl.dispose();
+    _googleOdulDeger.dispose();
+    _googleOdulGecerlilik.dispose();
+    _googleOdulPuan.dispose();
+    _googleOdulBaslik.dispose();
     super.dispose();
   }
 
   Future<void> _kaydet() async {
+    // Ödül doğrulama
+    final gDeger = double.tryParse(_googleOdulDeger.text.trim().replaceAll(',', '.')) ?? 0;
+    final gPuan = double.tryParse(_googleOdulPuan.text.trim().replaceAll(',', '.')) ?? 0;
+    if (_googleOdulTipi == 'kupon' && gDeger <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google ödülü kuponu için geçerli bir indirim değeri girin'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_googleOdulTipi == 'puan' && gPuan <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google ödülü puanı için geçerli bir değer girin'), backgroundColor: Colors.red),
+      );
+      return;
+    }
     setState(() => _kaydediliyor = true);
-    final ok = await anketAyarlarKaydet(widget.salonId, {
+    final data = <String, dynamic>{
       'google_url': _googleUrl.text.trim(),
       'google_review_esik_nps': _esikNps,
       'google_review_esik_csat': _esikCsat,
       'kotu_puan_uyari_esik_nps': _uyariNps,
       'kotu_puan_uyari_esik_csat': _uyariCsat,
-    });
+      'google_odul_tipi': _googleOdulTipi,
+      'google_odul_kupon_indirim_tipi': _googleOdulIndirimTipi,
+      'google_odul_kupon_deger': gDeger,
+      'google_odul_kupon_gecerlilik_gun': int.tryParse(_googleOdulGecerlilik.text.trim()) ?? 0,
+      'google_odul_puan': gPuan,
+      'google_odul_baslik': _googleOdulBaslik.text.trim(),
+    };
+    final ok = await anketAyarlarKaydet(widget.salonId, data);
     if (!mounted) return;
     setState(() => _kaydediliyor = false);
     if (ok) {
-      widget.onKaydedildi({
-        'google_url': _googleUrl.text.trim(),
-        'google_review_esik_nps': _esikNps,
-        'google_review_esik_csat': _esikCsat,
-        'kotu_puan_uyari_esik_nps': _uyariNps,
-        'kotu_puan_uyari_esik_csat': _uyariCsat,
-      });
+      widget.onKaydedildi(data);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ayarlar kaydedildi'), backgroundColor: Colors.green),
       );
@@ -1211,6 +1255,71 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
                 (v) => setState(() => _esikNps = v.round())),
             _sliderRow('CSAT eşiği (≥)', _esikCsat, 1, 5, 16,
                 (v) => setState(() => _esikCsat = (v * 4).round() / 4)),
+          ],
+        ),
+        SizedBox(height: 12),
+        _ayarKart(
+          scheme,
+          title: 'Google Yorumu Ödülü',
+          subtitle: '"Google\'da Yorum Yaz"a tıklayana otomatik kupon/puan verilir. ⚠️ Google, yorum karşılığı ödülü politikalarına aykırı bulabilir.',
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _googleOdulTipi,
+              decoration: InputDecoration(labelText: 'Ödül Tipi', border: OutlineInputBorder(), isDense: true),
+              items: [
+                DropdownMenuItem(value: 'yok', child: Text('Ödül yok')),
+                DropdownMenuItem(value: 'kupon', child: Text('İndirim Kuponu')),
+                DropdownMenuItem(value: 'puan', child: Text('Sadakat Puanı')),
+              ],
+              onChanged: (v) => setState(() => _googleOdulTipi = v ?? 'yok'),
+            ),
+            if (_googleOdulTipi == 'kupon') ...[
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _googleOdulIndirimTipi,
+                      decoration: InputDecoration(labelText: 'İndirim Tipi', border: OutlineInputBorder(), isDense: true),
+                      items: [
+                        DropdownMenuItem(value: 'yuzde', child: Text('Yüzde (%)')),
+                        DropdownMenuItem(value: 'tutar', child: Text('Tutar (₺)')),
+                      ],
+                      onChanged: (v) => setState(() => _googleOdulIndirimTipi = v ?? 'yuzde'),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _googleOdulDeger,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(labelText: 'Değer', border: OutlineInputBorder(), isDense: true, suffixText: _googleOdulIndirimTipi == 'tutar' ? '₺' : '%'),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: _googleOdulGecerlilik,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: 'Geçerlilik (gün)', hintText: 'Boş = süresiz', border: OutlineInputBorder(), isDense: true),
+              ),
+            ],
+            if (_googleOdulTipi == 'puan') ...[
+              SizedBox(height: 10),
+              TextField(
+                controller: _googleOdulPuan,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(labelText: 'Verilecek Puan', hintText: 'Örn: 50', border: OutlineInputBorder(), isDense: true),
+              ),
+            ],
+            if (_googleOdulTipi != 'yok') ...[
+              SizedBox(height: 10),
+              TextField(
+                controller: _googleOdulBaslik,
+                decoration: InputDecoration(labelText: 'Ödül Başlığı (opsiyonel)', hintText: 'Boş = otomatik (örn: %10 İndirim)', border: OutlineInputBorder(), isDense: true),
+              ),
+            ],
           ],
         ),
         SizedBox(height: 12),
