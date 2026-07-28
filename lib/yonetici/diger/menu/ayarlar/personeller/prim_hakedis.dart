@@ -106,6 +106,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
         'diger':   _parseTrNumber(map['odenen_diger']),
         'bonus':   _parseTrNumber(map['bonus']),
         'kesinti': _parseTrNumber(map['kesinti']),
+        'masraf':  _parseTrNumber(map['masraf']), // personel gideri (hakedisten duser)
       };
     }
   }
@@ -119,9 +120,11 @@ class _PrimHakedisState extends State<PrimHakedis> {
     double odenenDiger,
     double bonus,
     double kesinti,
+    double masraf,
+    bool borclu,
     double kalanMaas,
     double kalanPrim,
-    double netHakedis,    // maas + primHam + bonus - kesinti
+    double netHakedis,    // maas + primHam + bonus - kesinti - masraf
     double odenenToplam,  // maas + prim + diger
     double bekleyen,      // netHakedis - odenenToplam (0'in altina dusmez)
   }) _kalanlar(Personel p) {
@@ -137,9 +140,10 @@ class _PrimHakedisState extends State<PrimHakedis> {
     final odenenDiger = o['diger'] ?? 0.0;
     final bonus = o['bonus'] ?? 0.0;
     final kesinti = o['kesinti'] ?? 0.0;
+    final masraf = o['masraf'] ?? 0.0; // personel gideri
     final kalanMaas = (maasHam - odenenMaas).clamp(0.0, double.infinity);
     final kalanPrim = (primHam - odenenPrim).clamp(0.0, double.infinity);
-    final netHakedis = maasHam + primHam + bonus - kesinti;
+    final netHakedis = maasHam + primHam + bonus - kesinti - masraf;
     final odenenToplam = odenenMaas + odenenPrim + odenenDiger;
     final bekleyen = (netHakedis - odenenToplam).clamp(0.0, double.infinity);
     return (
@@ -150,6 +154,8 @@ class _PrimHakedisState extends State<PrimHakedis> {
       odenenDiger: odenenDiger,
       bonus: bonus,
       kesinti: kesinti,
+      masraf: masraf,
+      borclu: netHakedis < 0,
       kalanMaas: kalanMaas,
       kalanPrim: kalanPrim,
       netHakedis: netHakedis,
@@ -589,6 +595,38 @@ class _PrimHakedisState extends State<PrimHakedis> {
                   ],
                 ),
               ),
+              // Personel gideri (kasadan alinan) — net hak edisten dusuldu
+              if (k.masraf > 0) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _ufakSatir(
+                          'Personel Gideri',
+                          Yetki.tutarGoster(_fmtTl(k.masraf), 'personel.maas_tutar_gor'),
+                          const Color(0xFFB45309),
+                        ),
+                      ),
+                      if (k.borclu)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: cs.error.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('Borçlu',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.error)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               // Aksiyon butonlari: Ödeme Yap (ana) + Bonus / Kesinti (kucuk)
               // — Tum aksiyonlar 'personel.odeme_yap' yetkisine bagli.
               if (Yetki.varMi('personel.odeme_yap')) ...[

@@ -289,6 +289,24 @@ class _MasraflarState extends State<Masraflar> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                if (m.personel_gideri)
+                  Container(
+                    margin: const EdgeInsets.only(top: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Personel Gideri',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFB45309),
+                      ),
+                    ),
+                  ),
               ],
             ),
             trailing: Column(

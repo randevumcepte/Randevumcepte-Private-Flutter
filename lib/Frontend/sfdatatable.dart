@@ -6139,19 +6139,22 @@ class GiderDataSource extends DataGridSource {
 
 
   }
-  Future<void> masrafEkleGuncelle(String masrafid,String masraf_tutari,MasrafKategorisi masraf_kategorisi,String masraf_notlari,OdemeTuru masraf_odeme_yontemi, Personel harcayan,context,String salonid,String tarih) async {
+  Future<void> masrafEkleGuncelle(String masrafid,String masraf_tutari,MasrafKategorisi? masraf_kategorisi,String masraf_notlari,OdemeTuru masraf_odeme_yontemi, Personel harcayan,context,String salonid,String tarih,{bool personelGideri = false}) async {
 
 
     showProgressLoading(context);
     Map<String, dynamic> formData = {
       'id':masrafid,
       'masraf_tutari': masraf_tutari,
-      'masraf_kategorisi':masraf_kategorisi.id,
+      // Personel giderinde kategori bos gelebilir; backend otomatik 'Personel Gideri' atar
+      'masraf_kategorisi':masraf_kategorisi?.id ?? '',
       'masraf_notlari':masraf_notlari,
       'masraf_aciklama':masraf_notlari,
       'masraf_odeme_yontemi': masraf_odeme_yontemi.id,
       'harcayan': harcayan.id,
       'tarih':tarih,
+      // Personel gideri mi? (personel kasadan aldi -> hakedisten dusulur)
+      'personel_gideri': personelGideri ? '1' : '0',
 
 
 

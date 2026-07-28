@@ -12,6 +12,7 @@ class Masraf {
     required this.masraf_kategorisi,
     required this.aciklama,
     required this.odeme_yontemi,
+    this.personel_gideri = false,
 
 
 
@@ -25,6 +26,8 @@ class Masraf {
   final Map<String, dynamic> masraf_kategorisi;
   final Map<String, dynamic> odeme_yontemi;
   final String aciklama;
+  // Personel gideri mi? (personel kasadan aldi -> hakedisten dusulur)
+  final bool personel_gideri;
 
 
 
@@ -40,7 +43,9 @@ class Masraf {
       harcayan:json["harcayan"],
       masraf_kategorisi: json["masraf_kategorisi"],
         odeme_yontemi: json["odeme_yontemi"],
-      aciklama: json["aciklama"].toString()
+      aciklama: json["aciklama"].toString(),
+      personel_gideri: (json["personel_gideri"]?.toString() ?? "0") == "1"
+          || json["personel_gideri"] == true
 
 
     );

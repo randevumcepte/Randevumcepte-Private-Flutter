@@ -52,10 +52,13 @@ class _MasrafDuzenleState extends State<MasrafDuzenle> {
 
   DateTime? _seciliTarih;
   bool _kaydediliyor = false;
+  // false = normal masraf (salon gideri), true = personel gideri (hakedisten dusulur)
+  bool _personelGideri = false;
 
   @override
   void initState() {
     super.initState();
+    _personelGideri = widget.masraf.personel_gideri;
 
     // Tarih: backend 'yyyy-MM-dd' -> ekranda 'dd.MM.yyyy'
     try {
@@ -123,10 +126,18 @@ class _MasrafDuzenleState extends State<MasrafDuzenle> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
                     children: [
+                      _buildModToggle(scheme),
+                      const SizedBox(height: 12),
+                      if (_personelGideri) ...[
+                        _buildGideriInfo(scheme),
+                        const SizedBox(height: 12),
+                      ],
                       _buildTarihTutarCard(scheme),
                       const SizedBox(height: 12),
-                      _buildKategoriCard(scheme),
-                      const SizedBox(height: 12),
+                      if (!_personelGideri) ...[
+                        _buildKategoriCard(scheme),
+                        const SizedBox(height: 12),
+                      ],
                       _buildOdemeYontemiCard(scheme),
                       const SizedBox(height: 12),
                       _buildHarcayanCard(scheme),
@@ -188,6 +199,110 @@ class _MasrafDuzenleState extends State<MasrafDuzenle> {
                 child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModToggle(ColorScheme scheme) {
+    Widget seg(String label, IconData icon, bool active, VoidCallback onTap) {
+      return Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            decoration: BoxDecoration(
+              color: active ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(11),
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.20),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon,
+                    size: 16,
+                    color: active
+                        ? scheme.primary
+                        : scheme.onSurface.withValues(alpha: 0.5)),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: active
+                          ? scheme.primary
+                          : scheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: scheme.onSurface.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          seg('Masraf', Icons.receipt_long_outlined, !_personelGideri, () {
+            if (_personelGideri) setState(() => _personelGideri = false);
+          }),
+          seg('Personel Gideri', Icons.shopping_basket_outlined,
+              _personelGideri, () {
+            if (!_personelGideri) {
+              setState(() {
+                _personelGideri = true;
+                _selectedOdemeYontemi ??= _odemeYontemleri.first; // Nakit varsayilan
+              });
+            }
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGideriInfo(ColorScheme scheme) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, size: 18, color: scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Bu tutar hem kasadan düşülür hem de seçilen personelin net hak edişinden otomatik düşülür.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface.withValues(alpha: 0.75),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -683,7 +798,8 @@ class _MasrafDuzenleState extends State<MasrafDuzenle> {
       _uyari('Lütfen tutar giriniz.');
       return;
     }
-    if (_selectedKategori == null) {
+    // Personel gideri modunda kategori zorunlu degil (backend otomatik atar)
+    if (!_personelGideri && _selectedKategori == null) {
       _uyari('Lütfen masraf kategorisi seçiniz.');
       return;
     }
@@ -692,7 +808,9 @@ class _MasrafDuzenleState extends State<MasrafDuzenle> {
       return;
     }
     if (_selectedHarcayan == null) {
-      _uyari('Lütfen harcayan personeli seçiniz.');
+      _uyari(_personelGideri
+          ? 'Lütfen personel seçiniz.'
+          : 'Lütfen harcayan personeli seçiniz.');
       return;
     }
 
@@ -702,13 +820,14 @@ class _MasrafDuzenleState extends State<MasrafDuzenle> {
       widget.giderDataSource.masrafEkleGuncelle(
         widget.masraf.id,
         _tutarCtrl.text,
-        _selectedKategori!,
+        _selectedKategori,
         _aciklamaCtrl.text,
         _selectedOdemeYontemi!,
         _selectedHarcayan!,
         context,
         widget.seciliisletme,
         apiTarih,
+        personelGideri: _personelGideri,
       );
     } finally {
       if (mounted) setState(() => _kaydediliyor = false);
