@@ -10,7 +10,7 @@ import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'login_page.dart';
 
 /// Açılış / tanıtım ekranı.
-/// Arka plandaki sabit video yerine, salonun kendi logosunu (images/eymlife.png)
+/// Arka plandaki sabit video yerine, salonun kendi logosunu (images/aleyna.png)
 /// kullanan otomatik animasyonlu bir sahne gösterilir: beyaz zemin + efekt çizgiler +
 /// dönen ışınlar + nabız gibi atan halkalar + süzülen ışık topları + ortada logo.
 class OnBoardingPage extends StatefulWidget {
@@ -38,7 +38,7 @@ class _OnBoardingPageState extends State<OnBoardingPage>
 
   // Logo yolu — beyaz etiket build'de salon logosuna göre bu tek satır değişir.
   // Palet ve ekrandaki logo aynı görselden gelir.
-  static const String _logoYolu = 'images/eymlife.png';
+  static const String _logoYolu = 'images/aleyna.png';
   LogoPalet _palet = LogoPalet.varsayilan; // logodan türetilen renkler
 
   @override

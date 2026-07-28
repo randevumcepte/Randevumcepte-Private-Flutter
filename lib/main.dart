@@ -337,7 +337,7 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 3),
           opacity: _opacity,
           child: Image.asset(
-            "images/eymlifeicon.png",
+            "images/aleyna.png",
             height: 200,
           ),
         ),
