@@ -1177,6 +1177,14 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   // ============ KAZANANLAR TAB ============
 
+  // Kupon siralama anahtari: kullanildiysa kullanim_tarihi, aksi halde created_at.
+  // Hem ISO ("...T..Z") hem bosluklu ("Y-m-d H:i:s") formatlari DateTime.tryParse ile okunur.
+  DateTime? _kuponSiraTarihi(Map o) {
+    final s = (o['kullanim_tarihi'] ?? o['created_at'])?.toString();
+    if (s == null || s.isEmpty) return null;
+    return DateTime.tryParse(s);
+  }
+
   Widget _kazananlarTab(ColorScheme scheme) {
     if (_kazLoading) return Center(child: CircularProgressIndicator());
     if (_kazData == null) {
@@ -1185,7 +1193,17 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
       );
     }
     final ozet = _kazData!['ozet'] as Map?;
-    final odulluler = (_kazData!['odulluler'] as List?) ?? [];
+    // Backend ile ayni siralama (COALESCE(kullanim_tarihi, created_at) DESC):
+    // en son kullanilan/dogrulanan kupon en ustte. Sunucu sirasindan bagimsiz garanti.
+    final odulluler = List<dynamic>.from((_kazData!['odulluler'] as List?) ?? []);
+    odulluler.sort((a, b) {
+      final ta = _kuponSiraTarihi(a as Map);
+      final tb = _kuponSiraTarihi(b as Map);
+      if (ta == null && tb == null) return 0;
+      if (ta == null) return 1; // tarihsizler en sona
+      if (tb == null) return -1;
+      return tb.compareTo(ta); // azalan (yeni ustte)
+    });
     final users = (_kazData!['users'] as Map?) ?? {};
 
     return RefreshIndicator(
