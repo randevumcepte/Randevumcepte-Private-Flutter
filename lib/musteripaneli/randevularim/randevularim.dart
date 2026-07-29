@@ -507,6 +507,19 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
     );
   }
 
+  // Listede birden fazla farkli salon varsa (bundle/paket cesitli subelerde),
+  // kartta salon adini gostermek anlamli olur. Tek subeli beyaz etiket
+  // uygulamalarinda gereksiz tekrar olmamasi icin salon adi kartta gizlenir.
+  bool get _cokluSalon {
+    final set = <String>{};
+    for (final r in _randevular) {
+      final s = _safeText(r.salonAdi);
+      if (s.isNotEmpty) set.add(s);
+      if (set.length > 1) return true;
+    }
+    return false;
+  }
+
   // ── RANDEVU CARD ─────────────────────────────────────────────────────────
   Widget _randevuCard(BuildContext context, Randevu r) {
     final scheme = Theme.of(context).colorScheme;
@@ -514,7 +527,8 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
     final dt = _parseTarih(r.tarih);
     final status = _statusOf(r.durum);
     final hizmetler = _hizmetText(r.hizmetler);
-    final personeller = _personelText(r.yardimci_personeller);
+    final personeller = _personelText(r.hizmetler);
+    final salonAdi = _cokluSalon ? _safeText(r.salonAdi) : '';
 
     return Container(
       decoration: BoxDecoration(
@@ -652,6 +666,33 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
                                     fontWeight: FontWeight.w500,
                                     color: scheme.onSurface
                                         .withValues(alpha: 0.6),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (salonAdi.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.storefront_outlined,
+                                size: 13,
+                                color: scheme.onSurface
+                                    .withValues(alpha: 0.55),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  salonAdi,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.primary
+                                        .withValues(alpha: 0.85),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -975,7 +1016,8 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
     final dt = _parseTarih(r.tarih);
     final status = _statusOf(r.durum);
     final hizmetler = _hizmetText(r.hizmetler);
-    final personeller = _personelText(r.yardimci_personeller);
+    final personeller = _personelText(r.hizmetler);
+    final salonAdi = _safeText(r.salonAdi);
 
     showModalBottomSheet(
       context: context,
@@ -1062,6 +1104,11 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
                   ],
                 ),
                 const SizedBox(height: 22),
+                if (salonAdi.isNotEmpty)
+                  _detailTile(ctx,
+                      icon: Icons.storefront_outlined,
+                      label: 'Şube / Salon',
+                      value: salonAdi),
                 _detailTile(ctx,
                     icon: Icons.spa_rounded,
                     label: 'Hizmet(ler)',
@@ -1271,10 +1318,27 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
     return '';
   }
 
-  static String _personelText(String raw) {
-    final t = _safeText(raw);
-    if (t.isEmpty) return '';
-    return t;
+  // Personel bilgisi randevu bazinda tek alan degil; her hizmet satirinin
+  // kendi personeli var (hizmetler[i]["personeller"]["personel_adi"]).
+  // Benzersiz personel adlarini toplayip virgulle birlestirir.
+  static String _personelText(dynamic hizmetler) {
+    try {
+      if (hizmetler is List) {
+        final names = <String>[];
+        for (final h in hizmetler) {
+          if (h is Map) {
+            final p = h['personeller'];
+            if (p is Map) {
+              final n = p['personel_adi'] ?? p['ad'] ?? p['name'];
+              final s = _safeText(n?.toString());
+              if (s.isNotEmpty && !names.contains(s)) names.add(s);
+            }
+          }
+        }
+        return names.join(', ');
+      }
+    } catch (_) {}
+    return '';
   }
 
   static _RandevuStatus _statusOf(String durum) {

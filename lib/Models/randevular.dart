@@ -19,6 +19,7 @@
     required this.musterinotu,
     required this.personelnotu,
     required this.tahsilat_eklendi,
+    required this.salonAdi,
   });
   final String id;
   final String tarih;
@@ -37,6 +38,7 @@
   final String toplam;
   final String musterinotu;
   final String personelnotu;
+  final String salonAdi;
 
 
   factory Randevu.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,9 @@
       musterinotu : json["musteri_notu"].toString(),
       personelnotu : json["personel_notu"].toString(),
       tahsilat_eklendi: json["tahsilat_eklendi"].toString(),
+      salonAdi: (json["salonlar"] is Map && json["salonlar"]["salon_adi"] != null)
+          ? json["salonlar"]["salon_adi"].toString()
+          : '',
     );
   }
 }
