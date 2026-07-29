@@ -1979,19 +1979,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
               icon: Icons.phone_rounded,
               label: 'Salonu Ara',
               tint: scheme.primary,
-              onTap: () async {
-                final phone = _resolveCallPhone();
-                if (phone == null || phone.isEmpty) {
-                  _showSnack('Salonun arama numarası tanımlı değil.');
-                  return;
-                }
-                final uri = Uri.parse('tel:$phone');
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri);
-                } else {
-                  _showSnack('Arama başlatılamadı.');
-                }
-              },
+              onTap: () => _iletisimAksiyon(context, mode: 'ara'),
             ),
           ),
           const SizedBox(width: 10),
@@ -2001,25 +1989,213 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
               icon: Icons.chat_rounded,
               label: 'WhatsApp',
               tint: const Color(0xFF25D366),
-              onTap: () async {
-                final wp = _resolveWhatsappNumber();
-                if (wp == null || wp.isEmpty) {
-                  _showSnack('Salonun WhatsApp numarası tanımlı değil.');
-                  return;
-                }
-                try {
-                  await WhatsAppOpener.openWhatsApp(
-                    wp,
-                    'Merhaba, bilgi / randevu almak istiyorum.',
-                  );
-                } catch (_) {
-                  _showSnack('WhatsApp açılamadı.');
-                }
-              },
+              onTap: () => _iletisimAksiyon(context, mode: 'wp'),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Iletisim/WhatsApp aksiyonu: brand'in birden fazla subesi varsa BottomSheet
+  /// icinde sube listesi acilir; tek sube (veya musteri_olunan_salonlar bos)
+  /// ise dogrudan mevcut isletmebilgi uzerinden aranan/wp acilir.
+  Future<void> _iletisimAksiyon(BuildContext context, {required String mode}) async {
+    final subeler = _brandSubeleri();
+    if (subeler.length > 1) {
+      await _showSubeSecerekIletisim(context, subeler, mode);
+      return;
+    }
+    // Tek sube (veya liste bos): mevcut isletmebilgi ile calis (geri uyum).
+    if (mode == 'ara') {
+      final phone = _resolveCallPhone();
+      if (phone == null || phone.isEmpty) {
+        _showSnack('Salonun arama numarası tanımlı değil.');
+        return;
+      }
+      final uri = Uri.parse('tel:$phone');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        _showSnack('Arama başlatılamadı.');
+      }
+    } else {
+      final wp = _resolveWhatsappNumber();
+      if (wp == null || wp.isEmpty) {
+        _showSnack('Salonun WhatsApp numarası tanımlı değil.');
+        return;
+      }
+      try {
+        await WhatsAppOpener.openWhatsApp(
+          wp,
+          'Merhaba, bilgi / randevu almak istiyorum.',
+        );
+      } catch (_) {
+        _showSnack('WhatsApp açılamadı.');
+      }
+    }
+  }
+
+  /// MusteriDanisan.musteri_olunan_salonlar listesinden {salon_id, salon_adi,
+  /// telefon, whatsapp} nested map'lerini normalize et. mevcut isletmebilgi
+  /// disinda da tum brand subeleri buradan gelir (login akisinda backend
+  /// zaten brand app_bundle'a gore filtreliyor).
+  List<Map<String, dynamic>> _brandSubeleri() {
+    final list = widget.md.musteri_olunan_salonlar;
+    if (list == null || list.isEmpty) return [];
+    final out = <Map<String, dynamic>>[];
+    for (final e in list) {
+      if (e is! Map) continue;
+      final salon = e['salonlar'];
+      if (salon is! Map) continue;
+      final salonId = e['salon_id']?.toString() ?? salon['id']?.toString() ?? '';
+      final adi = (salon['salon_adi'] ?? '').toString().trim();
+      final tel = _pickField(salon, const ['telefon_1', 'telefon', 'telefonno', 'telefon_2']);
+      final wp  = _pickField(salon, const ['whatsapp', 'whatsapp_numara', 'whatsappPhone', 'telefon_1', 'telefon']);
+      out.add({
+        'salon_id': salonId,
+        'salon_adi': adi.isEmpty ? 'Şube' : adi,
+        'telefon': tel,
+        'whatsapp': wp,
+      });
+    }
+    return out;
+  }
+
+  String? _pickField(Map salon, List<String> keys) {
+    for (final k in keys) {
+      final v = salon[k];
+      if (v != null && v.toString().trim().isNotEmpty) return v.toString().trim();
+    }
+    return null;
+  }
+
+  Future<void> _showSubeSecerekIletisim(
+    BuildContext context,
+    List<Map<String, dynamic>> subeler,
+    String mode,
+  ) async {
+    final scheme = Theme.of(context).colorScheme;
+    final baslik = mode == 'ara' ? 'Aranacak Şubeyi Seçin' : 'WhatsApp Şubesini Seçin';
+    final tint = mode == 'ara' ? scheme.primary : const Color(0xFF25D366);
+    final ikon = mode == 'ara' ? Icons.phone_rounded : Icons.chat_rounded;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10, left: 4),
+                  child: Text(
+                    baslik,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                ...subeler.map((s) {
+                  final adi = s['salon_adi'] as String;
+                  final tel = s['telefon'] as String?;
+                  final wp  = s['whatsapp'] as String?;
+                  final aktifNumara = mode == 'ara' ? tel : wp;
+                  final bilgi = mode == 'ara'
+                      ? (tel ?? 'Telefon tanımsız')
+                      : (wp ?? 'WhatsApp tanımsız');
+                  final disable = aktifNumara == null || aktifNumara.isEmpty;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: disable ? Colors.grey.shade100 : tint.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: disable
+                            ? null
+                            : () async {
+                                Navigator.of(ctx).pop();
+                                if (mode == 'ara') {
+                                  final uri = Uri.parse('tel:$aktifNumara');
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri);
+                                  } else {
+                                    _showSnack('Arama başlatılamadı.');
+                                  }
+                                } else {
+                                  try {
+                                    await WhatsAppOpener.openWhatsApp(
+                                      _normalizeForWhatsApp(aktifNumara),
+                                      'Merhaba, bilgi / randevu almak istiyorum.',
+                                    );
+                                  } catch (_) {
+                                    _showSnack('WhatsApp açılamadı.');
+                                  }
+                                }
+                              },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38, height: 38,
+                                decoration: BoxDecoration(
+                                  color: disable ? Colors.grey.shade300 : tint.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(ikon, color: disable ? Colors.grey.shade500 : tint, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      adi,
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      bilgi,
+                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!disable)
+                                const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 22),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

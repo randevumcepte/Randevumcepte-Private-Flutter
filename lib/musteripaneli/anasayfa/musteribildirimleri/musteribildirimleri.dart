@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:randevu_sistem/Backend/backend.dart' show appBundleAl;
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
@@ -59,6 +60,11 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
   }
 
   Future<List<SistemBildirimleri>> _fetchData() async {
+    // appBundle gonderiyoruz -> backend brand'in TUM subelerinin bildirimlerini
+    // toplar. Eskiden sadece 'sube' (secili tek salon) ile filtreleniyordu,
+    // ayni brand'in birden fazla subesinin musterisi olan kullanici sadece
+    // son secili sube'nin bildirimlerini goruyordu.
+    final appBundle = await appBundleAl();
     final url =
         'https://app.randevumcepte.com.tr/api/v1/bildirimgetirmusteri';
     final response = await http.post(
@@ -67,6 +73,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
       body: jsonEncode({
         'sube': _salonId,
         'user_id': _userId,
+        'appBundle': appBundle,
       }),
     );
 
@@ -98,9 +105,14 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
     setState(() => _markingAll = true);
 
     try {
+      final appBundle = await appBundleAl();
       final url =
           'https://app.randevumcepte.com.tr/api/v1/tumBildirimleriOkuMusteri/$_salonId/$_userId';
-      final res = await http.post(Uri.parse(url));
+      final res = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'appBundle': appBundle}),
+      );
       if (res.statusCode == 200) {
         widget.onNotificationRead?.call();
         await _load();
