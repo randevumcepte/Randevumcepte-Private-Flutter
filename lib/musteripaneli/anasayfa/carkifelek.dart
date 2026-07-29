@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/gecerli_sube_rozeti.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
 
@@ -309,7 +310,7 @@ class _WheelPageState extends State<WheelPage>
               // _bugunCevirdi = true;
               _isSpinning = false;
             });
-            _showWinDialog(dilim, odulKodu);
+            _showWinDialog(dilim, odulKodu, data);
           });
         }
       });
@@ -327,7 +328,8 @@ class _WheelPageState extends State<WheelPage>
     );
   }
 
-  void _showWinDialog(Map<String, dynamic> dilim, String? odulKodu) {
+  void _showWinDialog(
+      Map<String, dynamic> dilim, String? odulKodu, Map<String, dynamic> sonuc) {
     final tip = (dilim['tip'] ?? '').toString();
     final baslik = (dilim['baslik'] ?? dilim['ismi'] ?? 'Ödül').toString();
 
@@ -342,6 +344,7 @@ class _WheelPageState extends State<WheelPage>
             tip: tip,
             baslik: baslik,
             odulKodu: odulKodu,
+            sonuc: sonuc,
             onClose: () => Navigator.pop(ctx),
             onMyRewards: () {
               Navigator.pop(ctx);
@@ -1049,6 +1052,7 @@ class _ResultCard extends StatelessWidget {
   final String tip;
   final String baslik;
   final String? odulKodu;
+  final Map<String, dynamic>? sonuc;
   final VoidCallback onClose;
   final VoidCallback onMyRewards;
   final VoidCallback onPuanRewards;
@@ -1057,6 +1061,7 @@ class _ResultCard extends StatelessWidget {
     required this.tip,
     required this.baslik,
     required this.odulKodu,
+    this.sonuc,
     required this.onClose,
     required this.onMyRewards,
     required this.onPuanRewards,
@@ -1164,6 +1169,9 @@ class _ResultCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Color(0xFF636E72)),
                 ),
+                if (sonuc != null)
+                  GecerliSubeRozeti.fromJson(sonuc!,
+                      renk: const Color(0xFF6C5CE7)),
               ],
             ),
           ],

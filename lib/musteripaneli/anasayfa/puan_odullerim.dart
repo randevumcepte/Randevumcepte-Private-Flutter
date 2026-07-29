@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/gecerli_sube_rozeti.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
 
 /// Müşterinin salon bazlı puan merdiveni — kazanılabilecek puan ödülleri.
@@ -112,6 +113,7 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
             child: _PuanTalepKart(
               kod: (res['kod'] ?? '').toString(),
               baslik: (res['baslik'] ?? '').toString(),
+              sonuc: res,
               onClose: () => Navigator.pop(ctx),
               onMyRewards: () {
                 Navigator.pop(ctx);
@@ -503,12 +505,14 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
 class _PuanTalepKart extends StatelessWidget {
   final String kod;
   final String baslik;
+  final Map<String, dynamic>? sonuc;
   final VoidCallback onClose;
   final VoidCallback onMyRewards;
 
   const _PuanTalepKart({
     required this.kod,
     required this.baslik,
+    this.sonuc,
     required this.onClose,
     required this.onMyRewards,
   });
@@ -565,6 +569,8 @@ class _PuanTalepKart extends StatelessWidget {
             'Bu kodu 60 gün içinde salonda ibraz edin.',
             style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
           ),
+          if (sonuc != null)
+            GecerliSubeRozeti.fromJson(sonuc!, renk: const Color(0xFF6C5CE7)),
           const SizedBox(height: 18),
           Row(
             children: [

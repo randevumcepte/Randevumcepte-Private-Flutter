@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/gecerli_sube_rozeti.dart';
 
 /// Müşterinin kazandığı kuponları listeler (çark + puan ödülü).
 class OdullerimPage extends StatefulWidget {
@@ -237,6 +238,7 @@ class _OdullerimPageState extends State<OdullerimPage> {
             ),
             const SizedBox(height: 4),
             Text(salonAdi, style: const TextStyle(color: Color(0xFF636E72), fontSize: 13)),
+            GecerliSubeRozeti.fromJson(o, renk: const Color(0xFF6C5CE7)),
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
