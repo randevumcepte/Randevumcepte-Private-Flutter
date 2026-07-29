@@ -685,56 +685,47 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	Widget _buildQuickActions() {
 		final tel = _md.cep_telefon;
 		final hasTel = tel.isNotEmpty && tel != 'null';
-		// Ara/Mesaj/WhatsApp ve SMS musteri.telefon_gor yetkisine ve pazarlama
-		// yetkilerine bagimli. Yetki yoksa butonu hic gosterme.
-		final telGor = Yetki.varMi('musteri.telefon_gor');
-		final smsYet = Yetki.varMi('pazarlama.sms_gonder');
-		final waYet = Yetki.varMi('pazarlama.whatsapp_gonder');
+		// Ara / Mesaj / WhatsApp — herkese acik (yetki gate'i yok).
+		// Duzenle — musteri.ekle_duzenle yetkisi varsa gorunur.
 		final duzenleYet = Yetki.varMi('musteri.ekle_duzenle');
 		final actions = <Widget>[];
-		if (telGor) {
-			actions.add(Expanded(
-				child: _actionBtn(
-					Icons.call,
-					'Ara',
-					const Color(0xFF43A047),
-					enabled: hasTel,
-					onTap: hasTel ? _onCallPressed : null,
-				),
-			));
-		}
-		if (telGor && smsYet) {
-			if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
-			actions.add(Expanded(
-				child: _actionBtn(
-					Icons.sms_outlined,
-					'Mesaj',
-					const Color(0xFF1E88E5),
-					enabled: hasTel,
-					onTap: hasTel ? () => _launch('sms:${_localNumber()}') : null,
-				),
-			));
-		}
-		if (telGor && waYet) {
-			if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
-			actions.add(Expanded(
-				child: _actionBtn(
-					FontAwesomeIcons.whatsapp,
-					'WhatsApp',
-					const Color(0xFF25D366),
-					enabled: hasTel,
-					onTap: hasTel
-							? () => IletisimHelper.gonderWhatsapp(
-									context,
-									salonId: widget.isletmebilgi["id"]?.toString() ?? '',
-									userId: _md.id,
-									musteriAdi: _md.name,
-									telefon: _md.cep_telefon,
-								)
-							: null,
-				),
-			));
-		}
+		actions.add(Expanded(
+			child: _actionBtn(
+				Icons.call,
+				'Ara',
+				const Color(0xFF43A047),
+				enabled: hasTel,
+				onTap: hasTel ? _onCallPressed : null,
+			),
+		));
+		if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+		actions.add(Expanded(
+			child: _actionBtn(
+				Icons.sms_outlined,
+				'Mesaj',
+				const Color(0xFF1E88E5),
+				enabled: hasTel,
+				onTap: hasTel ? () => _launch('sms:${_localNumber()}') : null,
+			),
+		));
+		if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+		actions.add(Expanded(
+			child: _actionBtn(
+				FontAwesomeIcons.whatsapp,
+				'WhatsApp',
+				const Color(0xFF25D366),
+				enabled: hasTel,
+				onTap: hasTel
+						? () => IletisimHelper.gonderWhatsapp(
+								context,
+								salonId: widget.isletmebilgi["id"]?.toString() ?? '',
+								userId: _md.id,
+								musteriAdi: _md.name,
+								telefon: _md.cep_telefon,
+							)
+						: null,
+			),
+		));
 		if (duzenleYet) {
 			if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
 			actions.add(Expanded(
