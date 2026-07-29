@@ -3226,6 +3226,7 @@ Future<AdisyonHizmet> adisyonhizmetekle(AdisyonHizmet hizmet,String musteriid,Bu
     'adisyonhizmetsuresi':hizmet.sure,
     'adisyonhizmetfiyati':hizmet.fiyat,
     'adisyonhizmetpersonelleriyeni':hizmet.personel_id,
+    'hizmetseanssayisi':hizmet.seans_sayisi,
     'musteri_id':musteriid,
     'sube':salonid,
     'olusturan':user["id"]
@@ -6042,11 +6043,14 @@ Future<Map<String, dynamic>?> carkAdminDilimKaydet(
   int aktifmi = 1,
   int? kuponCarkGun,
   int? kuponPuanGun,
+  List<String>? salonIds,
 }) async {
   try {
     final body = <String, dynamic>{'dilimler': dilimler, 'aktifmi': aktifmi};
     if (kuponCarkGun != null) body['kupon_cark_gecerlilik_gun'] = kuponCarkGun;
     if (kuponPuanGun != null) body['kupon_puan_gecerlilik_gun'] = kuponPuanGun;
+    // Coklu sube: secilen subelere uygula (bos/null -> yalniz bu sube).
+    if (salonIds != null && salonIds.isNotEmpty) body['salon_ids'] = salonIds;
     final res = await http.post(
       Uri.parse('$_apiBase/carkAdmin/dilim-kaydet/$salonId'),
       headers: _jsonHeaders(),

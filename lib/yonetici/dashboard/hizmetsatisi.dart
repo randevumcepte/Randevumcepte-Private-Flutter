@@ -71,6 +71,9 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
   // Süre için de aynı mantık
   bool _sureManuelDegistirildi = false;
 
+  // Seans sayisi — bos/1 => tekil hizmet, 2+ => paket satisi
+  TextEditingController seans_sayisi = TextEditingController(text: "");
+
   @override
   void initState() {
     super.initState();
@@ -784,6 +787,24 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                 ],
               ),
 
+              SizedBox(height: 16),
+
+              // Seans Sayisi — bos/1 => tekil hizmet, 2+ => paket satisi olarak gorunur
+              _buildInputCard(
+                icon: Icons.repeat_rounded,
+                title: 'Seans Sayısı (boş = tekil hizmet, 2 ve üstü = paket)',
+                child: TextFormField(
+                  controller: seans_sayisi,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Örn: 6 (paket için)',
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                  ),
+                ),
+              ),
+
               SizedBox(height: 8),
 
               // Bilgi mesajı
@@ -842,6 +863,9 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                     String sureDegeri = sure_dk.text;
                     int sureInt = int.tryParse(sureDegeri) ?? 0;
 
+                    final String _seansTrim = seans_sayisi.text.trim();
+                    final int _seansSayisi = (_seansTrim.isEmpty || (int.tryParse(_seansTrim) ?? 0) < 1) ? 1 : int.parse(_seansTrim);
+
                     final AdisyonHizmet adisyonhizmet = AdisyonHizmet(
                       id: "",
                       adisyon_id: widget.mevcutadisyonId ?? "",
@@ -861,6 +885,7 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                       hediye: "",
                       hizmet: selectedhizmet!.hizmet,
                       personel: selectedpersonel!,
+                      seans_sayisi: _seansSayisi.toString(),
                     );
 
                     if (!widget.senetlisatis) {

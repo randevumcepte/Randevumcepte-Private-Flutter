@@ -43,6 +43,7 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
 
   TextEditingController fiyat = TextEditingController();
   TextEditingController sure_dk = TextEditingController();
+  TextEditingController seans_sayisi = TextEditingController();
 
   void initState() {
     super.initState();
@@ -62,6 +63,9 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
       selectedpersonel = personel.firstWhere((element) => element.id.toString() == widget.mevcuthizmet.personel_id.toString());
       sure_dk.text = widget.mevcuthizmet.sure;
       fiyat.text = backendToTl(widget.mevcuthizmet.fiyat);
+      // Seans sayisi: 1 ise tekil hizmet demek, kullaniciya bos gostermek daha net
+      final int _seansIlk = int.tryParse(widget.mevcuthizmet.seans_sayisi) ?? 1;
+      seans_sayisi.text = _seansIlk <= 1 ? '' : _seansIlk.toString();
       selectedhizmet = hizmet.firstWhere((element) => element.hizmet_id == widget.mevcuthizmet.hizmet_id);
 
       isloading = false;
@@ -492,6 +496,34 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
               ],
             ),
             SizedBox(height: 20,),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Seans Sayısı  (boş = tekil hizmet, 2 ve üstü = paket)', style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  TextField(
+                    controller: seans_sayisi,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Örn: 6 (paket için)',
+                      contentPadding: EdgeInsets.all(15.0),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+                        borderRadius: BorderRadius.circular(50.0),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(50.0)),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+                        borderRadius: BorderRadius.circular(50.0),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20,),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -500,7 +532,9 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
                   final String fiyatBackend = tlToBackend(fiyat.text);
                   final double fiyatDouble = double.tryParse(fiyatBackend) ?? 0;
                   final String fiyatGonderim = fiyatDouble.toStringAsFixed(2).replaceAll('.', ',');
-                  final AdisyonHizmet adisyonhizmet = AdisyonHizmet(id:widget.mevcuthizmet.id, adisyon_id: widget.mevcuthizmet.adisyon_id, hizmet_id: selectedhizmet?.hizmet_id??"", islem_tarihi: islem_tarihi.text, islem_saati: islem_saati.text, sure: sure_dk.text, fiyat: fiyatGonderim, geldi: "1", personel_id: selectedpersonel?.id ?? "", cihaz_id: "", oda_id: "", dogrulama_kodu: "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "",hizmet: selectedhizmet?.hizmet??"",personel: selectedpersonel?? "");
+                  final String _seansTrim = seans_sayisi.text.trim();
+                  final int _seansSayisi = (_seansTrim.isEmpty || (int.tryParse(_seansTrim) ?? 0) < 1) ? 1 : int.parse(_seansTrim);
+                  final AdisyonHizmet adisyonhizmet = AdisyonHizmet(id:widget.mevcuthizmet.id, adisyon_id: widget.mevcuthizmet.adisyon_id, hizmet_id: selectedhizmet?.hizmet_id??"", islem_tarihi: islem_tarihi.text, islem_saati: islem_saati.text, sure: sure_dk.text, fiyat: fiyatGonderim, geldi: "1", personel_id: selectedpersonel?.id ?? "", cihaz_id: "", oda_id: "", dogrulama_kodu: "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "",hizmet: selectedhizmet?.hizmet??"",personel: selectedpersonel?? "", seans_sayisi: _seansSayisi.toString());
                   if(widget.senetlisatis){
                     AdisyonHizmet eklenenhizmet = await adisyonhizmetekle(adisyonhizmet,widget.musteriid ,context,seciliisletme!);
                     Navigator.pop(context, eklenenhizmet);
