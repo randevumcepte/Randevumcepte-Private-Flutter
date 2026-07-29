@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:randevu_sistem/Backend/backend.dart' show appBundleAl;
 import 'package:randevu_sistem/Models/islemler.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -57,10 +58,18 @@ class _ImageGalleryState extends State<ImageGallery> {
     try {
       setState(() => isLoading = true);
       final Map<String, dynamic> body = {'user_id': widget.md.id};
-      final salon = _salonId;
-      if (salon != null && salon.isNotEmpty) {
-        // Beyaz etiket: sadece bu isletmenin gorselleri gelsin
-        body['salon_id'] = salon;
+      // Beyaz etiket: musteri markanin TUM subelerindeki gorsellerini gorsun.
+      // Backend appBundle geldiginde app_bundle'a ait tum salonlari kapsar
+      // (salon_id'ye gore onceliklidir); boylece baska subede cekilen fotograflar
+      // ve musterinin kendi yukledigi gorsel tum ilgili subelerde gorunur.
+      final bundle = await appBundleAl();
+      if (bundle.isNotEmpty && bundle != 'com.randevumcepte.randevumcepte') {
+        body['appBundle'] = bundle;
+      } else {
+        final salon = _salonId;
+        if (salon != null && salon.isNotEmpty) {
+          body['salon_id'] = salon;
+        }
       }
       final response = await http.post(
         Uri.parse('$_baseUrl/api/v1/musteriresimleri'),

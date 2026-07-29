@@ -507,7 +507,7 @@ Future<List<Paket>> paketgetir(String salonid) async {
 }
 
 
-Future<Map<String, dynamic>> arsivgetir(String salonid,String musteriid,String currpage,String arama,String durum,String cevapladi,String cevapladi2) async {
+Future<Map<String, dynamic>> arsivgetir(String salonid,String musteriid,String currpage,String arama,String durum,String cevapladi,String cevapladi2,{bool musteriMi = false}) async {
   Map<String, dynamic> formData = {
 
     'arama':arama,
@@ -515,6 +515,10 @@ Future<Map<String, dynamic>> arsivgetir(String salonid,String musteriid,String c
     'cevapladi':cevapladi,
     'cevapladi2':cevapladi2,
     'musteri_id':musteriid,
+
+    // Beyaz etiket musteri paneli: markanin tum subelerinin sozlesme/form/belgeleri gelsin
+    'musteriMi': musteriMi,
+    'appBundle': await appBundleAl(),
 
     // Add other form fields
   };

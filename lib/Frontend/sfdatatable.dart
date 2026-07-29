@@ -5174,7 +5174,7 @@ class ArsivDataSource2 extends DataGridSource {
     if (showprogress) showProgressLoading(context);
     notifyListeners();
 
-    final jsonResponse = await arsivgetir(salonid,musteriid, page.toString(), arama, durum, cevapladi, cevapladi2);
+    final jsonResponse = await arsivgetir(salonid,musteriid, page.toString(), arama, durum, cevapladi, cevapladi2, musteriMi: true);
 
     List<dynamic> data = jsonResponse['data'];
     arsiv = data.map<Arsiv>((json) => Arsiv.fromJson(json)).toList();
