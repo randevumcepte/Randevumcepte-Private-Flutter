@@ -143,6 +143,46 @@ class CagriApi {
     return j is Map && j['success'] == true;
   }
 
+  /// Islerin kendi 'ok'/'basarili' bayragini tasidigi uclar: 4xx (409 WA-bagli-degil,
+  /// 422 dogrulama) donse bile govdedeki JSON'u dondur; sadece govde JSON degilse firlat.
+  static Future<Map<String, dynamic>> _postSonuc(
+      String path, Map<String, dynamic> body) async {
+    final res = await http
+        .post(_uri(path), headers: await _headers(), body: jsonEncode(body))
+        .timeout(const Duration(seconds: 40));
+    try {
+      final j = jsonDecode(res.body);
+      if (j is Map) return Map<String, dynamic>.from(j);
+    } catch (_) {}
+    throw CagriApiException(res.statusCode, _mesaj(res.body));
+  }
+
+  /// Musteriye manuel WhatsApp mesaji (web musteri-detay akisiyla ayni backend).
+  /// Donen: {ok: bool, mesaj: String}. WA bagli degilse ok=false + acik mesaj.
+  static Future<Map<String, dynamic>> whatsappGonder({
+    required int aranacakMusteriId,
+    required String mesaj,
+    required String sube,
+  }) async {
+    return _postSonuc('whatsapp-gonder', {
+      'aranacak_musteri_id': aranacakMusteriId,
+      'mesaj': mesaj,
+      'sube': sube,
+    });
+  }
+
+  /// Memnuniyet anketi gonder (tek tik, salonun varsayilan sablonu).
+  /// Donen: {basarili: bool, mesaj: String, kanal: 'whatsapp'|'sms'}.
+  static Future<Map<String, dynamic>> anketGonder({
+    required int aranacakMusteriId,
+    required String sube,
+  }) async {
+    return _postSonuc('anket-gonder', {
+      'aranacak_musteri_id': aranacakMusteriId,
+      'sube': sube,
+    });
+  }
+
   static Future<List<CagriGecmis>> musteriGecmisi(int aranacakMusteriId, String sube) async {
     final j = await _post('musteri-gecmisi', {
       'aranacak_musteri_id': aranacakMusteriId,

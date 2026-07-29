@@ -310,6 +310,61 @@ class _MusteriDetaySheet extends StatelessWidget {
     required this.onDegisti,
   });
 
+  /// Memnuniyet anketi (tek tik). Web musteri-detay "Anket Gonder" ile ayni:
+  /// onay -> varsayilan sablon WA-first/SMS ile gonderilir, sablon secimi yok.
+  Future<void> _anketGonder(BuildContext context) async {
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Memnuniyet anketi gönderilsin mi?'),
+        content: const Text(
+            'Müşteriye anket linki WhatsApp veya SMS ile gönderilecek.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Vazgeç')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Evet, gönder')),
+        ],
+      ),
+    );
+    if (onay != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final res = await CagriApi.anketGonder(
+          aranacakMusteriId: musteri.aranacakMusteriId, sube: sube);
+      final basarili = res['basarili'] == true;
+      final kanal = res['kanal'] == 'whatsapp' ? 'WhatsApp' : 'SMS';
+      messenger.showSnackBar(SnackBar(
+        content: Text(basarili
+            ? 'Anket $kanal ile gönderildi.'
+            : (res['mesaj']?.toString() ?? 'Anket gönderilemedi.')),
+        backgroundColor: basarili ? null : Colors.redAccent,
+      ));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text('Anket gönderilemedi: $e'),
+          backgroundColor: Colors.redAccent));
+    }
+  }
+
+  /// WhatsApp mesaj compose sayfasi (web musteri-detay modaliyla ayni: serbest metin).
+  void _whatsappAc(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _WhatsAppComposeSheet(
+        aranacakMusteriId: musteri.aranacakMusteriId,
+        ad: musteri.ad,
+        telefonGizlenmis: musteri.telefonGizlenmis,
+        sube: sube,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = context.colors;
@@ -408,6 +463,36 @@ class _MusteriDetaySheet extends StatelessWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF128C7E),
+                        side: const BorderSide(color: Color(0xFF25D366)),
+                      ),
+                      onPressed: () => _whatsappAc(context),
+                      icon: const Icon(Icons.chat, size: 19),
+                      label: const Text('WhatsApp'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: cs.primary,
+                        side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
+                      ),
+                      onPressed: () => _anketGonder(context),
+                      icon: const Icon(Icons.assignment_turned_in_outlined, size: 19),
+                      label: const Text('Anket'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const Divider(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -428,6 +513,194 @@ class _MusteriDetaySheet extends StatelessWidget {
                   aranacakMusteriId: musteri.aranacakMusteriId,
                   sube: sube,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// WhatsApp mesaj compose alt sayfasi. Web musteri-detay modaliyle ayni:
+/// serbest metin (max 1000) + karakter sayaci. Numara KVKK geregi maskeli gosterilir;
+/// backend aranacak_musteri_id ile gercek numarayi cozup gonderir.
+class _WhatsAppComposeSheet extends StatefulWidget {
+  final int aranacakMusteriId;
+  final String ad;
+  final String telefonGizlenmis;
+  final String sube;
+
+  const _WhatsAppComposeSheet({
+    required this.aranacakMusteriId,
+    required this.ad,
+    required this.telefonGizlenmis,
+    required this.sube,
+  });
+
+  @override
+  State<_WhatsAppComposeSheet> createState() => _WhatsAppComposeSheetState();
+}
+
+class _WhatsAppComposeSheetState extends State<_WhatsAppComposeSheet> {
+  final TextEditingController _ctrl = TextEditingController();
+  static const Color _wa = Color(0xFF25D366);
+  bool _gonderiliyor = false;
+  int _uzunluk = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.addListener(() {
+      if (_ctrl.text.length != _uzunluk) {
+        setState(() => _uzunluk = _ctrl.text.length);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _gonder() async {
+    final mesaj = _ctrl.text.trim();
+    if (mesaj.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen göndermek istediğiniz mesajı yazın.')),
+      );
+      return;
+    }
+    setState(() => _gonderiliyor = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final res = await CagriApi.whatsappGonder(
+        aranacakMusteriId: widget.aranacakMusteriId,
+        mesaj: mesaj,
+        sube: widget.sube,
+      );
+      final ok = res['ok'] == true;
+      if (!mounted) return;
+      if (ok) Navigator.of(context).pop();
+      messenger.showSnackBar(SnackBar(
+        content: Text(res['mesaj']?.toString() ??
+            (ok ? 'Mesaj gönderildi.' : 'Mesaj gönderilemedi.')),
+        backgroundColor: ok ? null : Colors.redAccent,
+        duration: const Duration(seconds: 4),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+          content: Text('Mesaj gönderilemedi: $e'),
+          backgroundColor: Colors.redAccent));
+    } finally {
+      if (mounted) setState(() => _gonderiliyor = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = context.colors;
+    final ext = context.appTheme;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: ext.borderStrong,
+                    borderRadius: BorderRadius.circular(99)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: _wa,
+                    child: Icon(Icons.chat, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('WhatsApp Mesajı',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700)),
+                        Text('${widget.ad} · ${widget.telefonGizlenmis}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12.5, color: cs.onSurfaceVariant)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              child: TextField(
+                controller: _ctrl,
+                maxLines: 6,
+                minLines: 4,
+                maxLength: 1000,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: 'Müşterinize göndermek istediğiniz mesajı yazın...',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
+                  counterText: '$_uzunluk / 1000',
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _gonderiliyor
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: const Text('Vazgeç'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _wa,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: _gonderiliyor ? null : _gonder,
+                      icon: _gonderiliyor
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.send, size: 18),
+                      label: Text(
+                          _gonderiliyor ? 'Gönderiliyor...' : "WhatsApp'tan Gönder"),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
