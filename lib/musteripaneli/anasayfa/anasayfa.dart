@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter_svg/svg.dart';
@@ -2014,7 +2015,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
           Expanded(
             child: _iletisimTile(
               context,
-              icon: Icons.chat_rounded,
+              icon: FontAwesomeIcons.whatsapp,
               label: 'WhatsApp',
               tint: const Color(0xFF25D366),
               onTap: () => _iletisimAksiyon(context, mode: 'wp'),
@@ -2104,9 +2105,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     String mode,
   ) async {
     final scheme = Theme.of(context).colorScheme;
-    final baslik = mode == 'ara' ? 'Aranacak Şubeyi Seçin' : 'WhatsApp Şubesini Seçin';
     final tint = mode == 'ara' ? scheme.primary : const Color(0xFF25D366);
-    final ikon = mode == 'ara' ? Icons.phone_rounded : Icons.chat_rounded;
+    final ikon = mode == 'ara' ? Icons.phone_rounded : FontAwesomeIcons.whatsapp;
 
     await showModalBottomSheet(
       context: context,
@@ -2132,13 +2132,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10, left: 4),
-                  child: Text(
-                    baslik,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                 ),
                 Flexible(
