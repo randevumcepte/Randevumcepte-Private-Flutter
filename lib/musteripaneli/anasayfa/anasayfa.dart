@@ -63,9 +63,14 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
       (widget.md.musteri_olunan_salonlar?.length ?? 0) > 1;
 
   // "Hemen Randevu Al": markanın (app_bundle) şubelerinden en az biri online
-  // randevuya açıksa göster (tek şube değil, bundle geneli).
-  bool get _onlineRandevuAktif =>
-      bundleOnlineRandevuAktifMi(widget.md.musteri_olunan_salonlar);
+  // randevuya açıksa göster. Şube listesi boşsa mevcut tek-şube davranışını koru.
+  bool get _onlineRandevuAktif {
+    final subeler = widget.md.musteri_olunan_salonlar;
+    if (subeler != null && subeler.isNotEmpty) {
+      return bundleOnlineRandevuAktifMi(subeler);
+    }
+    return musteriOnlineRandevuAktifMi(widget.isletmebilgi);
+  }
 
   Future<void> initialize() async {
     try {
@@ -2136,7 +2141,11 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                 ),
-                ...subeler.map((s) {
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: subeler.map((s) {
                   final adi = s['salon_adi'] as String;
                   final tel = s['telefon'] as String?;
                   final wp  = s['whatsapp'] as String?;
@@ -2213,7 +2222,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       ),
                     ),
                   );
-                }).toList(),
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

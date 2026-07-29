@@ -57,8 +57,14 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
   bool _initialized = false;
 
   // Marka (app_bundle) şubelerinden en az biri online randevuya açıksa göster.
-  bool get _onlineRandevuAktif =>
-      bundleOnlineRandevuAktifMi(widget.md.musteri_olunan_salonlar);
+  // Şube listesi boşsa mevcut tek-şube davranışını koru.
+  bool get _onlineRandevuAktif {
+    final subeler = widget.md.musteri_olunan_salonlar;
+    if (subeler != null && subeler.isNotEmpty) {
+      return bundleOnlineRandevuAktifMi(subeler);
+    }
+    return musteriOnlineRandevuAktifMi(widget.isletmebilgi);
+  }
 
   @override
   void initState() {
