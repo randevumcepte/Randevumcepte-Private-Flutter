@@ -158,29 +158,31 @@ class AppointmentEditorState extends State<RandevuAl> {
         salonId, true, await appBundleAl(), '', '', 0, 0);
 
     List<Salonlar> isletmesubeler = isletmeVerileri['subeler'];
-    List<IsletmeHizmet> isletmehizmetleriliste =
-        isletmesubeler.length == 1 ? isletmeVerileri['hizmetler'] : [];
-    final hizmetlerRaw = isletmeVerileri['hizmetler'];
-    log('hizmetler runtime type: ${hizmetlerRaw.runtimeType}');
+    // Yalnızca online randevuya AÇIK şubeler seçilebilsin. Böylece:
+    //  - tek aktif şube → seçimsiz otomatik o şubeden randevu,
+    //  - birden fazla aktif şube → şube seçimi (dropdown) görünür.
+    // Hiç aktif şube yoksa (buton normalde gizli) tümünü koru — güvenli varsayılan.
+    final aktifSubeler =
+        isletmesubeler.where((s) => s.musteriOnlineRandevuAktif).toList();
+    if (aktifSubeler.isNotEmpty) isletmesubeler = aktifSubeler;
+    final tekSube = isletmesubeler.length == 1;
 
     setState(() {
       hizmet.add(TextEditingController());
       personel.add(TextEditingController());
       secilipersonel.add(null);
       secilihizmet.add(null);
-      isletmehizmetliste = isletmehizmetleriliste;
+      isletmehizmetliste = []; // hizmetler seçili şube için aşağıda yüklenir
       personelliste = [];
       subeler = isletmesubeler;
-      if (isletmesubeler.length == 1) seciliSube = isletmesubeler[0];
-      String hizmetsecimtext = isletmehizmetliste.isEmpty
-          ? 'Önce şube seçmeniz gerekir!'
-          : 'Hizmet seç...';
-      hizmetSecimHintText.add(hizmetsecimtext);
+      if (tekSube) seciliSube = isletmesubeler[0];
+      hizmetSecimHintText.add(
+          tekSube ? 'Hizmet seç...' : 'Önce şube seçmeniz gerekir!');
       personelSecimHintText.add('Önce hizmet seçmeniz gerekir!');
       isloading = false;
     });
-    // Tek subeli isletmede hizmetler ilk yuklemede geldi — paket kontrolu burada.
-    if (seciliSube != null) await _paketKontrolu();
+    // Tek şube otomatik seçildiyse o şubenin hizmetlerini yükle (paket kontrolü içinde).
+    if (seciliSube != null) await hizmetleriGetir();
   }
 
   DateTime stringiDateTimeYap(String tarihString) {

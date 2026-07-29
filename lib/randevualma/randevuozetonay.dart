@@ -949,9 +949,11 @@ class RandevuOnayState extends State<RandevuOnay> {
           context,
           'uygulama',
           '0',
-          md.musteri_olunan_salonlar?.firstWhere((element) =>
-                  element['salon_id'].toString() ==
-                  widget.salonid.toString())['salonlar'],
+          md.musteri_olunan_salonlar?.firstWhere(
+            (element) =>
+                element['salon_id'].toString() == widget.salonid.toString(),
+            orElse: () => {'salonlar': null},
+          )['salonlar'],
         );
       }
     } finally {

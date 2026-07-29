@@ -30,13 +30,27 @@ class _TumRandevularState extends State<MusteriRandevularDashboard> {
   String? lastQuery;
   TextEditingController _controller = TextEditingController();
 
+  // Marka (app_bundle) şubelerinden en az biri online randevuya açık mı.
+  bool _onlineRandevuAktif = false;
+
   @override
   void initState() {
     super.initState();
     initialize();
+    _onlineRandevuAktifYukle();
     _controller.addListener(() {
       _onSearchChanged();
     });
+  }
+
+  Future<void> _onlineRandevuAktifYukle() async {
+    try {
+      final ayar = await salonAyarlariByBundle(await appBundleAl());
+      if (!mounted) return;
+      if (musteriOnlineRandevuAktifMi(ayar)) {
+        setState(() => _onlineRandevuAktif = true);
+      }
+    } catch (_) {}
   }
   void _onSearchChanged() {
     // Check if the search query has changed or is reset to empty
@@ -107,7 +121,7 @@ class _TumRandevularState extends State<MusteriRandevularDashboard> {
 
         toolbarHeight: 60,
         actions: <Widget>[
-          if (musteriOnlineRandevuAktifMi(widget.isletmebilgi))
+          if (_onlineRandevuAktif)
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: SizedBox(

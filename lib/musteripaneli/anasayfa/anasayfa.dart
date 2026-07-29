@@ -57,8 +57,15 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   List<Map<String, dynamic>> _reklamlar = [];
   bool _popupGosterildi = false; // açılış tam ekran reklam oturumda 1 kez
 
+  // Çoklu şubeli markada üst başlıkta salon adı yerine gösterilecek marka başlığı.
+  String? _bundleBaslik;
+  bool get _cokluSube =>
+      (widget.md.musteri_olunan_salonlar?.length ?? 0) > 1;
+
+  // "Hemen Randevu Al": markanın (app_bundle) şubelerinden en az biri online
+  // randevuya açıksa göster (tek şube değil, bundle geneli).
   bool get _onlineRandevuAktif =>
-      musteriOnlineRandevuAktifMi(widget.isletmebilgi);
+      bundleOnlineRandevuAktifMi(widget.md.musteri_olunan_salonlar);
 
   Future<void> initialize() async {
     try {
@@ -89,6 +96,18 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     super.initState();
     initialize();
     _reklamlariYukle();
+    _bundleBasligiYukle();
+  }
+
+  /// Çoklu şubeli markada üst başlıkta gösterilecek marka başlığını çeker.
+  Future<void> _bundleBasligiYukle() async {
+    if (!_cokluSube) return;
+    try {
+      final ayar = await salonAyarlariByBundle(await appBundleAl());
+      final b = ayar['bundle_baslik']?.toString().trim() ?? '';
+      if (!mounted || b.isEmpty) return;
+      setState(() => _bundleBaslik = b);
+    } catch (_) {}
   }
 
   /// Uygulama-içi bildirim reklamlarını çeker (hata olursa sessizce geçer).
@@ -324,6 +343,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   }
 
   String _resolveSalonAdi() {
+    // Çoklu şubeli markada üst başlık = marka başlığı (varsa).
+    if (_cokluSube && (_bundleBaslik?.trim().isNotEmpty ?? false)) {
+      return _bundleBaslik!.trim();
+    }
     final b = widget.isletmebilgi;
     if (b == null) return 'Salon';
 

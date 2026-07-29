@@ -5069,6 +5069,19 @@ bool musteriOnlineRandevuAktifMi(dynamic kaynak) {
   return s == '1' || s == 'true';
 }
 
+/// Markanın (app_bundle) şubelerinden EN AZ BİRİ online randevuya açık mı?
+/// Kaynak: müşterinin portföy şube listesi (md.musteri_olunan_salonlar) — beyaz
+/// etikette portföy = markanın tüm şubeleri. Her eleman {salon_id, salonlar:{...}}
+/// veya doğrudan salon map'i olabilir. "Randevu Al" butonlarının görünürlüğü buna bağlı.
+bool bundleOnlineRandevuAktifMi(List<dynamic>? subeler) {
+  if (subeler == null) return false;
+  for (final s in subeler) {
+    final salon = (s is Map && s['salonlar'] is Map) ? s['salonlar'] : s;
+    if (musteriOnlineRandevuAktifMi(salon)) return true;
+  }
+  return false;
+}
+
 Future<Map<String, dynamic>> personelAdiminaGec(String salonid,String appbundle,String hizmetId) async {
 
 
