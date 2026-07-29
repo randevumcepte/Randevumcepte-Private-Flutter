@@ -7,6 +7,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/yonetici/diger/sube_secici.dart';
 
 class CarkYonetimiPage extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -25,6 +26,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   bool _sistemLoading = false;
   int _carkAktif = 1;
   List<Map<String, dynamic>> _dilimler = [];
+  // Çoklu şube: çarkın uygulanacağı şubeler (varsayılan: bulunulan şube)
+  List<String> _seciliCarkSubeler = [];
   final GlobalKey<_CarkPreviewState> _carkKey = GlobalKey<_CarkPreviewState>();
   bool _ceviriliyor = false;
   Timer? _autoSyncTimer;
@@ -54,6 +57,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     super.initState();
     _tab = TabController(length: 4, vsync: this);
     _salonId = widget.isletmebilgi['id'].toString();
+    _seciliCarkSubeler = [_salonId];
     _konfeti = ConfettiController(duration: Duration(seconds: 3));
     // Runtime WAV ses byte'larını hazırla (web Audio API'nin Flutter karşılığı)
     _cheerBytes = _generateCheerWav();
@@ -603,6 +607,13 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
         SizedBox(height: 16),
 
+        // Çoklu şube: çark hangi şubelere uygulanacak (tek şubede gizli)
+        SubeCokluSecici(
+          aktifSalonId: _salonId,
+          baslik: 'Çark hangi şubelere uygulanacak?',
+          onChanged: (ids) => _seciliCarkSubeler = ids,
+        ),
+
         // Kaydet
         ElevatedButton.icon(
           onPressed: valid ? _kaydet : null,
@@ -856,7 +867,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   }
 
   Future<void> _kaydet() async {
-    final r = await carkAdminDilimKaydet(_salonId, _dilimler, aktifmi: _carkAktif);
+    final r = await carkAdminDilimKaydet(_salonId, _dilimler,
+        aktifmi: _carkAktif, salonIds: _seciliCarkSubeler);
     if (!mounted) return;
     if (r != null && r['basarili'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Çark kaydedildi'), backgroundColor: Colors.green));
@@ -1743,6 +1755,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     String tip = (mevcut?['tip'] ?? 'hizmet_indirimi').toString();
     bool aktif = ((mevcut?['aktif'] as num?)?.toInt() ?? 1) == 1;
     bool kaydediyor = false;
+    // Çoklu şube: yeni ödül hangi şubelere eklenecek (varsayılan: bulunulan şube)
+    List<String> puanSubeler = [_salonId];
 
     await showDialog(
       context: context,
@@ -1820,6 +1834,12 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                   activeColor: scheme.primary,
                   onChanged: (v) => setSt(() => aktif = v),
                 ),
+                if (mevcut == null)
+                  SubeCokluSecici(
+                    aktifSalonId: _salonId,
+                    baslik: 'Hangi şubelere eklensin?',
+                    onChanged: (ids) => puanSubeler = ids,
+                  ),
               ],
             ),
           ),
@@ -1843,6 +1863,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                             ? (int.tryParse(degerCtrl.text.trim()) ?? 0)
                             : null,
                         'aktif': aktif ? 1 : 0,
+                        if (mevcut == null) 'salon_ids': puanSubeler,
                       };
                       final r = await carkAdminPuanOdulKaydet(_salonId, data);
                       if (!mounted) return;

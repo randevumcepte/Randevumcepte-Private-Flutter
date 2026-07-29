@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/yonetici/diger/sube_secici.dart';
 
 /// Bildirim Reklamı oluştur / düzenle formu (yönetici tarafı).
 /// Web panelindeki modal ile birebir aynı alanlar.
@@ -28,6 +29,9 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
   final _kuponAdet = TextEditingController();
   final _kuponLimit = TextEditingController(text: '1');
   final _segGun = TextEditingController(text: '60');
+
+  // Çoklu şube: reklam hangi şubelere gönderilecek (yeni reklamda, tek şubede gizli)
+  List<String> _seciliReklamSubeler = const [];
 
   String _tur = 'kampanya';
   String _aksiyon = 'kupon';
@@ -221,6 +225,8 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
       'segment_cinsiyet': _segCinsiyet,
       'segment_user_id': _segUserId ?? '',
       'durum': _durum,
+      if (widget.reklam == null && _seciliReklamSubeler.isNotEmpty)
+        'salon_ids': _seciliReklamSubeler,
     };
     try {
       final res = await reklamAdminKaydet(_salonId, veri);
@@ -355,6 +361,14 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
 
           _bolum('Yayın durumu'),
           _drop(_durum, const {'taslak': 'Taslak (yayında değil)', 'aktif': 'Aktif (yayında)', 'pasif': 'Pasif'}, (v) => setState(() => _durum = v)),
+
+          // Çoklu şube: yeni reklam hangi şubelere gönderilsin (tek şubede gizli)
+          if (widget.reklam == null)
+            SubeCokluSecici(
+              aktifSalonId: _salonId,
+              baslik: 'Hangi şubelere gönderilsin?',
+              onChanged: (ids) => _seciliReklamSubeler = ids,
+            ),
 
           const SizedBox(height: 24),
           SizedBox(
