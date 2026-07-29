@@ -88,6 +88,19 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
   int get _totalPages => _ds?.totalPages ?? 1;
   int get _totalRows => _ds?.totalRows ?? 0;
 
+  // Listede birden fazla farkli sube varsa (app bundle birden cok isletmeyi
+  // isaret ediyorsa), kartta hangi subeden alindigi gosterilir. Tek subeli
+  // beyaz etiket uygulamalarinda gereksiz tekrar olmamasi icin gizlenir.
+  bool get _cokluSalon {
+    final set = <String>{};
+    for (final a in _items) {
+      final s = a.salonAdi.trim();
+      if (s.isNotEmpty) set.add(s);
+      if (set.length > 1) return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -390,9 +403,10 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
 
   Widget _satisCard(BuildContext context, Adisyon a) {
     final scheme = Theme.of(context).colorScheme;
-    final dt = _parseTarih(a.acilis_tarihi);
+    final dt = _parseTarih(a.acilis_tarihi, a.acilis_saati);
     final turInfo = _turBilgi(a.satis_turu);
     final satirlar = _temizSatirlar(a.icerik);
+    final salonAdi = _cokluSalon ? a.salonAdi.trim() : '';
 
     return Container(
       decoration: BoxDecoration(
@@ -525,6 +539,32 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
                             ),
                           ),
                         ],
+                        if (salonAdi.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.storefront_rounded,
+                                size: 13,
+                                color: scheme.primary.withValues(alpha: 0.75),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  salonAdi,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.primary
+                                        .withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -636,7 +676,7 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
       ),
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
-        final dt = _parseTarih(a.acilis_tarihi);
+        final dt = _parseTarih(a.acilis_tarihi, a.acilis_saati);
         final turInfo = _turBilgi(a.satis_turu);
         final satirlar = _temizSatirlar(a.icerik);
 
@@ -702,6 +742,32 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
                             color: scheme.onSurface,
                           ),
                         ),
+                        if (_cokluSalon && a.salonAdi.trim().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.storefront_rounded,
+                                size: 13,
+                                color: scheme.primary.withValues(alpha: 0.75),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  a.salonAdi.trim(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.primary
+                                        .withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -852,14 +918,39 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
     return t.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   }
 
-  static DateTime? _parseTarih(String s) {
-    try {
-      final clean = s.trim().replaceAll('T', ' ');
-      final parts = clean.split(' ');
-      if (parts.length >= 2) {
-        return DateTime.parse('${parts[0]} ${parts[1]}');
+  // Backend acilis_tarihi'yi "dd.MM.yyyy" ( or. 29.07.2026) formatinda gonderir;
+  // saat ayri alanda "HH:mm" gelir. DateTime.parse yalnizca ISO cozdugunden ikisi
+  // birlestirilip elle parse edilir (ISO formatinda gelirse de desteklenir).
+  static DateTime? _parseTarih(String tarih, [String saat = '']) {
+    final t = tarih.trim();
+    if (t.isEmpty) return null;
+
+    int hour = 0, minute = 0;
+    final sm = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(saat.trim());
+    if (sm != null) {
+      hour = int.tryParse(sm.group(1)!) ?? 0;
+      minute = int.tryParse(sm.group(2)!) ?? 0;
+    }
+
+    // dd.MM.yyyy veya dd/MM/yyyy
+    final dm = RegExp(r'^(\d{1,2})[./-](\d{1,2})[./-](\d{4})').firstMatch(t);
+    if (dm != null) {
+      final d = int.tryParse(dm.group(1)!);
+      final m = int.tryParse(dm.group(2)!);
+      final y = int.tryParse(dm.group(3)!);
+      if (d != null && m != null && y != null) {
+        try {
+          return DateTime(y, m, d, hour, minute);
+        } catch (_) {
+          return null;
+        }
       }
-      return DateTime.parse(parts[0]);
+    }
+
+    // ISO (yyyy-MM-dd [HH:mm[:ss]])
+    try {
+      final iso = DateTime.parse(t.replaceAll('T', ' ').split(' ').first);
+      return DateTime(iso.year, iso.month, iso.day, hour, minute);
     } catch (_) {
       return null;
     }

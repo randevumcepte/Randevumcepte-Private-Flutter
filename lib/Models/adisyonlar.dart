@@ -35,6 +35,7 @@
     required this.icerikKisaltilmis,
     this.son_tahsilat_tarihi = '',
     this.fatura_kesildi = 0,
+    this.salonAdi = '',
 
 
   });
@@ -71,6 +72,8 @@
   final String icerikKisaltilmis;
   final String son_tahsilat_tarihi;
   final int fatura_kesildi;
+  // Musteri panelinde bundle birden cok subeyi kapsiyorsa hangi subeden alindigi.
+  final String salonAdi;
 
 
 
@@ -109,6 +112,7 @@
       user_id : json["user_id"].toString(),
       son_tahsilat_tarihi: json["son_tahsilat_tarihi"]?.toString() ?? '',
       fatura_kesildi: int.tryParse(json["fatura_kesildi"]?.toString() ?? '0') ?? 0,
+      salonAdi: json["salon_adi"]?.toString() ?? '',
 
 
     );
