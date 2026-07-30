@@ -28,7 +28,7 @@ class AdisyonHizmet implements AdisyonKalemleri {
     this.personel,
     this.cihaz,
     this.hizmet,
-    this.seans_sayisi = '1',
+    this.seans_sayisi = '',
 
 
 
@@ -105,7 +105,7 @@ class AdisyonHizmet implements AdisyonKalemleri {
         senet_id:jsonvar["senet_id"].toString(),
         indirim_tutari:jsonvar["indirim_tutari"].toString(),
         hediye:jsonvar["hediye"].toString(),
-      seans_sayisi: jsonvar["seans_sayisi"]?.toString() ?? '1',
+      seans_sayisi: jsonvar["seans_sayisi"]?.toString() ?? '',
       personel: jsonvar["personel"],
       oda:jsonvar["oda"],
       cihaz: jsonvar["cihaz"],
