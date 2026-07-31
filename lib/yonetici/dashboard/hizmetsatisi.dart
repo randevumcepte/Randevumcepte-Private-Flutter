@@ -789,18 +789,15 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
 
               SizedBox(height: 16),
 
-              // Seans Sayisi — bos/1 => tekil hizmet, 2+ => paket satisi olarak gorunur
               _buildInputCard(
                 icon: Icons.repeat_rounded,
-                title: 'Seans Sayısı (boş = tekil hizmet, 2 ve üstü = paket)',
+                title: 'Seans Sayısı',
                 child: TextFormField(
                   controller: seans_sayisi,
                   keyboardType: TextInputType.number,
                   style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Örn: 6 (paket için)',
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
                   ),
                 ),
               ),
@@ -863,8 +860,9 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                     String sureDegeri = sure_dk.text;
                     int sureInt = int.tryParse(sureDegeri) ?? 0;
 
+                    // Bos ya da <=1 -> backend NULL kaydeder (tekil hizmet)
                     final String _seansTrim = seans_sayisi.text.trim();
-                    final int _seansSayisi = (_seansTrim.isEmpty || (int.tryParse(_seansTrim) ?? 0) < 1) ? 1 : int.parse(_seansTrim);
+                    final String _seansGonder = (_seansTrim.isEmpty || (int.tryParse(_seansTrim) ?? 0) <= 1) ? '' : _seansTrim;
 
                     final AdisyonHizmet adisyonhizmet = AdisyonHizmet(
                       id: "",
@@ -885,7 +883,7 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                       hediye: "",
                       hizmet: selectedhizmet!.hizmet,
                       personel: selectedpersonel!,
-                      seans_sayisi: _seansSayisi.toString(),
+                      seans_sayisi: _seansGonder,
                     );
 
                     if (!widget.senetlisatis) {
