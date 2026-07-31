@@ -27,6 +27,23 @@ class NotificationRouter {
 
     try {
       switch (type) {
+        // Fotograf yukleme bildirimleri:
+        //  - isletme_resim_yuklendi: musteri kendi fotograf ekranina gider
+        //  - musteri_resim_yuklendi: yetkili musteri detay ekranina gider (user_id ile)
+        // deepLink URL'sinden gelen params (ornek: "customer_detail?user_id=46120")
+        // Uri.parse ile ayristirilir.
+        case NotificationTypes.isletmeResimYukledi:
+          NotificationNavigationBus.publish(
+              const NotificationIntent(NotificationIntent.myPhotos));
+          break;
+        case NotificationTypes.musteriResimYukledi:
+          final userIdParam = _deepLinkParam(payload.deepLink, 'user_id');
+          NotificationNavigationBus.publish(NotificationIntent(
+            NotificationIntent.adminCustomerDetail,
+            {'user_id': userIdParam},
+          ));
+          break;
+
         // Randevu ile dogrudan ilgili tipler -> musteri: randevular tab, yetkili: takvim
         case NotificationTypes.appointmentCreated:
         case NotificationTypes.appointmentApproved:
@@ -96,6 +113,21 @@ class NotificationRouter {
       }
     } catch (e) {
       log('Router hatası: $e');
+    }
+  }
+
+  /// Backend'in `deepLink('route', ['user_id' => 42])` çağrısı payload'a
+  /// "route?user_id=42" formatında iner. Belirli bir query param'ı çeker.
+  /// null / boş / parse hatası → null döner.
+  static String? _deepLinkParam(String? deepLink, String key) {
+    if (deepLink == null || deepLink.isEmpty) return null;
+    try {
+      // Uri.parse "route?..." formatını path + queryParameters olarak ayırır.
+      final uri = Uri.parse(deepLink);
+      final v = uri.queryParameters[key];
+      return (v == null || v.isEmpty) ? null : v;
+    } catch (_) {
+      return null;
     }
   }
 }

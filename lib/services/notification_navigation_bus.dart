@@ -17,11 +17,17 @@ class NotificationIntent {
   static const purchases     = 'purchases';
   static const discounts     = 'discounts';
   static const notifications = 'notifications';
+  /// Müşterinin kendi fotoğrafları ekranı — isletme resim yükleyince
+  /// gönderilen push tıklanınca burası açılır. params: yok.
+  static const myPhotos      = 'my_photos';
 
   /// İşletme tarafı hedefleri
   static const adminCalendar      = 'admin_calendar';
   static const adminSales         = 'admin_sales';
   static const adminNotifications = 'admin_notifications';
+  /// İşletme tarafı — bir müşterinin detay/fotoğraf ekranı. Müşteri fotoğraf
+  /// yükleyince gönderilen push tıklanınca açılır. params: {'user_id': String}
+  static const adminCustomerDetail = 'admin_customer_detail';
 }
 
 /// Pub-sub. Router publish eder, altbar dinler ve consume eder.
