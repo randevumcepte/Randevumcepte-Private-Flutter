@@ -51,6 +51,8 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
 
   // Kalem bazında düzenlenebilir fiyat alanları: { hizmet_id: controller }
   final Map<String, TextEditingController> _fiyatCtrl = {};
+  // Kalem bazında seans sayisi: { hizmet_id: controller } (bos/1 -> tekil, 2+ -> paket)
+  final Map<String, TextEditingController> _seansCtrl = {};
 
   @override
   void initState() {
@@ -63,6 +65,9 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
   @override
   void dispose() {
     for (final c in _fiyatCtrl.values) {
+      c.dispose();
+    }
+    for (final c in _seansCtrl.values) {
       c.dispose();
     }
     islem_tarihi.dispose();
@@ -131,6 +136,7 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
     for (final h in hizmetliste) {
       _fiyatCtrl.putIfAbsent(
           h.hizmet_id, () => TextEditingController(text: fmt.format(_fiyatDouble(h))));
+      _seansCtrl.putIfAbsent(h.hizmet_id, () => TextEditingController());
     }
 
     setState(() {
@@ -218,6 +224,9 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
     final List<AdisyonHizmet> eklenenler = [];
     try {
       for (final h in secililer) {
+        // Seans sayisi: bos ya da <=1 -> backend NULL kaydeder (tekil hizmet)
+        final String _seansTrim = (_seansCtrl[h.hizmet_id]?.text ?? '').trim();
+        final String _seansGonder = (_seansTrim.isEmpty || (int.tryParse(_seansTrim) ?? 0) <= 1) ? '' : _seansTrim;
         final ah = AdisyonHizmet(
           id: "",
           adisyon_id: adisyonId,
@@ -237,6 +246,7 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
           hediye: "",
           hizmet: h.hizmet,
           personel: selectedpersonel!,
+          seans_sayisi: _seansGonder,
         );
         final eklenen = await adisyonhizmetekle(ah, widget.musteriid, context, seciliisletme!);
         adisyonId = eklenen.adisyon_id; // zincirle: sonraki kalem aynı adisyona
@@ -410,47 +420,85 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
                                     width: secili ? 1.6 : 1,
                                   ),
                                 ),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Icon(
-                                      secili ? Icons.check_circle_rounded : Icons.circle_outlined,
-                                      color: secili ? cs.primary : cs.outline,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        (h.hizmet["hizmet_adi"] ?? "").toString(),
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          secili ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                          color: secili ? cs.primary : cs.outline,
                                         ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 120,
-                                      child: TextField(
-                                        controller: _fiyatCtrl[h.hizmet_id],
-                                        textAlign: TextAlign.end,
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                                        onChanged: (_) => setState(() {}), // toplam anlık güncellensin
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          prefixText: '₺',
-                                          filled: true,
-                                          fillColor: Theme.of(context).scaffoldBackgroundColor,
-                                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                            borderSide: BorderSide(color: cs.outlineVariant),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                            borderSide: BorderSide(color: cs.primary, width: 1.4),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            (h.hizmet["hizmet_adi"] ?? "").toString(),
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                        SizedBox(
+                                          width: 120,
+                                          child: TextField(
+                                            controller: _fiyatCtrl[h.hizmet_id],
+                                            textAlign: TextAlign.end,
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                            onChanged: (_) => setState(() {}),
+                                            decoration: InputDecoration(
+                                              isDense: true,
+                                              prefixText: '₺',
+                                              filled: true,
+                                              fillColor: Theme.of(context).scaffoldBackgroundColor,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(color: cs.outlineVariant),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(color: cs.primary, width: 1.4),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                    if (secili) ...[
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        children: [
+                                          const SizedBox(width: 36),
+                                          Text('Seans:', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+                                          const SizedBox(width: 10),
+                                          SizedBox(
+                                            width: 80,
+                                            child: TextField(
+                                              controller: _seansCtrl[h.hizmet_id],
+                                              textAlign: TextAlign.center,
+                                              keyboardType: TextInputType.number,
+                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                filled: true,
+                                                fillColor: Theme.of(context).scaffoldBackgroundColor,
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderSide: BorderSide(color: cs.outlineVariant),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderSide: BorderSide(color: cs.primary, width: 1.4),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
