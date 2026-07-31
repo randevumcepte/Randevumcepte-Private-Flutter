@@ -56,10 +56,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
   List<Map<String, dynamic>> _reklamlar = [];
-  // Açılış tam ekran reklam popup'ı oturumda (uygulama çalışması boyunca) SADECE 1 kez.
-  // static: anasayfa State'i her sekme geçişinde/yeniden açılışında yeniden oluşsa da
-  // korunur; aksi halde her anasayfaya gelişte popup tekrar açılıyordu.
-  static bool _popupGosterildi = false;
 
   // Çoklu şubeli markada üst başlıkta salon adı yerine gösterilecek marka başlığı.
   String? _bundleBaslik;
@@ -132,38 +128,16 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
         });
-        _acilisPopupGoster();
       }
     } catch (_) {
       // reklam yüklenemezse ana sayfa normal çalışmaya devam eder
     }
   }
 
-  /// Açılışta tam ekran (interstitial) reklam popup'ı — oturumda 1 kez gösterilir.
-  void _acilisPopupGoster() {
-    if (_popupGosterildi || !mounted) return;
-    Map<String, dynamic>? hedef;
-    for (final r in _reklamlar) {
-      final t = r['tam_ekran'];
-      if (t == true || t == 1) {
-        hedef = r;
-        break;
-      }
-    }
-    if (hedef == null) return;
-    _popupGosterildi = true;
-    final r = hedef;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        barrierColor: Colors.black.withValues(alpha: 0.85),
-        builder: (ctx) => _reklamPopup(ctx, r),
-      );
-    });
-  }
-
+  // NOT: Açılış tam ekran (interstitial) reklam popup'ı kaldırıldı (istek üzerine).
+  // "Sana Özel" bölümündeki uygulama-içi reklam kartları (_reklamTikla) çalışmaya
+  // devam eder; yalnızca otomatik açılan popup devre dışı.
+  // ignore: unused_element
   Widget _reklamPopup(BuildContext ctx, Map<String, dynamic> r) {
     final scheme = Theme.of(ctx).colorScheme;
     final gorsel = r['gorsel']?.toString();
