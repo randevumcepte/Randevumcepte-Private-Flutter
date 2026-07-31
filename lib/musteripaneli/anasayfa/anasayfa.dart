@@ -56,7 +56,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
   List<Map<String, dynamic>> _reklamlar = [];
-  bool _popupGosterildi = false; // açılış tam ekran reklam oturumda 1 kez
+  // Açılış tam ekran reklam popup'ı oturumda (uygulama çalışması boyunca) SADECE 1 kez.
+  // static: anasayfa State'i her sekme geçişinde/yeniden açılışında yeniden oluşsa da
+  // korunur; aksi halde her anasayfaya gelişte popup tekrar açılıyordu.
+  static bool _popupGosterildi = false;
 
   // Çoklu şubeli markada üst başlıkta salon adı yerine gösterilecek marka başlığı.
   String? _bundleBaslik;
@@ -1740,6 +1743,9 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
       return;
     }
     if (aksiyon != 'kupon') return; // 'yok' → sadece görsel
+    // Kupon tanımlı değilse (kupon_deger 0/null → r['kupon']==null) sadece bilgilendirme;
+    // kuponKap çağırma, aksi halde backend "Bu reklamda kupon yok." uyarısı döner.
+    if (r['kupon'] == null) return;
 
     showDialog(
       context: context,
