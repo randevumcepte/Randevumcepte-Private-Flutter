@@ -1760,7 +1760,7 @@ Future <Map<String, dynamic>> tahsilatraporu(String Salonid , String currpage,St
   final thismonth1 = DateTime.utc(now.year,now.month,1);
   final thismonth2 = DateTime.utc(now.year,now.month + 1,0);
   final lastmonth1 = DateTime.utc(now.year,now.month - 1,1);
-  final lastmonth2 = DateTime.utc(now.year,now.month -2,0);
+  final lastmonth2 = DateTime.utc(now.year,now.month,0);
   final thisyear1 = DateTime.utc(now.year,1 ,1);
   final thisyear2 = DateTime.utc(now.year,12,31);
 
@@ -1839,7 +1839,7 @@ Future <Map<String, dynamic>> masrafraporu(String Salonid , String currpage,Stri
   final thismonth1 = DateTime.utc(now.year,now.month,1);
   final thismonth2 = DateTime.utc(now.year,now.month + 1,0);
   final lastmonth1 = DateTime.utc(now.year,now.month - 1,1);
-  final lastmonth2 = DateTime.utc(now.year,now.month -2,0);
+  final lastmonth2 = DateTime.utc(now.year,now.month,0);
   final thisyear1 = DateTime.utc(now.year,1 ,1);
   final thisyear2 = DateTime.utc(now.year,12,31);
 
@@ -1941,7 +1941,7 @@ Future <Map<String, dynamic>> kasaraporu(String Salonid , String tarih,String od
   final thismonth1 = DateTime.utc(now.year,now.month,1);
   final thismonth2 = DateTime.utc(now.year,now.month + 1,0);
   final lastmonth1 = DateTime.utc(now.year,now.month - 1,1);
-  final lastmonth2 = DateTime.utc(now.year,now.month -2,0);
+  final lastmonth2 = DateTime.utc(now.year,now.month,0);
   final thisyear1 = DateTime.utc(now.year,1 ,1);
   final thisyear2 = DateTime.utc(now.year,12,31);
 
