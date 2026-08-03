@@ -832,6 +832,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
         musterinotu: old.musterinotu,
         personelnotu: old.personelnotu,
         tahsilat_eklendi: old.tahsilat_eklendi,
+        salonAdi: old.salonAdi,
       );
     });
   }
