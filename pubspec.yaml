@@ -1,7 +1,7 @@
 name: randevu_sistem
 description: EYM Life Güzellik Merkezi Randevu Sistemi Uygulaması
 publish_to: 'none'
-version: 1.0.3+6
+version: 1.0.4+7
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -135,6 +135,7 @@ dependencies:
   table_calendar: ^3.2.0
   kalender: ^0.15.0
   fl_chart: ^0.68.0  # veya 0.69.0
+  signature: ^6.4.0
 
 
 dev_dependencies:

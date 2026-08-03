@@ -10,6 +10,7 @@ import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
+import 'package:signature/signature.dart';
 
 class SozlesmeOlustur extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -43,11 +44,20 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
   final _not = TextEditingController();
 
   // Odeme sekli / taksit (opsiyonel)
-  String _odemeSekli = 'pesin'; // pesin | taksit | kredi_karti
+  String _odemeSekli = 'nakit'; // nakit | havale | kredi_karti | taksit
   final _taksitSayisi = TextEditingController();
   final _taksitTutari = TextEditingController();
   DateTime? _ilkTaksit;
   DateTime? _gecerlilik;
+
+  // Isletme sahibi (salon yetkilisi) imzasi — cift tarafli imza (web ile ayni).
+  final _yetkiliAd = TextEditingController();
+  final _yetkiliTel = TextEditingController();
+  final SignatureController _imzaController = SignatureController(
+    penStrokeWidth: 2.5,
+    penColor: Colors.black,
+    exportBackgroundColor: Colors.white,
+  );
 
   @override
   void initState() {
@@ -65,6 +75,9 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
     _not.dispose();
     _taksitSayisi.dispose();
     _taksitTutari.dispose();
+    _yetkiliAd.dispose();
+    _yetkiliTel.dispose();
+    _imzaController.dispose();
     super.dispose();
   }
 
@@ -308,6 +321,16 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
       // form.gonder yetkisi yoksa: sozlesmeyi olustur ve arsive kaydet,
       // ama musteriye SMS atma.
       final sadeceKaydet = !Yetki.varMi('form.gonder');
+
+      // Isletme yetkilisi imzasini base64 PNG data-uri olarak hazirla.
+      String salonImza = '';
+      if (_imzaController.isNotEmpty) {
+        final imzaBytes = await _imzaController.toPngBytes();
+        if (imzaBytes != null) {
+          salonImza = 'data:image/png;base64,${base64Encode(imzaBytes)}';
+        }
+      }
+
       final body = {
         'sube': _seciliSube,
         'user_id': _musteri!.id,
@@ -328,6 +351,10 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
         if (_odemeSekli == 'taksit' && _ilkTaksit != null)
           'ilk_taksit_tarihi': _isoTarih(_ilkTaksit!),
         if (_gecerlilik != null) 'gecerlilik_tarihi': _isoTarih(_gecerlilik!),
+        // Isletme sahibi (salon yetkilisi) imzasi
+        'salon_imza': salonImza,
+        'salon_yetkili_ad': _yetkiliAd.text.trim(),
+        'salon_yetkili_telefon': _yetkiliTel.text.trim(),
         'sadece_kaydet': sadeceKaydet,
       };
       final resp = await http.post(
@@ -569,6 +596,8 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
         const SizedBox(height: 12),
         _buildOdemeKart(scheme),
         const SizedBox(height: 12),
+        _buildImzaKart(scheme),
+        const SizedBox(height: 12),
         PremiumGlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -665,13 +694,70 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
     );
   }
 
+  // Isletme sahibi (salon yetkilisi) imza karti — parmakla imza + ad/telefon.
+  Widget _buildImzaKart(ColorScheme scheme) {
+    return PremiumGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _Etiket('İşletme Sahibi / Yetkili İmzası'),
+          const Text(
+            'Sözleşmeyi işletme adına imzalayın. Müşteri kendi imzasını link üzerinden atacaktır.',
+            style: TextStyle(fontSize: 11, color: Colors.black54),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _yetkiliAd,
+            textCapitalization: TextCapitalization.words,
+            decoration: _inputDeko('Yetkili Ad Soyad', scheme),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _yetkiliTel,
+            keyboardType: TextInputType.phone,
+            decoration: _inputDeko('Yetkili Telefon', scheme),
+          ),
+          const SizedBox(height: 12),
+          const _Etiket('İmza'),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                  color: scheme.primary.withValues(alpha: 0.35), width: 1.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Signature(
+                controller: _imzaController,
+                height: 160,
+                backgroundColor: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _imzaController.clear(),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('Temizle'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOdemeKart(ColorScheme scheme) {
     final taksitli = _odemeSekli == 'taksit';
     final plan = taksitli ? _taksitPlani() : <Map<String, dynamic>>[];
     final secenekler = const [
-      ['pesin', 'Peşin'],
-      ['taksit', 'Taksitli'],
+      ['nakit', 'Nakit'],
+      ['havale', 'Havale'],
       ['kredi_karti', 'Kredi Kartı'],
+      ['taksit', 'Taksitli'],
     ];
     return PremiumGlassCard(
       child: Column(
