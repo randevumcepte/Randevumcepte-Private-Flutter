@@ -11,6 +11,7 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 import 'package:signature/signature.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SozlesmeOlustur extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -95,7 +96,13 @@ class _SozlesmeOlusturState extends State<SozlesmeOlustur> {
       _paketler = ((veri['paketler'] ?? []) as List)
           .whereType<Paket>()
           .toList();
-      _metin.text = _varsayilanMetin();
+      // Daha once "Varsayilan Yap" ile kaydedilmis salon-ozel metin varsa onu
+      // kullan; yoksa fabrika varsayilanina dus.
+      final prefs = await SharedPreferences.getInstance();
+      final kayitliMetin = prefs.getString('sozlesme_sartlari_$_seciliSube');
+      _metin.text = (kayitliMetin != null && kayitliMetin.trim().isNotEmpty)
+          ? kayitliMetin
+          : _varsayilanMetin();
     } catch (e) {
       _hataMesaji = 'Veriler yüklenemedi: $e';
     }
@@ -596,8 +603,6 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
         const SizedBox(height: 12),
         _buildOdemeKart(scheme),
         const SizedBox(height: 12),
-        _buildImzaKart(scheme),
-        const SizedBox(height: 12),
         PremiumGlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -616,6 +621,24 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
                     const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
                 decoration: _inputDeko('Sözleşme metni...', scheme),
               ),
+              const SizedBox(height: 8),
+              // Metindeki degisiklikleri salon-ozel varsayilan olarak kaydet.
+              // Kayitli metin sonraki sozlesmelerde otomatik gelir
+              // (SharedPreferences, salon bazli).
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _varsayilanOlarakKaydet,
+                  icon: const Icon(Icons.push_pin_outlined, size: 16),
+                  label: const Text('Varsayılan Yap',
+                      style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: scheme.primary,
+                    side: BorderSide(color: scheme.primary.withOpacity(0.5)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
               const SizedBox(height: 14),
               const _Etiket('Ek Not (opsiyonel)'),
               TextField(
@@ -627,7 +650,25 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        _buildImzaKart(scheme),
       ],
+    );
+  }
+
+  // "Varsayılan Yap": mevcut sözleşme metnini bu salon için varsayılan olarak
+  // kaydeder; sonraki sözleşmeler bu metinle açılır.
+  Future<void> _varsayilanOlarakKaydet() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('sozlesme_sartlari_$_seciliSube', _metin.text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+            'Bu metin varsayılan olarak kaydedildi. Sonraki sözleşmelerde otomatik gelecek.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 3),
+      ),
     );
   }
 
