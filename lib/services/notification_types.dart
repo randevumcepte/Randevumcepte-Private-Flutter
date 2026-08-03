@@ -33,6 +33,10 @@ class NotificationTypes {
   // Personelin yetkileri yonetici tarafindan guncellendi -> popup + logout.
   static const yetkiDegisti            = 'yetki_degisti';
 
+  // Fotograf yukleme (isletme -> musteri kendi fotograflari; musteri -> yetkili musteri detay)
+  static const isletmeResimYukledi     = 'isletme_resim_yuklendi';
+  static const musteriResimYukledi     = 'musteri_resim_yuklendi';
+
   /// Bu tipler foreground'da resimli popup ile gösterilmeli.
   static bool isPopup(String? type) =>
       type != null &&
