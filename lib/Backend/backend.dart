@@ -4359,19 +4359,54 @@ Future<Map<String, dynamic>?> personelPrimHesaplaAyYil({
   return null;
 }
 
-// Personeli arsivle (soft delete): listeden gizler, gecmis veriler korunur.
-Future<bool> personelArsivle(String personelid, String salonid) async {
-  final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelArsivle'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'personelid': personelid, 'sube': salonid}),
-  );
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    return data is Map && data['sonuc'] == 'ok';
+// Arsivlenecek personelin gelecek randevularindaki kendisine ait hizmet kalemlerini
+// ve devralabilecek diger aktif personelleri dondurur.
+// Donen map: {sonuc, count, hizmetler:[{rh_id,tarih,saat,musteri,hizmet}], personeller:[{id,personel_adi}]}
+Future<Map<String, dynamic>> personelGelecekHizmetler(String personelid, String salonid) async {
+  try {
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelGelecekHizmetler'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'personelid': personelid, 'sube': salonid}),
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data is Map<String, dynamic>) return data;
+    }
+    debugPrint('personelGelecekHizmetler failed: ${response.statusCode}');
+  } catch (e) {
+    debugPrint('personelGelecekHizmetler error: $e');
   }
-  debugPrint('personelArsivle failed: ${response.statusCode}');
-  return false;
+  return {'sonuc': 'error', 'count': 0, 'hizmetler': [], 'personeller': []};
+}
+
+// Personeli arsivle (soft delete): listeden gizler, gecmis veriler korunur.
+// [transferler]: gelecek randevu hizmet kalemi id -> devredilecek personel id eslemesi.
+// Gelecek kalem varsa bu esleme ZORUNLUDUR; eksikse sunucu 'aktarim_gerekli' doner.
+Future<Map<String, dynamic>> personelArsivle(
+  String personelid,
+  String salonid, {
+  Map<String, String>? transferler,
+}) async {
+  try {
+    final body = <String, dynamic>{'personelid': personelid, 'sube': salonid};
+    if (transferler != null && transferler.isNotEmpty) {
+      body['transferler'] = jsonEncode(transferler);
+    }
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelArsivle'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data is Map<String, dynamic>) return data;
+    }
+    debugPrint('personelArsivle failed: ${response.statusCode}');
+  } catch (e) {
+    debugPrint('personelArsivle error: $e');
+  }
+  return {'sonuc': 'error'};
 }
 
 // Aktif personeller arasinda sirayi 1 kaydir. delta: -1 yukari, +1 asagi.

@@ -280,33 +280,196 @@ class _PersonellerState extends State<Personeller> {
   }
 
   Future<void> _arsivle(Personel p) async {
-    final onay = await _onaylat(
-      baslik: '${p.personel_adi} silinsin mi?',
-      icerik: 'Personel kalıcı olarak listeden gizlenecek.\n\n'
-          '• Geçmiş randevu, satış, prim ve hak ediş kayıtları korunur\n'
-          '• Raporlar ve istatistikler etkilenmez\n'
-          '• Listeden, takvimden ve online randevudan kalkacak',
-      onayText: 'Evet, sil',
-      tehlikeli: true,
-    );
-    if (onay != true) return;
+    // Once silme tarihinden itibaren gelecek randevulardaki bu personele ait hizmetleri kontrol et
+    final veri = await personelGelecekHizmetler(p.id, _salonid!);
+    if (!mounted) return;
+    if (veri['sonuc'] != 'ok') {
+      _snack('Personel bilgisi alınamadı', basari: false);
+      return;
+    }
+    final int count = (veri['count'] is int) ? veri['count'] as int : int.tryParse('${veri['count']}') ?? 0;
+    final List hizmetler = (veri['hizmetler'] is List) ? veri['hizmetler'] as List : const [];
+    final List personeller = (veri['personeller'] is List) ? veri['personeller'] as List : const [];
+
+    Map<String, String>? transferler;
+
+    if (count > 0) {
+      // Gelecek hizmet var: aktarim ZORUNLU
+      if (personeller.isEmpty) {
+        await _onaylat(
+          baslik: 'Aktarım yapılamıyor',
+          icerik: 'Bu personelin $count gelecek randevu hizmeti var ancak devredilebilecek '
+              'başka aktif personel bulunmuyor. Önce yeni bir personel ekleyin.',
+          onayText: 'Tamam',
+        );
+        return;
+      }
+      transferler = await _aktarimDialog(p, count, hizmetler, personeller);
+      if (transferler == null) return; // vazgecildi
+    } else {
+      final onay = await _onaylat(
+        baslik: '${p.personel_adi} silinsin mi?',
+        icerik: 'Personel kalıcı olarak listeden gizlenecek.\n\n'
+            '• Geçmiş randevu, satış, prim ve hak ediş kayıtları korunur\n'
+            '• Raporlar ve istatistikler etkilenmez\n'
+            '• Listeden, takvimden ve online randevudan kalkacak',
+        onayText: 'Evet, sil',
+        tehlikeli: true,
+      );
+      if (onay != true) return;
+    }
+
     // Optimistic: personeli listeden hemen kaldir
     final idx = _liste.indexWhere((x) => x.id == p.id);
     setState(() {
       if (idx >= 0) _liste.removeAt(idx);
     });
-    final ok = await personelArsivle(p.id, _salonid!);
+    final sonuc = await personelArsivle(p.id, _salonid!, transferler: transferler);
     if (!mounted) return;
-    if (ok) {
-      _snack('Personel silindi', basari: true);
+    if (sonuc['sonuc'] == 'ok') {
+      final int akt = (sonuc['aktarilan'] is int) ? sonuc['aktarilan'] as int : int.tryParse('${sonuc['aktarilan']}') ?? 0;
+      _snack(akt > 0 ? '$akt hizmet aktarıldı, personel silindi' : 'Personel silindi', basari: true);
       await _tumListeYukle(); // stat kartlarini tazele
     } else {
       // Hata: personeli geri ekle
       if (idx >= 0) {
         setState(() => _liste.insert(idx, p));
       }
-      _snack('Silinemedi', basari: false);
+      _snack(sonuc['mesaj']?.toString() ?? 'Silinemedi', basari: false);
     }
+  }
+
+  // Gelecek randevu hizmetlerinin her birini baska bir personele zorunlu devir ekrani.
+  // Donen: rh_id -> yeni personelid eslemesi; vazgecilirse null.
+  Future<Map<String, String>?> _aktarimDialog(
+    Personel p,
+    int count,
+    List hizmetler,
+    List personeller,
+  ) {
+    final Map<String, String> secim = {}; // rh_id -> personelid
+    String? tumu;
+    return showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocal) {
+            final tumSecili = hizmetler.every((h) => secim['${h['rh_id']}'] != null);
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Hizmetleri Aktar ve Sil',
+                  style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 18)),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${p.personel_adi} adlı personelin $count gelecek randevu hizmeti var. '
+                      'Silmeden önce her hizmetin devredileceği personeli seçin.',
+                      style: const TextStyle(color: _muted, height: 1.4, fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                      decoration: BoxDecoration(color: _purpleBg, borderRadius: BorderRadius.circular(10)),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text('Tümünü şu personele aktar',
+                                style: TextStyle(color: _text, fontSize: 13, fontWeight: FontWeight.w600)),
+                          ),
+                          _personelDropdown(personeller, tumu, (v) {
+                            setLocal(() {
+                              tumu = v;
+                              if (v != null) {
+                                for (final h in hizmetler) {
+                                  secim['${h['rh_id']}'] = v;
+                                }
+                              }
+                            });
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: hizmetler.length,
+                        separatorBuilder: (_, __) => const Divider(height: 16, color: _border),
+                        itemBuilder: (_, i) {
+                          final h = hizmetler[i];
+                          final rh = '${h['rh_id']}';
+                          final tarih = _tarihFmt('${h['tarih'] ?? ''}');
+                          final saat = '${h['saat'] ?? ''}';
+                          final saatKisa = saat.length >= 5 ? saat.substring(0, 5) : saat;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('$tarih $saatKisa',
+                                  style: const TextStyle(color: _text, fontWeight: FontWeight.w600, fontSize: 13)),
+                              Text('${h['musteri'] ?? '-'} • ${h['hizmet'] ?? '-'}',
+                                  style: const TextStyle(color: _muted, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: _personelDropdown(personeller, secim[rh], (v) {
+                                  setLocal(() => secim[rh] = v!);
+                                }),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Vazgeç', style: TextStyle(color: _muted)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: tumSecili ? const Color(0xFFDC2626) : _muted,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: tumSecili ? () => Navigator.pop(ctx, secim) : null,
+                  child: const Text('Aktar ve Sil'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _personelDropdown(List personeller, String? value, ValueChanged<String?> onChanged) {
+    return DropdownButton<String>(
+      value: value,
+      hint: const Text('Seçiniz', style: TextStyle(fontSize: 13, color: _muted)),
+      underline: const SizedBox.shrink(),
+      isDense: true,
+      items: personeller.map<DropdownMenuItem<String>>((p) {
+        return DropdownMenuItem<String>(
+          value: '${p['id']}',
+          child: Text('${p['personel_adi']}', style: const TextStyle(fontSize: 13, color: _text)),
+        );
+      }).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  String _tarihFmt(String ymd) {
+    final parts = ymd.split(' ').first.split('-');
+    if (parts.length == 3) return '${parts[2]}.${parts[1]}.${parts[0]}';
+    return ymd;
   }
 
   // === UI yardimcilari ===
