@@ -661,33 +661,11 @@ class OnGorusmeDataSource2 extends DataGridSource {
 
       if(result["cakismavar"]=="1")
       {
+        // Çakışma kontrolü kaldırıldı: sormadan otomatik "yine de oluştur".
         Navigator.of(context,rootNavigator: true).pop();
-        showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text('UYARI'),
-              content: Text('Oluşturduğunuz öngörüşme randevusu aşağıdakilerle çakışmaktadır!\n\n'+result["cakisanunsurlar"].replaceAll(r'\n', '\n')),
-              actions: <Widget>[
-                TextButton(
-                  child: Text('VAZGEÇ'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                TextButton(
-                  child: Text('YİNE DE RANDEVUYU OLUŞTUR'),
-                  onPressed: () {
-                    onGorusmeEkleGuncelle2(ongorusmeid,musteri_id, ad_soyad, telefon, email,  cinsiyet,context, salonid, sehir, referans, meslek, urun_id,  paket_id,  randevu_tarihi,  randevu_saati,  aciklama, personelid, "1");
-
-
-                  },
-                ),
-              ],
-            );
-          },
-        );
-
+        if (cakisanrandevuekle != "1") {
+          onGorusmeEkleGuncelle2(ongorusmeid,musteri_id, ad_soyad, telefon, email,  cinsiyet,context, salonid, sehir, referans, meslek, urun_id,  paket_id,  randevu_tarihi,  randevu_saati,  aciklama, personelid, "1");
+        }
       }
       else{
         Navigator.of(context,rootNavigator: true).pop();
@@ -1130,7 +1108,8 @@ class OnGorusmeDataSource extends DataGridSource {
   }
 
 
-  void satisyapildi(BuildContext context, String ongorusmeid,String adet,String baslangictarih,String seansaralik) async {
+  void satisyapildi(BuildContext context, String ongorusmeid,String adet,String baslangictarih,String seansaralik,
+      {String fiyat = '', String seansSayisi = ''}) async {
     SharedPreferences localStorage = await SharedPreferences.getInstance();
 
     var user = jsonDecode(localStorage.getString('user')!);
@@ -1141,6 +1120,9 @@ class OnGorusmeDataSource extends DataGridSource {
       'baslangic_tarihi': baslangictarih,
       'urun_adedi': adet,
       'seans_araligi': seansaralik,
+      // Yeni Satis formlarindaki kalem alanlari (backend zaten bu iki alani okur)
+      'fiyat': fiyat,
+      'seans_sayisi': seansSayisi,
       'olusturan':user['id']
     };
 
@@ -1157,6 +1139,211 @@ class OnGorusmeDataSource extends DataGridSource {
 
       debugPrint(response.body);
     }
+  }
+
+  // ── Ortak popup yardimcilari (Yeni Satis kalem alanlariyla uyumlu) ──
+  Widget _popupLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 8.0),
+        child: Text(text,
+            style: TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold)),
+      );
+
+  Widget _popupField({
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    String? prefixText,
+    String? hint,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
+      maxLines: 1,
+      decoration: InputDecoration(
+        prefixText: prefixText,
+        hintText: hint,
+        isDense: true,
+        contentPadding: const EdgeInsets.all(14.0),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFF6A1B9A)),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFF6A1B9A), width: 1.6),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+      ),
+    );
+  }
+
+  /// "1.500,00" / "1500" / "1500.50" -> "1500.00" (backend is_numeric bekliyor)
+  String _fiyatTemizle(String s) {
+    var t = s.trim().replaceAll('₺', '').replaceAll(' ', '');
+    if (t.isEmpty) return '';
+    if (t.contains(',')) t = t.replaceAll('.', '').replaceAll(',', '.');
+    return t;
+  }
+
+  // ── PAKET satis popup'i: Yeni Satis paket kalemi alanlari (fiyat + seans sayisi) ──
+  void showPaketSatisPopup(BuildContext context, String ongorusmeid,
+      {String defaultFiyat = '', String defaultSeans = '', String defaultSeansAralik = ''}) {
+    final TextEditingController ongorusmetarihi = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+    final TextEditingController seansaralik =
+        TextEditingController(text: defaultSeansAralik);
+    final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
+    final TextEditingController seansSayisi = TextEditingController(text: defaultSeans);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          scrollable: true,
+          title: Text('Paket Satışı',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _popupLabel('Seans Başlangıç Tarihi'),
+              _popupField(
+                controller: ongorusmetarihi,
+                readOnly: true,
+                onTap: () async {
+                  DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.tryParse(ongorusmetarihi.text) ?? DateTime.now(),
+                    firstDate: DateTime(1950),
+                    lastDate: DateTime(2100),
+                  );
+                  if (pickedDate != null) {
+                    ongorusmetarihi.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+              _popupLabel('Fiyat (₺)'),
+              _popupField(
+                controller: fiyat,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                prefixText: '₺ ',
+              ),
+              const SizedBox(height: 14),
+              _popupLabel('Seans Sayısı'),
+              _popupField(controller: seansSayisi, keyboardType: TextInputType.number),
+              const SizedBox(height: 14),
+              _popupLabel('Seans Aralığı (Gün)'),
+              _popupField(controller: seansaralik, keyboardType: TextInputType.number),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Kapat', style: TextStyle(color: Colors.black)),
+            ),
+            TextButton(
+              onPressed: () {
+                satisyapildi(context, ongorusmeid, '', ongorusmetarihi.text, seansaralik.text.trim(),
+                    fiyat: _fiyatTemizle(fiyat.text), seansSayisi: seansSayisi.text.trim());
+              },
+              child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── URUN satis popup'i: Yeni Satis urun kalemi alanlari (adet + fiyat) ──
+  void showUrunSatisPopup(BuildContext context, String ongorusmeid,
+      {String defaultFiyat = ''}) {
+    final TextEditingController quantityController = TextEditingController(text: '1');
+    final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          scrollable: true,
+          title: Text('Ürün Satışı',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _popupLabel('Adet'),
+              _popupField(controller: quantityController, keyboardType: TextInputType.number),
+              const SizedBox(height: 14),
+              _popupLabel('Fiyat (₺)'),
+              _popupField(
+                controller: fiyat,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                prefixText: '₺ ',
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Kapat', style: TextStyle(color: Colors.black)),
+            ),
+            TextButton(
+              onPressed: () {
+                satisyapildi(context, ongorusmeid, quantityController.text.trim(), '', '',
+                    fiyat: _fiyatTemizle(fiyat.text));
+              },
+              child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── HIZMET satis popup'i: Yeni Satis hizmet kalemi alani (fiyat) ──
+  void showHizmetSatisPopup(BuildContext context, String ongorusmeid,
+      {String defaultFiyat = ''}) {
+    final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          scrollable: true,
+          title: Text('Hizmet Satışı',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _popupLabel('Fiyat (₺)'),
+              _popupField(
+                controller: fiyat,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                prefixText: '₺ ',
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Kapat', style: TextStyle(color: Colors.black)),
+            ),
+            TextButton(
+              onPressed: () {
+                satisyapildi(context, ongorusmeid, '', '', '',
+                    fiyat: _fiyatTemizle(fiyat.text));
+              },
+              child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
+            ),
+          ],
+        );
+      },
+    );
   }
   Future<void> onGorusmeEkleGuncelle(
       String ongorusmeid,
@@ -1238,45 +1425,26 @@ class OnGorusmeDataSource extends DataGridSource {
         dynamic result = json.decode(response.body);
 
         if (result["cakismavar"] == "1") {
-          Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
-
-          // Çakışma varsa dialog göster
-          await showDialog<bool>(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text('UYARI'),
-                content: Text('Oluşturduğunuz öngörüşme randevusu aşağıdakilerle çakışmaktadır!\n\n' +
-                    result["cakisanunsurlar"].replaceAll(r'\n', '\n')),
-                actions: <Widget>[
-                  TextButton(
-                    child: Text('VAZGEÇ'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  TextButton(
-                    child: Text('YİNE DE RANDEVUYU OLUŞTUR'),
-                    onPressed: () {
-                      // Dialog'u kapat ve "1" (evet) değeri ile geri dön
-                      Navigator.of(context).pop(true);
-                    },
-                  ),
-                ],
-              );
-            },
-          ).then((value) {
-            // Eğer kullanıcı "YİNE DE RANDEVUYU OLUŞTUR" dediyse
-            if (value == true) {
-              // Ön görüşmeyi tekrar dene, bu sefer çakışmayı ignore et
-              onGorusmeEkleGuncelle(
-                  ongorusmeid, musteri_id, ad_soyad, telefon, email, cinsiyet,
-                  context, salonid, sehir, referans, meslek, urun_id, paket_id,
-                  randevu_tarihi, randevu_saati, aciklama, personelid, "1", hizmet_id,
-                  oda_id: oda_id
-              );
-            }
-          });
+          // Çakışma kontrolü kaldırıldı: kullanıcıya sormadan öngörüşmeyi
+          // otomatik olarak "yine de oluştur" modunda tekrar oluştur.
+          if (cakisanrandevuekle != "1") {
+            Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
+            onGorusmeEkleGuncelle(
+                ongorusmeid, musteri_id, ad_soyad, telefon, email, cinsiyet,
+                context, salonid, sehir, referans, meslek, urun_id, paket_id,
+                randevu_tarihi, randevu_saati, aciklama, personelid, "1", hizmet_id,
+                oda_id: oda_id);
+          } else {
+            // Zaten bypass modundayız ama yine de çakışma döndü: hatayı bildir.
+            Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Ön görüşme oluşturulamadı, lütfen tekrar deneyin.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         } else {
           // Başarılı kayıt
           Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
@@ -9593,14 +9761,23 @@ class EAsistanDataSource extends DataGridSource {
       ),
     ]);
   }
-  void goreviptali(BuildContext context, String asistanid) async {
+  void goreviptali(BuildContext context, String asistanid, {String tur = 'randevu'}) async {
 
     showProgressLoading(context);
-    Map<String, dynamic> formData = {
-      'alacak_id': asistanid,
-      'randevu_id':asistanid,
-      'kampanya_id':asistanid
-    };
+    // Backend gorevIptalEt2 sirayla randevu_id -> alacak_id -> kampanya_id
+    // kontrol ediyor. Yanlis kayit iptal edilmesin diye SADECE gorev turune
+    // uyan id alanini gonderiyoruz.
+    final Map<String, dynamic> formData = {};
+    switch (tur) {
+      case 'alacak':
+        formData['alacak_id'] = asistanid;
+        break;
+      case 'kampanya':
+        formData['kampanya_id'] = asistanid;
+        break;
+      default:
+        formData['randevu_id'] = asistanid;
+    }
 
     final response = await http.post(
       Uri.parse('https://demoapp.randevumcepte.com.tr/api/v1/gorev-iptal-et'),

@@ -1057,10 +1057,55 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 
 	void _satisYapildi(OnGorusme e) {
 		if (e.paket_id.isNotEmpty && e.paket_id != "null") {
-			_ongorusmeDataGridSource.showPackagePopup(context, e.id);
+			_ongorusmeDataGridSource.showPaketSatisPopup(
+				context,
+				e.id,
+				defaultFiyat: _paketVarsayilanFiyat(e),
+				defaultSeans: _paketVarsayilanSeans(e),
+				defaultSeansAralik: e.paket['seans_araligi']?.toString() ?? '',
+			);
 		} else if (e.urun_id.isNotEmpty && e.urun_id != "null") {
-			_ongorusmeDataGridSource.showProductPopup(context, e.id);
+			_ongorusmeDataGridSource.showUrunSatisPopup(
+				context,
+				e.id,
+				defaultFiyat: (e.urun['fiyat']?.toString() ?? ''),
+			);
+		} else if (e.hizmet_id.isNotEmpty && e.hizmet_id != "null") {
+			_ongorusmeDataGridSource.showHizmetSatisPopup(
+				context,
+				e.id,
+				defaultFiyat: '',
+			);
 		}
+	}
+
+	// Paketin varsayilan fiyati: hizmetler toplami varsa onu, yoksa paket fiyati
+	String _paketVarsayilanFiyat(OnGorusme e) {
+		final h = e.paket['hizmetler'];
+		if (h is List) {
+			double t = 0;
+			for (final x in h) {
+				t += double.tryParse(x is Map ? (x['fiyat']?.toString() ?? '0') : '0') ?? 0;
+			}
+			if (t > 0) return t.toStringAsFixed(0);
+		}
+		final f = double.tryParse(
+				(e.paket['fiyat']?.toString() ?? '').replaceAll(',', '.')) ?? 0;
+		return f > 0 ? f.toStringAsFixed(0) : '';
+	}
+
+	// Paketin varsayilan seans sayisi: hizmetler seans toplami, yoksa paket miktari
+	String _paketVarsayilanSeans(OnGorusme e) {
+		final h = e.paket['hizmetler'];
+		if (h is List) {
+			double s = 0;
+			for (final x in h) {
+				s += double.tryParse(x is Map ? (x['seans']?.toString() ?? '0') : '0') ?? 0;
+			}
+			if (s > 0) return s.round().toString();
+		}
+		final m = int.tryParse(e.paket['miktar']?.toString() ?? '') ?? 0;
+		return m > 0 ? m.toString() : '';
 	}
 
 	void _satisYapilmadi(OnGorusme e) {
