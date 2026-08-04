@@ -109,7 +109,7 @@ class _BildirimPageState extends State<BildirimPage> {
                         },
                         errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
                           return Image.asset(
-                            'images/aleyna.png', // Replace with your image path
+                            'images/eymlifeicon.png', // Replace with your image path
                             width: 30, // Adjust width as needed
                             height: 30, // Adjust height as needed
                           );

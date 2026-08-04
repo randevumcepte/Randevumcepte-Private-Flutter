@@ -1310,23 +1310,38 @@ class _SeansDokumuPdfPageState extends State<_SeansDokumuPdfPage> {
               ? const Center(
                   child: CircularProgressIndicator(color: _primary),
                 )
-              : PdfPreview(
-                  build: (format) => bytes,
-                  canChangePageFormat: false,
-                  canChangeOrientation: false,
-                  canDebug: false,
-                  // Sunucudan gelen PDF sabit; format degisimi ile yeniden
-                  // uretim/raster tetiklenmesin.
-                  dynamicLayout: false,
-                  // Raster maliyeti dpi'nin karesiyle artiyor; ekranda okunakli
-                  // kalan daha dusuk bir dpi ile ilk kare belirgin hizlaniyor.
-                  dpi: 110,
-                  pdfFileName: 'seans-dokumu.pdf',
-                  // Alt bardaki yazdir/paylas ikonlari beyaz olsun.
-                  actionBarTheme: const PdfActionBarTheme(
-                    backgroundColor: _primary,
-                    iconColor: Colors.white,
-                    textStyle: TextStyle(color: Colors.white),
+              // Material 3'te alt bardaki yazdir/paylas butonlari IconButton'dur
+              // ve rengini ortam IconTheme'inden DEGIL kendi ButtonStyle'indan
+              // (varsayilan onSurfaceVariant → koyu gri) alir; bu yuzden
+              // actionBarTheme.iconColor tek basina ise yaramiyordu. Onu asmak
+              // icin IconButton foreground'ini beyaza zorlayan bir Theme sariyoruz.
+              : Theme(
+                  data: Theme.of(context).copyWith(
+                    iconTheme: const IconThemeData(color: Colors.white),
+                    iconButtonTheme: IconButtonThemeData(
+                      style: IconButton.styleFrom(
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  child: PdfPreview(
+                    build: (format) => bytes,
+                    canChangePageFormat: false,
+                    canChangeOrientation: false,
+                    canDebug: false,
+                    // Sunucudan gelen PDF sabit; format degisimi ile yeniden
+                    // uretim/raster tetiklenmesin.
+                    dynamicLayout: false,
+                    // Raster maliyeti dpi'nin karesiyle artiyor; ekranda okunakli
+                    // kalan daha dusuk bir dpi ile ilk kare belirgin hizlaniyor.
+                    dpi: 110,
+                    pdfFileName: 'seans-dokumu.pdf',
+                    // Alt bar mor + ikon/yazi beyaz.
+                    actionBarTheme: const PdfActionBarTheme(
+                      backgroundColor: _primary,
+                      iconColor: Colors.white,
+                      textStyle: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
     );

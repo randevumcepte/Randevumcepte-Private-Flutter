@@ -1,0 +1,105 @@
+{
+  "project_info": {
+    "project_number": "856139790820",
+    "project_id": "randevumcepte-5fd93",
+    "storage_bucket": "randevumcepte-5fd93.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856139790820:android:33d9006324299cfa1beff1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSZQx8bzDkaVcmusD0DcLGd_V3hsLTXF4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856139790820:android:791abfe7648d6cfc1beff1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.aleynaguzellik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSZQx8bzDkaVcmusD0DcLGd_V3hsLTXF4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856139790820:android:72837fd1d1641a061beff1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.satisortakligi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSZQx8bzDkaVcmusD0DcLGd_V3hsLTXF4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856139790820:android:b2ad4f0e506667011beff1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.shiningstars"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSZQx8bzDkaVcmusD0DcLGd_V3hsLTXF4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856139790820:android:101484ef66ef45af1beff1",
+        "android_client_info": {
+          "package_name": "com.webfirmam.randevumcepte"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSZQx8bzDkaVcmusD0DcLGd_V3hsLTXF4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

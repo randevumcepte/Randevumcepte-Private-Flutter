@@ -118,20 +118,27 @@ class _GorevListViewState extends State<GorevListView> {
     final scheme = Theme.of(context).colorScheme;
     final aramaDt = _parseDate(e.arama_saati);
     final saatLabel = _formatSaat(aramaDt, e.arama_saati);
-    final showCancel = aramaDt != null && aramaDt.isAfter(DateTime.now());
+    // Web ile ayni kosul: iptal edilebilirligi backend belirliyor (saat degil).
+    final showCancel = e.iptalEdilebilir;
 
     final reached = e.durum == 'Ulaşıldı';
-    final statusColor = reached
-        ? const Color(0xFF16A34A)
-        : (e.durum.trim().isEmpty
-            ? const Color(0xFFD97706)
-            : const Color(0xFFDC2626));
-    final statusText = e.durum.trim().isEmpty ? 'Bekliyor' : e.durum;
-    final statusIcon = reached
-        ? Icons.check_circle_rounded
-        : (e.durum.trim().isEmpty
-            ? Icons.schedule_rounded
-            : Icons.cancel_rounded);
+    final statusColor = e.iptalEdildi
+        ? const Color(0xFFDC2626)
+        : (reached
+            ? const Color(0xFF16A34A)
+            : (e.durum.trim().isEmpty
+                ? const Color(0xFFD97706)
+                : const Color(0xFFDC2626)));
+    final statusText = e.iptalEdildi
+        ? 'İptal Edildi'
+        : (e.durum.trim().isEmpty ? 'Bekliyor' : e.durum);
+    final statusIcon = e.iptalEdildi
+        ? Icons.cancel_rounded
+        : (reached
+            ? Icons.check_circle_rounded
+            : (e.durum.trim().isEmpty
+                ? Icons.schedule_rounded
+                : Icons.cancel_rounded));
 
     return PremiumGlassCard(
       padding: const EdgeInsets.all(14),
@@ -493,17 +500,23 @@ class _GorevListViewState extends State<GorevListView> {
     final tarihLabel = aramaDt != null ? _formatTarih(aramaDt) : '';
 
     final reached = e.durum == 'Ulaşıldı';
-    final statusColor = reached
-        ? const Color(0xFF16A34A)
-        : (e.durum.trim().isEmpty
-            ? const Color(0xFFD97706)
-            : const Color(0xFFDC2626));
-    final statusText = e.durum.trim().isEmpty ? 'Bekliyor' : e.durum;
-    final statusIcon = reached
-        ? Icons.check_circle_rounded
-        : (e.durum.trim().isEmpty
-            ? Icons.schedule_rounded
-            : Icons.cancel_rounded);
+    final statusColor = e.iptalEdildi
+        ? const Color(0xFFDC2626)
+        : (reached
+            ? const Color(0xFF16A34A)
+            : (e.durum.trim().isEmpty
+                ? const Color(0xFFD97706)
+                : const Color(0xFFDC2626)));
+    final statusText = e.iptalEdildi
+        ? 'İptal Edildi'
+        : (e.durum.trim().isEmpty ? 'Bekliyor' : e.durum);
+    final statusIcon = e.iptalEdildi
+        ? Icons.cancel_rounded
+        : (reached
+            ? Icons.check_circle_rounded
+            : (e.durum.trim().isEmpty
+                ? Icons.schedule_rounded
+                : Icons.cancel_rounded));
 
     showDialog(
       context: context,
@@ -793,7 +806,7 @@ class _GorevListViewState extends State<GorevListView> {
                       scheme: scheme,
                       onTap: () {
                         Navigator.pop(ctx);
-                        _ds?.goreviptali(context, e.id);
+                        _ds?.goreviptali(context, e.id, tur: e.tur);
                       },
                     ),
                   ),
