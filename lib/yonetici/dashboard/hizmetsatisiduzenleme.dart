@@ -535,12 +535,12 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
                   final String _seansTrim = seans_sayisi.text.trim();
                   final String _seansGonder = (_seansTrim.isEmpty || (int.tryParse(_seansTrim) ?? 0) <= 1) ? '' : _seansTrim;
                   final AdisyonHizmet adisyonhizmet = AdisyonHizmet(id:widget.mevcuthizmet.id, adisyon_id: widget.mevcuthizmet.adisyon_id, hizmet_id: selectedhizmet?.hizmet_id??"", islem_tarihi: islem_tarihi.text, islem_saati: islem_saati.text, sure: sure_dk.text, fiyat: fiyatGonderim, geldi: "1", personel_id: selectedpersonel?.id ?? "", cihaz_id: "", oda_id: "", dogrulama_kodu: "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "",hizmet: selectedhizmet?.hizmet??"",personel: selectedpersonel?? "", seans_sayisi: _seansGonder);
-                  if(widget.senetlisatis){
-                    AdisyonHizmet eklenenhizmet = await adisyonhizmetekle(adisyonhizmet,widget.musteriid ,context,seciliisletme!);
-                    Navigator.pop(context, eklenenhizmet);
-                  }
-                  else
-                    Navigator.pop(context, adisyonhizmet);
+                  // Duzenleme daima mevcut bir hizmet satiri uzerinde yapilir.
+                  // adisyonhizmetekle ucu adisyon_hizmet_id ile satiri gunceller;
+                  // bu cagri yapilmazsa yeni fiyat DB'ye yazilmaz (tahsilet/taksit
+                  // uclari fiyati satira geri yazmaz, sadece okur).
+                  AdisyonHizmet eklenenhizmet = await adisyonhizmetekle(adisyonhizmet,widget.musteriid ,context,seciliisletme!);
+                  Navigator.pop(context, eklenenhizmet);
 
                 },
                   child: Text('Kaydet'),
