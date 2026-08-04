@@ -2093,7 +2093,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           child: Text('Ön Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
-                                          height: 42,
+                                          height: 52,
                                           child: TextFormField(
                                             style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             controller: onOdemeTutariCtrl,
@@ -2122,7 +2122,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           child: Text('Ön Ödeme Türü',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         Container(
-                                          height: 44,
+                                          height: 52,
                                           padding: const EdgeInsets.symmetric(horizontal: 12),
                                           decoration: BoxDecoration(
                                             color: Theme.of(context).cardColor,
@@ -2153,7 +2153,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           child: Text('Kalan Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
-                                          height: 42,
+                                          height: 52,
                                           child: TextFormField(
                                             style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             enabled: false,
@@ -2176,7 +2176,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
-                                          height: 42,
+                                          height: 52,
                                           child: TextFormField(
                                             style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             controller: ilk_taksit_vade_tarihi,
@@ -2212,7 +2212,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           child: Text('Taksit Sayısı (Ay)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
                                         SizedBox(
-                                          height: 42,
+                                          height: 52,
                                           child: TextFormField(
                                             style: TextStyle(fontSize: 14, color: cs.onSurface),
                                             keyboardType: TextInputType.phone,
