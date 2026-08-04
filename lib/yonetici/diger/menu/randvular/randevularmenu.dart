@@ -438,6 +438,10 @@ class _RandevularMenuState extends State<RandevularMenu> {
     final ay = dateBits.length == 3 ? _ayKisa(dateBits[1]) : '';
     final yil = dateBits.length == 3 ? dateBits[0] : '';
 
+    final bool isOnGorusme = r.on_gorusme_id.isNotEmpty &&
+        r.on_gorusme_id != 'null' &&
+        r.on_gorusme_id != '0';
+
     String hizmetler = '';
     try {
       for (final h in r.hizmetler) {
@@ -447,6 +451,10 @@ class _RandevularMenuState extends State<RandevularMenu> {
         }
       }
     } catch (_) {}
+    // On gorusme randevusu backend'de sabit hizmet_id=1 ile olusur; o salonda
+    // id=1 gercek bir hizmet ("Sac Kesimi" vb.) oldugu icin yaniltici gorunur.
+    // Rozet zaten "On Gorusme" dedigi icin bu yanlis hizmet adini gizle.
+    if (isOnGorusme) hizmetler = '';
 
     return PremiumGlassCard(
       padding: const EdgeInsets.all(12),
@@ -854,7 +862,9 @@ class _RandevularMenuState extends State<RandevularMenu> {
         body: jsonEncode({'randevu_id': randevuid}),
       );
       if (!mounted) return;
-      _applyFilters(page: _randevuDataGridSource.currentPage);
+      // Gorev iptal edildi: ilgili listeyi tazele (buton bir sonraki acilista gizlenir)
+      await _applyFilters(page: _randevuDataGridSource.currentPage);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Hatırlatma görevi iptal edildi')),
       );
@@ -910,6 +920,9 @@ class _RandevularMenuState extends State<RandevularMenu> {
   void _detayDialog(Randevu r) {
     final scheme = Theme.of(context).colorScheme;
     final status = getStatusColorRandevu(r.durum, r.geldimi);
+    final bool isOnGorusme = r.on_gorusme_id.isNotEmpty &&
+        r.on_gorusme_id != 'null' &&
+        r.on_gorusme_id != '0';
 
     String hizmetler = '';
     try {
@@ -920,6 +933,9 @@ class _RandevularMenuState extends State<RandevularMenu> {
         }
       }
     } catch (_) {}
+    // On gorusme randevusu sabit hizmet_id=1 ile olusur; yaniltici gercek hizmet
+    // adi yerine "On Gorusme" goster.
+    if (isOnGorusme) hizmetler = 'Ön Görüşme';
 
     String telefon = '';
     try {
