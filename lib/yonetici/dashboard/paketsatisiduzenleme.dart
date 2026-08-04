@@ -67,355 +67,442 @@ class _PaketSatisiState extends State<PaketSatisiDuzenleme> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title:  const Text('Yeni Paket Satışı',style: TextStyle(color: Colors.black),),
-
+        title: Text(
+          'Paket Düzenleme',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+        ),
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey.shade700),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        toolbarHeight: 60,
+        toolbarHeight: 70,
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 100, // <-- Your width
-              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
             ),
-          ),
-
-
         ],
         backgroundColor: Colors.white,
+        elevation: 0,
+        shadowColor: Colors.black.withOpacity(0.05),
       ),
-      body: isloading? Center(child:CircularProgressIndicator()): SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 20,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Paket Adı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
-
-                //you can set more BoxShadow() here
-
+      body: isloading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Colors.purple.shade700,
               ),
-              child: DropdownButtonHideUnderline(
-
-                  child: DropdownButton2<Paket>(
-                    isExpanded: true,
-                    hint: Text(
-                      'Paket Seç',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                    items: paket
-                        .map((item) => DropdownMenuItem(
-
-                      value: item,
-                      child: Text(
-                        item.paket_adi,
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ))
-                        .toList(),
-                    value: selectedPaket,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedPaket = value;
-                        double fiyat = 0;
-                        value?.hizmetler.forEach((element) {
-                          fiyat += element["fiyat"];
-                        });
-                        pfiyat.text = tryformat.format(fiyat);
-                      });
-                    },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 50,
-                      width: 400,
-                    ),
-
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
-                      height: 40,
-                    ),
-                    dropdownSearchData: DropdownSearchData(
-                      searchController: paketler,
-                      searchInnerWidgetHeight: 50,
-                      searchInnerWidget: Container(
-                        height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
-                        child: TextFormField(
-
-                          expands: true,
-                          maxLines: null,
-                          controller: paketler,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Paket Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
-                      },
-                    ),
-                    //This to clear the search value when you close the menu
-                    onMenuStateChange: (isOpen) {
-                      if (!isOpen) {
-                        paketler.clear();
-                      }
-                    },
-
-                  )),
-            ),
-
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Satıcı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
-
-                //you can set more BoxShadow() here
-
-              ),
-              child: DropdownButtonHideUnderline(
-
-                  child: DropdownButton2<Personel>(
-
-                    isExpanded: true,
-                    hint: Text(
-                      'Satıcı Seç',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                    items: paketsatici
-                        .map((item) => DropdownMenuItem(
-                      value: item,
-                      child: Text(
-                        item.personel_adi,
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ))
-                        .toList(),
-                    value: selectedPaketSatici,
-
-                    onChanged: (value) {
-                      setState(() {
-                        selectedPaketSatici = value;
-                      });
-                    },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 50,
-                      width: 400,
-                    ),
-
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
-                      height: 40,
-                    ),
-                    dropdownSearchData: DropdownSearchData(
-                      searchController: psatici,
-                      searchInnerWidgetHeight: 50,
-                      searchInnerWidget: Container(
-                        height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
-                        child: TextFormField(
-                          expands: true,
-                          maxLines: null,
-                          controller: psatici,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Personel Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
-                      },
-                    ),
-                    //This to clear the search value when you close the menu
-                    onMenuStateChange: (isOpen) {
-                      if (!isOpen) {
-                        psatici.clear();
-                      }
-                    },
-
-                  )),
-            ),
-            SizedBox(height: 10,),
-
-
-
-
-
-            SizedBox(height: 10,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Seans Aralığı (gün)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextField(
-                          controller: pseans,
-                          onSubmitted: (text)=>print(pseans.text),
-                          keyboardType: TextInputType.phone,
-
-                          enabled:true,
-
-                          decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Fiyat',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextField(
-                          controller: pfiyat,
-                          keyboardType: TextInputType.phone,
-                          onSubmitted: (text)=>print(pfiyat.text),
-                          decoration: InputDecoration(
-                            enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            ),
-            SizedBox(height: 20,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(onPressed: () async {
-                  final AdisyonPaket paket = AdisyonPaket(  baslangic_tarihi: baslangictarihi.text,seans_araligi: pseans.text, id:widget.mevcutpaket.id,adisyon_id: widget.mevcutpaket.adisyon_id, paket_id: selectedPaket?.id ?? "",  fiyat: tlyirakamacevir(pfiyat.text).toString(), personel_id: selectedPaketSatici?.id ?? "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "false",paket: selectedPaket?.toJson() ?? "", personel: selectedPaketSatici?.toJson() ?? "",seans_baslangic_saati: randevusaati.text);
-                  if(widget.senetlisatis)
-                  {
-                    AdisyonPaket eklenepaket = await adisyonpaketekle(paket,widget.musteriid ,context,seciliisletme!,randevusaati.text,true,"");
-                    Navigator.pop(context, eklenepaket);
-                  }
-                  else
-                    Navigator.pop(context, paket);
-
-                },
-                  child: Text('Kaydet'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                      backgroundColor: Colors.green,
-                      minimumSize: Size(90, 40)
-                  ),
-                ),
-              ],
             )
-          ],
-        ),
-      ),
+          : GestureDetector(
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Başlık Kartı
+                    Container(
+                      margin: EdgeInsets.only(bottom: 16),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              color: Colors.purple.shade700,
+                              size: 20,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Paket Düzenleme',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
+                                Text(
+                                  'Mevcut paket bilgilerini güncelleyin',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Paket Seçimi
+                    _buildInputCard(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Paket',
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton2<Paket>(
+                          isExpanded: true,
+                          hint: Text(
+                            'Paket seçin',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          items: paket
+                              .map((item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(
+                                      item.paket_adi,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade800,
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
+                          value: selectedPaket,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedPaket = value;
+                              double fiyat = 0;
+                              value?.hizmetler.forEach((element) {
+                                fiyat += element["fiyat"];
+                              });
+                              pfiyat.text = tryformat.format(fiyat);
+                            });
+                          },
+                          buttonStyleData: ButtonStyleData(
+                            padding: EdgeInsets.symmetric(horizontal: 0),
+                            height: 40,
+                          ),
+                          dropdownStyleData: DropdownStyleData(
+                            maxHeight: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                            ),
+                          ),
+                          menuItemStyleData: MenuItemStyleData(height: 40),
+                          dropdownSearchData: DropdownSearchData(
+                            searchController: paketler,
+                            searchInnerWidgetHeight: 50,
+                            searchInnerWidget: Container(
+                              height: 50,
+                              padding: EdgeInsets.all(8),
+                              child: TextFormField(
+                                controller: paketler,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                  hintText: 'Paket ara...',
+                                  hintStyle: TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            searchMatchFn: (item, searchValue) {
+                              return (item.value as Paket)
+                                  .paket_adi
+                                  .toLowerCase()
+                                  .contains(searchValue.toLowerCase());
+                            },
+                          ),
+                          onMenuStateChange: (isOpen) {
+                            if (!isOpen) {
+                              paketler.clear();
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Seans Aralığı ve Fiyat Satırı
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInputCard(
+                            icon: Icons.date_range_rounded,
+                            title: 'Seans Aralığı (gün)',
+                            child: TextField(
+                              controller: pseans,
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Gün',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade400,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: _buildInputCard(
+                            icon: Icons.currency_lira,
+                            title: 'Fiyat (₺)',
+                            child: TextField(
+                              controller: pfiyat,
+                              keyboardType: TextInputType.numberWithOptions(decimal: true),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: '0,00',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Satıcı Seçimi
+                    _buildInputCard(
+                      icon: Icons.person_outline,
+                      title: 'Satıcı',
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton2<Personel>(
+                          isExpanded: true,
+                          hint: Text(
+                            'Satıcı seçin',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          items: paketsatici
+                              .map((item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(
+                                      item.personel_adi,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade800,
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
+                          value: selectedPaketSatici,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedPaketSatici = value;
+                            });
+                          },
+                          buttonStyleData: ButtonStyleData(
+                            padding: EdgeInsets.symmetric(horizontal: 0),
+                            height: 40,
+                          ),
+                          dropdownStyleData: DropdownStyleData(
+                            maxHeight: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                            ),
+                          ),
+                          menuItemStyleData: MenuItemStyleData(height: 40),
+                          dropdownSearchData: DropdownSearchData(
+                            searchController: psatici,
+                            searchInnerWidgetHeight: 50,
+                            searchInnerWidget: Container(
+                              height: 50,
+                              padding: EdgeInsets.all(8),
+                              child: TextFormField(
+                                controller: psatici,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                  hintText: 'Satıcı ara...',
+                                  hintStyle: TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            searchMatchFn: (item, searchValue) {
+                              return (item.value as Personel)
+                                  .personel_adi
+                                  .toLowerCase()
+                                  .contains(searchValue.toLowerCase());
+                            },
+                          ),
+                          onMenuStateChange: (isOpen) {
+                            if (!isOpen) {
+                              psatici.clear();
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 32),
+
+                    // Kaydet Butonu
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 16),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final AdisyonPaket paket = AdisyonPaket(
+                            baslangic_tarihi: baslangictarihi.text,
+                            seans_araligi: pseans.text,
+                            id: widget.mevcutpaket.id,
+                            adisyon_id: widget.mevcutpaket.adisyon_id,
+                            paket_id: selectedPaket?.id ?? "",
+                            fiyat: tlyirakamacevir(pfiyat.text).toString(),
+                            personel_id: selectedPaketSatici?.id ?? "",
+                            taksitli_tahsilat_id: "",
+                            senet_id: "",
+                            indirim_tutari: "",
+                            hediye: "false",
+                            paket: selectedPaket?.toJson() ?? "",
+                            personel: selectedPaketSatici?.toJson() ?? "",
+                            seans_baslangic_saati: randevusaati.text,
+                          );
+                          if (widget.senetlisatis) {
+                            AdisyonPaket eklenepaket = await adisyonpaketekle(
+                                paket,
+                                widget.musteriid,
+                                context,
+                                seciliisletme!,
+                                randevusaati.text,
+                                true,
+                                "");
+                            Navigator.pop(context, eklenepaket);
+                          } else
+                            Navigator.pop(context, paket);
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'KAYDET',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple.shade700,
+                          foregroundColor: Colors.white,
+                          minimumSize: Size(double.infinity, 54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
+  Widget _buildInputCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 16, top: 12, right: 16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
 }

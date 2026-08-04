@@ -93,37 +93,49 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title:  const Text('Ürün Satışı Düzenleme',style: TextStyle(color: Colors.black),),
-
+        title: Text(
+          'Ürün Satışı Düzenleme',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+        ),
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon:
+          Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey.shade700),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        toolbarHeight: 60,
+        toolbarHeight: 70,
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 100, // <-- Your width
-              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
             ),
-          ),
-
-
         ],
         backgroundColor: Colors.white,
+        elevation: 0,
+        shadowColor: Colors.black.withOpacity(0.05),
       ),
-      body: isloading ? Center(child: CircularProgressIndicator(),) : SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16,),
-            // BARKOD TARA CTA
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
+      body: isloading
+          ? Center(
+        child: CircularProgressIndicator(
+          color: Colors.purple.shade700,
+        ),
+      )
+          : GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // BARKOD TARA CTA
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -134,8 +146,8 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.purple.withValues(alpha: 0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -146,76 +158,84 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
                     borderRadius: BorderRadius.circular(16),
                     onTap: _barkodTarayipDegistir,
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
                           Container(
-                            width: 44,
-                            height: 44,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24),
+                            child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 26),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 14),
                           const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('BARKOD TARA', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5)),
+                                Text(
+                                  'BARKOD TARA',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                                 SizedBox(height: 2),
-                                Text('Farklı ürünle değiştir', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                                Text(
+                                  'Farklı ürünle değiştir',
+                                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                                ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                          const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 22),
                         ],
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Ürün',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
 
-                //you can set more BoxShadow() here
-
+              // VEYA ayraç
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('veya manuel seç', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                ],
               ),
-              child: DropdownButtonHideUnderline(
 
+              const SizedBox(height: 16),
+
+              // Ürün Seçimi
+              _buildInputCard(
+                icon: Icons.shopping_bag_outlined,
+                title: 'Ürün',
+                child: DropdownButtonHideUnderline(
                   child: DropdownButton2<Urun>(
-
                     isExpanded: true,
                     hint: Text(
-                      'Ürün Seç',
+                      'Ürün seçin',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).hintColor,
+                        color: Colors.grey.shade500,
                       ),
                     ),
                     items: urun
                         .map((item) => DropdownMenuItem(
-
                       value: item,
                       child: Text(
                         item.urun_adi,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
+                          color: Colors.grey.shade800,
                         ),
                       ),
                     ))
@@ -234,42 +254,32 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
 
                       });
                     },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 50,
-                      width: 400,
-                    ),
-
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
+                    buttonStyleData: ButtonStyleData(
+                      padding: EdgeInsets.symmetric(horizontal: 0),
                       height: 40,
                     ),
+                    dropdownStyleData: DropdownStyleData(
+                      maxHeight: 200,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.white,
+                      ),
+                    ),
+                    menuItemStyleData: MenuItemStyleData(height: 40),
                     dropdownSearchData: DropdownSearchData(
                       searchController: urunsec,
                       searchInnerWidgetHeight: 50,
                       searchInnerWidget: Container(
                         height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
+                        padding: EdgeInsets.all(8),
                         child: TextFormField(
-
-                          expands: true,
-                          maxLines: null,
                           controller: urunsec,
                           decoration: InputDecoration(
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Ürün Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            hintText: 'Ürün ara...',
+                            hintStyle: TextStyle(fontSize: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -277,143 +287,104 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
                         ),
                       ),
                       searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
+                        return (item.value as Urun)
+                            .urun_adi
+                            .toLowerCase()
+                            .contains(searchValue.toLowerCase());
                       },
                     ),
-                    //This to clear the search value when you close the menu
                     onMenuStateChange: (isOpen) {
                       if (!isOpen) {
                         urunsec.clear();
                       }
                     },
-
-                  )),
-            ),
-            SizedBox(height: 10,),
-
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Adet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextFormField(
-                          controller: adet,
-
-                          onSaved: (value){
-                            if(value == "")
-                              adet.text = "0";
-                            else
-                              adet.text = value!;
-                          },
-                          onChanged: (value){
-                            fiyat.text = tryformat.format(double.parse(
-                                (double.parse(adet.text) *
-                                    double.parse(
-                                        selectedUrun?.fiyat ?? "0"))
-                                    .toString()));
-
-
-                          },
-                          keyboardType: TextInputType.phone,
-
-                          enabled:true,
-
-                          decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Fiyat',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextFormField(
-                          controller: fiyat,
-                          keyboardType: TextInputType.phone,
-                          onSaved: (value){
-                            fiyat.text = tryformat.format(double.parse(value!));
-                          },
-                          decoration: InputDecoration(
-                            enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
+              ),
+
+              SizedBox(height: 16),
+
+              // Adet ve Fiyat Satırı
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInputCard(
+                      icon: Icons.format_list_numbered_outlined,
+                      title: 'Adet',
+                      child: TextFormField(
+                        controller: adet,
+                        keyboardType: TextInputType.phone,
+                        enabled: true,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade800,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: '',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade500,
                           ),
                         ),
+                        onSaved: (value) {
+                          if (value == "")
+                            adet.text = "0";
+                          else
+                            adet.text = value!;
+                        },
+                        onChanged: (value) {
+                          fiyat.text = tryformat.format(double.parse(
+                              (double.parse(adet.text) *
+                                  double.parse(
+                                      selectedUrun?.fiyat ?? "0"))
+                                  .toString()));
+                        },
                       ),
-                    ],
+                    ),
                   ),
-                )
-              ],
-            ),
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Satıcı',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
-
-                //you can set more BoxShadow() here
-
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: _buildInputCard(
+                      icon: Icons.currency_lira,
+                      title: 'Fiyat',
+                      child: TextFormField(
+                        controller: fiyat,
+                        keyboardType: TextInputType.phone,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: '0,00',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        onSaved: (value) {
+                          fiyat.text = tryformat.format(double.parse(value!));
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              child: DropdownButtonHideUnderline(
 
+              SizedBox(height: 16),
+
+              // Satıcı Seçimi
+              _buildInputCard(
+                icon: Icons.person_outline,
+                title: 'Satıcı',
+                child: DropdownButtonHideUnderline(
                   child: DropdownButton2<Personel>(
-
                     isExpanded: true,
                     hint: Text(
-                      'Satıcı Seç',
+                      'Satıcı seçin',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).hintColor,
+                        color: Colors.grey.shade500,
                       ),
                     ),
                     items: satici
@@ -421,54 +392,45 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
                       value: item,
                       child: Text(
                         item.personel_adi,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
+                          color: Colors.grey.shade800,
                         ),
                       ),
                     ))
                         .toList(),
                     value: selectedSatici,
-
                     onChanged: (value) {
                       setState(() {
                         selectedSatici = value;
                       });
                     },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 50,
-                      width: 400,
-                    ),
-
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
+                    buttonStyleData: ButtonStyleData(
+                      padding: EdgeInsets.symmetric(horizontal: 0),
                       height: 40,
                     ),
+                    dropdownStyleData: DropdownStyleData(
+                      maxHeight: 200,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.white,
+                      ),
+                    ),
+                    menuItemStyleData: MenuItemStyleData(height: 40),
                     dropdownSearchData: DropdownSearchData(
                       searchController: saticisec,
                       searchInnerWidgetHeight: 50,
                       searchInnerWidget: Container(
                         height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
+                        padding: EdgeInsets.all(8),
                         child: TextFormField(
-                          expands: true,
-                          maxLines: null,
                           controller: saticisec,
                           decoration: InputDecoration(
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Personel Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            hintText: 'Satıcı ara...',
+                            hintStyle: TextStyle(fontSize: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -476,47 +438,120 @@ class _HUrunSatisiState extends State<UrunSatisiDuzenleme> {
                         ),
                       ),
                       searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
+                        return (item.value as Personel)
+                            .personel_adi
+                            .toLowerCase()
+                            .contains(searchValue.toLowerCase());
                       },
                     ),
-                    //This to clear the search value when you close the menu
                     onMenuStateChange: (isOpen) {
                       if (!isOpen) {
                         saticisec.clear();
                       }
                     },
+                  ),
+                ),
+              ),
 
-                  )),
-            ),
+              SizedBox(height: 32),
 
-            SizedBox(height: 20,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(onPressed: () async{
-
-                  final AdisyonUrun urun = AdisyonUrun(islem_tarihi: DateFormat("yyyy-MM-dd").format(DateTime.now()), id:widget.mevcuturun.id,adisyon_id: widget.mevcuturun.adisyon_id, urun_id: selectedUrun?.id ?? "", adet: adet.text, fiyat: tlyirakamacevir(fiyat.text).toString(), personel_id: selectedSatici?.id ?? "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "false", aciklama: "",urun: selectedUrun?.toJson() ?? "", personel: selectedSatici?.toJson() ?? "");
-                  if(!widget.senetlisatis)
+              // Kaydet Butonu
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final AdisyonUrun urun = AdisyonUrun(islem_tarihi: DateFormat("yyyy-MM-dd").format(DateTime.now()), id:widget.mevcuturun.id,adisyon_id: widget.mevcuturun.adisyon_id, urun_id: selectedUrun?.id ?? "", adet: adet.text, fiyat: tlyirakamacevir(fiyat.text).toString(), personel_id: selectedSatici?.id ?? "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "false", aciklama: "",urun: selectedUrun?.toJson() ?? "", personel: selectedSatici?.toJson() ?? "");
+                    if(!widget.senetlisatis)
                     {
                       AdisyonUrun eklenenurun = await adisyonurunekle(urun,widget.musteriid ,context,seciliisletme!,true);
                       Navigator.pop(context, eklenenurun);
                     }
-                  else
-                    Navigator.pop(context, urun);
-
-                },
-                  child: Text('Kaydet'),
+                    else
+                      Navigator.pop(context, urun);
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'KAYDET',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      minimumSize: Size(90, 40)
+                    backgroundColor: Colors.purple.shade700,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size(double.infinity, 54),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
                   ),
                 ),
-              ],
-            )
-          ],
+              ),
+
+              SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildInputCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 16, top: 12, right: 16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
 }

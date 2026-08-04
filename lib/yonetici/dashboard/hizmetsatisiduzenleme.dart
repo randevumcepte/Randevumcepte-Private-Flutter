@@ -75,486 +75,572 @@ class _HizmetSatisiState extends State<HizmetSatisiDuzenleme> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title:  const Text('Hizmet Satışı Düzenleme',style: TextStyle(color: Colors.black),),
-
+        title: Text(
+          'Hizmet Düzenle',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+        ),
         leading: IconButton(
-          icon: Icon(Icons.clear_rounded, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey.shade700),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        toolbarHeight: 60,
+        toolbarHeight: 70,
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 100, // <-- Your width
-              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: YukseltButonu(isletme_bilgi: widget.isletmebilgi),
             ),
-          ),
-
-
         ],
         backgroundColor: Colors.white,
+        elevation: 0,
+        shadowColor: Colors.black.withOpacity(0.05),
       ),
-      body: isloading ? Center(child: CircularProgressIndicator(),) : SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 20,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('İşlem Tarihi',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-
-              padding: EdgeInsets.only(left:20,right: 20),
-              child: TextField(
-
-                controller: islem_tarihi,
-                enabled:true,
-                //editing controller of this TextField
-                decoration: InputDecoration(
-
-                  focusColor:Color(0xFF6A1B9A) ,
-                  hoverColor: Color(0xFF6A1B9A) ,
-                  hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                  contentPadding:  EdgeInsets.all(15.0),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                      color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                  border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                  ),
-                ),
-                readOnly: true,
-                //set it true, so that user will not able to edit text
-
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(1950),
-                      //DateTime.now() - not to allow to choose before today.
-                      lastDate: DateTime(2100));
-
-                  if (pickedDate != null) {
-                    print(
-                        pickedDate); //pickedDate output format => 2021-03-10 00:00:00.000
-                    String formattedDate =
-                    DateFormat('yyyy-MM-dd').format(pickedDate);
-                    print(
-                        formattedDate); //formatted date output using intl package =>  2021-03-16
-                    setState(() {
-                      islem_tarihi.text =
-                          formattedDate; //set output date to TextField value.
-                    });
-                  } else {}
-                },
+      body: isloading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Colors.purple.shade700,
               ),
-
-            ),
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('İşlem Saati',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              padding: EdgeInsets.only(left:20,right: 20),
-              child: TextField(
-                controller: islem_saati,
-                onTap: () async {
-                  TimeOfDay? pickedTime = await showTimePicker(
-                    context: context, initialTime: TimeOfDay.now(),
-                    builder: (BuildContext context, Widget? child) {
-                      return MediaQuery(
-                        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-                        child: child!,
-                      );
-                    },
-
-                  );
-
-                  if (pickedTime != null && pickedTime != _selectedTime) {
-                    setState(() {
-                      _selectedTime = pickedTime;
-                      islem_saati.text = DateFormat.Hm().format(
-                        DateTime(
-                          2023, // You can use any year, month, and day here.
-                          1,    // You can use any month and day here.
-                          1,    // You can use any month and day here.
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        ),
-                      );
-                    });
-                  }
-                },
-                decoration: InputDecoration(
-
-                  suffixIcon: Icon(Icons.access_time),
-                  focusColor:Color(0xFF6A1B9A) ,
-                  hoverColor: Color(0xFF6A1B9A) ,
-                  hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                  contentPadding:  EdgeInsets.all(15.0),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                      color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                  border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Personel',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
-
-                //you can set more BoxShadow() here
-
-              ),
-              child: DropdownButtonHideUnderline(
-
-                  child: DropdownButton2<Personel>(
-
-                    isExpanded: true,
-                    hint: Text(
-                      'Personel Seç',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                    items: personel
-                        .map((item) => DropdownMenuItem(
-                      value: item,
-                      child: Text(
-                        item.personel_adi,
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ))
-                        .toList(),
-                    value: selectedpersonel,
-
-                    onChanged: (value) {
-                      setState(() {
-                        selectedpersonel = value;
-                      });
-                    },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 50,
-                      width: 400,
-                    ),
-
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
-                      height: 40,
-                    ),
-                    dropdownSearchData: DropdownSearchData(
-                      searchController: secilipersonel,
-                      searchInnerWidgetHeight: 50,
-                      searchInnerWidget: Container(
-                        height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
-                        child: TextFormField(
-                          expands: true,
-                          maxLines: null,
-                          controller: secilipersonel,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Personel Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
-                      },
-                    ),
-                    //This to clear the search value when you close the menu
-                    onMenuStateChange: (isOpen) {
-                      if (!isOpen) {
-                        secilipersonel.clear();
-                      }
-                    },
-
-                  )),
-            ),
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: Text('Hizmet',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              alignment: Alignment.center,
-              margin: EdgeInsets.only(left:20,right: 20),
-              height: 50,
-              width:double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Color(0xFF6A1B9A)),
-                borderRadius: BorderRadius.circular(30), //border corner radius
-
-                //you can set more BoxShadow() here
-
-              ),
-              child: DropdownButtonHideUnderline(
-
-                  child: DropdownButton2<IsletmeHizmet>(
-                    isExpanded: true,
-                    hint: Text(
-                      'Hizmet Seç',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                    items: hizmet
-                        .map((item) => DropdownMenuItem(
-
-                      value: item,
-                      child: Text(
-                        item.hizmet["hizmet_adi"],
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ))
-                        .toList(),
-                    value: selectedhizmet,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedhizmet = value;
-                        sure_dk.text = selectedhizmet?.sure ?? "";
-                        fiyat.text = backendToTl(selectedhizmet?.fiyat ?? "");
-                      });
-                    },
-                    buttonStyleData: const ButtonStyleData(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 50,
-                      width: 400,
-                    ),
-
-                    dropdownStyleData: const DropdownStyleData(
-                      maxHeight: 200,
-                    ),
-                    menuItemStyleData: const MenuItemStyleData(
-                      height: 40,
-                    ),
-                    dropdownSearchData: DropdownSearchData(
-                      searchController: secilihizmet,
-                      searchInnerWidgetHeight: 50,
-                      searchInnerWidget: Container(
-                        height: 50,
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                          right: 8,
-                          left: 8,
-                        ),
-                        child: TextFormField(
-
-                          expands: true,
-                          maxLines: null,
-                          controller: secilihizmet,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            hintText: 'Hizmet Ara..',
-                            hintStyle: const TextStyle(fontSize: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      searchMatchFn: (item, searchValue) {
-                        return item.value.toString().contains(searchValue);
-                      },
-                    ),
-                    //This to clear the search value when you close the menu
-                    onMenuStateChange: (isOpen) {
-                      if (!isOpen) {
-                        secilihizmet.clear();
-                      }
-                    },
-
-                  )),
-            ),
-            SizedBox(height: 10,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Süre (dk)',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextField(
-                          controller: sure_dk,
-                          onSubmitted: (text)=>print(sure_dk.text),
-                          keyboardType: TextInputType.phone,
-
-                          enabled:true,
-
-                          decoration: InputDecoration(
-
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text('Fiyat ₺',style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 20.0,right: 20),
-                        child: TextField(
-                          controller: fiyat,
-                          keyboardType: TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [TurkishLiraInputFormatter()],
-                          decoration: InputDecoration(
-                            enabled:true,
-                            focusColor:Color(0xFF6A1B9A) ,
-                            hoverColor: Color(0xFF6A1B9A) ,
-                            hintStyle: TextStyle(color:  Color(0xFF6A1B9A)),
-                            contentPadding:  EdgeInsets.all(15.0),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: Color(0xFF6A1B9A)),borderRadius: BorderRadius.circular(50.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(50.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Color(0xFF6A1B9A),), borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            ),
-            SizedBox(height: 20,),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Seans Sayısı', style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
-                  TextField(
-                    controller: seans_sayisi,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(15.0),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                        borderRadius: BorderRadius.circular(50.0),
-                      ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(50.0)),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF6A1B9A)),
-                        borderRadius: BorderRadius.circular(50.0),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(onPressed: () async{
-
-                  final String fiyatBackend = tlToBackend(fiyat.text);
-                  final double fiyatDouble = double.tryParse(fiyatBackend) ?? 0;
-                  final String fiyatGonderim = fiyatDouble.toStringAsFixed(2).replaceAll('.', ',');
-                  // Bos ya da <=1 -> backend NULL kaydeder (tekil hizmet)
-                  final String _seansTrim = seans_sayisi.text.trim();
-                  final String _seansGonder = (_seansTrim.isEmpty || (int.tryParse(_seansTrim) ?? 0) <= 1) ? '' : _seansTrim;
-                  final AdisyonHizmet adisyonhizmet = AdisyonHizmet(id:widget.mevcuthizmet.id, adisyon_id: widget.mevcuthizmet.adisyon_id, hizmet_id: selectedhizmet?.hizmet_id??"", islem_tarihi: islem_tarihi.text, islem_saati: islem_saati.text, sure: sure_dk.text, fiyat: fiyatGonderim, geldi: "1", personel_id: selectedpersonel?.id ?? "", cihaz_id: "", oda_id: "", dogrulama_kodu: "", taksitli_tahsilat_id: "", senet_id: "", indirim_tutari: "", hediye: "",hizmet: selectedhizmet?.hizmet??"",personel: selectedpersonel?? "", seans_sayisi: _seansGonder);
-                  // Duzenleme daima mevcut bir hizmet satiri uzerinde yapilir.
-                  // adisyonhizmetekle ucu adisyon_hizmet_id ile satiri gunceller;
-                  // bu cagri yapilmazsa yeni fiyat DB'ye yazilmaz (tahsilet/taksit
-                  // uclari fiyati satira geri yazmaz, sadece okur).
-                  AdisyonHizmet eklenenhizmet = await adisyonhizmetekle(adisyonhizmet,widget.musteriid ,context,seciliisletme!);
-                  Navigator.pop(context, eklenenhizmet);
-
-                },
-                  child: Text('Kaydet'),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      minimumSize: Size(90, 40)
-                  ),
-                ),
-              ],
             )
-          ],
-        ),
-      ),
+          : GestureDetector(
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Başlık Kartı
+                    Container(
+                      margin: EdgeInsets.only(bottom: 16),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              color: Colors.purple.shade700,
+                              size: 20,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Hizmet Düzenle',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
+                                Text(
+                                  'Mevcut hizmet kaydını güncelleyin',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Tarih ve Saat Satırı
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInputCard(
+                            icon: Icons.calendar_today_outlined,
+                            title: 'İşlem Tarihi',
+                            child: TextFormField(
+                              controller: islem_tarihi,
+                              readOnly: true,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                hintText: 'Tarih seç',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                              onTap: () async {
+                                DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime(1950),
+                                    lastDate: DateTime(2100),
+                                    builder: (context, child) {
+                                      return Theme(
+                                        data: ThemeData.light().copyWith(
+                                          colorScheme: ColorScheme.light(
+                                            primary: Colors.purple.shade700,
+                                            onPrimary: Colors.white,
+                                          ),
+                                        ),
+                                        child: child!,
+                                      );
+                                    });
+
+                                if (pickedDate != null) {
+                                  String formattedDate =
+                                      DateFormat('yyyy-MM-dd').format(pickedDate);
+                                  setState(() {
+                                    islem_tarihi.text = formattedDate;
+                                  });
+                                } else {}
+                              },
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: _buildInputCard(
+                            icon: Icons.access_time_outlined,
+                            title: 'İşlem Saati',
+                            child: TextFormField(
+                              controller: islem_saati,
+                              readOnly: true,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                hintText: 'Saat seç',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                ),
+                                suffixIcon: Icon(
+                                  Icons.access_time,
+                                  color: Colors.purple.shade700,
+                                  size: 20,
+                                ),
+                              ),
+                              onTap: () async {
+                                TimeOfDay? pickedTime = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                  builder: (BuildContext context, Widget? child) {
+                                    return MediaQuery(
+                                      data: MediaQuery.of(context)
+                                          .copyWith(alwaysUse24HourFormat: true),
+                                      child: child!,
+                                    );
+                                  },
+                                );
+
+                                if (pickedTime != null && pickedTime != _selectedTime) {
+                                  setState(() {
+                                    _selectedTime = pickedTime;
+                                    islem_saati.text = DateFormat.Hm().format(
+                                      DateTime(
+                                        2023,
+                                        1,
+                                        1,
+                                        pickedTime.hour,
+                                        pickedTime.minute,
+                                      ),
+                                    );
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Personel Seçimi
+                    _buildInputCard(
+                      icon: Icons.person_outline,
+                      title: 'Personel',
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton2<Personel>(
+                          isExpanded: true,
+                          hint: Text(
+                            'Personel seçin',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          items: personel
+                              .map((item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(
+                                      item.personel_adi,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade800,
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
+                          value: selectedpersonel,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedpersonel = value;
+                            });
+                          },
+                          buttonStyleData: ButtonStyleData(
+                            padding: EdgeInsets.symmetric(horizontal: 0),
+                            height: 40,
+                          ),
+                          dropdownStyleData: DropdownStyleData(
+                            maxHeight: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                            ),
+                          ),
+                          menuItemStyleData: MenuItemStyleData(height: 40),
+                          dropdownSearchData: DropdownSearchData(
+                            searchController: secilipersonel,
+                            searchInnerWidgetHeight: 50,
+                            searchInnerWidget: Container(
+                              height: 50,
+                              padding: EdgeInsets.all(8),
+                              child: TextFormField(
+                                controller: secilipersonel,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                  hintText: 'Personel ara...',
+                                  hintStyle: TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            searchMatchFn: (item, searchValue) {
+                              return item.value.toString().contains(searchValue);
+                            },
+                          ),
+                          onMenuStateChange: (isOpen) {
+                            if (!isOpen) {
+                              secilipersonel.clear();
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Hizmet Seçimi
+                    _buildInputCard(
+                      icon: Icons.spa_outlined,
+                      title: 'Hizmet',
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton2<IsletmeHizmet>(
+                          isExpanded: true,
+                          hint: Text(
+                            'Hizmet seçin',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          items: hizmet
+                              .map((item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(
+                                      item.hizmet["hizmet_adi"] ?? "",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade800,
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
+                          value: selectedhizmet,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedhizmet = value;
+                              sure_dk.text = selectedhizmet?.sure ?? "";
+                              fiyat.text = backendToTl(selectedhizmet?.fiyat ?? "");
+                            });
+                          },
+                          buttonStyleData: ButtonStyleData(
+                            padding: EdgeInsets.symmetric(horizontal: 0),
+                            height: 40,
+                          ),
+                          dropdownStyleData: DropdownStyleData(
+                            maxHeight: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                            ),
+                          ),
+                          menuItemStyleData: MenuItemStyleData(height: 40),
+                          dropdownSearchData: DropdownSearchData(
+                            searchController: secilihizmet,
+                            searchInnerWidgetHeight: 50,
+                            searchInnerWidget: Container(
+                              height: 50,
+                              padding: EdgeInsets.all(8),
+                              child: TextFormField(
+                                controller: secilihizmet,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                  hintText: 'Hizmet ara...',
+                                  hintStyle: TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            searchMatchFn: (item, searchValue) {
+                              return item.value.toString().contains(searchValue);
+                            },
+                          ),
+                          onMenuStateChange: (isOpen) {
+                            if (!isOpen) {
+                              secilihizmet.clear();
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Süre ve Fiyat Satırı
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInputCard(
+                            icon: Icons.timer_outlined,
+                            title: 'Süre (dk)',
+                            child: TextFormField(
+                              controller: sure_dk,
+                              keyboardType: TextInputType.phone,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: '0',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: _buildInputCard(
+                            icon: Icons.currency_lira,
+                            title: 'Fiyat (₺)',
+                            child: TextFormField(
+                              controller: fiyat,
+                              keyboardType:
+                                  TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [TurkishLiraInputFormatter()],
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: '0,00',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 16),
+
+                    _buildInputCard(
+                      icon: Icons.repeat_rounded,
+                      title: 'Seans Sayısı',
+                      child: TextFormField(
+                        controller: seans_sayisi,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 32),
+
+                    // Kaydet Butonu
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 16),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final String fiyatBackend = tlToBackend(fiyat.text);
+                          final double fiyatDouble = double.tryParse(fiyatBackend) ?? 0;
+                          final String fiyatGonderim =
+                              fiyatDouble.toStringAsFixed(2).replaceAll('.', ',');
+                          // Bos ya da <=1 -> backend NULL kaydeder (tekil hizmet)
+                          final String _seansTrim = seans_sayisi.text.trim();
+                          final String _seansGonder = (_seansTrim.isEmpty ||
+                                  (int.tryParse(_seansTrim) ?? 0) <= 1)
+                              ? ''
+                              : _seansTrim;
+                          final AdisyonHizmet adisyonhizmet = AdisyonHizmet(
+                              id: widget.mevcuthizmet.id,
+                              adisyon_id: widget.mevcuthizmet.adisyon_id,
+                              hizmet_id: selectedhizmet?.hizmet_id ?? "",
+                              islem_tarihi: islem_tarihi.text,
+                              islem_saati: islem_saati.text,
+                              sure: sure_dk.text,
+                              fiyat: fiyatGonderim,
+                              geldi: "1",
+                              personel_id: selectedpersonel?.id ?? "",
+                              cihaz_id: "",
+                              oda_id: "",
+                              dogrulama_kodu: "",
+                              taksitli_tahsilat_id: "",
+                              senet_id: "",
+                              indirim_tutari: "",
+                              hediye: "",
+                              hizmet: selectedhizmet?.hizmet ?? "",
+                              personel: selectedpersonel ?? "",
+                              seans_sayisi: _seansGonder);
+                          // Duzenleme daima mevcut bir hizmet satiri uzerinde yapilir.
+                          // adisyonhizmetekle ucu adisyon_hizmet_id ile satiri gunceller;
+                          // bu cagri yapilmazsa yeni fiyat DB'ye yazilmaz (tahsilet/taksit
+                          // uclari fiyati satira geri yazmaz, sadece okur).
+                          AdisyonHizmet eklenenhizmet = await adisyonhizmetekle(
+                              adisyonhizmet, widget.musteriid, context, seciliisletme!);
+                          Navigator.pop(context, eklenenhizmet);
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'KAYDET',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple.shade700,
+                          foregroundColor: Colors.white,
+                          minimumSize: Size(double.infinity, 54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
+  Widget _buildInputCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 16, top: 12, right: 16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
 }
