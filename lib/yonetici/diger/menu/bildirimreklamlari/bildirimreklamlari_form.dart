@@ -36,11 +36,15 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
   String _tur = 'kampanya';
   String _aksiyon = 'kupon';
   String _kuponTip = 'yuzde';
+  // Kupon 'hangi urun/hizmet icin gecerli' toggle: 'hizmet' | 'urun' | 'tumu'
+  String _kuponGecerliTip = 'tumu';
   String? _kuponHizmetId;
+  String? _kuponUrunId;
   String _hedefKitle = 'tumu';
   String _segTip = 'kisi';
   String _segCinsiyet = '0';
   String? _segHizmetId;
+  String? _segUrunId;
   int? _segUserId;
   String _segUserAd = '';
   String _durum = 'taslak';
@@ -51,6 +55,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
   String? _rndTarih, _rndTarihBit, _rndSaatBas, _rndSaatBit;
 
   List<Map<String, dynamic>> _hizmetler = [];
+  List<Map<String, dynamic>> _urunler = [];
   List<Map<String, dynamic>> _musteriler = [];
   bool _kaydediliyor = false;
   bool _gorselYukleniyor = false;
@@ -85,6 +90,14 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
         _kuponDeger.text = '${(r['kupon_deger'] as num) % 1 == 0 ? (r['kupon_deger'] as num).toInt() : r['kupon_deger']}';
       }
       _kuponHizmetId = r['kupon_hizmet_id']?.toString();
+      _kuponUrunId = r['kupon_urun_id']?.toString();
+      if ((_kuponUrunId ?? '').isNotEmpty && _kuponUrunId != 'null') {
+        _kuponGecerliTip = 'urun';
+      } else if ((_kuponHizmetId ?? '').isNotEmpty && _kuponHizmetId != 'null') {
+        _kuponGecerliTip = 'hizmet';
+      } else {
+        _kuponGecerliTip = 'tumu';
+      }
       if (r['kupon_gecerlilik_gun'] != null) _kuponGun.text = '${r['kupon_gecerlilik_gun']}';
       if (r['kupon_toplam_adet'] != null) _kuponAdet.text = '${r['kupon_toplam_adet']}';
       if (r['kupon_kisi_limit'] != null) _kuponLimit.text = '${r['kupon_kisi_limit']}';
@@ -102,6 +115,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
             _segTip = k['tip'].toString();
             if (k['gun'] != null) _segGun.text = '${k['gun']}';
             if (k['hizmet_id'] != null) _segHizmetId = k['hizmet_id'].toString();
+            if (k['urun_id'] != null) _segUrunId = k['urun_id'].toString();
             if (k['cinsiyet'] != null) _segCinsiyet = k['cinsiyet'].toString();
             if (k['user_id'] != null) _segUserId = int.tryParse('${k['user_id']}');
           }
@@ -114,9 +128,12 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
     try {
       final h = await reklamAdminHizmetler(_salonId);
       final m = await reklamAdminMusteriler(_salonId);
+      Map<String, dynamic> u = const {'data': <dynamic>[]};
+      try { u = await reklamAdminUrunler(_salonId); } catch (_) {}
       if (!mounted) return;
       setState(() {
         _hizmetler = ((h['data'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        _urunler = ((u['data'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
         _musteriler = ((m['data'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
         if (_segUserId != null) {
           final bul = _musteriler.firstWhere((x) => '${x['id']}' == '$_segUserId', orElse: () => {});
@@ -211,6 +228,8 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
       'kupon_indirim_tipi': _kuponTip,
       'kupon_deger': _kuponDeger.text.trim(),
       'kupon_hizmet_id': _kuponHizmetId ?? '',
+      'kupon_urun_id': _kuponUrunId ?? '',
+      'kupon_gecerli_tip': _kuponGecerliTip,
       'kupon_gecerlilik_gun': _kuponGun.text.trim(),
       'kupon_toplam_adet': _kuponAdet.text.trim(),
       'kupon_kisi_limit': _kuponLimit.text.trim(),
@@ -222,6 +241,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
       'segment_tip': _segTip,
       'segment_gun': _segGun.text.trim(),
       'segment_hizmet_id': _segHizmetId ?? '',
+      'segment_urun_id': _segUrunId ?? '',
       'segment_cinsiyet': _segCinsiyet,
       'segment_user_id': _segUserId ?? '',
       'durum': _durum,
@@ -295,8 +315,24 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_lbl('Değer'), _tf(_kuponDeger, '20', sayi: true)])),
               ]),
               const SizedBox(height: 10),
-              _lbl('Geçerli Hizmet'),
-              _hizmetDrop(_kuponHizmetId, true, (v) => setState(() => _kuponHizmetId = v)),
+              _lbl('Kupon Ne İçin?'),
+              _drop(_kuponGecerliTip, const {
+                'hizmet': 'Belirli hizmet',
+                'urun': 'Belirli ürün',
+                'tumu': 'Kısıtlama yok (tümü)',
+              }, (v) => setState(() {
+                _kuponGecerliTip = v;
+                if (v == 'urun') _kuponHizmetId = null;
+                if (v == 'hizmet') _kuponUrunId = null;
+              })),
+              const SizedBox(height: 10),
+              if (_kuponGecerliTip == 'hizmet') ...[
+                _lbl('Geçerli Hizmet'),
+                _hizmetDrop(_kuponHizmetId, true, (v) => setState(() => _kuponHizmetId = v)),
+              ] else if (_kuponGecerliTip == 'urun') ...[
+                _lbl('Geçerli Ürün'),
+                _urunDrop(_kuponUrunId, true, (v) => setState(() => _kuponUrunId = v)),
+              ],
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_lbl('Geçerlilik (gün)'), _tf(_kuponGun, 'süresiz', sayi: true)])),
@@ -337,6 +373,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
                 'gelmeyen': 'Uzun süredir gelmeyenler',
                 'dogum_gunu': 'Doğum günü bu ay',
                 'hizmet': 'Belirli hizmeti alanlar',
+                'urun': 'Belirli ürünü alanlar',
                 'cinsiyet': 'Cinsiyete göre',
               }, (v) => setState(() => _segTip = v)),
               const SizedBox(height: 10),
@@ -355,6 +392,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
                 ),
               if (_segTip == 'gelmeyen') ...[_lbl('Kaç gündür gelmeyenler?'), _tf(_segGun, '60', sayi: true)],
               if (_segTip == 'hizmet') ...[_lbl('Hangi hizmeti alanlar?'), _hizmetDrop(_segHizmetId, false, (v) => setState(() => _segHizmetId = v))],
+              if (_segTip == 'urun') ...[_lbl('Hangi ürünü alanlar?'), _urunDrop(_segUrunId, false, (v) => setState(() => _segUrunId = v))],
               if (_segTip == 'cinsiyet') ...[_lbl('Cinsiyet'), _drop(_segCinsiyet, const {'0': 'Kadın', '1': 'Erkek'}, (v) => setState(() => _segCinsiyet = v))],
             ]),
           ],
@@ -427,6 +465,30 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
       ..._hizmetler.map((h) => DropdownMenuItem<String?>(value: '${h['id']}', child: Text('${h['ad']}', overflow: TextOverflow.ellipsis))),
     ];
     final gecerli = items.any((it) => it.value == deger) ? deger : (tumuSecenegi ? null : (_hizmetler.isNotEmpty ? '${_hizmetler.first['id']}' : null));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(value: gecerli, isExpanded: true, items: items, onChanged: onDegis),
+      ),
+    );
+  }
+
+  /// Urun dropdown (kupon 'gecerli urun' + segment 'urun' icin).
+  /// _hizmetDrop ile ayni desen; urun listesi bos ise "urun tanimli degil" mesaji.
+  Widget _urunDrop(String? deger, bool tumuSecenegi, ValueChanged<String?> onDegis) {
+    if (_urunler.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
+        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5)),
+        child: const Text('Bu şubede tanımlı ürün yok.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5)),
+      );
+    }
+    final items = <DropdownMenuItem<String?>>[
+      if (tumuSecenegi) const DropdownMenuItem(value: null, child: Text('Tüm ürünler')),
+      ..._urunler.map((u) => DropdownMenuItem<String?>(value: '${u['id']}', child: Text('${u['ad']}', overflow: TextOverflow.ellipsis))),
+    ];
+    final gecerli = items.any((it) => it.value == deger) ? deger : (tumuSecenegi ? null : '${_urunler.first['id']}');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5)),

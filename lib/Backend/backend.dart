@@ -5863,6 +5863,8 @@ Future<Map<String, dynamic>> reklamAdminMusteriler(String salonId) =>
     _reklamAdminPost('musteriler', salonId, {});
 Future<Map<String, dynamic>> reklamAdminHizmetler(String salonId) =>
     _reklamAdminPost('hizmetler', salonId, {});
+Future<Map<String, dynamic>> reklamAdminUrunler(String salonId) =>
+    _reklamAdminPost('urunler', salonId, {});
 
 Future<Map<String, dynamic>> carkPuanOdullerim(String userId, {String? salonId}) async {
   final body = <String, dynamic>{
