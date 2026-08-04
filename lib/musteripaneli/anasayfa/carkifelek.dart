@@ -12,7 +12,7 @@ import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
 
 /// Çarkıfelek (Wheel of Fortune) sayfası — backend'e bağlı.
-/// Onaylanmış randevu üzerinden hak kazanılır, günde bir çevirme.
+/// Giriş yapan her müşteriye günde bir çevirme hakkı (randevu şartı yok).
 class WheelPage extends StatefulWidget {
   final MusteriDanisan md;
   final dynamic isletmebilgi;
@@ -681,14 +681,9 @@ class _WheelPageState extends State<WheelPage>
     String mesaj;
     if (_bugunCevirdi) {
       mesaj = 'Bugün çarkıfeleği çevirdiniz.\n'
-          'Bir sonraki çevirme: ${_yarinSaat.isEmpty ? 'yarın' : _yarinSaat} '
-          'veya yeni onaylı randevunuzdan sonra.';
-    } else if (_kalanHak > 0) {
-      mesaj =
-          '$_kalanHak çevirme hakkınız var. Günde 1 kez çevirebilirsiniz; yeni onaylı randevularınız yeni hak kazandırır.';
+          'Bir sonraki çevirme: ${_yarinSaat.isEmpty ? 'yarın' : _yarinSaat}.';
     } else {
-      mesaj =
-          'Çevirme hakkınız bulunmuyor. Salonumuzda randevu alıp onaylatırsanız hak kazanırsınız.';
+      mesaj = 'Günde 1 kez çarkı çevirebilirsiniz. Hemen deneyin!';
     }
 
     return Container(
@@ -786,6 +781,9 @@ class _Dilim {
   }
 
   String get kisaEtiket {
+    // Önce admin'in kaydettiği başlığı göster; uzun ise çizim sırasında
+    // font küçültülür, yine sığmazsa … ile kesilir. Başlık boşsa tipe düş.
+    if (ismi.trim().isNotEmpty) return ismi.trim();
     switch (tip) {
       case 'puan':            return 'Puan';
       case 'hizmet_indirimi': return 'Hizmet İnd.';
@@ -973,6 +971,25 @@ class _WheelPainter extends CustomPainter {
   }) {
     final maxWidth = fontSize * 7; // ~ 7 karakter genişliği
 
+    // Uzun başlıklarda fontu kademeli küçült (tek satırda sığana kadar,
+    // %62'ye kadar). Yine sığmazsa aşağıdaki maxLines:2 + … devreye girer.
+    double effFs = fontSize;
+    final double minFs = fontSize * 0.62;
+    double satirGenisligi(double fs) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(fontSize: fs, fontWeight: fontWeight),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout();
+      return tp.width;
+    }
+    while (effFs > minFs && satirGenisligi(effFs) > maxWidth) {
+      effFs -= 0.5;
+    }
+
     final strokePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeJoin = StrokeJoin.round
@@ -983,7 +1000,7 @@ class _WheelPainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
-          fontSize: fontSize,
+          fontSize: effFs,
           fontWeight: fontWeight,
           foreground: strokePaint,
         ),
@@ -1003,7 +1020,7 @@ class _WheelPainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
-          fontSize: fontSize,
+          fontSize: effFs,
           fontWeight: fontWeight,
           color: fillColor,
         ),
