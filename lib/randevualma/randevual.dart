@@ -27,7 +27,7 @@ class RandevuAl extends StatefulWidget {
   const RandevuAl({
     Key? key,
     this.kisitTarihBas,
-    this.kisitTarihBit,
+    this.kisitTarihBit, 
     this.kisitSaatBas,
     this.kisitSaatBit,
   }) : super(key: key);
@@ -1008,6 +1008,19 @@ class AppointmentEditorState extends State<RandevuAl> {
     );
   }
 
+  /// DropdownButton2 item listesi: ayni hizmet_id birden fazla kez gelirse
+  /// (bir hizmet birden cok kategoride olabilir) DropdownButton2 "exactly one
+  /// item with value" assertion atar — cunku IsletmeHizmet.== hizmet_id bazli.
+  /// Ilk gorulen kaydi tutarak tekillestir.
+  List<IsletmeHizmet> get _tekilHizmetler {
+    final gorulen = <String>{};
+    final out = <IsletmeHizmet>[];
+    for (final h in isletmehizmetliste) {
+      if (gorulen.add(h.hizmet_id)) out.add(h);
+    }
+    return out;
+  }
+
   Widget _hizmetDropdown(BuildContext context, int index) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -1035,7 +1048,7 @@ class AppointmentEditorState extends State<RandevuAl> {
               ),
             ),
           ),
-          items: isletmehizmetliste
+          items: _tekilHizmetler
               .map(
                 (item) => DropdownMenuItem(
                   value: item,
