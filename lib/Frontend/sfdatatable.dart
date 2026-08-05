@@ -1209,7 +1209,7 @@ class OnGorusmeDataSource extends DataGridSource {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _popupLabel('Seans Başlangıç Tarihi'),
+              _popupLabel('Satış Tarihi'),
               _popupField(
                 controller: ongorusmetarihi,
                 readOnly: true,
@@ -7414,7 +7414,6 @@ class CihazDataSource extends DataGridSource {
     );
 
     if (response.statusCode == 200) {
-      Navigator.of(context).pop();
       fetchData(currentPage.toString(), baslik, false);
     }
     else {
