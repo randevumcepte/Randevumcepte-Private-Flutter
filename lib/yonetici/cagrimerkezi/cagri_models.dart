@@ -345,6 +345,46 @@ class CagriPersonel {
       );
 }
 
+/// Arama Listesi Olustur ekraninda filtreye uyan tek musteri satiri.
+class FiltreMusteri {
+  final int id;
+  final String name;
+  final String telefon;
+
+  FiltreMusteri({required this.id, required this.name, required this.telefon});
+
+  factory FiltreMusteri.fromJson(Map<String, dynamic> j) => FiltreMusteri(
+        id: _toInt(j['id']),
+        name: _toStr(j['name']),
+        telefon: _toStr(j['cep_telefon']),
+      );
+}
+
+/// Filtre onizleme cevabi: eslesen sayi + isme gore sirali TUM id'ler + sayfali liste.
+class FiltreOnizleme {
+  final int total;
+  final int toplamFiltresiz;
+  final List<int> musteriIdler;
+  final List<FiltreMusteri> customers;
+
+  FiltreOnizleme({
+    required this.total,
+    required this.toplamFiltresiz,
+    required this.musteriIdler,
+    required this.customers,
+  });
+
+  factory FiltreOnizleme.fromJson(Map<String, dynamic> j) => FiltreOnizleme(
+        total: _toInt(j['total']),
+        toplamFiltresiz: _toInt(j['toplam_filtresiz']),
+        musteriIdler:
+            ((j['musteriIdler'] as List?) ?? []).map(_toInt).toList(),
+        customers: ((j['customers'] as List?) ?? [])
+            .map((e) => FiltreMusteri.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+}
+
 class CagriScript {
   final int id;
   final String baslik;

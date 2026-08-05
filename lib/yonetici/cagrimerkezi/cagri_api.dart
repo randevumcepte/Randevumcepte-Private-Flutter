@@ -297,6 +297,53 @@ class CagriApi {
     return list.map((e) => CagriPersonel.fromJson(Map<String, dynamic>.from(e))).toList();
   }
 
+  // ───────── Arama listesi olustur (yonetici) ─────────
+
+  /// Filtreye uyan musteri sayisi + isme gore sirali id'ler + sayfali liste.
+  /// [filtre] anahtarlari web modaliyla ayni: kayit, durum, gelmeyen, satis,
+  /// cinsiyet, dogumgunu_yaklasan, kara_liste_haric, whatsapp_onay,
+  /// hic_randevu_yok, iptal_eden, kayit_t1, kayit_t2, search.
+  static Future<FiltreOnizleme> filtreOnizleme({
+    required String sube,
+    required Map<String, dynamic> filtre,
+    int page = 1,
+    int perPage = 100,
+    int? offset,
+    int? limit,
+  }) async {
+    final j = await _post('filtre-onizleme', {
+      'sube': sube,
+      'filtre': filtre,
+      'page': page,
+      'perPage': perPage,
+      if (offset != null) 'offset': offset,
+      if (limit != null) 'limit': limit,
+    });
+    return FiltreOnizleme.fromJson(Map<String, dynamic>.from(j as Map));
+  }
+
+  /// Yeni arama listesi olustur. Donen: {mesaj: String}.
+  static Future<String> listeEkle({
+    required String sube,
+    required String aramaBasligi,
+    required int aramapersoneli,
+    required String aranacakTarih, // yyyy-MM-dd
+    required List<int> secilenMusteriler,
+    required Map<String, dynamic> filtre,
+  }) async {
+    final j = await _post('liste-ekle', {
+      'sube': sube,
+      'arama_basligi': aramaBasligi,
+      'aramapersoneli': aramapersoneli,
+      'aranacak_tarih': aranacakTarih,
+      // Backend json_decode(string) bekliyor -> string olarak yolla.
+      'secilenMusteriler': jsonEncode(secilenMusteriler),
+      'filtre': filtre,
+    });
+    if (j is Map && j['mesaj'] != null) return j['mesaj'].toString();
+    return 'Arama listesi oluşturuldu.';
+  }
+
   // ───────── Referans veriler ─────────
 
   static Future<List<CagriScript>> scriptler(String sube) async {
