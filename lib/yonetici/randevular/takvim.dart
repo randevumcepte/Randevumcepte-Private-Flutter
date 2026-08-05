@@ -15,6 +15,7 @@ import 'package:randevu_sistem/Models/takvimturu.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevuduzenle.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeduzenle.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/iletisim_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -1886,6 +1887,8 @@ List<Widget> _buildAppointmentsForResource(
     final _formKey = GlobalKey<FormState>();
     List<String> randevutitle = randevudetay.subject.split('\n');
     List<String>? randevudurum = randevudetay.location?.split('-');
+    final bool isOnGorusme =
+        randevutitle.isNotEmpty && randevutitle[0].contains("ÖN GÖRÜŞME");
     log('randevu durum '+randevudurum![0]);
     showDialog(
       context: context,
@@ -1965,9 +1968,16 @@ List<Widget> _buildAppointmentsForResource(
                           fullWidth: true,
                           onTap: () {
                             Navigator.of(context, rootNavigator: true).pop();
-                            Navigator.push(context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
-                              getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
-                            });
+                            if (isOnGorusme) {
+                              // On gorusme randevusu -> On Gorusme Duzenleme ekrani.
+                              // Kayittan sonra ekran kapanir, takvim yenilenir.
+                              _onGorusmeDuzenleAc(
+                                  randevudetay.recurrenceId.toString());
+                            } else {
+                              Navigator.push(this.context, new MaterialPageRoute(builder: (context) => RandevuDuzenle(isletmebilgi: widget.isletmebilgi, randevu: randevuliste.firstWhere((element) => element.id.toString()==randevudetay.id.toString()),))).then((value) {
+                                getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),true);
+                              });
+                            }
                           },
                         ) : SizedBox.shrink(),
                         // WhatsApp + Anket butonlari (web randevu detay kartindaki
@@ -2136,18 +2146,31 @@ List<Widget> _buildAppointmentsForResource(
                                     icon: Icons.point_of_sale_outlined,
                                     color: ext.successColor,
                                     onTap: () async{
-                                      OnGorusme selectedItem = await ongorsumebilgi(randevudetay.recurrenceId.toString());
+                                      final String ongId = randevudetay.recurrenceId.toString();
+                                      final String rndId = randevudetay.id.toString();
+                                      // Detay popup'i kapat (bayat kalmasin, temiz navigasyon)
+                                      Navigator.of(context, rootNavigator: true).pop();
+                                      OnGorusme selectedItem;
+                                      try {
+                                        selectedItem = await ongorsumebilgi(ongId);
+                                      } catch (_) {
+                                        return;
+                                      }
+                                      if (!mounted) return;
                                       bool _dolu(String? v) => v != null && v.isNotEmpty && v != "null" && v != "0";
-                                      final String _musteriId = randevuliste
-                                          .firstWhere((element) => element.id == randevudetay.id.toString())
-                                          .user_id
-                                          .toString();
+                                      String _musteriId = "";
+                                      try {
+                                        _musteriId = randevuliste
+                                            .firstWhere((element) => element.id == rndId)
+                                            .user_id
+                                            .toString();
+                                      } catch (_) {}
                                       if (_dolu(selectedItem.paket_id)) {
-                                        paketsatispopup(context, randevudetay.recurrenceId.toString(), musteriId: _musteriId);
+                                        paketsatispopup(this.context, ongId, musteriId: _musteriId);
                                       } else if (_dolu(selectedItem.urun_id)) {
-                                        urunsatispopup(context, randevudetay.recurrenceId.toString());
+                                        urunsatispopup(this.context, ongId);
                                       } else if (_dolu(selectedItem.hizmet_id)) {
-                                        hizmetsatispopup(context, randevudetay.recurrenceId.toString());
+                                        hizmetsatispopup(this.context, ongId);
                                       }
                                     },
                                   ),
@@ -2491,6 +2514,44 @@ List<Widget> _buildAppointmentsForResource(
     );
   }
 
+  // On gorusme randevusunun "Duzenle" akisi: On Gorusme Duzenleme ekranini acar.
+  // Kayit sonrasi ekran (datasource->onGorusmeEkleGuncelle icinde) kapanir; buraya
+  // donunce takvim yenilenir.
+  Future<void> _onGorusmeDuzenleAc(String ongorusmeId) async {
+    OnGorusme selectedItem;
+    try {
+      selectedItem = await ongorsumebilgi(ongorusmeId);
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    // OnGorusmeDuzenle constructor'i bir OnGorusmeDataSource ister (kayit + liste
+    // yenileme icin). Takvimde liste yok; tek seferlik hafif bir kaynak kurulur.
+    final ds = OnGorusmeDataSource(
+      context: this.context,
+      isletmebilgi: widget.isletmebilgi,
+      rowsPerPage: 10,
+      salonid: widget.isletmebilgi["id"].toString(),
+      arama: "",
+    );
+    await Navigator.push(
+      this.context,
+      MaterialPageRoute(
+        builder: (_) => OnGorusmeDuzenle(
+          isletmebilgi: widget.isletmebilgi,
+          ongorusme: selectedItem,
+          ongorusmedatasource: ds,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    getUpdatedAppointments(
+      DateFormat('yyyy-MM-dd').format(seciliTarih),
+      DateFormat('yyyy-MM-dd').format(seciliTarih),
+      true,
+    );
+  }
+
   void paketsatispopup(BuildContext context, String ongorusmeid, {String musteriId = ''}) {
     final cs = context.colors;
     TextEditingController seansSayisi = TextEditingController();
@@ -2591,12 +2652,12 @@ List<Widget> _buildAppointmentsForResource(
             TextButton(
               onPressed: () {
                 satisyapildi(context, ongorusmeid, quantityController.text, '', '',
-                    fiyat: fiyat.text);
-                getUpdatedAppointments(
-                    DateFormat('yyyy-MM-dd').format(seciliTarih),
-                    DateFormat('yyyy-MM-dd').format(seciliTarih),
-                    false
-                );
+                    fiyat: fiyat.text,
+                    onBasarili: () => getUpdatedAppointments(
+                          DateFormat('yyyy-MM-dd').format(seciliTarih),
+                          DateFormat('yyyy-MM-dd').format(seciliTarih),
+                          false,
+                        ));
               },
               child: Text('Kaydet', style: TextStyle(color: cs.primary)),
             ),
@@ -2636,12 +2697,13 @@ List<Widget> _buildAppointmentsForResource(
             ),
             TextButton(
               onPressed: () {
-                satisyapildi(context, ongorusmeid, '', '', '', fiyat: fiyat.text);
-                getUpdatedAppointments(
-                    DateFormat('yyyy-MM-dd').format(seciliTarih),
-                    DateFormat('yyyy-MM-dd').format(seciliTarih),
-                    false
-                );
+                satisyapildi(context, ongorusmeid, '', '', '',
+                    fiyat: fiyat.text,
+                    onBasarili: () => getUpdatedAppointments(
+                          DateFormat('yyyy-MM-dd').format(seciliTarih),
+                          DateFormat('yyyy-MM-dd').format(seciliTarih),
+                          false,
+                        ));
               },
               child: Text('Kaydet', style: TextStyle(color: cs.primary)),
             ),
