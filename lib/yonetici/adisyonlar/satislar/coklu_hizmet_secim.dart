@@ -143,8 +143,10 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
     setState(() {
       personeller = temizPersoneller;
       hizmetler = hizmetliste;
-      _personelHizmetMap = Map<String, List<String>>.from(
-          phMapRaw.map((k, v) => MapEntry(k.toString(), List<String>.from(v))));
+      // Backend hizmet_id'leri (int) cast ile SAYI dondurabiliyor; IsletmeHizmet.hizmet_id
+      // ise String. toString ile normalize etmezsek "5" != 5 olur ve filtre calismaz.
+      _personelHizmetMap = phMapRaw.map((k, v) =>
+          MapEntry(k.toString(), (v as List).map((e) => e.toString()).toList()));
       selectedpersonel = secili;
       isloading = false;
     });
