@@ -11,8 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/cropimage.dart';
 import 'package:randevu_sistem/Models/user.dart';
 
-import 'hesapkaldirmaisletme.dart';
-
 class ProfilBilgileri extends StatefulWidget {
   final Kullanici kullanici;
   const ProfilBilgileri({super.key, required this.kullanici});
@@ -292,8 +290,6 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
                               Icons.lock_outline_rounded),
                           const SizedBox(height: 10),
                           _securityCard(context),
-                          const SizedBox(height: 18),
-                          _dangerZone(context),
                         ],
                       ),
                     ),
@@ -721,83 +717,6 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
         borderSide: BorderSide.none,
       ),
       suffixIcon: suffix,
-    );
-  }
-
-  Widget _dangerZone(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    const danger = Color(0xFFEF4444);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  HesapKaldirmaIsletme(kullanici: _currentUser!),
-            ),
-          );
-        },
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: danger.withValues(alpha: 0.18)),
-            boxShadow: [
-              BoxShadow(
-                color: danger.withValues(alpha: 0.06),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: danger.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.delete_outline_rounded,
-                    color: danger, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hesabımı Sil',
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Hesabınızı kalıcı olarak kaldırın',
-                      style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.55),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded,
-                  color: scheme.onSurface.withValues(alpha: 0.4)),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

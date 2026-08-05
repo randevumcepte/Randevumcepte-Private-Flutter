@@ -62,6 +62,8 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
 
   String? _aralikId;
   String? _takvimId;
+  bool _onlineRandevuAktif = false;
+  bool _gecmisRandevulariGizle = false;
   String? _seciliisletme;
   bool _isLoading = true;
   bool _saving = false;
@@ -81,6 +83,10 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
     setState(() {
       _aralikId = _araliklar.any((e) => e.id == ar) ? ar : '60';
       _takvimId = _takvimler.any((e) => e.id == tk) ? tk : '1';
+      _onlineRandevuAktif =
+          settings['musteri_online_randevu_aktif']?.toString() == '1';
+      _gecmisRandevulariGizle =
+          settings['gecmis_randevulari_gizle']?.toString() == '1';
       _isLoading = false;
     });
   }
@@ -98,6 +104,8 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
         body: jsonEncode({
           'randevu_saat_araligi': _aralikId,
           'randevu_takvim_turu': _takvimId,
+          'musteri_online_randevu_aktif': _onlineRandevuAktif ? '1' : '0',
+          'gecmis_randevulari_gizle': _gecmisRandevulariGizle ? '1' : '0',
           'salon_id': _seciliisletme,
         }),
       );
@@ -212,6 +220,38 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
                 ),
                 const SizedBox(height: 10),
                 _buildTakvimList(),
+                const SizedBox(height: 22),
+                _buildSectionHeader(
+                  icon: Icons.tune_rounded,
+                  title: 'Online Randevu',
+                  subtitle: 'Müşteri randevu davranışını yönetin.',
+                ),
+                const SizedBox(height: 10),
+                _buildToggleCard(
+                  icon: Icons.event_available_rounded,
+                  color: const Color(0xFF16A34A),
+                  title: 'Müşteri online randevu alabilsin',
+                  subtitle:
+                      'Bu seçenek açıkken müşteriler mobil/web üzerinden kendileri randevu oluşturabilir.',
+                  value: _onlineRandevuAktif,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _onlineRandevuAktif = v);
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildToggleCard(
+                  icon: Icons.history_toggle_off_rounded,
+                  color: const Color(0xFFD97706),
+                  title: 'Saati geçen randevular görünmesin',
+                  subtitle:
+                      'Açıkken saati geçmiş randevular takvim, liste ve müşteri kartında gizlenir. Yalnızca web sürümündeki (randevu.randevumcepte.com.tr) girişlerde geçerlidir.',
+                  value: _gecmisRandevulariGizle,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _gecmisRandevulariGizle = v);
+                  },
+                ),
               ],
             ),
       bottomNavigationBar: _isLoading ? null : _buildSaveBar(),
@@ -391,6 +431,115 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
           if (i != _takvimler.length - 1) const SizedBox(height: 8),
         ],
       ],
+    );
+  }
+
+  Widget _buildToggleCard({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => onChanged(!value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: value ? color : color.withValues(alpha: 0.10),
+              width: value ? 1.6 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: value
+                    ? color.withValues(alpha: 0.18)
+                    : color.withValues(alpha: 0.04),
+                blurRadius: value ? 12 : 6,
+                offset: Offset(0, value ? 5 : 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: value
+                        ? [color, color.withValues(alpha: 0.75)]
+                        : [
+                            color.withValues(alpha: 0.18),
+                            color.withValues(alpha: 0.10),
+                          ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(13),
+                  boxShadow: value
+                      ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.30),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  icon,
+                  color: value ? Colors.white : color,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[600],
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch.adaptive(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: color,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

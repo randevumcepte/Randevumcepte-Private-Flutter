@@ -1,7 +1,7 @@
 name: randevu_sistem
-description: EYM Life Güzellik Merkezi Randevu Sistemi Uygulaması
+description: Saloon Cadde Randevu Sistemi Uygulaması
 publish_to: 'none'
-version: 1.0.4+7
+version: 1.0.14+22
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -152,8 +152,8 @@ flutter:
 
   assets:
     - images/
-    - images/eymlifeicon.png
-    - images/eymlifeicon.png
+    - images/salooncaddeicon.png
+    - images/salooncaddeicon.png
     - images/ring.mp3
     - images/announcement.png
     - images/hesapsil.png
@@ -163,12 +163,12 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "images/eymlifeicon.png"
+  image_path: "images/salooncaddeicon.png"
   remove_alpha_ios: true
 
 flutter_native_splash:
   color: "#ffffff"
-  image: images/eymlifeicon.png
+  image: images/salooncaddeicon.png
   android: true
   ios: true
   web: false

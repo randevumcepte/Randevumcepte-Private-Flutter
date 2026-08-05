@@ -165,14 +165,14 @@ class _KayitOlState extends State<KayitOl> {
               child: Padding(
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(
-                  'images/eymlifeicon.png',
+                  'images/salooncaddeicon.png',
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             const SizedBox(height: 18),
             Image.asset(
-              'images/eymlifeicon.png',
+              'images/salooncaddeicon.png',
               height: 28,
               fit: BoxFit.contain,
             ),
@@ -385,10 +385,10 @@ class _KayitOlState extends State<KayitOl> {
         'name':adsoyad,
         'sms_baslik' : '',
         'sms_apikey' : '',
-        'salonidler' : '391',
+        'salonidler' : '246',
         'sms_username':'',
         'sms_secret':'',
-        'isletmeadi': 'EYM Life Güzellik Merkezi',
+        'isletmeadi': 'Saloon Cadde',
         'appBundle': appBundle
       };
 

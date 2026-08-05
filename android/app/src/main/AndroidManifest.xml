@@ -33,7 +33,7 @@
         android:maxSdkVersion="29" />
 
     <application
-        android:label="EYM Life Güzellik Merkezi"
+        android:label="Saloon Cadde"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:largeHeap="true">
