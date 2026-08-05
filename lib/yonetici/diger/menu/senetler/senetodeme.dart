@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/yonetici/diger/menu/senetler/senetlistesi.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
@@ -180,7 +181,7 @@ class _SenetOdemeState extends State<SenetOdeme> {
                       ),
                       child: DropdownButtonHideUnderline(
 
-                          child: DropdownButton<OdemeTuru>( // DropdownButton<String?>
+                          child: AramaliDropdown<OdemeTuru>( // AramaliDropdown<String?>
 
                             onChanged: (newValue) {
                               setState(() {

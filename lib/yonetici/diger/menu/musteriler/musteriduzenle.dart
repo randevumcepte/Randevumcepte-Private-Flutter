@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
@@ -601,7 +602,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
               border: Border.all(color: Colors.grey[200]!, width: 1),
             ),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton2<Referans>(
+              child: AramaliDropdown<Referans>(
                 isExpanded: true,
                 hint: Row(
                   children: [

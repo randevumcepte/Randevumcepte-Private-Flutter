@@ -9,6 +9,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
@@ -2165,7 +2166,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: DropdownButtonHideUnderline(
-                                    child: DropdownButton2<RandevuTekrarSikligi>(
+                                    child: AramaliDropdown<RandevuTekrarSikligi>(
                                       isExpanded: true,
                                       hint: Text(
                                         'Sıklık Seç',

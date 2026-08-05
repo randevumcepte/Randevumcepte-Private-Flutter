@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -349,7 +350,7 @@ class _AjandaEkleDashboardState extends State<AjandaEkleDashboard> {
 
                                 ),
                                 child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>( // DropdownButton<String?>
+                                    child: AramaliDropdown<String>( // AramaliDropdown<String?>
                                       value: _selectedItem,
                                       onChanged: (String? newValue) { // onChanged: (String? newValue)
                                         setState(() {

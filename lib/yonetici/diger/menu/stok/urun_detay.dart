@@ -6,6 +6,7 @@ import 'package:randevu_sistem/Models/urun_kategorisi.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
 import 'package:randevu_sistem/services/birim_helper.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import 'urun_form.dart';
 
@@ -122,7 +123,7 @@ class _UrunDetaySayfaState extends State<UrunDetaySayfa> with SingleTickerProvid
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                DropdownButtonFormField<String>(
+                AramaliDropdownFormField<String>(
                   value: tip,
                   items: const [
                     DropdownMenuItem(value: 'fire',   child: Text('Fire (Çöp/Bozuk)')),

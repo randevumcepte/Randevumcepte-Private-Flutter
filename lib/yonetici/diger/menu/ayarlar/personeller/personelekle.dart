@@ -2,6 +2,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/hesapturu.dart';
 
@@ -601,7 +602,7 @@ class _PersonelEkleState extends State<PersonelEkle> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton2<HesapTuru>(
+        child: AramaliDropdown<HesapTuru>(
           isExpanded: true,
           hint: const Text('Hesap Türü seçiniz', style: TextStyle(color: Color(0xFFB8AEC7), fontSize: 13.5)),
           items: hesapturu

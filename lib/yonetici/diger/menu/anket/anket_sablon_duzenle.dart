@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 class AnketSablonDuzenlePage extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -327,8 +328,8 @@ class _AnketSablonDuzenlePageState extends State<AnketSablonDuzenlePage> {
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _odulKuponIndirimTipi,
+                      child: AramaliDropdownFormField<String>(
+                        value: _odulKuponIndirimTipi,
                         decoration: InputDecoration(labelText: 'İndirim Tipi', border: OutlineInputBorder(), isDense: true),
                         items: [
                           DropdownMenuItem(value: 'yuzde', child: Text('Yüzde (%)')),

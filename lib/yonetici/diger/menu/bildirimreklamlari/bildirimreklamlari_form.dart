@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -450,7 +451,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
         padding: const EdgeInsets.symmetric(horizontal: 13),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5)),
         child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
+          child: AramaliDropdown<String>(
             value: secenekler.containsKey(deger) ? deger : secenekler.keys.first,
             isExpanded: true,
             items: secenekler.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis))).toList(),
@@ -469,7 +470,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
       padding: const EdgeInsets.symmetric(horizontal: 13),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5)),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String?>(value: gecerli, isExpanded: true, items: items, onChanged: onDegis),
+        child: AramaliDropdown<String?>(value: gecerli, isExpanded: true, items: items, onChanged: onDegis),
       ),
     );
   }
@@ -493,7 +494,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
       padding: const EdgeInsets.symmetric(horizontal: 13),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5)),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String?>(value: gecerli, isExpanded: true, items: items, onChanged: onDegis),
+        child: AramaliDropdown<String?>(value: gecerli, isExpanded: true, items: items, onChanged: onDegis),
       ),
     );
   }

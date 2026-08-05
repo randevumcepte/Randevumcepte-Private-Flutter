@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Models/cihazlar.dart';
 import 'package:randevu_sistem/Models/odalar.dart';
 import 'package:randevu_sistem/Models/personel.dart';
@@ -311,7 +312,7 @@ class _SaatKapamaFormuState extends State<SaatKapamaFormu> {
     }
   }
 
-  Widget _kaynakAlani() => DropdownButtonFormField<String>(
+  Widget _kaynakAlani() => AramaliDropdownFormField<String>(
         value: _kaynakId,
         isExpanded: true,
         decoration: InputDecoration(
@@ -420,7 +421,7 @@ class _SaatKapamaFormuState extends State<SaatKapamaFormu> {
             children: [
               Expanded(
                 flex: 2,
-                child: DropdownButtonFormField<String>(
+                child: AramaliDropdownFormField<String>(
                   value: _tekrarSikligi,
                   isExpanded: true,
                   decoration: const InputDecoration(

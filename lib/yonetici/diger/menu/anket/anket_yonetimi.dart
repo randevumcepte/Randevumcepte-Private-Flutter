@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'anket_sablon_duzenle.dart';
 
 class AnketYonetimiPage extends StatefulWidget {
@@ -1263,8 +1264,8 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
           title: 'Google Yorumu Ödülü',
           subtitle: '"Google\'da Yorum Yaz"a tıklayana otomatik kupon/puan verilir. ⚠️ Google, yorum karşılığı ödülü politikalarına aykırı bulabilir.',
           children: [
-            DropdownButtonFormField<String>(
-              initialValue: _googleOdulTipi,
+            AramaliDropdownFormField<String>(
+              value: _googleOdulTipi,
               decoration: InputDecoration(labelText: 'Ödül Tipi', border: OutlineInputBorder(), isDense: true),
               items: [
                 DropdownMenuItem(value: 'yok', child: Text('Ödül yok')),
@@ -1278,8 +1279,8 @@ class _AyarlarFormuState extends State<_AyarlarFormu> {
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _googleOdulIndirimTipi,
+                    child: AramaliDropdownFormField<String>(
+                      value: _googleOdulIndirimTipi,
                       decoration: InputDecoration(labelText: 'İndirim Tipi', border: OutlineInputBorder(), isDense: true),
                       items: [
                         DropdownMenuItem(value: 'yuzde', child: Text('Yüzde (%)')),

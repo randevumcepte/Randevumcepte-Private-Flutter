@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
 import '../diger_page.dart';
@@ -84,7 +85,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
     return Column(
       children: <Widget>[
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKategori,
           onChanged: (value) {
             setState(() {
@@ -127,7 +128,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedAralik,
           onChanged: (value) {
             setState(() {

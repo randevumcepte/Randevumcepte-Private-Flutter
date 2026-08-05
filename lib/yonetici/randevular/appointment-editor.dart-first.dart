@@ -5,6 +5,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import '../../Backend/backend.dart';
 import '../../Frontend/datetimeformatting.dart';
@@ -418,7 +419,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                                       //you can set more BoxShadow() here
                                     ),
                                     child: DropdownButtonHideUnderline(
-                                        child: DropdownButton2<
+                                        child: AramaliDropdown<
                                             RandevuTekrarSikligi>(
                                       isExpanded: true,
                                       hint: Text(

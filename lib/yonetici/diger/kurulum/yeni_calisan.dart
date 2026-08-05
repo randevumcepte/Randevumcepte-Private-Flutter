@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
 import '../menu/ayarlar/personeller/oglen_arasi.dart';
@@ -190,7 +191,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
             _email = val;
           },
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedTipi,
           onChanged: (value) {
             setState(() {
@@ -232,7 +233,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedMusteriler,
           onChanged: (value) {
             setState(() {
@@ -296,7 +297,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
 
           children: [
             Text("Pts"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumPzt.map((durum) {
                 return DropdownMenuItem<String>(
@@ -311,7 +312,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedDurumPzt,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Pzt.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -326,7 +327,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedSaat1Pzt,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Pzt.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -351,7 +352,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
 
           children: [
             Text("Sal"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumSal.map((durum) {
                 return DropdownMenuItem<String>(
@@ -366,7 +367,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedDurumSal,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Sal.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -381,7 +382,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedSaat1Sal,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Sal.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -406,7 +407,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
 
           children: [
             Text("Çar"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumCar.map((durum) {
                 return DropdownMenuItem<String>(
@@ -421,7 +422,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedDurumCar,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Car.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -436,7 +437,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedSaat1Car,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Car.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -461,7 +462,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
 
           children: [
             Text("Per"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumPer.map((durum) {
                 return DropdownMenuItem<String>(
@@ -476,7 +477,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedDurumPer,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Per.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -491,7 +492,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedSaat1Per,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Per.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -516,7 +517,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
 
           children: [
             Text("Cum"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumCum.map((durum) {
                 return DropdownMenuItem<String>(
@@ -531,7 +532,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedDurumCum,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Cum.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -546,7 +547,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedSaat1Cum,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Cum.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -571,7 +572,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
 
           children: [
             Text("Cts"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumCts.map((durum) {
                 return DropdownMenuItem<String>(
@@ -586,7 +587,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedDurumCts,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Cts.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -601,7 +602,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedSaat1Cts,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Cts.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -626,7 +627,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
 
           children: [
             Text("Pzr"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumPzr.map((durum) {
                 return DropdownMenuItem<String>(
@@ -641,7 +642,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedDurumPzr,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Pzr.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -656,7 +657,7 @@ class _YeniCalisanState extends State<YeniCalisan> {
               },
               value: _selectedSaat1Pzr,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Pzr.map((saat2) {
                 return DropdownMenuItem<String>(

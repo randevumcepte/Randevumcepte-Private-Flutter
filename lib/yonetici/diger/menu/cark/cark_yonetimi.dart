@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/yonetici/diger/sube_secici.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 class CarkYonetimiPage extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -1799,7 +1800,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                   ),
                 ),
                 SizedBox(height: 10),
-                DropdownButtonFormField<String>(
+                AramaliDropdownFormField<String>(
                   value: tip,
                   decoration: InputDecoration(
                     labelText: 'Ödül Tipi',
@@ -2111,8 +2112,8 @@ class _DilimSatiriState extends State<_DilimSatiri> {
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: tip,
+                child: AramaliDropdownFormField<String>(
+                  value: tip,
                   decoration: InputDecoration(labelText: 'Tip', border: OutlineInputBorder(), isDense: true),
                   items: [
                     DropdownMenuItem(value: 'puan', child: Text('Puan')),

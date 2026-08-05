@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/yeni/urun.dart';
 
@@ -109,7 +110,7 @@ class _YeniUrunSatisState extends State<YeniUrunSatis> {
           height: 2.0,
           thickness: 1,
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedNumber,
           onChanged: (value) {
             setState(() {
@@ -153,7 +154,7 @@ class _YeniUrunSatisState extends State<YeniUrunSatis> {
               .toList(),
         ),
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedOdeme,
           onChanged: (value) {
             setState(() {
@@ -195,7 +196,7 @@ class _YeniUrunSatisState extends State<YeniUrunSatis> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedSatici,
           onChanged: (value) {
             setState(() {

@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/ongorusmenedeni.dart';
@@ -559,7 +560,7 @@ class _OnGorusmeState extends State<OnGorusmeDuzenleOzet> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<Referans>(
+              child: AramaliDropdown<Referans>(
 
                 isExpanded: true,
                 hint: Text(

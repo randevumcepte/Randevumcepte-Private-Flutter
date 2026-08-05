@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/takvimturu.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -890,7 +891,7 @@ class TakvimState extends State<Takvim> with RouteAware {
           SizedBox(
             width: ekranGenisligi * 0.35,
             child: DropdownButtonHideUnderline(
-              child: DropdownButton2<TakvimTuru>(
+              child: AramaliDropdown<TakvimTuru>(
                 isExpanded: true,
                 hint: Text(
                   'Takvim Türü..',
@@ -1719,7 +1720,10 @@ List<Widget> _buildAppointmentsForResource(
     if (newDurationMinutes == oldDuration) return;
     if (newDurationMinutes < 15) newDurationMinutes = 15;
 
-    final newEndTime = appointment.startTime.add(Duration(minutes: newDurationMinutes));
+    // Sürükle-bırak ile tutarlı olması için yerel duvar-saati üzerinden hesapla
+    // (appointment.startTime UTC; yerel'e çevirmeden eklemek bitişi 3 saat kaydırıyordu)
+    final localStart = appointment.startTime.toLocal();
+    final newEndTime = localStart.add(Duration(minutes: newDurationMinutes));
     final oldEndTime = appointment.endTime.toLocal();
 
     // Onay dialog'u
@@ -1747,7 +1751,7 @@ List<Widget> _buildAppointmentsForResource(
                 children: [
                   Text('⏱  Eski Süre: $oldDuration dk (${DateFormat.Hm().format(appointment.startTime.toLocal())} - ${DateFormat.Hm().format(oldEndTime)})'),
                   const SizedBox(height: 6),
-                  Text('⏱  Yeni Süre: $newDurationMinutes dk (${DateFormat.Hm().format(appointment.startTime.toLocal())} - ${DateFormat.Hm().format(newEndTime)})'),
+                  Text('⏱  Yeni Süre: $newDurationMinutes dk (${DateFormat.Hm().format(localStart)} - ${DateFormat.Hm().format(newEndTime)})'),
                 ],
               ),
             ),
@@ -1768,7 +1772,7 @@ List<Widget> _buildAppointmentsForResource(
     );
 
     if (onay == true) {
-      await _surukleBirakTamamla(appointment, appointment.startTime, newEndTime, resourceId);
+      await _surukleBirakTamamla(appointment, localStart, newEndTime, resourceId);
     } else {
       // Reddedilirse önceki haline geri dön (rebuild)
       if (mounted) setState(() {});

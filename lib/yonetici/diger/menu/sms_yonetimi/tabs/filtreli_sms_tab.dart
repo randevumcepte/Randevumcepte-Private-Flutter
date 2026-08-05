@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import '../karakter_sayaci.dart';
 import '../musteri_secici.dart';
@@ -114,7 +115,7 @@ class _FiltreliSmsTabState extends State<FiltreliSmsTab>
               Divider(),
               Text('Cinsiyet', style: TextStyle(fontWeight: FontWeight.w600)),
               SizedBox(height: 6),
-              DropdownButtonFormField<String?>(
+              AramaliDropdownFormField<String?>(
                 value: _cinsiyet,
                 isDense: true,
                 decoration: InputDecoration(
@@ -132,7 +133,7 @@ class _FiltreliSmsTabState extends State<FiltreliSmsTab>
               Text('Şablon Seçiniz',
                   style: TextStyle(fontWeight: FontWeight.w600)),
               SizedBox(height: 6),
-              DropdownButtonFormField<String?>(
+              AramaliDropdownFormField<String?>(
                 value: _seciliTaslakBasligi,
                 isDense: true,
                 isExpanded: true,

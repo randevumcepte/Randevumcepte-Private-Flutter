@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:intl/intl.dart';
 
 
@@ -70,7 +71,7 @@ class _YeniMasrafState extends State<YeniMasraf> {
     return Column(
       children: <Widget>[
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKategori,
           onChanged: (value) {
             setState(() {
@@ -124,7 +125,7 @@ class _YeniMasrafState extends State<YeniMasraf> {
             _aciklama = val;
           },
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedOdeme,
           onChanged: (value) {
             setState(() {
@@ -166,7 +167,7 @@ class _YeniMasrafState extends State<YeniMasraf> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedSatici,
           onChanged: (value) {
             setState(() {

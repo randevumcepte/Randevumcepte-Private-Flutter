@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import '../cagri_api.dart';
 import '../cagri_models.dart';
 
@@ -336,7 +337,7 @@ class _SonucFormuState extends State<_SonucFormu> {
 
                     // Kategori
                     if (_kategoriler.isNotEmpty) ...[
-                      DropdownButtonFormField<int?>(
+                      AramaliDropdownFormField<int?>(
                         value: _kategoriId,
                         isExpanded: true,
                         decoration: InputDecoration(
@@ -356,7 +357,7 @@ class _SonucFormuState extends State<_SonucFormu> {
                       ),
                       const SizedBox(height: 12),
                       if (altlar.isNotEmpty)
-                        DropdownButtonFormField<int?>(
+                        AramaliDropdownFormField<int?>(
                           value: _altKategoriId,
                           isExpanded: true,
                           decoration: InputDecoration(

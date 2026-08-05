@@ -6,6 +6,7 @@ import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 /// Yeni Satış ekranı için kuaför-dostu çoklu hizmet seçim ekranı.
 /// Birden fazla hizmete tik atılır; tek personel ve tek tarih/saat ile hepsi
@@ -317,7 +318,7 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: Column(
                     children: [
-                      DropdownButtonFormField<Personel>(
+                      AramaliDropdownFormField<Personel>(
                         value: selectedpersonel,
                         isExpanded: true,
                         decoration: InputDecoration(

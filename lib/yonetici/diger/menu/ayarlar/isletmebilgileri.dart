@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 class IsletmeBilgileri extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -579,7 +580,7 @@ class _IsletmeBilgileriState extends State<IsletmeBilgileri> {
     if (_salonTurleri.isEmpty) {
       return const SizedBox.shrink();
     }
-    return DropdownButtonFormField<String>(
+    return AramaliDropdownFormField<String>(
       value: _salonTuruId,
       isExpanded: true,
       decoration: InputDecoration(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/kasa/gunsonu_raporu.dart';
 
@@ -1812,10 +1813,12 @@ class _DevredenAylarSheetState extends State<_DevredenAylarSheet> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
+                child: AramaliDropdown<int>(
                   value: selectedYear,
                   isExpanded: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  buttonStyleData: const ButtonStyleData(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                  ),
                   items: availableYears.map((year) {
                     return DropdownMenuItem(
                       value: year,

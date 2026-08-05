@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 
 import '../menu/ayarlar/personeller/oglen_arasi.dart';
@@ -180,7 +181,7 @@ class _CalisanEditState extends State<CalisanEdit> {
             _email = val;
           },
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedTipi,
           onChanged: (value) {
             setState(() {
@@ -222,7 +223,7 @@ class _CalisanEditState extends State<CalisanEdit> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedMusteriler,
           onChanged: (value) {
             setState(() {
@@ -304,7 +305,7 @@ class _CalisanEditState extends State<CalisanEdit> {
 
           children: [
             Text("Pts"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumPzt.map((durum) {
                 return DropdownMenuItem<String>(
@@ -319,7 +320,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedDurumPzt,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Pzt.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -334,7 +335,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedSaat1Pzt,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Pzt.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -359,7 +360,7 @@ class _CalisanEditState extends State<CalisanEdit> {
 
           children: [
             Text("Sal"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumSal.map((durum) {
                 return DropdownMenuItem<String>(
@@ -374,7 +375,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedDurumSal,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Sal.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -389,7 +390,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedSaat1Sal,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Sal.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -414,7 +415,7 @@ class _CalisanEditState extends State<CalisanEdit> {
 
           children: [
             Text("Çar"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumCar.map((durum) {
                 return DropdownMenuItem<String>(
@@ -429,7 +430,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedDurumCar,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Car.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -444,7 +445,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedSaat1Car,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Car.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -469,7 +470,7 @@ class _CalisanEditState extends State<CalisanEdit> {
 
           children: [
             Text("Per"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumPer.map((durum) {
                 return DropdownMenuItem<String>(
@@ -484,7 +485,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedDurumPer,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Per.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -499,7 +500,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedSaat1Per,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Per.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -524,7 +525,7 @@ class _CalisanEditState extends State<CalisanEdit> {
 
           children: [
             Text("Cum"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumCum.map((durum) {
                 return DropdownMenuItem<String>(
@@ -539,7 +540,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedDurumCum,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Cum.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -554,7 +555,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedSaat1Cum,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Cum.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -579,7 +580,7 @@ class _CalisanEditState extends State<CalisanEdit> {
 
           children: [
             Text("Cts"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumCts.map((durum) {
                 return DropdownMenuItem<String>(
@@ -594,7 +595,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedDurumCts,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Cts.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -609,7 +610,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedSaat1Cts,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Cts.map((saat2) {
                 return DropdownMenuItem<String>(
@@ -634,7 +635,7 @@ class _CalisanEditState extends State<CalisanEdit> {
 
           children: [
             Text("Pzr"),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Durum"),
               items: _durumPzr.map((durum) {
                 return DropdownMenuItem<String>(
@@ -649,7 +650,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedDurumPzr,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat1Pzr.map((saat1) {
                 return DropdownMenuItem<String>(
@@ -664,7 +665,7 @@ class _CalisanEditState extends State<CalisanEdit> {
               },
               value: _selectedSaat1Pzr,
             ),
-            DropdownButton<String>(
+            AramaliDropdown<String>(
               hint: Text("Saat Seçin"),
               items: _Saat2Pzr.map((saat2) {
                 return DropdownMenuItem<String>(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import '../sms_yonetimi_state.dart';
 
@@ -242,7 +243,7 @@ class _SmsAyarlariTabState extends State<SmsAyarlariTab>
           Text('Randevudan kaç saat önce SMS gönderilsin?',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
           SizedBox(height: 8),
-          DropdownButtonFormField<int>(
+          AramaliDropdownFormField<int>(
             value: widget.state.randevuSmsHatirlatma,
             decoration: InputDecoration(
                 isDense: true, border: OutlineInputBorder()),

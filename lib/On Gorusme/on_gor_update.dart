@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import 'package:randevu_sistem/yonetici/randevular/musteri.dart';
 /*
@@ -191,7 +192,7 @@ class _GorusmeGuncelleState extends State<GorusmeGuncelle> {
           dropdownDialogRadius: 30,
           searchBarRadius: 30,
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedTip,
           onChanged: (value) {
             setState(() {
@@ -234,7 +235,7 @@ class _GorusmeGuncelleState extends State<GorusmeGuncelle> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedPaket,
           onChanged: (value) {
             setState(() {
@@ -277,7 +278,7 @@ class _GorusmeGuncelleState extends State<GorusmeGuncelle> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedHatirlatma,
           onChanged: (value) {
             setState(() {
@@ -320,7 +321,7 @@ class _GorusmeGuncelleState extends State<GorusmeGuncelle> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedMeslek,
           onChanged: (value) {
             setState(() {
@@ -363,7 +364,7 @@ class _GorusmeGuncelleState extends State<GorusmeGuncelle> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedGorusme,
           onChanged: (value) {
             setState(() {

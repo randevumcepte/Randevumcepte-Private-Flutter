@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:csc_picker/csc_picker.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
@@ -122,7 +123,7 @@ class _SalonBilgileriState extends State<SalonBilgileri> {
           dropdownDialogRadius: 30,
           searchBarRadius: 30,
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKategori,
           onChanged: (value) {
             setState(() {
@@ -170,7 +171,7 @@ class _SalonBilgileriState extends State<SalonBilgileri> {
           thickness: 1,
         ),
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedCins,
           onChanged: (value) {
             setState(() {

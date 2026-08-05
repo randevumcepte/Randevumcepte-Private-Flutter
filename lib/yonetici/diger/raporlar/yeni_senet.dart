@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/progressloading.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
@@ -1103,7 +1104,7 @@ class _YeniSenetState extends State<YeniSenet> {
                                   ),
                                   child: DropdownButtonHideUnderline(
 
-                                      child: DropdownButton2<OdemeTuru>(
+                                      child: AramaliDropdown<OdemeTuru>(
 
                                         isExpanded: true,
                                         hint: Text(
@@ -1324,7 +1325,7 @@ class _YeniSenetState extends State<YeniSenet> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: DropdownButtonHideUnderline(
-                                child: DropdownButton2<SenetTuru>(
+                                child: AramaliDropdown<SenetTuru>(
                                   isExpanded: true,
                                   hint: Text(
                                     'Seçiniz...',

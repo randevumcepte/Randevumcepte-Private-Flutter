@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Models/urun_kategorisi.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
@@ -387,7 +388,7 @@ class _UrunFormState extends State<UrunForm> {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _mor, width: 1.5)),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
+        child: AramaliDropdown<T>(
           value: secili,
           isExpanded: true,
           items: items,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 
 
@@ -92,7 +93,7 @@ class _MasrafeditState extends State<Masrafedit> {
     return Column(
       children: <Widget>[
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKategori,
           onChanged: (value) {
             setState(() {
@@ -146,7 +147,7 @@ class _MasrafeditState extends State<Masrafedit> {
             _aciklama = val;
           },
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedOdeme,
           onChanged: (value) {
             setState(() {
@@ -188,7 +189,7 @@ class _MasrafeditState extends State<Masrafedit> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedSatici,
           onChanged: (value) {
             setState(() {

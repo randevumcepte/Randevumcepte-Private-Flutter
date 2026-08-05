@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -366,7 +367,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
         border: Border.all(color: ext.borderSubtle),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
+        child: AramaliDropdown<T>(
           value: value,
           isDense: true,
           items: items,

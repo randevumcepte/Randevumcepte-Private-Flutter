@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 
@@ -212,7 +213,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                                 ),
                                 child: DropdownButtonHideUnderline(
 
-                                    child: DropdownButton2<String>(
+                                    child: AramaliDropdown<String>(
 
                                       isExpanded: true,
                                       hint: Text(
@@ -285,7 +286,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                                 ),
                                 child: DropdownButtonHideUnderline(
 
-                                    child: DropdownButton2<String>(
+                                    child: AramaliDropdown<String>(
 
                                       isExpanded: true,
                                       hint: Text(
@@ -358,7 +359,7 @@ class _MusteriRandevulariMenuState extends State<MusteriRandevulariMenu> {
                                 ),
                                 child: DropdownButtonHideUnderline(
 
-                                    child: DropdownButton2<String>(
+                                    child: AramaliDropdown<String>(
 
                                       isExpanded: true,
                                       hint: Text(

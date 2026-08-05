@@ -6,6 +6,7 @@ import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 /// Yeni Satış ekranı için çoklu paket seçim ekranı.
 /// Birden fazla pakete tik atılır; tek satıcı, tek başlangıç tarihi/saati ile
@@ -294,7 +295,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: Column(
                     children: [
-                      DropdownButtonFormField<Personel>(
+                      AramaliDropdownFormField<Personel>(
                         value: selectedSatici,
                         isExpanded: true,
                         decoration: InputDecoration(

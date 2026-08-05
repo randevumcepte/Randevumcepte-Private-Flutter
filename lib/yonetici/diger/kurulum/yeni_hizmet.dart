@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 
@@ -103,7 +104,7 @@ class _YeniHizmetState extends State<YeniHizmet> {
             _mobile = val;
           },
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKategori,
           onChanged: (value) {
             setState(() {
@@ -145,7 +146,7 @@ class _YeniHizmetState extends State<YeniHizmet> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedCins,
           onChanged: (value) {
             setState(() {
@@ -189,7 +190,7 @@ class _YeniHizmetState extends State<YeniHizmet> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedFiyatlandirma,
           onChanged: (value) {
             setState(() {

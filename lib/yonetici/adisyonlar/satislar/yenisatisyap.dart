@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
@@ -1122,7 +1123,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
             ],
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton2<OdemeTuru>(
+            child: AramaliDropdown<OdemeTuru>(
               isExpanded: true,
               hint: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Models/depo.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
 import 'package:randevu_sistem/services/birim_helper.dart';
 import 'package:randevu_sistem/services/stok_api.dart';
@@ -118,7 +119,7 @@ class _SayimSayfaState extends State<SayimSayfa> {
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
+              child: AramaliDropdown<String>(
                 value: _depoId,
                 isExpanded: true,
                 items: widget.depolar.map((d) => DropdownMenuItem(value: d.id, child: Text('Depo: ${d.depo_adi}'))).toList(),

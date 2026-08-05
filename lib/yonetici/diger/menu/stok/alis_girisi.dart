@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Models/depo.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
 import 'package:randevu_sistem/services/birim_helper.dart';
@@ -400,7 +401,7 @@ class _AlisGirisiSayfaState extends State<AlisGirisiSayfa> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(value: secili, isExpanded: true, items: items, onChanged: onChanged),
+        child: AramaliDropdown<T>(value: secili, isExpanded: true, items: items, onChanged: onChanged),
       ),
     );
   }

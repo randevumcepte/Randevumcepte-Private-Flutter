@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 
 // Personel Detay sayfasi. Web'deki personeldetay.blade.php'in Flutter karsiligi.
@@ -352,7 +353,7 @@ class _PersonelDetayState extends State<PersonelDetay> {
         border: Border.all(color: _border),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
+        child: AramaliDropdown<T>(
           value: value,
           isDense: true,
           items: items,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:intl/intl.dart';
 
 
@@ -85,7 +86,7 @@ class _PromosyonlarState extends State<Promosyonlar> {
     return Column(
       children: <Widget>[
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKazanimNakit,
           onChanged: (value) {
             setState(() {
@@ -128,7 +129,7 @@ class _PromosyonlarState extends State<Promosyonlar> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKazanimKredi,
           onChanged: (value) {
             setState(() {
@@ -172,7 +173,7 @@ class _PromosyonlarState extends State<Promosyonlar> {
               .toList(),
         ),
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedKullanimLimit,
           onChanged: (value) {
             setState(() {
@@ -215,7 +216,7 @@ class _PromosyonlarState extends State<Promosyonlar> {
           ))
               .toList(),
         ),
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedDgIndirimi,
           onChanged: (value) {
             setState(() {
@@ -259,7 +260,7 @@ class _PromosyonlarState extends State<Promosyonlar> {
               .toList(),
         ),
 
-        DropdownButton<String>(
+        AramaliDropdown<String>(
           value: _selectedOnlineRandevuIndirim,
           onChanged: (value) {
             setState(() {

@@ -10,6 +10,7 @@
   import '../dashboard/urunsatisi.dart';
 
   import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+  import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
   import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
   import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
   import 'package:randevu_sistem/Backend/backend.dart';
@@ -1435,7 +1436,7 @@
                               border: Border.all(color: Colors.grey.shade200),
                             ),
                             child: DropdownButtonHideUnderline(
-                              child: DropdownButton2<SatisTuru>(
+                              child: AramaliDropdown<SatisTuru>(
                                 isExpanded: true,
                                 hint: Padding(
                                   padding: EdgeInsets.only(left: 12),

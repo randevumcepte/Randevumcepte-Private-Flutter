@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Models/cilttipi.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/saglikbilgileri.dart';
@@ -217,7 +218,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -292,7 +293,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -367,7 +368,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -444,7 +445,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -520,7 +521,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -595,7 +596,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -670,7 +671,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -747,7 +748,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -822,7 +823,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -897,7 +898,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -972,7 +973,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<SaglikBilgileri>(
+              child: AramaliDropdown<SaglikBilgileri>(
 
                 isExpanded: true,
                 hint: Text(
@@ -1047,7 +1048,7 @@ class _MusteriSaglikBilgileriState extends State<MusteriSaglikBilgileri> {
           ),
           child: DropdownButtonHideUnderline(
 
-              child: DropdownButton2<CiltTipi>(
+              child: AramaliDropdown<CiltTipi>(
 
                 isExpanded: true,
                 hint: Text(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// Lazer epilasyon seansinda cihaz parametrelerini (Enerji/Jul, Hiz, MS,
@@ -405,7 +406,7 @@ class _CihazBilgileriSheetState extends State<_CihazBilgileriSheet> {
         borderRadius: BorderRadius.circular(9),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: AramaliDropdown<String>(
           isExpanded: true,
           value: value,
           items: widget.seanslar.map((s) {
@@ -436,7 +437,7 @@ class _CihazBilgileriSheetState extends State<_CihazBilgileriSheet> {
         borderRadius: BorderRadius.circular(9),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: AramaliDropdown<String>(
           isExpanded: true,
           value: _seciliPersonelId,
           hint: const Text('— Seçiniz —', style: TextStyle(fontSize: 14)),

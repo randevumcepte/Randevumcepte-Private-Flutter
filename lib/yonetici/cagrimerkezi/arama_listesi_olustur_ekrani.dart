@@ -10,6 +10,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'cagri_api.dart';
 import 'cagri_models.dart';
 
@@ -429,7 +430,7 @@ class _AramaListesiOlusturEkraniState extends State<AramaListesiOlusturEkrani> {
         ),
       );
     }
-    return DropdownButtonFormField<int>(
+    return AramaliDropdownFormField<int>(
       value: _secilenPersonel,
       isExpanded: true,
       decoration: _inputDecoration('Personel seçin…'),
@@ -880,7 +881,7 @@ class _AramaListesiOlusturEkraniState extends State<AramaListesiOlusturEkrani> {
       opacity: kilitli ? 0.4 : 1,
       child: IgnorePointer(
         ignoring: kilitli,
-        child: DropdownButtonFormField<String>(
+        child: AramaliDropdownFormField<String>(
           value: value,
           isExpanded: true,
           decoration: _inputDecoration(''),

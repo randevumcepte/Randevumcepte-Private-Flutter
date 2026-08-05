@@ -7,6 +7,7 @@ import 'package:randevu_sistem/Models/adisyonurunler.dart';
 import 'package:randevu_sistem/Models/urunler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/stok/barkod_tarayici.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 /// Yeni Satış ekranı için kuaför-dostu çoklu ürün seçim ekranı.
 /// Birden fazla ürüne tik atılır (adet 1 varsayılan); tek satıcı ve tek tarih
@@ -303,7 +304,7 @@ class _CokluUrunSecimState extends State<CokluUrunSecim> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: Column(
                     children: [
-                      DropdownButtonFormField<Personel>(
+                      AramaliDropdownFormField<Personel>(
                         value: selectedSatici,
                         isExpanded: true,
                         decoration: InputDecoration(

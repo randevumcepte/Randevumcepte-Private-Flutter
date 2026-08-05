@@ -4,6 +4,7 @@ import 'package:randevu_sistem/Models/odalar.dart';
 import 'package:randevu_sistem/Models/cihazlar.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/randevuhizmetleri.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 /// Hizli Paket Randevu bottom sheet'i — web'deki "Hizli Paket Randevu" modalinin
 /// Flutter karsiligi. Pakette birden fazla hizmet varsa her hizmet icin tek
@@ -840,7 +841,7 @@ Widget _dropdown<T>({
   required String Function(T) itemLabel,
   required ValueChanged<T?> onChanged,
 }) {
-  return DropdownButtonFormField<T>(
+  return AramaliDropdownFormField<T>(
     value: items.contains(value) ? value : null,
     isExpanded: true,
     decoration: InputDecoration(
