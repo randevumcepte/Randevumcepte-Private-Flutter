@@ -1237,6 +1237,31 @@ class OnGorusmeDataSource extends DataGridSource {
     return {'personeller': personeller, 'secili': secili};
   }
 
+  // Satis popup'lari icin satilan kalem (paket/urun/hizmet) adini gosteren baslik
+  Widget _satisKalemBaslik(String kalemAdi) {
+    if (kalemAdi.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.inventory_2_outlined, size: 18, color: Color(0xFF6A1B9A)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(kalemAdi,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, color: Color(0xFF6A1B9A))),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Satis popup'lari icin ortak "Satici" (personel) dropdown'i
   Widget _saticiDropdown(
       List<Personel> personeller, Personel? selected, ValueChanged<Personel?> onChanged) {
@@ -1269,7 +1294,7 @@ class OnGorusmeDataSource extends DataGridSource {
   }
 
   Future<void> showPaketSatisPopup(BuildContext context, String ongorusmeid,
-      {String defaultFiyat = '', String defaultSeans = '', String defaultSeansAralik = ''}) async {
+      {String defaultFiyat = '', String defaultSeans = '', String defaultSeansAralik = '', String kalemAdi = ''}) async {
     final TextEditingController ongorusmetarihi = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
@@ -1291,6 +1316,7 @@ class OnGorusmeDataSource extends DataGridSource {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                _satisKalemBaslik(kalemAdi),
                 _popupLabel('Satıcı'),
                 _saticiDropdown(personeller, selectedSatici,
                     (v) => setSt(() => selectedSatici = v)),
@@ -1347,7 +1373,7 @@ class OnGorusmeDataSource extends DataGridSource {
 
   // ── URUN satis popup'i: Yeni Satis urun kalemi alanlari (satici + tarih + adet + fiyat) ──
   Future<void> showUrunSatisPopup(BuildContext context, String ongorusmeid,
-      {String defaultFiyat = ''}) async {
+      {String defaultFiyat = '', String kalemAdi = ''}) async {
     final TextEditingController quantityController = TextEditingController(text: '1');
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
     final TextEditingController islemTarihi = TextEditingController(
@@ -1369,6 +1395,7 @@ class OnGorusmeDataSource extends DataGridSource {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                _satisKalemBaslik(kalemAdi),
                 _popupLabel('Satıcı'),
                 _saticiDropdown(personeller, selectedSatici,
                     (v) => setSt(() => selectedSatici = v)),
@@ -1425,7 +1452,7 @@ class OnGorusmeDataSource extends DataGridSource {
 
   // ── HIZMET satis popup'i: Yeni Satis hizmet kalemi alanlari (satici + tarih + fiyat) ──
   Future<void> showHizmetSatisPopup(BuildContext context, String ongorusmeid,
-      {String defaultFiyat = ''}) async {
+      {String defaultFiyat = '', String kalemAdi = ''}) async {
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
     final TextEditingController islemTarihi = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
@@ -1446,6 +1473,7 @@ class OnGorusmeDataSource extends DataGridSource {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                _satisKalemBaslik(kalemAdi),
                 _popupLabel('Satıcı'),
                 _saticiDropdown(personeller, selectedSatici,
                     (v) => setSt(() => selectedSatici = v)),

@@ -2167,11 +2167,15 @@ List<Widget> _buildAppointmentsForResource(
                                             .toString();
                                       } catch (_) {}
                                       if (_dolu(selectedItem.paket_id)) {
-                                        paketsatispopup(this.context, ongId, musteriId: _musteriId);
+                                        paketsatispopup(this.context, ongId,
+                                            musteriId: _musteriId,
+                                            kalemAdi: selectedItem.paket['paket_adi']?.toString() ?? '');
                                       } else if (_dolu(selectedItem.urun_id)) {
-                                        urunsatispopup(this.context, ongId);
+                                        urunsatispopup(this.context, ongId,
+                                            kalemAdi: selectedItem.urun['urun_adi']?.toString() ?? '');
                                       } else if (_dolu(selectedItem.hizmet_id)) {
-                                        hizmetsatispopup(this.context, ongId);
+                                        hizmetsatispopup(this.context, ongId,
+                                            kalemAdi: selectedItem.hizmet['hizmet_adi']?.toString() ?? '');
                                       }
                                     },
                                   ),
@@ -2581,6 +2585,30 @@ List<Widget> _buildAppointmentsForResource(
     return {'personeller': personeller, 'secili': secili};
   }
 
+  // Satis popup'lari icin satilan kalem (paket/urun/hizmet) adini gosteren baslik
+  Widget _satisKalemBaslik(String kalemAdi, dynamic cs) {
+    if (kalemAdi.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: cs.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 18, color: cs.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(kalemAdi,
+                style: TextStyle(fontWeight: FontWeight.w700, color: cs.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Satis popup'lari icin ortak "Satici" (personel) dropdown'i
   Widget _satisSaticiDropdown(List<Personel> personeller, Personel? selected,
       dynamic cs, ValueChanged<Personel?> onChanged) {
@@ -2639,7 +2667,7 @@ List<Widget> _buildAppointmentsForResource(
     );
   }
 
-  Future<void> paketsatispopup(BuildContext context, String ongorusmeid, {String musteriId = ''}) async {
+  Future<void> paketsatispopup(BuildContext context, String ongorusmeid, {String musteriId = '', String kalemAdi = ''}) async {
     final cs = this.context.colors;
     final TextEditingController seansSayisi = TextEditingController();
     final TextEditingController fiyat = TextEditingController();
@@ -2663,6 +2691,7 @@ List<Widget> _buildAppointmentsForResource(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                _satisKalemBaslik(kalemAdi, cs),
                 _satisAlanLabel('Satıcı', cs),
                 const SizedBox(height: 10),
                 _satisSaticiDropdown(personeller, selectedSatici, cs,
@@ -2730,7 +2759,7 @@ List<Widget> _buildAppointmentsForResource(
     );
   }
 
-  Future<void> urunsatispopup(BuildContext context, String ongorusmeid) async {
+  Future<void> urunsatispopup(BuildContext context, String ongorusmeid, {String kalemAdi = ''}) async {
     final cs = this.context.colors;
     final TextEditingController quantityController = TextEditingController(text: '1');
     final TextEditingController fiyat = TextEditingController();
@@ -2754,6 +2783,7 @@ List<Widget> _buildAppointmentsForResource(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                _satisKalemBaslik(kalemAdi, cs),
                 _satisAlanLabel('Satıcı', cs),
                 const SizedBox(height: 10),
                 _satisSaticiDropdown(personeller, selectedSatici, cs,
@@ -2808,7 +2838,7 @@ List<Widget> _buildAppointmentsForResource(
     );
   }
 
-  Future<void> hizmetsatispopup(BuildContext context, String ongorusmeid) async {
+  Future<void> hizmetsatispopup(BuildContext context, String ongorusmeid, {String kalemAdi = ''}) async {
     final cs = this.context.colors;
     final TextEditingController fiyat = TextEditingController();
     final TextEditingController tarih = TextEditingController(
@@ -2831,6 +2861,7 @@ List<Widget> _buildAppointmentsForResource(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                _satisKalemBaslik(kalemAdi, cs),
                 _satisAlanLabel('Satıcı', cs),
                 const SizedBox(height: 10),
                 _satisSaticiDropdown(personeller, selectedSatici, cs,

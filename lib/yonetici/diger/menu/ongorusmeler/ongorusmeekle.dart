@@ -877,9 +877,9 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		String paketid = "";
 		String hizmetid = '';
 		final paketurun = selectedongorusmesebep?.getPaketUrunAdi() ?? "";
-		if (paketurun.contains("Paket")) paketid = selectedongorusmesebep?.getId() ?? "";
-		if (paketurun.contains("Ürün")) urunid = selectedongorusmesebep?.getId() ?? "";
-		if (paketurun.contains('IsletmeHizmet')) {
+		if (paketurun.contains("(Paket)")) paketid = selectedongorusmesebep?.getId() ?? "";
+		if (paketurun.contains("(Ürün)")) urunid = selectedongorusmesebep?.getId() ?? "";
+		if (paketurun.contains('(Hizmet)')) {
 			hizmetid = selectedongorusmesebep?.getId() ?? '';
 		}
 		widget.ongorusmedatasource.onGorusmeEkleGuncelle(

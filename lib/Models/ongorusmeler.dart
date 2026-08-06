@@ -17,6 +17,7 @@
     required this.personel,
     required this.urun,
     required this.paket,
+    this.hizmet = const {},
     required this.saat,
     required this.cinsiyet,
     required this.il_id,
@@ -42,6 +43,7 @@
   final Map<String, dynamic> personel;
   final Map<String, dynamic> urun;
   final Map<String, dynamic> paket;
+  final Map<String, dynamic> hizmet;
   final String cinsiyet;
   final String il_id;
   // Takvim odaya gore ise (randevu_takvim_turu == 3) randevuya atanmis oda
@@ -66,6 +68,7 @@
       personel: json["personel"] is Map ? Map<String, dynamic>.from(json["personel"]) : {},
       urun: json["urun"] is Map ? Map<String, dynamic>.from(json["urun"]) : {},
       paket: json["paket"] is Map ? Map<String, dynamic>.from(json["paket"]) : {},
+      hizmet: json["hizmet"] is Map ? Map<String, dynamic>.from(json["hizmet"]) : {},
       urun_id: json["urun_id"]?.toString() ?? "",
       paket_id: json["paket_id"]?.toString() ?? "",
       hizmet_id: json["hizmet_id"]?.toString() ?? "",

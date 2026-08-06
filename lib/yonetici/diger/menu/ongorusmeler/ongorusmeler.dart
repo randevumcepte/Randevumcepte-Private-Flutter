@@ -1063,18 +1063,21 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 				defaultFiyat: _paketVarsayilanFiyat(e),
 				defaultSeans: _paketVarsayilanSeans(e),
 				defaultSeansAralik: e.paket['seans_araligi']?.toString() ?? '',
+				kalemAdi: e.paket['paket_adi']?.toString() ?? '',
 			);
 		} else if (e.urun_id.isNotEmpty && e.urun_id != "null") {
 			_ongorusmeDataGridSource.showUrunSatisPopup(
 				context,
 				e.id,
 				defaultFiyat: (e.urun['fiyat']?.toString() ?? ''),
+				kalemAdi: e.urun['urun_adi']?.toString() ?? '',
 			);
 		} else if (e.hizmet_id.isNotEmpty && e.hizmet_id != "null") {
 			_ongorusmeDataGridSource.showHizmetSatisPopup(
 				context,
 				e.id,
-				defaultFiyat: '',
+				defaultFiyat: (e.hizmet['fiyat']?.toString() ?? ''),
+				kalemAdi: e.hizmet['hizmet_adi']?.toString() ?? '',
 			);
 		}
 	}

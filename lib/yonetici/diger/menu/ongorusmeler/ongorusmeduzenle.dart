@@ -1000,11 +1000,11 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 		String paketid = "";
 		String hizmetid = '';
 		final paketurun = selectedongorusmesebep?.getPaketUrunAdi() ?? "";
-		if (paketurun.contains("Paket")) {
+		if (paketurun.contains("(Paket)")) {
 			paketid = selectedongorusmesebep?.getId() ?? "";
-		} else if (paketurun.contains("Ürün")) {
+		} else if (paketurun.contains("(Ürün)")) {
 			urunid = selectedongorusmesebep?.getId() ?? "";
-		} else if (paketurun.contains('IsletmeHizmet')) {
+		} else if (paketurun.contains('(Hizmet)')) {
 			hizmetid = selectedongorusmesebep?.getId() ?? '';
 		}
 		widget.ongorusmedatasource.onGorusmeEkleGuncelle(
