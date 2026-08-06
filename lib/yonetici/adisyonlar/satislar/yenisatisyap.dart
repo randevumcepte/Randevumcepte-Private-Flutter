@@ -699,7 +699,11 @@ class _SatisEkraniState extends State<SatisEkrani> {
         return;
       }
       final deger = (odul['deger'] as num?)?.toDouble() ?? 0;
-      final indirimTutar = matchTutar * (deger / 100.0);
+      // İndirim birimi: 'tutar' ise sabit ₺ (kategori toplamını aşamaz), değilse yüzde.
+      final tutarMi = (odul['indirim_tipi'] ?? 'yuzde').toString() == 'tutar';
+      final indirimTutar = tutarMi
+          ? (deger < matchTutar ? deger : matchTutar)
+          : matchTutar * (deger / 100.0);
       final mevcut = tlyirakamacevir(harici_indirim.text);
       final yeni = mevcut + indirimTutar;
       final odulId = (odul['id'] as num?)?.toInt() ?? 0;
@@ -717,7 +721,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
           backgroundColor: _successColor,
           behavior: SnackBarBehavior.floating,
           content: Text(
-            '🎁 Kupon uygulandı: %${deger.toInt()} ${_kuponTipAdi(tip)} indirimi (${tryformat.format(indirimTutar)} ₺)',
+            '🎁 Kupon uygulandı: ${tutarMi ? '${tryformat.format(deger)} ₺' : (deger >= 100 ? 'Bedava' : '%${deger.toInt()}')} ${_kuponTipAdi(tip)} indirimi (${tryformat.format(indirimTutar)} ₺)',
             style: const TextStyle(color: Colors.white),
           ),
         ),
