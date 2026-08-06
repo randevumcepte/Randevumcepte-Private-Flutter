@@ -4235,19 +4235,34 @@ void satisyapildi(BuildContext context, String ongorusmeid,String adet,String ba
     'olusturan':user['id']
   };
 
-  final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmesatisyapildi'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(formData),
-  );
-  Navigator.of(context).pop();
-  if (response.statusCode == 200) {
-    Navigator.of(context).pop();
-    onBasarili?.call();
-
-  } else {
-
-    debugPrint(response.body);
+  try {
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmesatisyapildi'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(formData),
+    );
+    Navigator.of(context).pop(); // progress kapat
+    if (response.statusCode == 200) {
+      Navigator.of(context).pop(); // satis popup kapat
+      onBasarili?.call();
+    } else {
+      debugPrint(response.body);
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Satış kaydedilemedi (Sunucu hatası ${response.statusCode})'),
+        ));
+      } catch (_) {}
+    }
+  } catch (e) {
+    // Ag/istisna: progress'i kapat, kullaniciya bildir
+    try { Navigator.of(context).pop(); } catch (_) {}
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.red,
+        content: Text('Satış kaydedilemedi: $e'),
+      ));
+    } catch (_) {}
   }
 }
 Future<dynamic>personelprimhesapla(BuildContext context, String personelid,String salonid) async
