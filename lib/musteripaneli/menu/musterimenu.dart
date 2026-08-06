@@ -278,7 +278,7 @@ class _MenuPageState extends State<MenuPage> {
                   ),
                   _buildMenuButton(
                     icon: Icons.casino_outlined,
-                    label: 'Çark-ı Felek',
+                    label: 'Çarkıfelek',
                     onTap: () {
                       Navigator.push(
                         context,

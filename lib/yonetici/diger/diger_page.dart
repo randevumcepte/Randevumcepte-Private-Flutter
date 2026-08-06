@@ -609,7 +609,7 @@ class _MenuState extends State<Menu> {
                 if (Yetki.varMi('pazarlama.cark_yonet'))
                   _buildMenuButton(
                     icon: Icons.casino_outlined,
-                    label: 'Çark-ı Felek',
+                    label: 'Çarkıfelek',
                     onTap: () {
                       Navigator.push(
                         context,

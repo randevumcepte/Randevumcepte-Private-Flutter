@@ -797,6 +797,8 @@ class _Dilim {
   String? get rakamEtiket {
     if (deger == null) return null;
     if (tip.contains('indirimi')) {
+      // %100 (yüzde) indirim = bedava; çarkta "%100" yerine "Bedava" yaz.
+      if (indirimTipi != 'tutar' && deger! >= 100) return 'Bedava';
       // İndirim birimi: tutar ise "50₺", değilse "%50"
       return indirimTipi == 'tutar' ? '${deger!.toInt()}₺' : '%${deger!.toInt()}';
     }

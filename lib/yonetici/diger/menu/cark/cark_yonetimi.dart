@@ -353,7 +353,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'Çark-ı Felek',
+            'Çarkıfelek',
             style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.3),
           ),
           bottom: PreferredSize(
@@ -885,7 +885,7 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   void _duyuruGonderBottomSheet() {
     final baslikCtrl = TextEditingController();
     final mesajCtrl = TextEditingController(
-      text: 'Çark-ı Felek\'i çevir, sürpriz ödülü kap! Bugün şansını dene 🎁',
+      text: 'Çarkıfelek\'i çevir, sürpriz ödülü kap! Bugün şansını dene 🎁',
     );
     bool gonderiliyor = false;
     Map<String, dynamic>? sonuc;

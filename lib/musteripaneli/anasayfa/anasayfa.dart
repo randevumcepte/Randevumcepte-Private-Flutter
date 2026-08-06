@@ -1406,7 +1406,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Çark-ı Felek',
+                              'Çarkıfelek',
                               style: TextStyle(
                                 color:
                                     Colors.white.withValues(alpha: 0.85),
