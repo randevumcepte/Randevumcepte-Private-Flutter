@@ -2841,6 +2841,7 @@ List<Widget> _buildAppointmentsForResource(
   Future<void> hizmetsatispopup(BuildContext context, String ongorusmeid, {String kalemAdi = ''}) async {
     final cs = this.context.colors;
     final TextEditingController fiyat = TextEditingController();
+    final TextEditingController seansSayisi = TextEditingController();
     final TextEditingController tarih = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
 
@@ -2867,7 +2868,7 @@ List<Widget> _buildAppointmentsForResource(
                 _satisSaticiDropdown(personeller, selectedSatici, cs,
                     (v) => setSt(() => selectedSatici = v)),
                 const SizedBox(height: 10),
-                _satisAlanLabel('İşlem Tarihi', cs),
+                _satisAlanLabel('Satış Tarihi', cs),
                 const SizedBox(height: 10),
                 _satisTarihField(tarih, cs, () async {
                   final p = await showDatePicker(
@@ -2880,6 +2881,10 @@ List<Widget> _buildAppointmentsForResource(
                     setSt(() => tarih.text = DateFormat('yyyy-MM-dd').format(p));
                   }
                 }),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Seans Sayısı', cs),
+                const SizedBox(height: 10),
+                _satisNumField(seansSayisi, cs),
                 const SizedBox(height: 10),
                 _satisAlanLabel('Fiyat (₺)', cs),
                 const SizedBox(height: 10),
@@ -2895,6 +2900,7 @@ List<Widget> _buildAppointmentsForResource(
                 onPressed: () {
                   satisyapildi(ctx, ongorusmeid, '', tarih.text, '',
                       fiyat: fiyat.text,
+                      seansSayisi: seansSayisi.text.trim(),
                       personelId: selectedSatici?.id ?? '',
                       onBasarili: () => getUpdatedAppointments(
                             DateFormat('yyyy-MM-dd').format(seciliTarih),

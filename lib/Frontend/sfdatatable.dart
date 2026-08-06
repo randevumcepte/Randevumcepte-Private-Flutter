@@ -1454,6 +1454,7 @@ class OnGorusmeDataSource extends DataGridSource {
   Future<void> showHizmetSatisPopup(BuildContext context, String ongorusmeid,
       {String defaultFiyat = '', String kalemAdi = ''}) async {
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
+    final TextEditingController seansSayisi = TextEditingController();
     final TextEditingController islemTarihi = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
 
@@ -1478,7 +1479,7 @@ class OnGorusmeDataSource extends DataGridSource {
                 _saticiDropdown(personeller, selectedSatici,
                     (v) => setSt(() => selectedSatici = v)),
                 const SizedBox(height: 14),
-                _popupLabel('İşlem Tarihi'),
+                _popupLabel('Satış Tarihi'),
                 _popupField(
                   controller: islemTarihi,
                   readOnly: true,
@@ -1495,6 +1496,9 @@ class OnGorusmeDataSource extends DataGridSource {
                     }
                   },
                 ),
+                const SizedBox(height: 14),
+                _popupLabel('Seans Sayısı'),
+                _popupField(controller: seansSayisi, keyboardType: TextInputType.number),
                 const SizedBox(height: 14),
                 _popupLabel('Fiyat (₺)'),
                 _popupField(
@@ -1513,6 +1517,7 @@ class OnGorusmeDataSource extends DataGridSource {
                 onPressed: () {
                   satisyapildi(ctx, ongorusmeid, '', islemTarihi.text, '',
                       fiyat: _fiyatTemizle(fiyat.text),
+                      seansSayisi: seansSayisi.text.trim(),
                       personelId: selectedSatici?.id ?? '');
                 },
                 child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
