@@ -1272,8 +1272,6 @@ class OnGorusmeDataSource extends DataGridSource {
       {String defaultFiyat = '', String defaultSeans = '', String defaultSeansAralik = ''}) async {
     final TextEditingController ongorusmetarihi = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
-    final TextEditingController seansaralik =
-        TextEditingController(text: defaultSeansAralik);
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
     final TextEditingController seansSayisi = TextEditingController(text: defaultSeans);
 
@@ -1324,9 +1322,6 @@ class OnGorusmeDataSource extends DataGridSource {
                 const SizedBox(height: 14),
                 _popupLabel('Seans Sayısı'),
                 _popupField(controller: seansSayisi, keyboardType: TextInputType.number),
-                const SizedBox(height: 14),
-                _popupLabel('Seans Aralığı (Gün)'),
-                _popupField(controller: seansaralik, keyboardType: TextInputType.number),
               ],
             ),
             actions: <Widget>[
@@ -1336,7 +1331,7 @@ class OnGorusmeDataSource extends DataGridSource {
               ),
               TextButton(
                 onPressed: () {
-                  satisyapildi(ctx, ongorusmeid, '', ongorusmetarihi.text, seansaralik.text.trim(),
+                  satisyapildi(ctx, ongorusmeid, '', ongorusmetarihi.text, '',
                       fiyat: _fiyatTemizle(fiyat.text),
                       seansSayisi: seansSayisi.text.trim(),
                       personelId: selectedSatici?.id ?? '');

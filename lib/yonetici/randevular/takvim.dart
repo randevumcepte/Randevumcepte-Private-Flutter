@@ -2642,7 +2642,6 @@ List<Widget> _buildAppointmentsForResource(
   Future<void> paketsatispopup(BuildContext context, String ongorusmeid, {String musteriId = ''}) async {
     final cs = this.context.colors;
     final TextEditingController seansSayisi = TextEditingController();
-    final TextEditingController seansAralik = TextEditingController();
     final TextEditingController fiyat = TextEditingController();
     final TextEditingController tarih = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
@@ -2690,10 +2689,6 @@ List<Widget> _buildAppointmentsForResource(
                 _satisAlanLabel('Seans Sayısı', cs),
                 const SizedBox(height: 10),
                 _satisNumField(seansSayisi, cs),
-                const SizedBox(height: 10),
-                _satisAlanLabel('Seans Aralığı (Gün)', cs),
-                const SizedBox(height: 10),
-                _satisNumField(seansAralik, cs),
               ],
             ),
             actions: <Widget>[
@@ -2703,7 +2698,7 @@ List<Widget> _buildAppointmentsForResource(
               ),
               TextButton(
                 onPressed: () {
-                  satisyapildi(ctx, ongorusmeid, '', tarih.text, seansAralik.text.trim(),
+                  satisyapildi(ctx, ongorusmeid, '', tarih.text, '',
                       fiyat: fiyat.text,
                       seansSayisi: seansSayisi.text.trim(),
                       personelId: selectedSatici?.id ?? '',
