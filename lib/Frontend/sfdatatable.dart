@@ -15,6 +15,8 @@ import 'package:randevu_sistem/yonetici/diger/diger_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
+import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Models/adisyonkalemleri.dart';
 import 'package:randevu_sistem/Models/adisyonlar.dart';
@@ -1109,7 +1111,7 @@ class OnGorusmeDataSource extends DataGridSource {
 
 
   void satisyapildi(BuildContext context, String ongorusmeid,String adet,String baslangictarih,String seansaralik,
-      {String fiyat = '', String seansSayisi = ''}) async {
+      {String fiyat = '', String seansSayisi = '', String personelId = ''}) async {
     SharedPreferences localStorage = await SharedPreferences.getInstance();
 
     var user = jsonDecode(localStorage.getString('user')!);
@@ -1123,6 +1125,8 @@ class OnGorusmeDataSource extends DataGridSource {
       // Yeni Satis formlarindaki kalem alanlari (backend zaten bu iki alani okur)
       'fiyat': fiyat,
       'seans_sayisi': seansSayisi,
+      // Satici (personel): secilmisse backend bunu kullanir, yoksa ongorusme personeli
+      if (personelId.isNotEmpty) 'personel_id': personelId,
       'olusturan':user['id']
     };
 
@@ -1204,8 +1208,68 @@ class OnGorusmeDataSource extends DataGridSource {
   }
 
   // ── PAKET satis popup'i: Yeni Satis paket kalemi alanlari (fiyat + seans sayisi) ──
-  void showPaketSatisPopup(BuildContext context, String ongorusmeid,
-      {String defaultFiyat = '', String defaultSeans = '', String defaultSeansAralik = ''}) {
+  // Satis popup'lari icin personel listesi + varsayilan secili personeli yukler.
+  // Yeni Satis formlarindaki "Satici" dropdown'inin ayni mantigi.
+  Future<Map<String, dynamic>> _satisPersonelYukle() async {
+    List<Personel> personeller = [];
+    Personel? secili;
+    try {
+      final list = await personellistegetir(salonid);
+      final Map<String, Personel> uniq = {};
+      for (final p in list) {
+        uniq[p.id] = p;
+      }
+      personeller = uniq.values.toList();
+      try {
+        final sp = await seciliPersonelgetir(isletmebilgi);
+        for (final p in personeller) {
+          if (p.id == sp.id) {
+            secili = p;
+            break;
+          }
+        }
+        if (secili == null) {
+          personeller.insert(0, sp);
+          secili = sp;
+        }
+      } catch (_) {}
+    } catch (_) {}
+    return {'personeller': personeller, 'secili': secili};
+  }
+
+  // Satis popup'lari icin ortak "Satici" (personel) dropdown'i
+  Widget _saticiDropdown(
+      List<Personel> personeller, Personel? selected, ValueChanged<Personel?> onChanged) {
+    return AramaliDropdownFormField<Personel>(
+      value: selected,
+      isExpanded: true,
+      hint: const Text('Satıcı seçin'),
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+      ),
+      items: personeller
+          .map((p) => DropdownMenuItem<Personel>(
+                value: p,
+                child: Text(p.personel_adi, overflow: TextOverflow.ellipsis),
+              ))
+          .toList(),
+      searchText: (p) => p.personel_adi,
+      onChanged: onChanged,
+    );
+  }
+
+  Future<void> showPaketSatisPopup(BuildContext context, String ongorusmeid,
+      {String defaultFiyat = '', String defaultSeans = '', String defaultSeansAralik = ''}) async {
     final TextEditingController ongorusmetarihi = TextEditingController(
         text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
     final TextEditingController seansaralik =
@@ -1213,149 +1277,225 @@ class OnGorusmeDataSource extends DataGridSource {
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
     final TextEditingController seansSayisi = TextEditingController(text: defaultSeans);
 
+    final data = await _satisPersonelYukle();
+    final List<Personel> personeller = data['personeller'];
+    Personel? selectedSatici = data['secili'];
+
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: Text('Paket Satışı',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _popupLabel('Satış Tarihi'),
-              _popupField(
-                controller: ongorusmetarihi,
-                readOnly: true,
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.tryParse(ongorusmetarihi.text) ?? DateTime.now(),
-                    firstDate: DateTime(1950),
-                    lastDate: DateTime(2100),
-                  );
-                  if (pickedDate != null) {
-                    ongorusmetarihi.text = DateFormat('yyyy-MM-dd').format(pickedDate);
-                  }
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) => AlertDialog(
+            scrollable: true,
+            title: Text('Paket Satışı',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _popupLabel('Satıcı'),
+                _saticiDropdown(personeller, selectedSatici,
+                    (v) => setSt(() => selectedSatici = v)),
+                const SizedBox(height: 14),
+                _popupLabel('Satış Tarihi'),
+                _popupField(
+                  controller: ongorusmetarihi,
+                  readOnly: true,
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: ctx,
+                      initialDate: DateTime.tryParse(ongorusmetarihi.text) ?? DateTime.now(),
+                      firstDate: DateTime(1950),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      setSt(() => ongorusmetarihi.text =
+                          DateFormat('yyyy-MM-dd').format(pickedDate));
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+                _popupLabel('Fiyat (₺)'),
+                _popupField(
+                  controller: fiyat,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixText: '₺ ',
+                ),
+                const SizedBox(height: 14),
+                _popupLabel('Seans Sayısı'),
+                _popupField(controller: seansSayisi, keyboardType: TextInputType.number),
+                const SizedBox(height: 14),
+                _popupLabel('Seans Aralığı (Gün)'),
+                _popupField(controller: seansaralik, keyboardType: TextInputType.number),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Kapat', style: TextStyle(color: Colors.black)),
+              ),
+              TextButton(
+                onPressed: () {
+                  satisyapildi(ctx, ongorusmeid, '', ongorusmetarihi.text, seansaralik.text.trim(),
+                      fiyat: _fiyatTemizle(fiyat.text),
+                      seansSayisi: seansSayisi.text.trim(),
+                      personelId: selectedSatici?.id ?? '');
                 },
+                child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
               ),
-              const SizedBox(height: 14),
-              _popupLabel('Fiyat (₺)'),
-              _popupField(
-                controller: fiyat,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                prefixText: '₺ ',
-              ),
-              const SizedBox(height: 14),
-              _popupLabel('Seans Sayısı'),
-              _popupField(controller: seansSayisi, keyboardType: TextInputType.number),
-              const SizedBox(height: 14),
-              _popupLabel('Seans Aralığı (Gün)'),
-              _popupField(controller: seansaralik, keyboardType: TextInputType.number),
             ],
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Kapat', style: TextStyle(color: Colors.black)),
-            ),
-            TextButton(
-              onPressed: () {
-                satisyapildi(context, ongorusmeid, '', ongorusmetarihi.text, seansaralik.text.trim(),
-                    fiyat: _fiyatTemizle(fiyat.text), seansSayisi: seansSayisi.text.trim());
-              },
-              child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
-            ),
-          ],
         );
       },
     );
   }
 
-  // ── URUN satis popup'i: Yeni Satis urun kalemi alanlari (adet + fiyat) ──
-  void showUrunSatisPopup(BuildContext context, String ongorusmeid,
-      {String defaultFiyat = ''}) {
+  // ── URUN satis popup'i: Yeni Satis urun kalemi alanlari (satici + tarih + adet + fiyat) ──
+  Future<void> showUrunSatisPopup(BuildContext context, String ongorusmeid,
+      {String defaultFiyat = ''}) async {
     final TextEditingController quantityController = TextEditingController(text: '1');
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
+    final TextEditingController islemTarihi = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+
+    final data = await _satisPersonelYukle();
+    final List<Personel> personeller = data['personeller'];
+    Personel? selectedSatici = data['secili'];
 
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: Text('Ürün Satışı',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _popupLabel('Adet'),
-              _popupField(controller: quantityController, keyboardType: TextInputType.number),
-              const SizedBox(height: 14),
-              _popupLabel('Fiyat (₺)'),
-              _popupField(
-                controller: fiyat,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                prefixText: '₺ ',
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) => AlertDialog(
+            scrollable: true,
+            title: Text('Ürün Satışı',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _popupLabel('Satıcı'),
+                _saticiDropdown(personeller, selectedSatici,
+                    (v) => setSt(() => selectedSatici = v)),
+                const SizedBox(height: 14),
+                _popupLabel('İşlem Tarihi'),
+                _popupField(
+                  controller: islemTarihi,
+                  readOnly: true,
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: ctx,
+                      initialDate: DateTime.tryParse(islemTarihi.text) ?? DateTime.now(),
+                      firstDate: DateTime(1950),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      setSt(() => islemTarihi.text =
+                          DateFormat('yyyy-MM-dd').format(pickedDate));
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+                _popupLabel('Adet'),
+                _popupField(controller: quantityController, keyboardType: TextInputType.number),
+                const SizedBox(height: 14),
+                _popupLabel('Fiyat (₺)'),
+                _popupField(
+                  controller: fiyat,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixText: '₺ ',
+                ),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Kapat', style: TextStyle(color: Colors.black)),
+              ),
+              TextButton(
+                onPressed: () {
+                  satisyapildi(ctx, ongorusmeid, quantityController.text.trim(),
+                      islemTarihi.text, '',
+                      fiyat: _fiyatTemizle(fiyat.text),
+                      personelId: selectedSatici?.id ?? '');
+                },
+                child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
               ),
             ],
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Kapat', style: TextStyle(color: Colors.black)),
-            ),
-            TextButton(
-              onPressed: () {
-                satisyapildi(context, ongorusmeid, quantityController.text.trim(), '', '',
-                    fiyat: _fiyatTemizle(fiyat.text));
-              },
-              child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
-            ),
-          ],
         );
       },
     );
   }
 
-  // ── HIZMET satis popup'i: Yeni Satis hizmet kalemi alani (fiyat) ──
-  void showHizmetSatisPopup(BuildContext context, String ongorusmeid,
-      {String defaultFiyat = ''}) {
+  // ── HIZMET satis popup'i: Yeni Satis hizmet kalemi alanlari (satici + tarih + fiyat) ──
+  Future<void> showHizmetSatisPopup(BuildContext context, String ongorusmeid,
+      {String defaultFiyat = ''}) async {
     final TextEditingController fiyat = TextEditingController(text: defaultFiyat);
+    final TextEditingController islemTarihi = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+
+    final data = await _satisPersonelYukle();
+    final List<Personel> personeller = data['personeller'];
+    Personel? selectedSatici = data['secili'];
 
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: Text('Hizmet Satışı',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _popupLabel('Fiyat (₺)'),
-              _popupField(
-                controller: fiyat,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                prefixText: '₺ ',
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) => AlertDialog(
+            scrollable: true,
+            title: Text('Hizmet Satışı',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _popupLabel('Satıcı'),
+                _saticiDropdown(personeller, selectedSatici,
+                    (v) => setSt(() => selectedSatici = v)),
+                const SizedBox(height: 14),
+                _popupLabel('İşlem Tarihi'),
+                _popupField(
+                  controller: islemTarihi,
+                  readOnly: true,
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: ctx,
+                      initialDate: DateTime.tryParse(islemTarihi.text) ?? DateTime.now(),
+                      firstDate: DateTime(1950),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      setSt(() => islemTarihi.text =
+                          DateFormat('yyyy-MM-dd').format(pickedDate));
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+                _popupLabel('Fiyat (₺)'),
+                _popupField(
+                  controller: fiyat,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixText: '₺ ',
+                ),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Kapat', style: TextStyle(color: Colors.black)),
+              ),
+              TextButton(
+                onPressed: () {
+                  satisyapildi(ctx, ongorusmeid, '', islemTarihi.text, '',
+                      fiyat: _fiyatTemizle(fiyat.text),
+                      personelId: selectedSatici?.id ?? '');
+                },
+                child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
               ),
             ],
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Kapat', style: TextStyle(color: Colors.black)),
-            ),
-            TextButton(
-              onPressed: () {
-                satisyapildi(context, ongorusmeid, '', '', '',
-                    fiyat: _fiyatTemizle(fiyat.text));
-              },
-              child: Text('Kaydet', style: TextStyle(color: Colors.purple[800])),
-            ),
-          ],
         );
       },
     );

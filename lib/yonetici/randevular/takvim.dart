@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
+import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/takvimturu.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -2552,162 +2553,333 @@ List<Widget> _buildAppointmentsForResource(
     );
   }
 
-  void paketsatispopup(BuildContext context, String ongorusmeid, {String musteriId = ''}) {
-    final cs = context.colors;
-    TextEditingController seansSayisi = TextEditingController();
-    TextEditingController fiyat = TextEditingController();
+  // Satis popup'lari icin personel listesi + varsayilan secili personel (Yeni Satis "Satici").
+  Future<Map<String, dynamic>> _satisPersonelYukle() async {
+    List<Personel> personeller = [];
+    Personel? secili;
+    try {
+      final list = await personellistegetir(widget.isletmebilgi["id"].toString());
+      final Map<String, Personel> uniq = {};
+      for (final p in list) {
+        uniq[p.id] = p;
+      }
+      personeller = uniq.values.toList();
+      try {
+        final sp = await seciliPersonelgetir(widget.isletmebilgi);
+        for (final p in personeller) {
+          if (p.id == sp.id) {
+            secili = p;
+            break;
+          }
+        }
+        if (secili == null) {
+          personeller.insert(0, sp);
+          secili = sp;
+        }
+      } catch (_) {}
+    } catch (_) {}
+    return {'personeller': personeller, 'secili': secili};
+  }
+
+  // Satis popup'lari icin ortak "Satici" (personel) dropdown'i
+  Widget _satisSaticiDropdown(List<Personel> personeller, Personel? selected,
+      dynamic cs, ValueChanged<Personel?> onChanged) {
+    return AramaliDropdownFormField<Personel>(
+      value: selected,
+      isExpanded: true,
+      hint: const Text('Satıcı seçin'),
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: cs.primary),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: cs.primary),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+      ),
+      items: personeller
+          .map((p) => DropdownMenuItem<Personel>(
+                value: p,
+                child: Text(p.personel_adi, overflow: TextOverflow.ellipsis),
+              ))
+          .toList(),
+      searchText: (p) => p.personel_adi,
+      onChanged: onChanged,
+    );
+  }
+
+  // Satis popup'lari icin salt-okunur tarih alani (dokununca takvimden secilir)
+  Widget _satisTarihField(TextEditingController controller, dynamic cs, VoidCallback onTap) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.only(left: 0, right: 20),
+      child: TextField(
+        controller: controller,
+        readOnly: true,
+        onTap: onTap,
+        maxLines: 1,
+        decoration: InputDecoration(
+          suffixIcon: Icon(Icons.calendar_today_outlined, size: 18, color: cs.primary),
+          contentPadding: const EdgeInsets.all(15.0),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: cs.primary),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: cs.primary),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> paketsatispopup(BuildContext context, String ongorusmeid, {String musteriId = ''}) async {
+    final cs = this.context.colors;
+    final TextEditingController seansSayisi = TextEditingController();
+    final TextEditingController seansAralik = TextEditingController();
+    final TextEditingController fiyat = TextEditingController();
+    final TextEditingController tarih = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+
+    final data = await _satisPersonelYukle();
+    final List<Personel> personeller = data['personeller'];
+    Personel? selectedSatici = data['secili'];
+    if (!mounted) return;
 
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: const Text(
-            'Paket satışını tamamlamak için paket süresi, seans sayısı ve fiyatı giriniz.',
-            style: TextStyle(fontSize: 14),
-          ),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _satisAlanLabel('Seans Sayısı', cs),
-              const SizedBox(height: 10),
-              _satisNumField(seansSayisi, cs),
-              const SizedBox(height: 10),
-              _satisAlanLabel('Fiyat (₺)', cs),
-              const SizedBox(height: 10),
-              _satisNumField(fiyat, cs),
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) => AlertDialog(
+            scrollable: true,
+            title: const Text('Paket Satışı',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _satisAlanLabel('Satıcı', cs),
+                const SizedBox(height: 10),
+                _satisSaticiDropdown(personeller, selectedSatici, cs,
+                    (v) => setSt(() => selectedSatici = v)),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Satış Tarihi', cs),
+                const SizedBox(height: 10),
+                _satisTarihField(tarih, cs, () async {
+                  final p = await showDatePicker(
+                    context: ctx,
+                    initialDate: DateTime.tryParse(tarih.text) ?? DateTime.now(),
+                    firstDate: DateTime(1950),
+                    lastDate: DateTime(2100),
+                  );
+                  if (p != null) {
+                    setSt(() => tarih.text = DateFormat('yyyy-MM-dd').format(p));
+                  }
+                }),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Fiyat (₺)', cs),
+                const SizedBox(height: 10),
+                _satisNumField(fiyat, cs),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Seans Sayısı', cs),
+                const SizedBox(height: 10),
+                _satisNumField(seansSayisi, cs),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Seans Aralığı (Gün)', cs),
+                const SizedBox(height: 10),
+                _satisNumField(seansAralik, cs),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
+              ),
+              TextButton(
+                onPressed: () {
+                  satisyapildi(ctx, ongorusmeid, '', tarih.text, seansAralik.text.trim(),
+                      fiyat: fiyat.text,
+                      seansSayisi: seansSayisi.text.trim(),
+                      personelId: selectedSatici?.id ?? '',
+                      onBasarili: () {
+                        // Paket satışı kaydedildikten sonra tahsilat ekranına yönlendir
+                        Navigator.push(
+                          this.context,
+                          MaterialPageRoute(
+                            builder: (_) => TahsilatEkrani(
+                              adisyonId: "",
+                              kullanicirolu: widget.kullanicirolu,
+                              isletmebilgi: widget.isletmebilgi,
+                              musteridanisanid: musteriId,
+                            ),
+                          ),
+                        ).then((_) => getUpdatedAppointments(
+                              DateFormat('yyyy-MM-dd').format(seciliTarih),
+                              DateFormat('yyyy-MM-dd').format(seciliTarih),
+                              false,
+                            ));
+                      });
+                },
+                child: Text('Kaydet', style: TextStyle(color: cs.primary)),
+              ),
             ],
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
+        );
+      },
+    );
+  }
+
+  Future<void> urunsatispopup(BuildContext context, String ongorusmeid) async {
+    final cs = this.context.colors;
+    final TextEditingController quantityController = TextEditingController(text: '1');
+    final TextEditingController fiyat = TextEditingController();
+    final TextEditingController tarih = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+
+    final data = await _satisPersonelYukle();
+    final List<Personel> personeller = data['personeller'];
+    Personel? selectedSatici = data['secili'];
+    if (!mounted) return;
+
+    showDialog(
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) => AlertDialog(
+            scrollable: true,
+            title: const Text('Ürün Satışı',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _satisAlanLabel('Satıcı', cs),
+                const SizedBox(height: 10),
+                _satisSaticiDropdown(personeller, selectedSatici, cs,
+                    (v) => setSt(() => selectedSatici = v)),
+                const SizedBox(height: 10),
+                _satisAlanLabel('İşlem Tarihi', cs),
+                const SizedBox(height: 10),
+                _satisTarihField(tarih, cs, () async {
+                  final p = await showDatePicker(
+                    context: ctx,
+                    initialDate: DateTime.tryParse(tarih.text) ?? DateTime.now(),
+                    firstDate: DateTime(1950),
+                    lastDate: DateTime(2100),
+                  );
+                  if (p != null) {
+                    setSt(() => tarih.text = DateFormat('yyyy-MM-dd').format(p));
+                  }
+                }),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Adet', cs),
+                const SizedBox(height: 10),
+                _satisNumField(quantityController, cs),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Fiyat (₺)', cs),
+                const SizedBox(height: 10),
+                _satisNumField(fiyat, cs),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                satisyapildi(context, ongorusmeid, '', '', '',
-                    fiyat: fiyat.text, seansSayisi: seansSayisi.text,
-                    onBasarili: () {
-                      // Paket satışı kaydedildikten sonra tahsilat ekranına yönlendir
-                      Navigator.push(
-                        this.context,
-                        MaterialPageRoute(
-                          builder: (_) => TahsilatEkrani(
-                            adisyonId: "",
-                            kullanicirolu: widget.kullanicirolu,
-                            isletmebilgi: widget.isletmebilgi,
-                            musteridanisanid: musteriId,
-                          ),
-                        ),
-                      ).then((_) => getUpdatedAppointments(
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
+              ),
+              TextButton(
+                onPressed: () {
+                  satisyapildi(ctx, ongorusmeid, quantityController.text.trim(),
+                      tarih.text, '',
+                      fiyat: fiyat.text,
+                      personelId: selectedSatici?.id ?? '',
+                      onBasarili: () => getUpdatedAppointments(
                             DateFormat('yyyy-MM-dd').format(seciliTarih),
                             DateFormat('yyyy-MM-dd').format(seciliTarih),
                             false,
                           ));
-                    });
-              },
-              child: Text('Kaydet', style: TextStyle(color: cs.primary)),
-            ),
-          ],
+                },
+                child: Text('Kaydet', style: TextStyle(color: cs.primary)),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  void urunsatispopup(BuildContext context, String ongorusmeid) {
-    final cs = context.colors;
-    TextEditingController quantityController = TextEditingController();
-    TextEditingController fiyat = TextEditingController();
+  Future<void> hizmetsatispopup(BuildContext context, String ongorusmeid) async {
+    final cs = this.context.colors;
+    final TextEditingController fiyat = TextEditingController();
+    final TextEditingController tarih = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+
+    final data = await _satisPersonelYukle();
+    final List<Personel> personeller = data['personeller'];
+    Personel? selectedSatici = data['secili'];
+    if (!mounted) return;
 
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: const Text(
-              'Ürün satışını tamamlamak için adet ve fiyatı giriniz.',
-              style: TextStyle(fontSize: 16)
-          ),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _satisAlanLabel('Adet', cs),
-              const SizedBox(height: 10),
-              _satisNumField(quantityController, cs),
-              const SizedBox(height: 10),
-              _satisAlanLabel('Fiyat (₺)', cs),
-              const SizedBox(height: 10),
-              _satisNumField(fiyat, cs),
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) => AlertDialog(
+            scrollable: true,
+            title: const Text('Hizmet Satışı',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _satisAlanLabel('Satıcı', cs),
+                const SizedBox(height: 10),
+                _satisSaticiDropdown(personeller, selectedSatici, cs,
+                    (v) => setSt(() => selectedSatici = v)),
+                const SizedBox(height: 10),
+                _satisAlanLabel('İşlem Tarihi', cs),
+                const SizedBox(height: 10),
+                _satisTarihField(tarih, cs, () async {
+                  final p = await showDatePicker(
+                    context: ctx,
+                    initialDate: DateTime.tryParse(tarih.text) ?? DateTime.now(),
+                    firstDate: DateTime(1950),
+                    lastDate: DateTime(2100),
+                  );
+                  if (p != null) {
+                    setSt(() => tarih.text = DateFormat('yyyy-MM-dd').format(p));
+                  }
+                }),
+                const SizedBox(height: 10),
+                _satisAlanLabel('Fiyat (₺)', cs),
+                const SizedBox(height: 10),
+                _satisNumField(fiyat, cs),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
+              ),
+              TextButton(
+                onPressed: () {
+                  satisyapildi(ctx, ongorusmeid, '', tarih.text, '',
+                      fiyat: fiyat.text,
+                      personelId: selectedSatici?.id ?? '',
+                      onBasarili: () => getUpdatedAppointments(
+                            DateFormat('yyyy-MM-dd').format(seciliTarih),
+                            DateFormat('yyyy-MM-dd').format(seciliTarih),
+                            false,
+                          ));
+                },
+                child: Text('Kaydet', style: TextStyle(color: cs.primary)),
+              ),
             ],
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
-            ),
-            TextButton(
-              onPressed: () {
-                satisyapildi(context, ongorusmeid, quantityController.text, '', '',
-                    fiyat: fiyat.text,
-                    onBasarili: () => getUpdatedAppointments(
-                          DateFormat('yyyy-MM-dd').format(seciliTarih),
-                          DateFormat('yyyy-MM-dd').format(seciliTarih),
-                          false,
-                        ));
-              },
-              child: Text('Kaydet', style: TextStyle(color: cs.primary)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void hizmetsatispopup(BuildContext context, String ongorusmeid) {
-    final cs = context.colors;
-    TextEditingController fiyat = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: const Text(
-              'Hizmet satışını tamamlamak için fiyatı giriniz.',
-              style: TextStyle(fontSize: 16)
-          ),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _satisAlanLabel('Fiyat (₺)', cs),
-              const SizedBox(height: 10),
-              _satisNumField(fiyat, cs),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Kapat', style: TextStyle(color: cs.onSurface)),
-            ),
-            TextButton(
-              onPressed: () {
-                satisyapildi(context, ongorusmeid, '', '', '',
-                    fiyat: fiyat.text,
-                    onBasarili: () => getUpdatedAppointments(
-                          DateFormat('yyyy-MM-dd').format(seciliTarih),
-                          DateFormat('yyyy-MM-dd').format(seciliTarih),
-                          false,
-                        ));
-              },
-              child: Text('Kaydet', style: TextStyle(color: cs.primary)),
-            ),
-          ],
         );
       },
     );

@@ -4218,7 +4218,7 @@ Future<OnGorusme> ongorsumebilgi(String ongorusmeid) async{
     throw Exception(response.reasonPhrase);
   }
 }
-void satisyapildi(BuildContext context, String ongorusmeid,String adet,String baslangictarih,String seansaralik, {String fiyat = '', String seansSayisi = '', VoidCallback? onBasarili}) async {
+void satisyapildi(BuildContext context, String ongorusmeid,String adet,String baslangictarih,String seansaralik, {String fiyat = '', String seansSayisi = '', String personelId = '', VoidCallback? onBasarili}) async {
   SharedPreferences localStorage = await SharedPreferences.getInstance();
 
   var user = jsonDecode(localStorage.getString('user')!);
@@ -4232,6 +4232,8 @@ void satisyapildi(BuildContext context, String ongorusmeid,String adet,String ba
     'seans_araligi': seansaralik,
     'fiyat': fiyat,
     'seans_sayisi': seansSayisi,
+    // Satici (personel): secilmisse backend bunu kullanir, yoksa ongorusme personeli
+    if (personelId.isNotEmpty) 'personel_id': personelId,
     'olusturan':user['id']
   };
 
