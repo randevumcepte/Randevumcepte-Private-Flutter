@@ -125,6 +125,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
   TextEditingController tahsilat_tutari = TextEditingController();
   TextEditingController kalan_alacak_tutar = TextEditingController();
   TextEditingController harici_indirim = TextEditingController();
+  // Komisyon (TL) — Alacak Tutari'na eklenir; tahsil et anında >0 ise backend
+  // Masraflar (Banka Odemeleri) kaydi olusturur ve tahsilat.komisyon_tutari kolonunu doldurur.
+  TextEditingController komisyon_tutari = TextEditingController(text: '0');
 
   bool _dataAdded = false;
   double _containerHeight = 0.0;
@@ -867,6 +870,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
     double fiyattoplam = 0;
     double indirimtutari = 0;
     double hariciindirim = tlyirakamacevir(harici_indirim.text);
+    // Komisyon: Alacak Tutari'na (+) eklenir; kalem dagitiminda ise backend arindiriyor
+    double komisyon = tlyirakamacevir(komisyon_tutari.text);
 
 
     adisyonkalemleri.forEach((element) {
@@ -927,12 +932,14 @@ class _TahsilatState extends State<TahsilatEkrani> {
     setState(() {
       birim_tutar.text = tryformat.format(fiyattoplam).toString();
       toplamindirimtutari.text = tryformat.format(indirimtutari+hariciindirim).toString();
-      tahsilat_tutari.text = tryformat.format(fiyattoplam-indirimtutari-hariciindirim).toString();
+      // Alacak/Odenecek = kalem_toplami - indirim - hariciindirim + komisyon
+      final double alacak = fiyattoplam - indirimtutari - hariciindirim + komisyon;
+      tahsilat_tutari.text = tryformat.format(alacak).toString();
       if(!onodemegirildi || tahsilat_tutari.text == odenecek_tutar.text)
-        odenecek_tutar.text = tryformat.format(fiyattoplam-indirimtutari-hariciindirim).toString();
+        odenecek_tutar.text = tryformat.format(alacak).toString();
       else{
 
-        kalan_alacak_tutar.text = tryformat.format(fiyattoplam- indirimtutari - hariciindirim - tlyirakamacevir(odenecek_tutar.text));
+        kalan_alacak_tutar.text = tryformat.format(fiyattoplam- indirimtutari - hariciindirim + komisyon - tlyirakamacevir(odenecek_tutar.text));
         taksit_toplam_tutar.text = kalan_alacak_tutar.text;
       }
 
@@ -1796,7 +1803,32 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         ),
                       ),
 
-
+                      const SizedBox(height: 8,),
+                      Container(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Komisyon (₺)',style: TextStyle(fontSize: 13,color: const Color(0xFF7a6010),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                      ),
+                      const SizedBox(height: 8,),
+                      Container(
+                        height:48,
+                        padding: const EdgeInsets.only(left:8,right: 8),
+                        child: TextFormField(
+                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
+                          controller: komisyon_tutari,
+                          keyboardType: TextInputType.phone,
+                          onChanged: (value) { tutar_hesapla(false); },
+                          onSaved: (value) { komisyon_tutari.text = value ?? '0'; },
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFFFFBEB),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFFDE68A), width: 1.2), borderRadius: BorderRadius.circular(12.0)),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                          ),
+                        ),
+                      ),
 
 
 
@@ -2390,7 +2422,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       // pop'u ile sonucsuz kapanir -> cagiran taraf tahsilatin
                       // yapildigini anlayamaz.
                       try {
-                        await tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text);
+                        await tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text, komisyonTutari: komisyon_tutari.text);
                       } catch (e) {
                         // Hata mesajini tahsilet kendisi gosterdi; ekranda kal.
                         return;

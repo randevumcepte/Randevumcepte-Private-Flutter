@@ -108,6 +108,9 @@ class _SatisEkraniState extends State<SatisEkrani> {
   TextEditingController tahsilat_tutari = TextEditingController();
   TextEditingController kalan_alacak_tutar = TextEditingController();
   TextEditingController harici_indirim = TextEditingController();
+  // Komisyon (TL) — Alacak Tutari'na eklenir; tahsil et anında >0 ise backend
+  // Masraflar (Banka Odemeleri) kaydi olusturur ve tahsilat.komisyon_tutari kolonunu doldurur.
+  TextEditingController komisyon_tutari = TextEditingController(text: '0');
   TextEditingController toplamindirimtutari = TextEditingController();
   TextEditingController musteridanisanadi = TextEditingController();
   TextEditingController aktifsadikpasif = TextEditingController();
@@ -835,6 +838,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
     double fiyattoplam = 0;
     double indirimtutari = 0;
     double hariciindirim = tlyirakamacevir(harici_indirim.text);
+    // Komisyon: Alacak Tutari'na (+) eklenir; backend'de tahsilat.komisyon_tutari + Masraflar (Banka Odemeleri)
+    double komisyon = tlyirakamacevir(komisyon_tutari.text);
 
     adisyonkalemleri.forEach((element) {
       if (element is AdisyonHizmet) {
@@ -874,12 +879,14 @@ class _SatisEkraniState extends State<SatisEkrani> {
     setState(() {
       birim_tutar.text = tryformat.format(fiyattoplam).toString();
       toplamindirimtutari.text = tryformat.format(indirimtutari + hariciindirim).toString();
-      tahsilat_tutari.text = tryformat.format(fiyattoplam - indirimtutari - hariciindirim).toString();
+      // Alacak/Odenecek = kalem_toplami - indirim - hariciindirim + komisyon
+      final double alacak = fiyattoplam - indirimtutari - hariciindirim + komisyon;
+      tahsilat_tutari.text = tryformat.format(alacak).toString();
 
       if (!onodemegirildi || tahsilat_tutari.text == odenecek_tutar.text) {
-        odenecek_tutar.text = tryformat.format(fiyattoplam - indirimtutari - hariciindirim).toString();
+        odenecek_tutar.text = tryformat.format(alacak).toString();
       } else {
-        kalan_alacak_tutar.text = tryformat.format(fiyattoplam - indirimtutari - hariciindirim - tlyirakamacevir(odenecek_tutar.text));
+        kalan_alacak_tutar.text = tryformat.format(fiyattoplam - indirimtutari - hariciindirim + komisyon - tlyirakamacevir(odenecek_tutar.text));
         taksit_toplam_tutar.text = kalan_alacak_tutar.text;
       }
     });
@@ -2130,6 +2137,25 @@ class _SatisEkraniState extends State<SatisEkrani> {
                             focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _primaryColor, width: 1.6), borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
+                        const SizedBox(height: 18),
+                        // Komisyon (Alacak Tutari'na eklenir, backend Masraflar/Banka Odemeleri kaydeder)
+                        Text('Komisyon (₺)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF7a6010), letterSpacing: 0.3)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: komisyon_tutari,
+                          keyboardType: TextInputType.phone,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _textColor),
+                          onChanged: (_) { tutar_hesapla(false); setSheet(() {}); },
+                          decoration: InputDecoration(
+                            isDense: true,
+                            filled: true,
+                            fillColor: const Color(0xFFFFFBEB),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            hintText: '0,00',
+                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFFDE68A), width: 1.2), borderRadius: BorderRadius.circular(14)),
+                            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.6), borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
                         // Kalan + Taksit toggle (sadece kısmi ödeme varsa görünür)
                         if (!tamTahsilat) ...[
                           const SizedBox(height: 12),
@@ -2267,6 +2293,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                     "",
                                     harici_indirim.text,
                                     satisTarihi: tahsilat_tarihi.text,
+                                    komisyonTutari: komisyon_tutari.text,
                                   );
                                   if (!mounted) return;
                                   Navigator.of(sheetCtx).pop();
