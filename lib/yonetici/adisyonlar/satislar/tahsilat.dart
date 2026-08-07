@@ -1759,74 +1759,70 @@ class _TahsilatState extends State<TahsilatEkrani> {
                         ),
                       ),
                       const SizedBox(height: 8,),
-                      Container(
-
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('İndirim (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
-                      ),
-
-                      const SizedBox(height: 8,),
-                      Container(
-                        height:48,
-                        padding: const EdgeInsets.only(left:8,right: 8),
-                        child: TextFormField(
-                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
-
-                          controller: harici_indirim,
-                          keyboardType: TextInputType.phone,
-                          onChanged: (value) {
-                            tutar_hesapla(false);
-
-                          },
-                          onSaved: (value) {
-                            harici_indirim.text = value!;
-                          },
-
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Theme.of(context).cardColor,
-                            focusColor:cs.primary ,
-                            hoverColor: cs.primary ,
-                            hintStyle: TextStyle(color:  cs.primary),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
-                            border:
-                            OutlineInputBorder(borderRadius: BorderRadius.circular(12.0),),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0),
+                      // İndirim (₺) + Komisyon (₺) — yan yana
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('İndirim (₺)', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600, letterSpacing: 0.2)),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: 48,
+                                    child: TextFormField(
+                                      style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
+                                      controller: harici_indirim,
+                                      keyboardType: TextInputType.phone,
+                                      onChanged: (value) { tutar_hesapla(false); },
+                                      onSaved: (value) { harici_indirim.text = value!; },
+                                      decoration: InputDecoration(
+                                        filled: true,
+                                        fillColor: Theme.of(context).cardColor,
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2), borderRadius: BorderRadius.circular(12.0)),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(
-                                color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8,),
-                      Container(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Text('Komisyon (₺)',style: TextStyle(fontSize: 13,color: const Color(0xFF7a6010),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
-                      ),
-                      const SizedBox(height: 8,),
-                      Container(
-                        height:48,
-                        padding: const EdgeInsets.only(left:8,right: 8),
-                        child: TextFormField(
-                          style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
-                          controller: komisyon_tutari,
-                          keyboardType: TextInputType.phone,
-                          onChanged: (value) { tutar_hesapla(false); },
-                          onSaved: (value) { komisyon_tutari.text = value ?? '0'; },
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFFFFBEB),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFFDE68A), width: 1.2), borderRadius: BorderRadius.circular(12.0)),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
-                          ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Komisyon (₺)', style: TextStyle(fontSize: 13, color: const Color(0xFF7a6010), fontWeight: FontWeight.w600, letterSpacing: 0.2)),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: 48,
+                                    child: TextFormField(
+                                      style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
+                                      controller: komisyon_tutari,
+                                      keyboardType: TextInputType.phone,
+                                      onChanged: (value) { tutar_hesapla(false); },
+                                      onSaved: (value) { komisyon_tutari.text = value ?? '0'; },
+                                      decoration: InputDecoration(
+                                        filled: true,
+                                        fillColor: const Color(0xFFFFFBEB),
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                        enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFFDE68A), width: 1.2), borderRadius: BorderRadius.circular(12.0)),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                        focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
