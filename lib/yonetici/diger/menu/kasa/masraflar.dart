@@ -256,6 +256,8 @@ class _MasraflarState extends State<Masraflar> {
         final Masraf m = masraflar[index];
         final double tutar = double.tryParse(m.tutar.toString()) ?? 0;
         final String? kategori = m.masraf_kategorisi["kategori"]?.toString();
+        final String _aciklamaText = m.aciklama.trim();
+        final bool _aciklamaVar = _aciklamaText.isNotEmpty && _aciklamaText.toLowerCase() != 'null';
         return Card(
           elevation: 0,
           color: Colors.white,
@@ -288,6 +290,16 @@ class _MasraflarState extends State<Masraflar> {
                     style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                if (_aciklamaVar)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      _aciklamaText,
+                      style: TextStyle(fontSize: 11.5, color: Colors.grey[700], fontStyle: FontStyle.italic),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 if (m.personel_gideri)
                   Container(

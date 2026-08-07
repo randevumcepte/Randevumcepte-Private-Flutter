@@ -2277,6 +2277,11 @@ class _SatisEkraniState extends State<SatisEkrani> {
 
                               if (tamTahsilat) {
                                 // Full payment → tahsilet (kapalı satış)
+                                // indirimli_toplam = tutarCtrl (adisyon odemesi) + komisyon;
+                                // backend'de komisyon cikarilir → tahsilat.tutar = tutarCtrl.
+                                final double _tutarNum = tlyirakamacevir(tutarCtrl.text);
+                                final double _komNum = tlyirakamacevir(komisyon_tutari.text);
+                                final String _odenenGonder = tryformat.format(_tutarNum + _komNum).toString();
                                 try {
                                   await tahsilet(
                                     context,
@@ -2288,7 +2293,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                     secilimusteridanisan?.id ?? "",
                                     toplamindirimtutari.text,
                                     secilenYontem.id,
-                                    tutarCtrl.text,
+                                    _odenenGonder,
                                     tahsilatTarihCtrl.text,
                                     "",
                                     harici_indirim.text,
