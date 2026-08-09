@@ -2264,19 +2264,17 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                 );
                                 return;
                               }
-                              if (!tamTahsilat && !taksitMode) {
-                                ScaffoldMessenger.of(sheetCtx).showSnackBar(
-                                  SnackBar(content: const Text('Kalan tutar için taksit oluşturmanız veya tamamını tahsil etmeniz gerekir.'), backgroundColor: _errorColor),
-                                );
-                                return;
-                              }
+                              // Kısmi ödeme taksitsiz de yapılabilir: kalan açık
+                              // alacak olarak adisyonda kalır (taksit ZORUNLU değil).
 
                               // Update main screen controllers to match what we're sending
                               selectedodemeyontemi = secilenYontem;
                               odenecek_tutar.text = tutarCtrl.text;
 
-                              if (tamTahsilat) {
-                                // Full payment → tahsilet (kapalı satış)
+                              if (!taksitMode) {
+                                // Taksit kapalı → tahsilet. Tam ödemede adisyon kapanır;
+                                // kısmi ödemede ödenen kadar tahsil edilir, KALAN açık
+                                // alacak olarak adisyonda kalır (taksit oluşturulmaz).
                                 // indirimli_toplam = tutarCtrl (adisyon odemesi) + komisyon;
                                 // backend'de komisyon cikarilir → tahsilat.tutar = tutarCtrl.
                                 final double _tutarNum = tlyirakamacevir(tutarCtrl.text);
