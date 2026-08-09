@@ -6347,7 +6347,7 @@ class GelirDataSource extends DataGridSource {
                           ],
                         ),
                         Divider(color: Colors.black, height: 10,),
-                        Text('Notlar', style: TextStyle(fontWeight: FontWeight.bold),),
+                        Text('Açıklama', style: TextStyle(fontWeight: FontWeight.bold),),
                         SizedBox(height: 4),
                         Container(
                           width: double.infinity,
