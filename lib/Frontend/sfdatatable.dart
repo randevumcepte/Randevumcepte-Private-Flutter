@@ -6283,26 +6283,24 @@ class GelirDataSource extends DataGridSource {
       odemeyontemi = "Kredi Kartı";
     if (row.getCells()[2].value.toString() == "3")
       odemeyontemi = "Havale / EFT";
+    // Notlar: 'null'/'' filtreli
+    final String _notlarRaw = row.getCells()[3].value.toString();
+    final String _notlar = (_notlarRaw.isEmpty || _notlarRaw == 'null') ? '' : _notlarRaw;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          insetPadding: EdgeInsets.zero,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
           content: Container(
-
-            height: 190,
-            width: 280,
+            width: 320,
             child: Stack(
               clipBehavior: Clip.none,
               children: <Widget>[
-
                 Positioned(
                   right: -40,
                   top: -40,
                   child: InkResponse(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
+                    onTap: () { Navigator.of(context).pop(); },
                     child: const CircleAvatar(
                       foregroundColor: Colors.white,
                       backgroundColor: Colors.red,
@@ -6310,58 +6308,73 @@ class GelirDataSource extends DataGridSource {
                     ),
                   ),
                 ),
-
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: <Widget>[
-                      SizedBox(height: 20,),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(row.getCells()[4].value.toString(),
-                            style: TextStyle(fontWeight: FontWeight.bold),),
-                        ],
-                      ),
-                      Divider(color: Colors.black,
-                        height: 10,),
-                      Row(
-                        children: [
-                          Text('Tarih'), SizedBox(width: 83,),
-                          Text(':'),
-                          Text(row.getCells()[5].value.toString())
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text('Ödeme Yöntemi'),
-                          SizedBox(width: 5,),
-                          Text(': '),
-                          Expanded(child: Text(odemeyontemi))
-                        ],
-
-                      ),
-                      Row(
-                        children: [
-                          Text('Fiyat'), SizedBox(width: 85,),
-                          Text(':'),
-                          Text(row.getCells()[1].value.toString())
-                        ],
-
-                      ),
-
-                      Divider(color: Colors.black,
-                        height: 10,),
-
-
-                      Text('Açıklama',
-                        style: TextStyle(fontWeight: FontWeight.bold),),
-                      Text(row.getCells()[3].value.toString()!="null"?row.getCells()[3].value.toString():"")
-
-
-                    ],
+                SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        SizedBox(height: 20,),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(row.getCells()[4].value.toString(),
+                              style: TextStyle(fontWeight: FontWeight.bold),),
+                          ],
+                        ),
+                        Divider(color: Colors.black, height: 10,),
+                        Row(
+                          children: [
+                            Text('Tarih'), SizedBox(width: 83,),
+                            Text(':'),
+                            Text(row.getCells()[5].value.toString())
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text('Ödeme Yöntemi'),
+                            SizedBox(width: 5,),
+                            Text(': '),
+                            Expanded(child: Text(odemeyontemi))
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text('Fiyat'), SizedBox(width: 85,),
+                            Text(':'),
+                            Text(row.getCells()[1].value.toString())
+                          ],
+                        ),
+                        Divider(color: Colors.black, height: 10,),
+                        Text('Notlar', style: TextStyle(fontWeight: FontWeight.bold),),
+                        SizedBox(height: 4),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _notlar.toLowerCase().contains('komisyon')
+                                ? const Color(0xFFFFFBEB)
+                                : const Color(0xFFF5F5F5),
+                            border: Border.all(
+                              color: _notlar.toLowerCase().contains('komisyon')
+                                  ? const Color(0xFFFDE68A)
+                                  : const Color(0xFFE0E0E0),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            _notlar.isEmpty ? '(not eklenmemiş)' : _notlar,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: _notlar.isEmpty ? Colors.grey.shade600 : Colors.black87,
+                              fontStyle: _notlar.isEmpty ? FontStyle.italic : FontStyle.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
