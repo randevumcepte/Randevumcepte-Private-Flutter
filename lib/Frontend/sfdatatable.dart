@@ -6170,8 +6170,10 @@ class GelirDataSource extends DataGridSource {
 
       ++totalRows;
       // Komisyon Geliri kayitlari: musteri/personel adi yerine "🎁 Komisyon Geliri" prefix'i
-      final String _notlarLower = (e.notlar).toLowerCase();
-      final bool _isKomisyon = _notlarLower.contains('komisyon');
+      final String _notlarRaw = e.notlar.toString();
+      final bool _notlarValid = _notlarRaw.isNotEmpty && _notlarRaw != 'null';
+      final String _notlarClean = _notlarValid ? _notlarRaw : '';
+      final bool _isKomisyon = _notlarClean.toLowerCase().contains('komisyon');
       final String _musteriAdi = e.musteri != null
           ? e.musteri["name"].toString()
           : (e.olusturan != null && e.olusturan["personel_adi"] != null
@@ -6186,7 +6188,7 @@ class GelirDataSource extends DataGridSource {
             DataGridCell<Tahsilat>(columnName: 'gelirpar', value: e),
             DataGridCell<String>(columnName: 'odemetutar', value: e.tutar.toString()),
             DataGridCell<String>(columnName: 'odemeyontemi', value: e.odeme_yontemi_id.toString()),
-            DataGridCell<String>(columnName: 'aciklama', value: e.notlar.toString()),
+            DataGridCell<String>(columnName: 'aciklama', value: _notlarClean),
             DataGridCell<String>(columnName: 'musteridanisanparakoyan', value: _displayAd),
 
             DataGridCell<String>(columnName: 'tarih', value: formattedDate(e.tarih.toString())),

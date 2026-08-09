@@ -167,18 +167,18 @@ class _KasaState extends State<Gelirler> {
                                     ),
                                     GridColumn(
 
-                                        width: width*0,
+                                        width: width*0.32,
                                         columnName: 'aciklama',
                                         label: Container(
 
                                             padding: EdgeInsets.all(5.0),
                                             alignment: Alignment.centerLeft,
-                                            child: Text('aciklama'),
+                                            child: Text('Notlar'),
                                         ),
                                     ),
                                     GridColumn(
 
-                                        width: width*0.40,
+                                        width: width*0.30,
                                         columnName: 'musteridanisanparakoyan',
                                         label: Container(
 
@@ -189,7 +189,7 @@ class _KasaState extends State<Gelirler> {
                                     ),
 
                                     GridColumn(
-                                        width: width*0.25,
+                                        width: width*0.18,
                                         columnName: 'tarih',
                                         label: Container(
                                             padding: EdgeInsets.all(5.0),
@@ -199,7 +199,7 @@ class _KasaState extends State<Gelirler> {
                                     ),
 
                                     GridColumn(
-                                        width: width*0.34,
+                                        width: width*0.20,
                                         columnName: 'fiyat',
                                         label: Container(
                                             padding: EdgeInsets.all(5.0),
