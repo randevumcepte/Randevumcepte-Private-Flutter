@@ -6169,13 +6169,25 @@ class GelirDataSource extends DataGridSource {
     tahsilat.forEach((e) {
 
       ++totalRows;
+      // Komisyon Geliri kayitlari: musteri/personel adi yerine "🎁 Komisyon Geliri" prefix'i
+      final String _notlarLower = (e.notlar).toLowerCase();
+      final bool _isKomisyon = _notlarLower.contains('komisyon');
+      final String _musteriAdi = e.musteri != null
+          ? e.musteri["name"].toString()
+          : (e.olusturan != null && e.olusturan["personel_adi"] != null
+              ? e.olusturan["personel_adi"].toString()
+              : '');
+      final String _displayAd = _isKomisyon
+          ? '🎁 Komisyon Geliri' + (_musteriAdi.isNotEmpty ? ' — $_musteriAdi' : '')
+          : _musteriAdi;
+
       _paginatedRows.add(
           DataGridRow(cells: [
             DataGridCell<Tahsilat>(columnName: 'gelirpar', value: e),
             DataGridCell<String>(columnName: 'odemetutar', value: e.tutar.toString()),
             DataGridCell<String>(columnName: 'odemeyontemi', value: e.odeme_yontemi_id.toString()),
             DataGridCell<String>(columnName: 'aciklama', value: e.notlar.toString()),
-            DataGridCell<String>(columnName: 'musteridanisanparakoyan', value: e.musteri!=null ? e.musteri["name"] : e.olusturan["personel_adi"]),
+            DataGridCell<String>(columnName: 'musteridanisanparakoyan', value: _displayAd),
 
             DataGridCell<String>(columnName: 'tarih', value: formattedDate(e.tarih.toString())),
 
