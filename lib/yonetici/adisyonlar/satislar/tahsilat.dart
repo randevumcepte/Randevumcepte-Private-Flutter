@@ -161,6 +161,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
   List<AdisyonKalemleri> taksitvadeleri = [];
   List<AdisyonKalemleri> senetvadeleri_alacak = [];
   List<AdisyonKalemleri> taksitvadeleri_alacak = [];
+  // taksitli_tahsilat_id / senet_id -> kalem_ozeti ("Sac Bakimi (H), Manikur (U)...")
+  final Map<String, String> _taksitKalemOzeti = {};
+  final Map<String, String> _senetKalemOzeti = {};
 
   int secilialacaksenet = 0;
   int secilialacaktaksit = 0;
@@ -717,6 +720,19 @@ class _TahsilatState extends State<TahsilatEkrani> {
       log('taksit data '+senettaksitdata["taksit"].toString());
       print(senettaksitdata['taksit'].runtimeType);
       List<TaksitliTahsilat> taksitler = senettaksitdata['taksit'].map<TaksitliTahsilat>((json) => TaksitliTahsilat.fromJson(json)).toList();
+      // kalem_ozeti map'lerini API'nin ham (raw) JSON'undan doldur (fromJson bu alani atlar)
+      _taksitKalemOzeti.clear();
+      _senetKalemOzeti.clear();
+      for (final t in (senettaksitdata['taksit'] as List)) {
+        final tid = (t['id'] ?? '').toString();
+        final ozet = (t['kalem_ozeti'] ?? '').toString();
+        if (tid.isNotEmpty && ozet.isNotEmpty) _taksitKalemOzeti[tid] = ozet;
+      }
+      for (final s in (senettaksitdata['senet'] as List)) {
+        final sid = (s['id'] ?? '').toString();
+        final ozet = (s['kalem_ozeti'] ?? '').toString();
+        if (sid.isNotEmpty && ozet.isNotEmpty) _senetKalemOzeti[sid] = ozet;
+      }
 
       List<AdisyonHizmet> adisyonhizmetler = senettaksitdata["adisyon_hizmet"].map<AdisyonHizmet>((json) => AdisyonHizmet.fromJson(json)).toList();
       List<AdisyonUrun> adisyonurunler = senettaksitdata["adisyon_urun"].map<AdisyonUrun>((json) => AdisyonUrun.fromJson(json)).toList();
@@ -2596,7 +2612,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                                               if (item2 is TaksitVade) {
                                                 key2 = item2.id.toString();
-                                                kalem2 = item2.id.toString() + " nolu Taksit vadesi";
+                                                final _ozet = _taksitKalemOzeti[item2.taksitli_tahsilat_id];
+                                                kalem2 = (_ozet != null && _ozet.isNotEmpty)
+                                                    ? _ozet
+                                                    : (item2.id.toString() + " nolu Taksit vadesi");
                                                 adet2 = "1";
                                                 satan2 = DateFormat('dd.MM.yyyy').format(
                                                     DateTime.parse(item2.vade_tarih));
@@ -2666,7 +2685,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                                               if (item2 is SenetVade) {
                                                 key2 = item2.id.toString();
-                                                kalem2 = item2.id.toString() + " nolu Senet vadesi";
+                                                final _ozet = _senetKalemOzeti[item2.senet_id];
+                                                kalem2 = (_ozet != null && _ozet.isNotEmpty)
+                                                    ? _ozet
+                                                    : (item2.id.toString() + " nolu Senet vadesi");
                                                 adet2 = "1";
                                                 satan2 = DateFormat('dd.MM.yyyy').format(
                                                     DateTime.parse(item2.vade_tarih));
