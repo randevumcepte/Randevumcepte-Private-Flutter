@@ -1992,7 +1992,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                           style: TextStyle(fontSize: 15, color: cs.onSurface, fontWeight: FontWeight.w500),
                           controller: komisyon_tutari,
                           keyboardType: TextInputType.phone,
-                          onChanged: (value) { tutar_hesapla(false); },
+                          // Komisyon formu tetiklemez — sadece Tahsil Et anında backend'e gonderilir
                           onSaved: (value) { komisyon_tutari.text = value ?? '0'; },
                           decoration: InputDecoration(
                             filled: true,

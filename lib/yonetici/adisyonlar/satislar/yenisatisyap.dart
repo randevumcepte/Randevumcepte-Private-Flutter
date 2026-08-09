@@ -2150,7 +2150,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                           controller: komisyon_tutari,
                           keyboardType: TextInputType.phone,
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _textColor),
-                          onChanged: (_) { tutar_hesapla(false); setSheet(() {}); },
+                          // Komisyon formu tetiklemez — sadece Tahsil Et anında backend'e gonderilir
                           decoration: InputDecoration(
                             isDense: true,
                             filled: true,
