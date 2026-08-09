@@ -1879,6 +1879,10 @@ class _SatisEkraniState extends State<SatisEkrani> {
                           SizedBox(width: 12),
                           ElevatedButton(
                             onPressed: () async {
+                              // Backend indirimli_toplam = odenecek + komisyon (backend cikarir)
+                              final double _tt = tlyirakamacevir(odenecek_tutar.text);
+                              final double _tk = tlyirakamacevir(komisyon_tutari.text);
+                              final String _odenenT = tryformat.format(_tt + _tk).toString();
                               int taksitResult = await taksitekleguncelle(
                                 context,
                                 seciliisletme,
@@ -1889,11 +1893,12 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                 secilimusteridanisan?.id ?? "",
                                 toplamindirimtutari.text,
                                 selectedodemeyontemi?.id ?? "",
-                                odenecek_tutar.text,
+                                _odenenT,
                                 tahsilat_tarihi.text,
                                 "",
                                 harici_indirim.text,
                                 satisTarihi: tahsilat_tarihi.text,
+                                komisyonTutari: komisyon_tutari.text,
                               );
 
                               if (taksitResult == 200) {
@@ -2313,6 +2318,10 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                   );
                                   return;
                                 }
+                                // Backend indirimli_toplam = tutarCtrl + komisyon (backend cikarir)
+                                final double _tt2 = tlyirakamacevir(tutarCtrl.text);
+                                final double _tk2 = tlyirakamacevir(komisyon_tutari.text);
+                                final String _odenenT2 = tryformat.format(_tt2 + _tk2).toString();
                                 final int result = await taksitekleguncelle(
                                   context,
                                   seciliisletme,
@@ -2323,11 +2332,12 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                   secilimusteridanisan?.id ?? "",
                                   toplamindirimtutari.text,
                                   secilenYontem.id,
-                                  tutarCtrl.text,
+                                  _odenenT2,
                                   tahsilatTarihCtrl.text,
                                   "",
                                   harici_indirim.text,
                                   satisTarihi: tahsilat_tarihi.text,
+                                  komisyonTutari: komisyon_tutari.text,
                                 );
                                 if (!mounted) return;
                                 if (result == 200) {

@@ -2913,7 +2913,7 @@ Future<Map<String, dynamic>> senetvetaksitler(String salonid, String musteriid,S
     throw Exception('Failed to load resources');
   }
 }
-Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim,{String satisTarihi = ''}) async {
+Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<AdisyonKalemleri> adisyonkalemleri,String taksitsayisi,String ilkodemetarih,String toplamtutar,String musteridanisan,String musteriindirimi,String odemeyontemi,String odenentutar,String tahsilattarihi,String notlar,String hariciindirim,{String satisTarihi = '', String komisyonTutari = '0'}) async {
   showProgressLoading(context);
   log("kalem sayısı "+adisyonkalemleri.length.toString());
 
@@ -2979,6 +2979,7 @@ Future <int> taksitekleguncelle(BuildContext context, String Salonid,List<Adisyo
     'tahsilat_tarihi':tahsilattarihi,
     'tahsilat_notlari':notlar,
     'satis_tarihi':satisTarihi,
+    'komisyon_tutari':komisyonTutari,
     // Add other form fields
   };
   final response = await http.post(
