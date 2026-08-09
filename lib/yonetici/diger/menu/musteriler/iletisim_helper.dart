@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../Backend/yetki.dart';
 
 /// Musteri iletisim yardimcilari (WhatsApp / Anket gonder).
 /// Web /isletmeyonetim/musteridetay/ ve takvim randevu detay kartindaki
@@ -298,7 +299,9 @@ class IletisimHelper {
                         Text('WhatsApp Mesaji',
                             style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                         Text(
-                          musteriAdi.isNotEmpty ? '$musteriAdi ($tel)' : tel,
+                          musteriAdi.isNotEmpty
+                              ? '$musteriAdi (${Yetki.telefonGoster(tel)})'
+                              : Yetki.telefonGoster(tel),
                           style: TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
