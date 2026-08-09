@@ -2307,7 +2307,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                                       // Ön ödeme türü: girilmemişse seçili main screen ödeme yöntemi, o da yoksa Nakit (id:1)
                                       String odemeYontemiId = secilenOnOdemeTuru?.id ?? (selectedodemeyontemi?.id ?? "1");
-                                      String onOdemeText = tryformat.format(onOdeme);
+                                      // Komisyon > 0 ise on odeme + komisyon backend'e gonderilir; backend
+                                      // ayirir: adisyon odemesi=onOdeme, ek Tahsilat (gelir)+Masraf (gider)=komisyon.
+                                      final double _komNumT = tlyirakamacevir(komisyon_tutari.text);
+                                      String onOdemeText = tryformat.format(onOdeme + _komNumT);
 
                                       int taksitResult = await taksitekleguncelle(
                                         context,
@@ -2323,6 +2326,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                         tahsilat_tarihi.text,
                                         "",
                                         harici_indirim.text,
+                                        komisyonTutari: komisyon_tutari.text,
                                       );
                                       if (taksitResult == 200) {
                                         Navigator.of(dialogContext).pop();
