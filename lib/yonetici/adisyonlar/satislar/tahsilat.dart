@@ -2111,27 +2111,45 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Ön Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
-                                        SizedBox(
-                                          height: 52,
-                                          child: TextFormField(
-                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
-                                            controller: onOdemeTutariCtrl,
-                                            keyboardType: TextInputType.phone,
-                                            onChanged: (value) {
-                                              final double on = tlyirakamacevir(value);
-                                              final double kalan = (toplamTahsilat - on).clamp(0, double.infinity);
-                                              setStateDialog(() {
-                                                taksit_toplam_tutar.text = tryformat.format(kalan);
-                                              });
-                                            },
-                                            decoration: InputDecoration(
-                                              filled: true,
-                                              fillColor: Theme.of(context).cardColor,
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
-                                            ),
+                                        TextFormField(
+                                          style: TextStyle(fontSize: 14, color: cs.onSurface),
+                                          controller: onOdemeTutariCtrl,
+                                          keyboardType: TextInputType.phone,
+                                          onChanged: (value) {
+                                            final double on = tlyirakamacevir(value);
+                                            final double kalan = (toplamTahsilat - on).clamp(0, double.infinity);
+                                            setStateDialog(() {
+                                              taksit_toplam_tutar.text = tryformat.format(kalan);
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            filled: true,
+                                            fillColor: Theme.of(context).cardColor,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        // Komisyon (₺)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4, bottom: 6),
+                                          child: Text('Komisyon (₺)',style: TextStyle(fontSize: 13,color: const Color(0xFF7a6010),fontWeight: FontWeight.w600,letterSpacing: 0.2),),
+                                        ),
+                                        TextFormField(
+                                          style: TextStyle(fontSize: 14, color: cs.onSurface),
+                                          controller: komisyon_tutari,
+                                          keyboardType: TextInputType.phone,
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            filled: true,
+                                            fillColor: const Color(0xFFFFFBEB),
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                                            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFFDE68A), width: 1.2), borderRadius: BorderRadius.circular(12.0)),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.6), borderRadius: BorderRadius.circular(12.0)),
                                           ),
                                         ),
                                         const SizedBox(height: 12),
@@ -2171,21 +2189,19 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Kalan Ödeme Tutarı (₺)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
-                                        SizedBox(
-                                          height: 52,
-                                          child: TextFormField(
-                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
-                                            enabled: false,
-                                            controller: taksit_toplam_tutar,
-                                            decoration: InputDecoration(
-                                              filled: true,
-                                              fillColor: ext.surfaceMuted,
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
-                                              disabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
-                                            ),
+                                        TextFormField(
+                                          style: TextStyle(fontSize: 14, color: cs.onSurface),
+                                          enabled: false,
+                                          controller: taksit_toplam_tutar,
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            filled: true,
+                                            fillColor: ext.surfaceMuted,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
+                                            disabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
                                           ),
                                         ),
                                         const SizedBox(height: 12),
@@ -2194,35 +2210,33 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Ödeme Başlangıç Tarihi',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
-                                        SizedBox(
-                                          height: 52,
-                                          child: TextFormField(
-                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
-                                            controller: ilk_taksit_vade_tarihi,
-                                            readOnly: true,
-                                            decoration: InputDecoration(
-                                              filled: true,
-                                              fillColor: Theme.of(context).cardColor,
-                                              suffixIcon: Icon(Icons.calendar_today_rounded, size: 18, color: cs.primary),
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
-                                            ),
-                                            onTap: () async {
-                                              DateTime? pickedDate = await showDatePicker(
-                                                  context: sbContext,
-                                                  initialDate: DateTime.now(),
-                                                  firstDate: DateTime(1950),
-                                                  lastDate: DateTime(2100));
-                                              if (pickedDate != null) {
-                                                String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
-                                                setStateDialog(() {
-                                                  ilk_taksit_vade_tarihi.text = formattedDate;
-                                                });
-                                              }
-                                            },
+                                        TextFormField(
+                                          style: TextStyle(fontSize: 14, color: cs.onSurface),
+                                          controller: ilk_taksit_vade_tarihi,
+                                          readOnly: true,
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            filled: true,
+                                            fillColor: Theme.of(context).cardColor,
+                                            suffixIcon: Icon(Icons.calendar_today_rounded, size: 18, color: cs.primary),
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
                                           ),
+                                          onTap: () async {
+                                            DateTime? pickedDate = await showDatePicker(
+                                                context: sbContext,
+                                                initialDate: DateTime.now(),
+                                                firstDate: DateTime(1950),
+                                                lastDate: DateTime(2100));
+                                            if (pickedDate != null) {
+                                              String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+                                              setStateDialog(() {
+                                                ilk_taksit_vade_tarihi.text = formattedDate;
+                                              });
+                                            }
+                                          },
                                         ),
                                         const SizedBox(height: 12),
                                         // Taksit Sayısı
@@ -2230,20 +2244,18 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                           padding: const EdgeInsets.only(left: 4, bottom: 6),
                                           child: Text('Taksit Sayısı (Ay)',style: TextStyle(fontSize: 13,color: cs.onSurfaceVariant,fontWeight: FontWeight.w600,letterSpacing: 0.2),),
                                         ),
-                                        SizedBox(
-                                          height: 52,
-                                          child: TextFormField(
-                                            style: TextStyle(fontSize: 14, color: cs.onSurface),
-                                            keyboardType: TextInputType.phone,
-                                            controller: taksit_sayisi,
-                                            decoration: InputDecoration(
-                                              filled: true,
-                                              fillColor: Theme.of(context).cardColor,
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-                                              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
-                                            ),
+                                        TextFormField(
+                                          style: TextStyle(fontSize: 14, color: cs.onSurface),
+                                          keyboardType: TextInputType.phone,
+                                          controller: taksit_sayisi,
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            filled: true,
+                                            fillColor: Theme.of(context).cardColor,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ext.borderSubtle, width: 1.2),borderRadius: BorderRadius.circular(12.0),),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+                                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: cs.primary, width: 1.6), borderRadius: BorderRadius.circular(12.0)),
                                           ),
                                         ),
                                         const SizedBox(height: 4),
