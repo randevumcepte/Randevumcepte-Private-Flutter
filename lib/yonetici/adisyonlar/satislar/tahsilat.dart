@@ -870,8 +870,6 @@ class _TahsilatState extends State<TahsilatEkrani> {
     double fiyattoplam = 0;
     double indirimtutari = 0;
     double hariciindirim = tlyirakamacevir(harici_indirim.text);
-    // Komisyon: Alacak Tutari'na (+) eklenir; kalem dagitiminda ise backend arindiriyor
-    double komisyon = tlyirakamacevir(komisyon_tutari.text);
 
 
     adisyonkalemleri.forEach((element) {
@@ -932,14 +930,15 @@ class _TahsilatState extends State<TahsilatEkrani> {
     setState(() {
       birim_tutar.text = tryformat.format(fiyattoplam).toString();
       toplamindirimtutari.text = tryformat.format(indirimtutari+hariciindirim).toString();
-      // Alacak/Odenecek = kalem_toplami - indirim - hariciindirim + komisyon
-      final double alacak = fiyattoplam - indirimtutari - hariciindirim + komisyon;
+      // Ödenecek Tutar komisyondan bagimsizdir — kalem odemesini yansitir.
+      // Komisyon (varsa) ayri kaydedilir; Tahsil Et anında backend'e (odenecek + komisyon) gonderilir.
+      final double alacak = fiyattoplam - indirimtutari - hariciindirim;
       tahsilat_tutari.text = tryformat.format(alacak).toString();
       if(!onodemegirildi || tahsilat_tutari.text == odenecek_tutar.text)
         odenecek_tutar.text = tryformat.format(alacak).toString();
       else{
 
-        kalan_alacak_tutar.text = tryformat.format(fiyattoplam- indirimtutari - hariciindirim + komisyon - tlyirakamacevir(odenecek_tutar.text));
+        kalan_alacak_tutar.text = tryformat.format(fiyattoplam- indirimtutari - hariciindirim - tlyirakamacevir(odenecek_tutar.text));
         taksit_toplam_tutar.text = kalan_alacak_tutar.text;
       }
 
@@ -2405,7 +2404,11 @@ class _TahsilatState extends State<TahsilatEkrani> {
                       // pop'u ile sonucsuz kapanir -> cagiran taraf tahsilatin
                       // yapildigini anlayamaz.
                       try {
-                        await tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",odenecek_tutar.text,tahsilat_tarihi.text,"",harici_indirim.text, komisyonTutari: komisyon_tutari.text);
+                        // Backend indirimli_toplam = adisyon_odemesi + komisyon (komisyonu backend cikarir).
+                        final double _tutarNum = tlyirakamacevir(odenecek_tutar.text);
+                        final double _komNum = tlyirakamacevir(komisyon_tutari.text);
+                        final String _odenenGonder = tryformat.format(_tutarNum + _komNum).toString();
+                        await tahsilet(context, seciliisletme,adisyonkalemleri,taksit_sayisi.text,ilk_taksit_vade_tarihi.text,taksit_toplam_tutar.text,secilimusteridanisan?.id ??"",toplamindirimtutari.text,selectedodemeyontemi?.id??"",_odenenGonder,tahsilat_tarihi.text,"",harici_indirim.text, komisyonTutari: komisyon_tutari.text);
                       } catch (e) {
                         // Hata mesajini tahsilet kendisi gosterdi; ekranda kal.
                         return;

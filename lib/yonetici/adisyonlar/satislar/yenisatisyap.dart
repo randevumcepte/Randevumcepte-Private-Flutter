@@ -839,7 +839,6 @@ class _SatisEkraniState extends State<SatisEkrani> {
     double indirimtutari = 0;
     double hariciindirim = tlyirakamacevir(harici_indirim.text);
     // Komisyon: Alacak Tutari'na (+) eklenir; backend'de tahsilat.komisyon_tutari + Masraflar (Banka Odemeleri)
-    double komisyon = tlyirakamacevir(komisyon_tutari.text);
 
     adisyonkalemleri.forEach((element) {
       if (element is AdisyonHizmet) {
@@ -879,14 +878,15 @@ class _SatisEkraniState extends State<SatisEkrani> {
     setState(() {
       birim_tutar.text = tryformat.format(fiyattoplam).toString();
       toplamindirimtutari.text = tryformat.format(indirimtutari + hariciindirim).toString();
-      // Alacak/Odenecek = kalem_toplami - indirim - hariciindirim + komisyon
-      final double alacak = fiyattoplam - indirimtutari - hariciindirim + komisyon;
+      // Ödenecek Tutar komisyondan bagimsizdir. Komisyon ayri kaydedilir; Tahsil Et
+      // anında backend'e (odenecek + komisyon) gonderilir. Ekranda karisiklik olmasın.
+      final double alacak = fiyattoplam - indirimtutari - hariciindirim;
       tahsilat_tutari.text = tryformat.format(alacak).toString();
 
       if (!onodemegirildi || tahsilat_tutari.text == odenecek_tutar.text) {
         odenecek_tutar.text = tryformat.format(alacak).toString();
       } else {
-        kalan_alacak_tutar.text = tryformat.format(fiyattoplam - indirimtutari - hariciindirim + komisyon - tlyirakamacevir(odenecek_tutar.text));
+        kalan_alacak_tutar.text = tryformat.format(fiyattoplam - indirimtutari - hariciindirim - tlyirakamacevir(odenecek_tutar.text));
         taksit_toplam_tutar.text = kalan_alacak_tutar.text;
       }
     });
