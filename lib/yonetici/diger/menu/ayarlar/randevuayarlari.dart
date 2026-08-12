@@ -64,6 +64,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
   String? _takvimId;
   bool _onlineRandevuAktif = false;
   bool _gecmisRandevulariGizle = false;
+  bool _cakismaUyariAktif = false;
   String? _seciliisletme;
   bool _isLoading = true;
   bool _saving = false;
@@ -87,6 +88,10 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
           settings['musteri_online_randevu_aktif']?.toString() == '1';
       _gecmisRandevulariGizle =
           settings['gecmis_randevulari_gizle']?.toString() == '1';
+      // NOT: cakisma_uyarisi_aktif model'de boolean cast'li -> JSON'da true/false
+      // gelebilir; hem bool hem '1' durumunu karsila.
+      _cakismaUyariAktif = settings['cakisma_uyarisi_aktif'] == true ||
+          settings['cakisma_uyarisi_aktif']?.toString() == '1';
       _isLoading = false;
     });
   }
@@ -106,6 +111,7 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
           'randevu_takvim_turu': _takvimId,
           'musteri_online_randevu_aktif': _onlineRandevuAktif ? '1' : '0',
           'gecmis_randevulari_gizle': _gecmisRandevulariGizle ? '1' : '0',
+          'cakisma_uyarisi_aktif': _cakismaUyariAktif ? '1' : '0',
           'salon_id': _seciliisletme,
         }),
       );
@@ -250,6 +256,19 @@ class _RandevuAyarlariState extends State<RandevuAyarlari> {
                   onChanged: (v) {
                     HapticFeedback.selectionClick();
                     setState(() => _gecmisRandevulariGizle = v);
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildToggleCard(
+                  icon: Icons.warning_amber_rounded,
+                  color: const Color(0xFF7C3AED),
+                  title: 'Aynı saatte dolu personel/cihaz/oda için uyar',
+                  subtitle:
+                      'Açıkken; seçtiğiniz kaynak (personel, cihaz veya oda) o saatte doluysa randevuyu oluşturmadan önce uyarı gösterilir. Kapalıyken hiçbir kısıtlama uygulanmaz.',
+                  value: _cakismaUyariAktif,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _cakismaUyariAktif = v);
                   },
                 ),
               ],
