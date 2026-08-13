@@ -6,6 +6,7 @@ import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/yonetici/diger/sube_secici.dart';
 
 /// Bildirim Reklamı oluştur / düzenle formu (yönetici tarafı).
@@ -138,7 +139,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
         _musteriler = ((m['data'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
         if (_segUserId != null) {
           final bul = _musteriler.firstWhere((x) => '${x['id']}' == '$_segUserId', orElse: () => {});
-          if (bul.isNotEmpty) _segUserAd = '${bul['name']} — ${bul['cep_telefon']}';
+          if (bul.isNotEmpty) _segUserAd = '${bul['name']} — ${Yetki.telefonGoster(bul['cep_telefon']?.toString())}';
         }
       });
     } catch (_) {}
@@ -199,7 +200,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
     if (secili != null) {
       setState(() {
         _segUserId = int.tryParse('${secili['id']}');
-        _segUserAd = '${secili['name']} — ${secili['cep_telefon']}';
+        _segUserAd = '${secili['name']} — ${Yetki.telefonGoster(secili['cep_telefon']?.toString())}';
       });
     }
   }
@@ -604,7 +605,7 @@ class _KisiSeciciState extends State<_KisiSecici> {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (_, i) => ListTile(
                       title: Text('${filtre[i]['name']}'),
-                      subtitle: Text('${filtre[i]['cep_telefon']}'),
+                      subtitle: Text(Yetki.telefonGoster(filtre[i]['cep_telefon']?.toString())),
                       onTap: () => Navigator.pop(context, filtre[i]),
                     ),
                   ),

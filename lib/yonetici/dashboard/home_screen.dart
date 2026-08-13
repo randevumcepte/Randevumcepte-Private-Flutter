@@ -4269,8 +4269,9 @@ class ListCardRandevular extends StatelessWidget {
   const ListCardRandevular({Key? key, required this.randevular}) : super(key: key);
 
   void _showRandevuDetails(BuildContext context, Map<String, dynamic> randevu) {
-    // Debug için tüm randevu verisini loglayalım
-    print('Randevu Detayları: ${jsonEncode(randevu)}');
+    // NOT: Onceden tum randevu jsonEncode ile loglaniyordu — ham cep_telefon
+    // sizintisi yaratiyordu. Sadece randevu_id ile sinirli tut.
+    print('Randevu Detayı açılıyor: id=${randevu["id"] ?? randevu["randevu_id"] ?? ""}');
 
     // Verileri güvenli şekilde alalım
     final musteriler = randevu["musteriler"] as Map<String, dynamic>?;
