@@ -2373,8 +2373,20 @@ Future<void> randevuonayla(String randevuid, BuildContext context) async {
   showProgressLoading(context);
   TextEditingController dogrulama_kodu = TextEditingController();
 
+  // Cagiran kullanici id — backend yetki kontrolu (randevu.duzenle_iptal) icin.
+  String _callerUserId = '';
+  try {
+    final _prefs = await SharedPreferences.getInstance();
+    final _uraw = _prefs.getString('user');
+    if (_uraw != null && _uraw.isNotEmpty) {
+      final _u = jsonDecode(_uraw);
+      if (_u is Map) _callerUserId = _u['id']?.toString() ?? '';
+    }
+  } catch (_) {}
+
   Map<String, dynamic> formData = {
     'randevuid': randevuid,
+    'user_id': _callerUserId,
 
     // Add other form fields
   };
@@ -2505,6 +2517,7 @@ Future<bool> randevuiptalet(String randevuid, BuildContext context,String userty
     'randevuid': randevuid,
     'durum':durum,
     if (_olusturanId != null) 'olusturan': _olusturanId,
+    if (_olusturanId != null) 'user_id': _olusturanId.toString(),
     // Add other form fields
   };
 
@@ -2558,8 +2571,19 @@ Future<int> randevuGeldiGelmediIsaretiKaldir(
 
     ) async {
   showProgressLoading(context);
+  // Cagiran kullanici id (yetki kontrolu)
+  String _callerUserId = '';
+  try {
+    final _prefs = await SharedPreferences.getInstance();
+    final _uraw = _prefs.getString('user');
+    if (_uraw != null && _uraw.isNotEmpty) {
+      final _u = jsonDecode(_uraw);
+      if (_u is Map) _callerUserId = _u['id']?.toString() ?? '';
+    }
+  } catch (_) {}
   Map<String, dynamic> formData = {
     'randevuid': randevuid,
+    'user_id': _callerUserId,
 
   };
 
@@ -2599,8 +2623,19 @@ Future<void> randevugeldiisaretle(
 
   log("doğrulama kodu: $dogrulamakodu2, onay kodu: $onayKodu2, seans secim: $secilenSeansIdler, miktarlar: $seansMiktarlari");
 
+  // Cagiran kullanici id (yetki kontrolu)
+  String _callerUserId2 = '';
+  try {
+    final _prefs2 = await SharedPreferences.getInstance();
+    final _uraw2 = _prefs2.getString('user');
+    if (_uraw2 != null && _uraw2.isNotEmpty) {
+      final _u2 = jsonDecode(_uraw2);
+      if (_u2 is Map) _callerUserId2 = _u2['id']?.toString() ?? '';
+    }
+  } catch (_) {}
   Map<String, dynamic> formData = {
     'randevuid': randevuid,
+    'user_id': _callerUserId2,
     'dogrulama_kodu': dogrulamakodu2,
     'kvkkKodu': onayKodu2,
     'seans_secim_destek': true,
