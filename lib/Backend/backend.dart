@@ -4634,10 +4634,24 @@ Future<Map<String, dynamic>?> personelYetkiGetir({
   required String salonid,
   required String personelid,
 }) async {
+  // Cagiran kullaniciyi backend'e ilet (yetki kontrolu icin).
+  String _callerUserId = '';
+  try {
+    final _prefs = await SharedPreferences.getInstance();
+    final _uraw = _prefs.getString('user');
+    if (_uraw != null && _uraw.isNotEmpty) {
+      final _u = jsonDecode(_uraw);
+      if (_u is Map) _callerUserId = _u['id']?.toString() ?? '';
+    }
+  } catch (_) {}
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelYetkiGetir'),
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'sube': salonid, 'personel_id': personelid}),
+    body: jsonEncode({
+      'sube': salonid,
+      'personel_id': personelid,
+      'user_id': _callerUserId,
+    }),
   );
   if (response.statusCode == 200) {
     return json.decode(response.body) as Map<String, dynamic>;
@@ -4655,6 +4669,16 @@ Future<Map<String, dynamic>> personelYetkiKaydet({
   required Map<String, bool> ayarlar,
 }) async {
   try {
+    // Cagiran kullaniciyi backend'e ilet — yetki kontrolu icin.
+    String _callerUserId = '';
+    try {
+      final _prefs = await SharedPreferences.getInstance();
+      final _uraw = _prefs.getString('user');
+      if (_uraw != null && _uraw.isNotEmpty) {
+        final _u = jsonDecode(_uraw);
+        if (_u is Map) _callerUserId = _u['id']?.toString() ?? '';
+      }
+    } catch (_) {}
     final response = await http.post(
       Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelYetkiKaydet'),
       headers: {'Content-Type': 'application/json'},
@@ -4663,6 +4687,7 @@ Future<Map<String, dynamic>> personelYetkiKaydet({
         'personel_id': personelid,
         'sablon': sablon,
         'ayarlar': ayarlar,
+        'user_id': _callerUserId,
       }),
     );
     debugPrint('personelYetkiKaydet status: ${response.statusCode}');
