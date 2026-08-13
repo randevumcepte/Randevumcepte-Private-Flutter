@@ -2258,8 +2258,20 @@ Future<Map<String, dynamic>> seansCihazVeriKaydet(
 Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tarih1, String tarih2,bool yukleniyor,BuildContext context ,String takvimTuru) async {
   if(yukleniyor)
     showProgressLoading(context);
+  // Cagiran kullaniciyi backend'e ilet (yetki kontrolu icin — telefon
+  // maskeleme vb.). Route auth'suz oldugundan Auth::guard()->user() null.
+  String _callerUserId = '';
+  try {
+    final _prefs = await SharedPreferences.getInstance();
+    final _uraw = _prefs.getString('user');
+    if (_uraw != null && _uraw.isNotEmpty) {
+      final _u = jsonDecode(_uraw);
+      if (_u is Map) _callerUserId = _u['id']?.toString() ?? '';
+    }
+  } catch (_) {}
   Map<String, dynamic> formData = {
     'personel_id': personelid,
+    'user_id': _callerUserId,
     'tarih1': tarih1,
     'tarih2': tarih2,
     'takvim_turu':takvimTuru,
@@ -6371,6 +6383,27 @@ Future<bool> whatsappCikis(String salonId) async {
     log('whatsappCikis: $e');
   }
   return false;
+}
+
+/// Telefon numarası ile 8 haneli pair-code üretir (QR alternatifi).
+/// Kullanıcı bu kodu telefonundaki WhatsApp Business → Bağlı Cihazlar →
+/// Cihaz Bağla → "Telefon numarasıyla bağlan" ekranına el ile girer.
+/// Yanıt: {"code":"XXXX-XXXX"} veya {"error":"..."}
+Future<Map<String, dynamic>?> whatsappPairPhone(String salonId, String phone) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/whatsapp/pair-phone/$salonId'),
+      headers: _jsonHeaders(),
+      body: json.encode({'phone': phone}),
+    ).timeout(const Duration(seconds: 20));
+    if (res.body.isNotEmpty) {
+      final decoded = json.decode(res.body);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    }
+  } catch (e) {
+    log('whatsappPairPhone: $e');
+  }
+  return null;
 }
 
 Future<Map<String, dynamic>?> whatsappOzet(String salonId) async {
