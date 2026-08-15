@@ -1091,6 +1091,18 @@ Future<List<Cdr>> santralraporlari(
     String arama,
     ) async {
   try {
+    // Cagiran kullaniciyi backend'e ilet (personel ise sadece kendi
+    // dahilisi filtrelenir — sunucuda role_id=5 + dahili_no ile).
+    String _callerUserId = '';
+    try {
+      final _prefs = await SharedPreferences.getInstance();
+      final _uraw = _prefs.getString('user');
+      if (_uraw != null && _uraw.isNotEmpty) {
+        final _u = jsonDecode(_uraw);
+        if (_u is Map) _callerUserId = _u['id']?.toString() ?? '';
+      }
+    } catch (_) {}
+
     final buffer = StringBuffer();
     buffer.write("salonId=$salonId");
     buffer.write("&tarih1=$tarih1");
@@ -1098,6 +1110,7 @@ Future<List<Cdr>> santralraporlari(
     buffer.write("&offset=$currentoffset");
     buffer.write("&arama=$arama");
     buffer.write("&limit=50"); // <-- YENİ: limit parametresi eklendi
+    if (_callerUserId.isNotEmpty) buffer.write("&user_id=$_callerUserId");
 
     final uri = Uri.parse(
       "https://app.randevumcepte.com.tr/api/v1/cdrraporson?${buffer.toString()}",
@@ -5116,7 +5129,7 @@ async {
 }
 String arayanBilgiVer(String phone){
 
-  dynamic musteriAdi = arayanbilgi(phone,'333');
+  dynamic musteriAdi = arayanbilgi(phone,'370');
   log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
   return musteriAdi["musteri_adi"];
 }
