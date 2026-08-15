@@ -227,6 +227,21 @@ class _MenuState extends State<Menu> {
     }
   }
 
+  /// Mevcut secili salondaki kullanicinin dahili numarasini bul.
+  /// Personel rolu (5) icin bos degilse Santral menusu acilir ve CDR
+  /// listesi bu dahiliye gore filtrelenir.
+  String _mevcutDahili() {
+    try {
+      for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
+        if (e['salon_id'].toString() == widget.isletmebilgi['id'].toString()) {
+          final d = e['dahili_no']?.toString() ?? '';
+          return d == 'null' ? '' : d;
+        }
+      }
+    } catch (_) {}
+    return '';
+  }
+
   Widget _buildMenuButton({
     required IconData icon,
     required String label,
@@ -531,7 +546,10 @@ class _MenuState extends State<Menu> {
                       );
                     },
                   ),
-                if (widget.uyelikturu > 2)
+                if (widget.uyelikturu > 2 && (
+                      (kullanicirolu >= 1 && kullanicirolu <= 4) ||
+                      (kullanicirolu == 5 && _mevcutDahili().isNotEmpty)
+                    ))
                   _buildMenuButton(
                     icon: Icons.phone,
                     label: 'Santral',
@@ -547,13 +565,16 @@ class _MenuState extends State<Menu> {
                             isletmebilgi: widget.isletmebilgi,
                             kullanicirolu: kullanicirolu,
                             dialPadManager: widget.dialpadManager,
+                            // Personel rolunde ise sadece kendi dahilisine ait CDR gorunur
+                            sadeceDahili: kullanicirolu == 5 ? _mevcutDahili() : '',
                           ),
                         ),
                       );
                     },
                   ),
 
-                _buildMenuButton(
+                if (kullanicirolu >= 1 && kullanicirolu <= 3)
+                  _buildMenuButton(
                   icon: Icons.campaign_rounded,
                   label: 'Bildirim Reklamları',
                   onTap: () {

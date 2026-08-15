@@ -49,13 +49,18 @@ class CDRRaporlari extends StatefulWidget {
   final Kullanici kullanici;
   final int kullanicirolu;
 
+  /// Personel rolu (5) icin sadece kendi dahili numarasina ait CDR
+  /// kayitlari gosterilir. Bos ise filtre uygulanmaz (yonetici gorunumu).
+  final String sadeceDahili;
+
   const CDRRaporlari({
     Key? key,
     required this.isletmebilgi,
     required this.dialPadManager,
     required this.scaffoldMessengerKey,
     required this.kullanici,
-    required this.kullanicirolu
+    required this.kullanicirolu,
+    this.sadeceDahili = '',
   }) : super(key: key);
 
   @override
@@ -153,8 +158,13 @@ class _CDRState extends State<CDRRaporlari> {
     }
 
     dahililer.clear();
-    for (var element in personelListesi) {
-      if (element.dahili_no != 'null') dahililer.add(element.dahili_no);
+    if (widget.sadeceDahili.isNotEmpty) {
+      // Personel rolu: sadece kendi dahilisi sorgulanir/gosterilir
+      dahililer.add(widget.sadeceDahili);
+    } else {
+      for (var element in personelListesi) {
+        if (element.dahili_no != 'null') dahililer.add(element.dahili_no);
+      }
     }
 
     // YENİ: İlk verileri sayfalı olarak yükle
