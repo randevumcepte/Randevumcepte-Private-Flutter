@@ -80,6 +80,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+  bool _isIosSimulator = false;
   String? _currentToken;
   StreamSubscription<String>? _tokenRefreshSub;
 
@@ -96,6 +97,18 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
+
+    // 0) iOS Simulator tespiti — APNS forward edilemediginde token gelmeyebilir;
+    // gelse bile push server'a kadar ulasmaz. Banner yanlis pozitif olmasin diye
+    // simulator'da unavailable durumunu bastiriyoruz; token akisi yine calisir.
+    // NOT: Bu blok bir kez 18 Tem 'Kurtarma' commit'i ile silinmisti; ayni
+    // 'bildirimler calismiyor' sikayeti geri geldi — kalicilastir.
+    if (Platform.isIOS) {
+      try {
+        _isIosSimulator = !(await DeviceInfoPlugin().iosInfo).isPhysicalDevice;
+        if (_isIosSimulator) log('🧪 iOS Simulator — push test edilemez, token denenecek ama banner bastirilir');
+      } catch (_) {}
+    }
 
     // 1) Permission
     await _requestPermission();
@@ -232,6 +245,9 @@ class NotificationService {
   /// durumda timer baslatma anlamsiz (retry yine de denenebilir, kullanici
   /// ayarlardan izin actiysa yakalariz).
   void _markTokenUnavailable() {
+    // iOS Simulator'da APNS hicbir zaman gelmez — banner yanlis pozitif olur.
+    // (18 Tem 'Kurtarma' commit'i bu blogu silmisti, geri eklendi.)
+    if (_isIosSimulator) return;
     if (status.value != NotificationStatus.permissionDenied) {
       status.value = NotificationStatus.unavailable;
     }
