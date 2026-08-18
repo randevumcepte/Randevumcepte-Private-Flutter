@@ -16,6 +16,8 @@ import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
 
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
+import 'package:randevu_sistem/Backend/backend.dart' show kullanicibilgimusteri;
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteridetaylar.dart';
 import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler.dart';
@@ -187,6 +189,29 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
           ),
         ));
         break;
+      case NotificationIntent.adminCustomerDetail:
+        // Musteri fotograf yukledi -> yetkili musteri detay ekranini acsin.
+        // params: {user_id: String}. MusteriDetaylari 'md' (MusteriDanisan)
+        // istiyor, once fetch et.
+        _adminMusteriDetayAc(intent.params['user_id']?.toString());
+        break;
+    }
+  }
+
+  Future<void> _adminMusteriDetayAc(String? userId) async {
+    if (userId == null || userId.isEmpty) return;
+    try {
+      final md = await kullanicibilgimusteri(userId);
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => MusteriDetaylari(
+          md: md,
+          isletmebilgi: widget.isletmebilgi,
+          kullanicirolu: kullanicirolu,
+        ),
+      ));
+    } catch (e) {
+      log('adminMusteriDetayAc hatasi: $e');
     }
   }
 

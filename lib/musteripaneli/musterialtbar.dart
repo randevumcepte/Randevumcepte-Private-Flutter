@@ -27,6 +27,7 @@ import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'anasayfa/anasayfa.dart';
 import 'anasayfa/carkifelek.dart';
 import 'anasayfa/musteribildirimleri/musteribildirimleri.dart';
+import 'menu/musteriresimleri.dart' show ImageGallery;
 import 'anasayfa/raporlar/seanslar.dart';
 import 'menu/indirimler.dart';
 import 'menu/musterimenu.dart';
@@ -139,6 +140,12 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
       case NotificationIntent.notifications:
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => MusteriBildirimlerScreen(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.myPhotos:
+        // Isletme resim yukledi -> musteri kendi fotograf galerisi
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ImageGallery(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
         ));
         break;
     }
@@ -313,6 +320,12 @@ class _MusteriAltBarState  extends State<MusteriAltBar> {
       case NotificationIntent.notifications:
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => MusteriBildirimlerScreen(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.myPhotos:
+        // Isletme resim yukledi -> musteri kendi fotograf galerisi
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ImageGallery(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
         ));
         break;
     }

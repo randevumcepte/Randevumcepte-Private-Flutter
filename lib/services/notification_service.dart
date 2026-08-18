@@ -490,6 +490,11 @@ class NotificationService {
     final ctx = navigatorKey.currentContext;
     if (ctx == null) return;
 
+    // Foreground'da flutter_local_notifications callback'i _handleTap'i
+    // dogrudan cagiriyor — _onMessageOpened bypass olur. Sube otomatik secimi
+    // burada da devrede olsun (arka planda; awaits router degil).
+    unawaited(_ensureSalonSelectedForPayload(payload));
+
     // Yetki guncellendi → tazele + dialog + logout otomatik calisir.
     if (payload.type == NotificationTypes.yetkiDegisti) {
       _handleYetkiDegisti();
