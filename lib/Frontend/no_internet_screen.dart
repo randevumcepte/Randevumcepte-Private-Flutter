@@ -313,15 +313,69 @@ Future<bool> hasInternetConnection() async {
 ///
 /// Sunucudan donen HERHANGI bir HTTP yaniti (500 dahil) internet baglantisinin
 /// oldugunu kanitlar; sadece status 200 aramiyoruz.
+///
+/// ONEMLI: Tek bir hosta (ozel domain) tek deneme ile guvenmiyoruz. Turk
+/// operatorlerinde (4.5G) ozel domainin DNS/TLS cozumu yavas olabiliyor ya da
+/// login sirasinda ayni sunucu yogun olunca probe timeout'a dusup yanlis
+/// "internet yok" gosteriyordu. Bu yuzden birkac guvenilir hosta AYNI ANDA
+/// istek atiyoruz; herhangi biri cevap verirse online sayiyoruz. Ilk turda
+/// hepsi basarisiz olursa bir kez daha deniyoruz.
 Future<bool> _probeInternet() async {
+  // Farkli altyapilar: once hafif/hizli generate_204 uclari, ayrica kendi
+  // sunucumuz. Tek bir hostun yavasligi/dns takilmasi sonucu belirlemesin.
+  const targets = <String>[
+    'https://clients3.google.com/generate_204',
+    'https://www.gstatic.com/generate_204',
+    'https://app.randevumcepte.com.tr/',
+    'https://1.1.1.1/',
+  ];
+
+  for (var attempt = 0; attempt < 2; attempt++) {
+    final ok = await _anyHostReachable(targets);
+    if (ok) return true;
+    if (attempt == 0) {
+      await Future.delayed(const Duration(milliseconds: 400));
+    }
+  }
+  return false;
+}
+
+/// Verilen hostlara ES ZAMANLI istek atar; ilk basarili cevapta true doner.
+/// Hepsi basarisiz/timeout olursa false.
+Future<bool> _anyHostReachable(List<String> urls) async {
+  final completer = Completer<bool>();
+  var pending = urls.length;
+
+  for (final url in urls) {
+    _probeHost(url).then((ok) {
+      if (ok && !completer.isCompleted) {
+        completer.complete(true);
+      } else {
+        pending--;
+        if (pending == 0 && !completer.isCompleted) {
+          completer.complete(false);
+        }
+      }
+    });
+  }
+
+  return completer.future;
+}
+
+/// Tek bir hosta HEAD atar. Sunucudan donen herhangi bir HTTP yaniti online
+/// kanitidir. Timeout bilerek genis (8sn) — yavas mobil baglantida bile geri
+/// donebilsin diye. Bu fonksiyon HICBIR ZAMAN exception firlatmaz.
+Future<bool> _probeHost(String url) async {
   HttpClient? client;
   try {
-    client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+    client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 8)
+      ..badCertificateCallback = (cert, host, port) => true;
     final req = await client
-        .headUrl(Uri.parse('https://app.randevumcepte.com.tr/'))
-        .timeout(const Duration(seconds: 5));
+        .headUrl(Uri.parse(url))
+        .timeout(const Duration(seconds: 8));
     req.followRedirects = false;
-    final resp = await req.close().timeout(const Duration(seconds: 5));
+    final resp = await req.close().timeout(const Duration(seconds: 8));
     await resp.drain<void>();
     return resp.statusCode > 0;
   } catch (_) {
