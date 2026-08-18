@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'package:randevu_sistem/yonetici/randevular/sesli_randevu.dart';
 import 'dart:ui' as ui;
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/gestures.dart';
@@ -741,6 +742,25 @@ class TakvimState extends State<Takvim> with RouteAware {
         automaticallyImplyLeading: false,
         title: const Text('Takvim'),
         actions: [
+          IconButton(
+            tooltip: 'Sesli Randevu',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SesliRandevuEkrani(
+                    salonId: widget.isletmebilgi['id'].toString(),
+                    // Randevu DAIMA giris yapan personel adina olusur (rol 5 = personel).
+                    // Yetkili/sahip rolunde personelid bos gelir; o zaman personel secilmez.
+                    personelId: widget.kullanicirolu == 5 ? personelid : '',
+                    isletmebilgi: widget.isletmebilgi,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.mic),
+            iconSize: 24,
+          ),
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
             Padding(
               padding: const EdgeInsets.all(12.0),

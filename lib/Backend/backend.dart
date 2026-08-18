@@ -6722,3 +6722,95 @@ Future<int> faturasizGizleDurum(String salonId) async {
   }
   return 0;
 }
+
+/// Sesli/yazili komuttan randevu bilgisi cozumler (kural motoru, sunucu tarafi).
+/// NOT: Endpoint su an sadece TEST sunucusunda (apptest). Canliya deploy edilince
+/// base URL app.randevumcepte.com.tr olarak degistirilecek.
+Future<Map<String, dynamic>> sesliRandevuCoz(String salonid, String metin,
+    {String personelId = ''}) async {
+  final params = {'salonid': salonid, 'metin': metin};
+  if (personelId.isNotEmpty) params['personel_id'] = personelId;
+  final uri = Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/sesli-randevu-coz')
+      .replace(queryParameters: params);
+  try {
+    final res = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (res.statusCode == 200) {
+      return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    }
+    return {'basarili': false, 'hata': 'Sunucu hatasi (${res.statusCode})'};
+  } catch (e) {
+    log('sesliRandevuCoz: $e');
+    return {'basarili': false, 'hata': 'Baglanti hatasi: $e'};
+  }
+}
+
+/// Sesli randevu OLUSTURMA — popup ACMAZ; endpoint yanitini ({cakismavar,...}) doner.
+/// cakisanrandevuekle='1' => cakismaya ragmen yine de olustur.
+Future<Map<String, dynamic>> sesliRandevuOlustur({
+  required String salonid,
+  required String userId,
+  required String tarih,
+  required String saat,
+  required String hizmetId,
+  required String personelId,
+  String fiyat = '0',
+  String sureDk = '30',
+  String cakisanrandevuekle = '',
+  String sadeceKontrol = '', // '1' = OLUSTURMA, sadece cakisma kontrolu
+}) async {
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  final userStr = localStorage.getString('user');
+  final user = userStr != null ? jsonDecode(userStr) : null;
+
+  final Map<String, dynamic> formData = {
+    'randevu_id': '',
+    'user_id': userId,
+    'randevu_tarihi': tarih,
+    'randevu_saati': saat,
+    'hizmetler': [
+      {
+        'hizmet_id': hizmetId,
+        'personel_id': personelId,
+        'oda_id': '',
+        'cihaz_id': '',
+        'yardimci_personel': '',
+        'sure_dk': sureDk,
+        'fiyat': fiyat,
+        'birlestir': '',
+      }
+    ],
+    'yardimcipersoneller': [],
+    'tekrarlayan': false,
+    'tekrar_sayisi': '',
+    'tekrar_sikligi': null,
+    'notlar': 'Sesli randevu',
+    'salonid': salonid,
+    'cakisma_varmi': '',
+    'cakisanrandevuekle': cakisanrandevuekle,
+    'sadece_kontrol': sadeceKontrol,
+    'olusturan': user != null ? user['id'] : null,
+    'olusturanMusteri': null,
+    'randevuKaynak': 'salon',
+    'durum': '1',
+    'appBundle': await appBundleAl(),
+  };
+
+  try {
+    // NOT: sadece_kontrol modu apptest'te; ayni DB'yi kullandigi icin gercek
+    // cakisma/olusturma calisir. (randevuEkleGuncelle app'i etkilenmez.)
+    final res = await http
+        .post(
+          Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/randevuekleguncelle'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(formData),
+        )
+        .timeout(const Duration(seconds: 60));
+    if (res.statusCode == 200) {
+      return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    }
+    return {'hata': 'Sunucu hatasi (${res.statusCode})'};
+  } catch (e) {
+    log('sesliRandevuOlustur: $e');
+    return {'hata': 'Baglanti hatasi: $e'};
+  }
+}
