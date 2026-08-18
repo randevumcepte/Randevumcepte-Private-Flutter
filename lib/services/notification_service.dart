@@ -139,6 +139,12 @@ class NotificationService {
     // 7) Uygulama tamamen kapalıyken tıklama ile açılış
     final initial = await _fcm.getInitialMessage();
     if (initial != null) {
+      // Sube secimini HEMEN yap (ilk frame'den once): CheckAuth/BottomNav zinciri
+      // dogru sube ile mount olsun, SubeSecimi ekrani araya girmesin.
+      try {
+        final ipl = NotificationPayload.fromMap(initial.data);
+        await _ensureSalonSelectedForPayload(ipl);
+      } catch (_) {}
       // İlk frame çizildikten sonra yönlendir
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _onMessageOpened(initial);
@@ -437,7 +443,47 @@ class NotificationService {
   Future<void> _onMessageOpened(RemoteMessage message) async {
     log('👉 [TAP] ${message.notification?.title} data=${message.data}');
     final payload = NotificationPayload.fromMap(message.data);
+    // Coklu subeli yetkilide bildirimin salon_id'sini secili sube olarak isaretle
+    // (SubeSecimi ekraninin aradaya girmesini engelle). Cold-start ve arka plan
+    // her iki senaryoda calisir.
+    await _ensureSalonSelectedForPayload(payload);
     _handleTap(payload);
+  }
+
+  /// Yetkili + coklu sube senaryosunda bildirime tiklaninca dogru subeye yonlen:
+  /// payload'daki salon_id 'sube' SharedPreferences anahtarina yazilir ve
+  /// Yetki cache tazelenir. Bildirim RouterIntent'i BottomNav'a ulastiginda
+  /// dogru sube kabul edilmis olur. Musteri (user_type=0) veya salon_id yoksa
+  /// no-op.
+  Future<void> _ensureSalonSelectedForPayload(NotificationPayload payload) async {
+    final salonId = payload.salonId;
+    if (salonId == null || salonId.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userTypeRaw = prefs.getString('user_type');
+      if (userTypeRaw == null) return;
+      // login_page kayit sirasinda user_type'i json.encode ile yaziyor ('"1"' gibi).
+      // '1' yetkili demek. Musteri (0) ise sube kavrami yok, atla.
+      final isYetkili = userTypeRaw.contains('1');
+      if (!isYetkili) return;
+      final mevcut = prefs.getString('sube');
+      if (mevcut == salonId) return; // zaten dogru sube secili
+      await prefs.setString('sube', salonId);
+      log('👉 [TAP] payload salon_id=$salonId → sube guncellendi (eski: $mevcut)');
+      // Yetki cache'i bu (kullanici, sube) icin arka planda tazele. Bekleme yok.
+      try {
+        final userJson = prefs.getString('user');
+        if (userJson != null && userJson.isNotEmpty) {
+          final u = jsonDecode(userJson);
+          final yetkiliId = u['id']?.toString();
+          if (yetkiliId != null && yetkiliId.isNotEmpty) {
+            unawaited(Yetki.tazele(salonid: salonId, yetkiliId: yetkiliId));
+          }
+        }
+      } catch (_) {}
+    } catch (e) {
+      log('_ensureSalonSelectedForPayload hata: $e');
+    }
   }
 
   void _handleTap(NotificationPayload payload) {

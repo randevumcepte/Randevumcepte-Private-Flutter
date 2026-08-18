@@ -32,6 +32,11 @@ class _CheckAuthState extends State<CheckAuth> {
   late MusteriDanisan musteri;
   late String user_type;
   bool _isloading = true;
+  /// Coklu subeli yetkili icin daha once secilmis (veya bildirim tarafindan
+  /// atanmis) sube bilgisi. Set ise SubeSecimi atlanir, dogrudan BottomNav
+  /// bu sube ile mount olur. Bildirime tiklaninca ilgili subenin ekranina
+  /// direkt gitmek icin kritik.
+  Map<String, dynamic>? _onceSeciliIsletmeBilgi;
 
   @override
   void initState() {
@@ -52,6 +57,23 @@ class _CheckAuthState extends State<CheckAuth> {
 
       if(usertype.toString()=='1'){
         _kullanici = Kullanici.fromJson(user);
+        // Bildirim tiklama veya onceki secim: 'sube' SharedPreferences'ta ise
+        // ve kullanici gercekten o subenin yetkiliyse SubeSecimi atlansin.
+        final seciliSube = localStorage.getString('sube');
+        if (seciliSube != null && seciliSube.isNotEmpty && _kullanici.yetkili_olunan_isletmeler.length > 1) {
+          try {
+            final eslesenIsl = _kullanici.yetkili_olunan_isletmeler.firstWhere(
+              (e) => e['salon_id'].toString() == seciliSube,
+              orElse: () => {},
+            );
+            if (eslesenIsl is Map && eslesenIsl.isNotEmpty && eslesenIsl['salonlar'] != null) {
+              _onceSeciliIsletmeBilgi = Map<String, dynamic>.from(eslesenIsl['salonlar'] as Map);
+              log('CheckAuth: sube=$seciliSube icin ekran SubeSecimi atlanacak');
+            }
+          } catch (e) {
+            log('CheckAuth sube esleme hatasi: $e');
+          }
+        }
       }
       else
         musteri = await kullanicibilgimusteri(user['id'].toString());
@@ -74,7 +96,22 @@ class _CheckAuthState extends State<CheckAuth> {
     if (isAuth && !_isloading) {
       if (user_type.toString() == "1") {
         if (_kullanici.yetkili_olunan_isletmeler.length > 1) {
-          child = SubeSecimi(kullanici: _kullanici,scaffoldMessengerKey: scaffoldMessengerKey,);
+          // Bildirimden veya onceki oturumdan sube secilmisse SubeSecimi'ni atla,
+          // direkt BottomNav'a git. NotificationService _ensureSalonSelectedForPayload
+          // metodu bildirim tiklandiginda 'sube' SharedPreferences anahtarina
+          // payload.salon_id degerini yazar.
+          if (_onceSeciliIsletmeBilgi != null) {
+            child = BottomNavigationExample(
+              scaffoldMessengerKey: scaffoldMessengerKey,
+              kullanici: _kullanici,
+              isletmebilgi: _onceSeciliIsletmeBilgi!,
+              uyelikturu: (_onceSeciliIsletmeBilgi!['uyelik_turu'] is int)
+                  ? _onceSeciliIsletmeBilgi!['uyelik_turu'] as int
+                  : int.tryParse('${_onceSeciliIsletmeBilgi!['uyelik_turu']}') ?? 1,
+            );
+          } else {
+            child = SubeSecimi(kullanici: _kullanici,scaffoldMessengerKey: scaffoldMessengerKey,);
+          }
         } else {
           //log("Üyelik türü "+_kullanici.yetkili_olunan_isletmeler[0]['salonlar']['uyelik_turu']);
           child = BottomNavigationExample(
@@ -87,7 +124,7 @@ class _CheckAuthState extends State<CheckAuth> {
         }
       } else {
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString()=='246')['salonlar'];
+        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString()=='415')['salonlar'];
         child =!_isloading ? MusteriAltBar(scaffoldMessengerKey: scaffoldMessengerKey,musteriId: musteri,isletmebilgi: isletmebilgi,): Center(child: CircularProgressIndicator());
       }
     } else {
