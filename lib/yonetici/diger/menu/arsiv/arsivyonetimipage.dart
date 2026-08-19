@@ -177,6 +177,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                           bosMesaj: 'Henüz form yok',
                           bosIkon: Icons.inbox_outlined,
                           refreshToken: _yenileToken,
+                          musteriId: widget.musteriId,
                         ),
                         ArsivKartListe(
                           durum: '1',
@@ -185,6 +186,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                           bosMesaj: 'Onaylanmış form yok',
                           bosIkon: Icons.check_circle_outline,
                           refreshToken: _yenileToken,
+                          musteriId: widget.musteriId,
                         ),
                         ArsivKartListe(
                           durum: 'null',
@@ -193,6 +195,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                           bosMesaj: 'Bekleyen form yok',
                           bosIkon: Icons.hourglass_empty_rounded,
                           refreshToken: _yenileToken,
+                          musteriId: widget.musteriId,
                         ),
                         ArsivKartListe(
                           durum: '0',
@@ -201,6 +204,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                           bosMesaj: 'İptal edilmiş form yok',
                           bosIkon: Icons.cancel_outlined,
                           refreshToken: _yenileToken,
+                          musteriId: widget.musteriId,
                         ),
                         ArsivKartListe(
                           durum: 'null',
@@ -209,6 +213,7 @@ class _ArsivYonetimiPageState extends State<ArsivYonetimiPage> {
                           bosMesaj: 'Harici belge yok',
                           bosIkon: Icons.upload_file_rounded,
                           refreshToken: _yenileToken,
+                          musteriId: widget.musteriId,
                         ),
                         FormSablonlari(isletmebilgi: widget.isletmebilgi),
                       ],
