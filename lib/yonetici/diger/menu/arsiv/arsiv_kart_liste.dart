@@ -16,6 +16,8 @@ class ArsivKartListe extends StatefulWidget {
   // Disaridan (orn. yeni form eklenince) listeyi yeniden yuklemek icin token.
   // Deger degisince didUpdateWidget tetiklenir ve liste resetlenir.
   final int refreshToken;
+  // Musteri detayindan acilinca sadece o musteriye ait kayitlar gelsin (opsiyonel).
+  final String? musteriId;
 
   const ArsivKartListe({
     super.key,
@@ -25,6 +27,7 @@ class ArsivKartListe extends StatefulWidget {
     this.bosMesaj = 'Kayıt bulunamadı',
     this.bosIkon = Icons.inbox_outlined,
     this.refreshToken = 0,
+    this.musteriId,
   });
 
   @override
@@ -103,7 +106,7 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
     try {
       final resp = await arsivgetir(
         _seciliSube!,
-        '',
+        widget.musteriId ?? '',
         _sayfa.toString(),
         _arama,
         widget.durum,
@@ -255,29 +258,32 @@ class _ArsivKartListeState extends State<ArsivKartListe> {
                                     .withValues(alpha: 0.65),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  _DbgRow('Şube ID', _seciliSube ?? '-'),
-                                  _DbgRow('Filtre',
-                                      'durum=${widget.durum} | cvp=${widget.cevapladi} | cvp2=${widget.cevapladi2}'),
-                                  _DbgRow('Sayfa',
-                                      '$_sayfa / $_toplamSayfa (toplam $_toplamKayit)'),
-                                  if (_arama.isNotEmpty)
-                                    _DbgRow('Arama', _arama),
-                                  if (_hataMesaji != null)
+                            // Teshis kutusu yalnizca gercek hata durumunda
+                            // gozukur; normal "kayit yok" ekraninda gizli.
+                            if (_hataMesaji != null) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    _DbgRow('Şube ID', _seciliSube ?? '-'),
+                                    _DbgRow('Filtre',
+                                        'durum=${widget.durum} | cvp=${widget.cevapladi} | cvp2=${widget.cevapladi2}'),
+                                    _DbgRow('Sayfa',
+                                        '$_sayfa / $_toplamSayfa (toplam $_toplamKayit)'),
+                                    if (_arama.isNotEmpty)
+                                      _DbgRow('Arama', _arama),
                                     _DbgRow('Hata', _hataMesaji!),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         )
                       : ListView.builder(
