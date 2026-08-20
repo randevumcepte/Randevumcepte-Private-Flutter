@@ -6730,7 +6730,7 @@ Future<Map<String, dynamic>> sesliRandevuCoz(String salonid, String metin,
     {String personelId = ''}) async {
   final params = {'salonid': salonid, 'metin': metin};
   if (personelId.isNotEmpty) params['personel_id'] = personelId;
-  final uri = Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/sesli-randevu-coz')
+  final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/sesli-randevu-coz')
       .replace(queryParameters: params);
   try {
     final res = await http.get(uri, headers: {'Accept': 'application/json'});
@@ -6741,6 +6741,145 @@ Future<Map<String, dynamic>> sesliRandevuCoz(String salonid, String metin,
   } catch (e) {
     log('sesliRandevuCoz: $e');
     return {'basarili': false, 'hata': 'Baglanti hatasi: $e'};
+  }
+}
+
+/// PATRON ASISTANI (mobil): sesli/yazili SERBEST soru -> dogal dil cevap + kart.
+/// Auth gerektirir (Bearer token). Sunucu SADECE Hesap Sahibi + Yonetici'ye izin
+/// verir (rapor.ciro_kar_gor); yetkisizse 403 doner. Rakam sunucuda gercek veriden
+/// hesaplanir, uydurulmaz. Donen yapida: {basarili, cevap, seslendir, kart, intent}.
+/// NOT: Endpoint su an TEST sunucusunda (apptest); canliya cikinca app olacak
+/// (sesli randevu ile ayni gecis).
+Future<Map<String, dynamic>> patronAsistanSor(String salonid, String metin) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    String? token;
+    final rawToken = prefs.getString('token');
+    if (rawToken != null && rawToken.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawToken);
+        token = decoded is String ? decoded : decoded?.toString();
+      } catch (_) {
+        token = rawToken;
+      }
+    }
+    final res = await http
+        .post(
+          Uri.parse('https://app.randevumcepte.com.tr/api/v1/patron-asistan-sor'),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'metin': metin, 'sube': salonid, 'salonid': salonid}),
+        )
+        .timeout(const Duration(seconds: 25));
+    if (res.statusCode == 200) {
+      return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    }
+    if (res.statusCode == 403) {
+      return {
+        'basarili': false,
+        'cevap': 'Bu özellik yalnızca hesap sahibi ve yöneticiler içindir.',
+      };
+    }
+    return {'basarili': false, 'cevap': 'Sunucu hatası (${res.statusCode}).'};
+  } catch (e) {
+    log('patronAsistanSor: $e');
+    return {'basarili': false, 'cevap': 'Bağlantı hatası. Tekrar dener misin?'};
+  }
+}
+
+/// PATRON ASISTANI — ONAYLANMIS kampanyayi uygular (kupon olustur + SMS gonder).
+/// Yalniz patron "Onayla"ya basinca cagirilir. aksiyon: {tur,tip,oran,...}.
+Future<Map<String, dynamic>> patronAsistanUygula(String salonid, Map<String, dynamic> aksiyon) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    String? token;
+    final rawToken = prefs.getString('token');
+    if (rawToken != null && rawToken.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawToken);
+        token = decoded is String ? decoded : decoded?.toString();
+      } catch (_) {
+        token = rawToken;
+      }
+    }
+    final res = await http
+        .post(
+          Uri.parse('https://app.randevumcepte.com.tr/api/v1/patron-asistan-uygula'),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'salonid': salonid,
+            'sube': salonid,
+            'tur': aksiyon['tur'],
+            'tip': aksiyon['tip'],
+            'oran': aksiyon['oran'],
+          }),
+        )
+        .timeout(const Duration(seconds: 60));
+    if (res.statusCode == 200) {
+      return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    }
+    if (res.statusCode == 403) {
+      return {'basarili': false, 'cevap': 'Bu işlem için yetkiniz yok.'};
+    }
+    return {'basarili': false, 'cevap': 'İşlem yapılamadı (${res.statusCode}).'};
+  } catch (e) {
+    log('patronAsistanUygula: $e');
+    return {'basarili': false, 'cevap': 'Bağlantı hatası, işlem tamamlanamadı.'};
+  }
+}
+
+/// Personelin randevu takvimi durumu {acik: bool, hizmet_var: bool}
+Future<Map<String, bool>> sesliRandevuTakvimDurumu(String personelId) async {
+  final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/sesli-randevu-takvim-durumu')
+      .replace(queryParameters: {'personel_id': personelId});
+  try {
+    final res = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (res.statusCode == 200) {
+      final j = json.decode(res.body);
+      return {
+        'acik': j['acik'] == true,
+        'hizmet_var': j['hizmet_var'] == true,
+      };
+    }
+  } catch (e) {
+    log('sesliRandevuTakvimDurumu: $e');
+  }
+  return {'acik': false, 'hizmet_var': false};
+}
+
+/// En yakin BOS slotu bulur (calisma saati + mevcut randevulara gore).
+/// Doner: {bulundu, tarih, saat, sure_dk, tam_istek} | {bulundu:false}
+Future<Map<String, dynamic>> sesliRandevuMusaitlik(
+  String salonid,
+  String personelId,
+  String hizmetId, {
+  String tarih = '',
+  String saat = '',
+  String vakit = '',
+}) async {
+  final params = {'salonid': salonid, 'hizmet_id': hizmetId};
+  if (personelId.isNotEmpty) params['personel_id'] = personelId;
+  if (tarih.isNotEmpty) params['tarih'] = tarih;
+  if (saat.isNotEmpty) params['saat'] = saat;
+  if (vakit.isNotEmpty) params['vakit'] = vakit;
+  final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/sesli-randevu-musaitlik')
+      .replace(queryParameters: params);
+  try {
+    final res = await http.get(uri, headers: {'Accept': 'application/json'});
+    if (res.statusCode == 200) {
+      return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    }
+    return {'bulundu': false, 'hata': 'Sunucu hatasi (${res.statusCode})'};
+  } catch (e) {
+    log('sesliRandevuMusaitlik: $e');
+    return {'bulundu': false, 'hata': 'Baglanti hatasi: $e'};
   }
 }
 
@@ -6812,5 +6951,47 @@ Future<Map<String, dynamic>> sesliRandevuOlustur({
   } catch (e) {
     log('sesliRandevuOlustur: $e');
     return {'hata': 'Baglanti hatasi: $e'};
+  }
+}
+
+/// Sesli randevu: portfoyde OLMAYAN musteriyi ISIM + TELEFON ile olusturur.
+/// Mevcut /yenimusteridanisankaydi endpoint'ini (CANLI) kullanir; santraldenkayit=1
+/// gonderilince yanitta yeni "userId" doner. Telefon zaten kayitliysa "exists" doner.
+/// Doner: {ok:bool, userId?:String, exists?:bool, hata?:String}
+Future<Map<String, dynamic>> sesliYeniMusteri({
+  required String salonId,
+  required String name,
+  required String telefon,
+  String isletmeadi = '',
+}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/yenimusteridanisankaydi'),
+      headers: {'Accept': 'application/json'},
+      body: {
+        'salonidler': salonId,
+        'name': name,
+        'cep_telefon': telefon,
+        'isletmeadi': isletmeadi,
+        'santraldenkayit': '1',
+      },
+    ).timeout(const Duration(seconds: 25));
+    final govde = utf8.decode(res.bodyBytes).trim();
+    if (res.statusCode == 200) {
+      if (govde == 'exists' || govde == '"exists"') {
+        return {'ok': false, 'exists': true};
+      }
+      try {
+        final j = json.decode(govde);
+        if (j is Map && j['userId'] != null) {
+          return {'ok': true, 'userId': j['userId'].toString()};
+        }
+      } catch (_) {}
+      return {'ok': false, 'hata': 'Beklenmeyen yanit'};
+    }
+    return {'ok': false, 'hata': 'Sunucu hatasi (${res.statusCode})'};
+  } catch (e) {
+    log('sesliYeniMusteri: $e');
+    return {'ok': false, 'hata': 'Baglanti hatasi'};
   }
 }

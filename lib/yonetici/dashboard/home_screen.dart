@@ -18,6 +18,7 @@ import 'package:sticky_headers/sticky_headers/widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/yonetici/patron_asistan/patron_asistan.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/ajanda.dart';
@@ -336,6 +337,25 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
+      // PATRON ASISTANI — sesli/yazili isletme asistani. Sadece Hesap Sahibi +
+      // Yonetici gorur (rapor.ciro_kar_gor); Sekreter/Personel'e gizli.
+      floatingActionButton: (seciliisletme != null && Yetki.varMi('rapor.ciro_kar_gor'))
+          ? FloatingActionButton.extended(
+              heroTag: 'patronAsistanFab',
+              backgroundColor: const Color(0xFF5C008E),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.mic),
+              label: const Text('Asistan'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PatronAsistanEkrani(salonId: seciliisletme!),
+                  ),
+                );
+              },
+            )
+          : null,
       body: Stack(children: [
       Container(
         decoration: BoxDecoration(
