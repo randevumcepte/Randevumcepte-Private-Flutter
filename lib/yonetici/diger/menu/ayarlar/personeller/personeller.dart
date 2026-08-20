@@ -118,6 +118,9 @@ class _PersonellerState extends State<Personeller> {
       final json = await personelgetir(_salonid!, _currentPage.toString(), _aramaQ);
       final List<dynamic> data = json['data'] ?? [];
       _liste = data.map<Personel>((e) => Personel.fromJson(e)).toList();
+      // personelgetir 'takvimde_gorunsun' dondurmuyor -> tum listeden (personeller
+      // endpoint'i doner) id'ye gore aktar; boylece Gizli/Takvimde rozeti dogru olur.
+      _takvimBilgisiBirlestir();
       _currentPage = (json['current_page'] as num?)?.toInt() ?? 1;
       _totalPages = (json['last_page'] as num?)?.toInt() ?? 1;
     } catch (e) {
@@ -131,9 +134,25 @@ class _PersonellerState extends State<Personeller> {
     if (_salonid == null) return;
     try {
       _tumListe = await personellistegetir(_salonid!);
+      _takvimBilgisiBirlestir();
       if (mounted) setState(() {});
     } catch (e) {
       debugPrint('personeller _tumListeYukle: $e');
+    }
+  }
+
+  /// personelgetir 'takvimde_gorunsun' dondurmedigi icin, tum listeden (personeller
+  /// endpoint'i doner) id eslesmesiyle gorunen listeye aktar.
+  void _takvimBilgisiBirlestir() {
+    if (_liste.isEmpty || _tumListe.isEmpty) return;
+    final Map<String, String> harita = {
+      for (final t in _tumListe) t.id: t.takvimde_gorunsun,
+    };
+    for (final p in _liste) {
+      final v = harita[p.id];
+      if (v != null && v != 'null') {
+        p.takvimde_gorunsun = v;
+      }
     }
   }
 

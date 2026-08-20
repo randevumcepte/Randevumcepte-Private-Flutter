@@ -745,14 +745,24 @@ class TakvimState extends State<Takvim> with RouteAware {
           IconButton(
             tooltip: 'Sesli Randevu',
             onPressed: () {
+              // Giris yapan kullanicinin BU salondaki personel id'sini bul (rolden
+              // bagimsiz). Bulunamazsa '' -> sesli ekran "takviminiz acik degil" der.
+              String pid = '';
+              try {
+                for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
+                  if (e['salon_id'].toString() ==
+                      widget.isletmebilgi['id'].toString()) {
+                    pid = e['id'].toString();
+                    break;
+                  }
+                }
+              } catch (_) {}
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => SesliRandevuEkrani(
                     salonId: widget.isletmebilgi['id'].toString(),
-                    // Randevu DAIMA giris yapan personel adina olusur (rol 5 = personel).
-                    // Yetkili/sahip rolunde personelid bos gelir; o zaman personel secilmez.
-                    personelId: widget.kullanicirolu == 5 ? personelid : '',
+                    personelId: pid, // giris yapan personelin id'si (yoksa bos)
                     isletmebilgi: widget.isletmebilgi,
                   ),
                 ),

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +35,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
 
   final stt.SpeechToText _speech = stt.SpeechToText();
   final FlutterTts _tts = FlutterTts();
+  AudioPlayer _bip = AudioPlayer(); // isinmis player (duyulur); bozulursa yenilenir
 
   bool _hazir = false;
   bool _dinliyor = false;
@@ -56,12 +59,14 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
   int? _musteriId;
   String? _musteriAd;
   List<Map<String, dynamic>> _adaylar = [];
+  String? _spokenAd; // kullanicinin soyledigi ham musteri adi (yeni musteri icin)
   int? _hizmetId;
   String? _hizmetAd;
   String _hizmetFiyat = '0';
   String _hizmetSure = '30';
   String? _tarih; // Y-m-d
   String? _saat; // H:i
+  String? _vakit; // sabah | ogleden_sonra | aksam
   String _personelAd = 'Siz';
 
   String _sistemMesaji = 'Mikrofona dokunun ve randevuyu söyleyin.';
@@ -70,8 +75,36 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
   @override
   void initState() {
     super.initState();
+    _bipHazirla();
     _hazirla();
   }
+
+  /// Bip player'ini isit (medya kanali + focus none). Hot reload'da bozulursa
+  /// _bipCal icinde yeniden cagrilir.
+  Future<void> _bipHazirla() async {
+    try {
+      _bip.audioCache = AudioCache(prefix: '');
+      await _bip.setReleaseMode(ReleaseMode.stop);
+      await _bip.setAudioContext(_sesBaglami());
+    } catch (_) {}
+  }
+
+  /// Bip cali ses baglami: MEDYA kanali (TTS gibi DUYULUR) + ses ODAGI ISTEME
+  /// (mikrofon acilinca bip kisilmasin). Hot restart'ta native ayar sifirlandigi
+  /// icin her bip'ten ONCE de uygulanir (bkz. _bipCal).
+  AudioContext _sesBaglami() => AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.media,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.ambient,
+          options: const {},
+        ),
+      );
 
   Future<void> _hazirla() async {
     final ok = await _speech.initialize(
@@ -81,7 +114,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
       onError: (e) => _dinlemeTamamla(),
     );
     await _sesAyarla();
-    if (mounted) setState(() => _hazir = ok);
+    if (mounted) _ss(() => _hazir = ok);
   }
 
   /// TTS'i mumkun oldugunca dogal/akici yapar: Google motoru + en iyi Turkce ses.
@@ -141,7 +174,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     if (hedef != null) {
       await _sesUygula(hedef, kaydet: false);
     }
-    if (mounted) setState(() {});
+    if (mounted) _ss(() {});
   }
 
   Map<String, String>? _sesBul(String name) {
@@ -163,7 +196,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('sesli_randevu_ses', name);
     }
-    if (mounted) setState(() {});
+    if (mounted) _ss(() {});
   }
 
   /// Ses secildiginde ornek konusarak dinlet.
@@ -176,15 +209,50 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
   void dispose() {
     _speech.stop();
     _tts.stop();
+    _bip.dispose();
     super.dispose();
+  }
+
+  /// mounted kontrollu setState — ekran kapandiktan sonra cagrilirsa cokmesin.
+  void _ss(VoidCallback fn) {
+    if (mounted) setState(fn);
   }
 
   /* ------------------------------------------------------------------ */
   /* SES: konus / dinle                                                 */
   /* ------------------------------------------------------------------ */
 
+  /// Dinleme baslamadan kisa sinyal: guclu titresim + kisa ses blip'i.
+  /// (Bu cihaz Android'in kendi tanima bip'ini calmiyor.)
+  Future<void> _bipCal() async {
+    print('SESLIDBG bip cagrildi');
+    try {
+      HapticFeedback.heavyImpact();
+    } catch (e) {
+      print('SESLIDBG haptic hata: $e');
+    }
+    // ISINMIS kalici player calar (duyulur). Hot reload'da native player
+    // "disposed" olursa yakalayip YENIDEN olusturup tekrar dener.
+    try {
+      await _bip.play(AssetSource('images/bip6.wav'), volume: 1.0);
+      print('SESLIDBG ses play() cagrildi');
+    } catch (e) {
+      print('SESLIDBG ses hata, player yenileniyor: $e');
+      try {
+        _bip = AudioPlayer();
+        await _bipHazirla();
+        await _bip.play(AssetSource('images/bip6.wav'), volume: 1.0);
+      } catch (_) {}
+    }
+    // Bip mikrofon ACILMADAN once duyulsun; sonra durdurup dinlemeye gec.
+    await Future.delayed(const Duration(milliseconds: 320));
+    try {
+      await _bip.stop();
+    } catch (_) {}
+  }
+
   Future<void> _konus(String metin) async {
-    setState(() {
+    _ss(() {
       _sistemMesaji = metin;
       _konusma.add('🔊 $metin');
     });
@@ -195,16 +263,18 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
   }
 
   /// Tek cumle dinler; oturum kapaninca duyulan metni doner.
-  Future<String> _dinle({int pause = 4, int listen = 20}) async {
+  /// pause = konusma bitince kac sn sessizlikten sonra KAPANSIN (kisa = hizli).
+  Future<String> _dinle({int pause = 2, int listen = 15}) async {
     if (!_hazir) return '';
     _dinleC = Completer<String>();
     _dinleSon = '';
-    setState(() => _dinliyor = true);
+    _ss(() => _dinliyor = true);
+    await _bipCal();
     try {
       await _speech.listen(
         onResult: (r) {
           _dinleSon = r.recognizedWords.trim();
-          setState(() {});
+          _ss(() {});
           if (r.finalResult) _dinlemeTamamla();
         },
         listenFor: Duration(seconds: listen),
@@ -220,8 +290,15 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
       _dinlemeTamamla();
     }
     final sonuc = await _dinleC!.future;
+    print('SESLIDBG STT duydu: "$sonuc"');
     if (sonuc.isNotEmpty) {
-      setState(() => _konusma.add('🎤 $sonuc'));
+      _ss(() => _konusma.add('🎤 $sonuc'));
+    }
+    // Kullanici herhangi bir anda "iptal / vazgec / kapat / dur" derse akisi durdur.
+    if (_iptalKomutu(sonuc)) {
+      _ss(() => _iptal = true);
+      await _konus('Tamam, işlemi iptal ettim.');
+      return '';
     }
     return sonuc;
   }
@@ -230,7 +307,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     if (_dinleC != null && !_dinleC!.isCompleted) {
       _dinleC!.complete(_dinleSon.trim());
     }
-    if (mounted) setState(() => _dinliyor = false);
+    if (mounted) _ss(() => _dinliyor = false);
   }
 
   /* ------------------------------------------------------------------ */
@@ -245,10 +322,23 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
       return;
     }
     _sifirla();
-    setState(() => _mesgul = true);
+    _ss(() => _mesgul = true);
     try {
-      await _konus('Randevuyu söyleyin. Örneğin: yarın saat ikide Ayşe hanıma cilt bakımı.');
-      final komut = await _dinle(pause: 5, listen: 30);
+      // EN BASTA: takvim acik mi + hizmet var mi? Yoksa konuşma isteme.
+      _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
+      final durum = await sesliRandevuTakvimDurumu(widget.personelId);
+      if (durum['acik'] != true) {
+        await _konus(
+            'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
+        return;
+      }
+      if (durum['hizmet_var'] != true) {
+        await _konus(
+            'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
+        return;
+      }
+      await _konus('Randevunuzu oluşturun.');
+      final komut = await _dinle(pause: 3, listen: 20);
       if (_iptal) return;
       if (komut.trim().isEmpty) {
         await _konus('Sizi duyamadım. Tekrar deneyin.');
@@ -261,13 +351,10 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
       if (_iptal || _hizmetId == null) return;
       await _musteriCoz();
       if (_iptal || _musteriId == null) return;
-      await _tarihCozSes();
-      if (_iptal || _tarih == null) return;
-      await _saatCozSes();
-      if (_iptal || _saat == null) return;
-      await _onayVeOlustur();
+      // Tarih/saat/vakit tercihine gore EN YAKIN BOS slotu bul, sesli onaylat, olustur.
+      await _musaitlikVeOnay();
     } finally {
-      if (mounted) setState(() => _mesgul = false);
+      if (mounted) _ss(() => _mesgul = false);
     }
   }
 
@@ -276,16 +363,18 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     _musteriId = null;
     _musteriAd = null;
     _adaylar = [];
+    _spokenAd = null;
     _hizmetId = null;
     _hizmetAd = null;
     _tarih = null;
     _saat = null;
+    _vakit = null;
     _konusma.clear();
   }
 
   /// Bir komut/cevap metnini backend'e cozdurup alanlari doldurur.
   Future<Map<String, dynamic>> _uygula(String metin) async {
-    setState(() => _sistemMesaji = 'Anlıyorum...');
+    _ss(() => _sistemMesaji = 'Anlıyorum...');
     final r = await sesliRandevuCoz(widget.salonId, metin,
         personelId: widget.personelId);
     if (r['basarili'] != true) return r;
@@ -296,6 +385,9 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     }
     if (r['saat'] != null && (r['saat'] as String).isNotEmpty) {
       _saat = r['saat'];
+    }
+    if (r['vakit'] != null && (r['vakit'] as String).isNotEmpty) {
+      _vakit = r['vakit'].toString();
     }
     // Hizmet
     final hizmetler = (r['hizmetler'] as List?) ?? [];
@@ -318,6 +410,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     final adaylar = ((m['adaylar'] as List?) ?? [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+    print('SESLIDBG musteri: user_id=${m['user_id']} adaylar=${adaylar.map((a) => a['name']).toList()}');
     if (m['user_id'] != null) {
       _musteriId = m['user_id'] is int
           ? m['user_id']
@@ -325,8 +418,12 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
       if (adaylar.isNotEmpty) _musteriAd = adaylar.first['name']?.toString();
     } else {
       _adaylar = adaylar;
+      // Komuttan/cevaptan cikan ISIM TAHMINI'ni sakla -> "Müşteri kim?" yerine
+      // soylenen ismi kullan (kullanici komutta ismi soyledi, tekrar sormayalim).
+      final adT = (m['ad_tahmini'] ?? '').toString().trim();
+      if (adT.isNotEmpty) _spokenAd = _isimTemizle(adT);
     }
-    setState(() {});
+    _ss(() {});
     return r;
   }
 
@@ -338,37 +435,132 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     int deneme = 0;
     while (_musteriId == null && !_iptal && deneme < 3) {
       deneme++;
+
+      // ISIM AL — aday listesi bossa (ilk komuttan gelmediyse ya da onceki tur
+      // net sonuc vermediyse). Yeni musteri SADECE "yeni" deyince acilir.
       if (_adaylar.isEmpty) {
-        await _konus('Müşteri kim?');
+        final String soru;
+        if (_spokenAd != null && _spokenAd!.isNotEmpty) {
+          // Komutta isim soylendi ama net anlasilmadi -> sadece adini iste.
+          soru =
+              'Müşteri adını tam anlayamadım. Lütfen sadece müşterinin adını söyleyin. Yeni müşteri için "yeni" deyin.';
+        } else if (deneme == 1) {
+          soru = 'Müşteri kim?';
+        } else {
+          soru = 'Adı tekrar söyleyin, yeni müşteri için "yeni" deyin.';
+        }
+        await _konus(soru);
         final c = await _dinle();
-        if (c.isEmpty) continue;
-        await _uygula(c); // adaylari / user_id doldurur
-      } else if (_adaylar.length == 1) {
-        _musteriSec(_adaylar.first);
-      } else {
+        if (_iptal) return;
+        if (c.trim().isEmpty) continue;
+        if (_yeniMi(c)) {
+          await _yeniMusteriOlustur(_spokenAd);
+          return;
+        }
+        _spokenAd = _isimTemizle(c);
+        await _uygula(c); // user_id veya adaylar doldurur
+        if (_iptal) return;
+        if (_musteriId != null) return;
+        if (_adaylar.isEmpty) continue; // hala bulunamadi -> tekrar sor
+      }
+
+      // ADAY(LAR) SUN
+      if (_adaylar.isNotEmpty) {
         final adlar = _adaylar
-            .take(4)
+            .take(3)
             .map((a) => a['name']?.toString() ?? '')
             .where((s) => s.isNotEmpty)
             .toList();
-        await _konus('Hangisi? ${adlar.join(", ")}');
+        await _konus(
+            'Şunlardan biri mi: ${adlar.join(", ")}? Değilse yeni müşteri için "yeni" deyin.');
         final c = await _dinle();
-        if (c.isEmpty) continue;
-        final sec = _adayEslesir(c);
+        if (_iptal) return;
+        if (_yeniMi(c)) {
+          await _yeniMusteriOlustur(_spokenAd);
+          return;
+        }
+        final sec = _adayEslesirGuclu(c);
         if (sec != null) {
           _musteriSec(sec);
-        } else {
-          await _konus('Anlayamadım.');
+          return;
+        }
+        // Net secilmedi -> cevabi YENI isim varsayip tekrar ara (yanlis duymayi duzelt)
+        _ss(() => _adaylar = []);
+        if (c.trim().isNotEmpty) {
+          _spokenAd = _isimTemizle(c);
+          await _uygula(c);
+          if (_iptal) return;
+          if (_musteriId != null) return;
         }
       }
     }
     if (_musteriId == null && !_iptal) {
-      await _konus('Müşteriyi seçemedim. İşlemi iptal ediyorum.');
+      await _konus('Müşteriyi belirleyemedim. Yeni müşteri için "yeni" diyerek tekrar deneyin.');
+    }
+  }
+
+  /// Portfoyde bulunamayan musteriyi ISIM + TELEFON alarak olusturur (canli endpoint).
+  /// Once ismi ONAYLATIR (STT yanlis duymus olabilir), sonra telefon ister.
+  Future<void> _yeniMusteriOlustur(String? on) async {
+    String ad = _isimTemizle(on ?? '');
+    // 1) Ismi net al + onayla (en fazla 3 tur)
+    for (int i = 0; i < 3 && !_iptal; i++) {
+      if (ad.length >= 2) {
+        await _konus('Yeni müşteri $ad. Doğruysa "evet" deyin, değilse adı söyleyin.');
+      } else {
+        await _konus('Yeni müşterinin adını söyleyin.');
+      }
+      final c = await _dinle();
+      if (_iptal) return;
+      if (c.trim().isEmpty) continue;
+      if (ad.length >= 2 && _olumlu(c)) break;
+      final yeniAd = _isimTemizle(c);
+      if (yeniAd.length >= 2) ad = yeniAd;
+    }
+    if (ad.length < 2) {
+      await _konus('İsmi alamadım, işlemi iptal ediyorum.');
+      _ss(() => _iptal = true);
+      return;
+    }
+    // 2) Telefon al
+    await _konus('$ad için telefon numarasını söyleyin.');
+    String? tel;
+    for (int i = 0; i < 2 && tel == null && !_iptal; i++) {
+      final t = await _dinle(pause: 3, listen: 12);
+      if (_iptal) return;
+      tel = _telefonAyikla(t);
+      if (tel == null && i == 0) {
+        await _konus('Numarayı anlayamadım. On bir haneli numarayı tekrar söyleyin.');
+      }
+    }
+    if (tel == null) {
+      await _konus('Telefon numarasını alamadım. İşlemi iptal ediyorum.');
+      _ss(() => _iptal = true);
+      return;
+    }
+    // 3) Kaydet
+    await _konus('$ad, ${_telSozlu(tel)} numarasıyla kaydediliyor.');
+    final r = await sesliYeniMusteri(
+      salonId: widget.salonId,
+      name: ad,
+      telefon: tel,
+    );
+    if (r['ok'] == true && r['userId'] != null) {
+      _ss(() {
+        _musteriId = int.tryParse(r['userId'].toString());
+        _musteriAd = ad;
+      });
+      await _konus('$ad kaydedildi.');
+    } else if (r['exists'] == true) {
+      await _konus(
+          'Bu telefon numarası zaten kayıtlı. Lütfen müşteriyi uygulamadan seçin.');
+    } else {
+      await _konus('Müşteri oluşturulamadı. ${r['hata'] ?? ''}');
     }
   }
 
   void _musteriSec(Map<String, dynamic> aday) {
-    setState(() {
+    _ss(() {
       _musteriId = aday['user_id'] is int
           ? aday['user_id']
           : int.tryParse('${aday['user_id']}');
@@ -376,24 +568,103 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     });
   }
 
-  Map<String, dynamic>? _adayEslesir(String cevap) {
-    final c = _fold(cevap);
-    Map<String, dynamic>? enIyi;
-    double enSkor = 0;
+  /// Aday, cevapla GUCLU eslesiyor mu? Adayin TUM kelimeleri cevapta gecmeli VE
+  /// yalniz TEK aday tam eslesmeli. Boylece "Anıl Orbey" derken yanlislikla
+  /// "Anıl Kaya" secilmez (tek kelime ortakligi yeterli sayilmaz).
+  Map<String, dynamic>? _adayEslesirGuclu(String cevap) {
+    final cw = _fold(cevap)
+        .split(RegExp(r'\s+'))
+        .where((w) => w.length >= 2)
+        .toSet();
+    Map<String, dynamic>? tekTam;
+    int tamSayisi = 0;
     for (final a in _adaylar) {
-      final ad = _fold(a['name']?.toString() ?? '');
-      double skor = 0;
-      // cevaptaki kelime, adin icinde tam kelime olarak geciyorsa guclu
-      for (final w in c.split(' ')) {
-        if (w.length >= 2 && ad.contains(w)) skor += 1;
-      }
-      if (skor > enSkor) {
-        enSkor = skor;
-        enIyi = a;
+      final adKelime = _fold(a['name']?.toString() ?? '')
+          .split(RegExp(r'\s+'))
+          .where((w) => w.length >= 2)
+          .toList();
+      if (adKelime.isEmpty) continue;
+      if (adKelime.every((w) => cw.contains(w))) {
+        tamSayisi++;
+        tekTam = a;
       }
     }
-    return enSkor > 0 ? enIyi : null;
+    return tamSayisi == 1 ? tekTam : null;
   }
+
+  /// "yeni müşteri / hayır / değil / yok / başka" gibi RED/YENI ifadesi mi?
+  bool _yeniMi(String cevap) {
+    final c = _fold(cevap);
+    for (final k in ['yeni', 'hayir', 'degil', 'yok', 'baska', 'hicbiri', 'olmadi']) {
+      if (c.contains(k)) return true;
+    }
+    return false;
+  }
+
+  /// Olumlu onay mi? ("evet / doğru / tamam / olur / aynen")
+  bool _olumlu(String cevap) {
+    final c = _fold(cevap);
+    for (final k in ['evet', 'dogru', 'tamam', 'olur', 'aynen', 'kesinlikle']) {
+      if (c.contains(k)) return true;
+    }
+    return false;
+  }
+
+  /// Kullanicinin akisi durdurma komutu mu? ("iptal / vazgeç / kapat / dur")
+  bool _iptalKomutu(String cevap) {
+    final c = _fold(cevap);
+    for (final k in ['iptal', 'vazgec', 'vaz gec', 'bosver', 'bos ver',
+        'istemiyorum', 'kapat', 'durdur']) {
+      if (c.contains(k)) return true;
+    }
+    return c.trim() == 'dur';
+  }
+
+  /// Soylenen isimden dolgu kelimeleri temizler, her kelimenin ilk harfini buyutur.
+  String _isimTemizle(String s) {
+    const at = {
+      'musteri', 'musterim', 'musteriye', 'musteriya', 'adina', 'adi', 'isim',
+      'ismi', 'isimli', 'bey', 'hanim', 'hanima', 'beye', 'icin', 'lutfen',
+      'randevu', 'randevusu', 'olustur', 'olusturun', 'ver', 'verin', 've',
+      'de', 'da', 'ile', 'saat', 'saatte', 'gel', 'gelsin'
+    };
+    final kelimeler = s
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) {
+          final f = _fold(w);
+          return f.length >= 2 &&
+              !at.contains(f) &&
+              !RegExp(r'\d').hasMatch(w); // rakam iceren token (12de, 14:00) atla
+        })
+        .toList();
+    return kelimeler
+        .map((w) => w.isEmpty
+            ? w
+            : (w[0].toUpperCase() + (w.length > 1 ? w.substring(1) : '')))
+        .join(' ')
+        .trim();
+  }
+
+  /// STT metninden 11 haneli TR cep telefonu cikarir (05XXXXXXXXX) ya da null.
+  String? _telefonAyikla(String s) {
+    const rakam = {
+      'sifir': '0', 'bir': '1', 'iki': '2', 'uc': '3', 'dort': '4',
+      'bes': '5', 'alti': '6', 'yedi': '7', 'sekiz': '8', 'dokuz': '9'
+    };
+    final sb = StringBuffer();
+    for (final w in _fold(s).split(RegExp(r'\s+'))) {
+      sb.write(rakam.containsKey(w) ? rakam[w] : w);
+    }
+    var d = sb.toString().replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.length == 12 && d.startsWith('90')) d = d.substring(2);
+    if (d.length == 10 && d.startsWith('5')) d = '0$d';
+    if (d.length == 11 && d.startsWith('05')) return d;
+    return null;
+  }
+
+  /// Telefonu okunakli soyler: "0 5 3 1 ...".
+  String _telSozlu(String tel) => tel.split('').join(' ');
 
   Future<void> _hizmetCoz() async {
     int deneme = 0;
@@ -408,7 +679,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     }
     if (_hizmetId == null && !_iptal) {
       await _konus('Hizmet bulunamadı, işlemi iptal ediyorum.');
-      setState(() => _iptal = true);
+      _ss(() => _iptal = true);
     }
   }
 
@@ -438,9 +709,111 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
   /* ONAY + OLUSTUR                                                     */
   /* ------------------------------------------------------------------ */
 
+  bool _olumluMu(String cl) =>
+      cl.contains('evet') ||
+      cl.contains('onay') ||
+      cl.contains('tamam') ||
+      cl.contains('olur') ||
+      cl.contains('olustur') ||
+      cl.contains('kaydet') ||
+      cl.contains('yine');
+
+  /// Tarih/saat/vakit tercihine gore EN YAKIN BOS slotu bulur, sesli onaylatir, olusturur.
+  Future<void> _musaitlikVeOnay() async {
+    _ss(() => _sistemMesaji = 'Uygun saat aranıyor...');
+    final m = await sesliRandevuMusaitlik(
+      widget.salonId,
+      widget.personelId,
+      _hizmetId.toString(),
+      tarih: _tarih ?? '',
+      saat: _saat ?? '',
+      vakit: _vakit ?? '',
+    );
+    if (m['bulundu'] != true) {
+      if (m['calisma_yok'] == true) {
+        await _konus(
+            'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
+      } else {
+        await _konus(
+            'Belirttiğiniz tarihlerde müsait bir saat bulamadım. Çalışma saatlerinizin tanımlı ve o günlerin açık olduğundan emin olun.');
+      }
+      return;
+    }
+    final istenenSaat = (_saat ?? '').trim(); // kullanicinin ISTEDIGI saat (overwrite oncesi)
+    final bTarih = m['tarih'].toString();
+    final bSaat = m['saat'].toString();
+    final tamIstek = m['tam_istek'] == true;
+    _ss(() {
+      _tarih = bTarih;
+      _saat = bSaat;
+    });
+
+    final kim = _musteriAd ?? 'müşteri';
+    final zaman = '${_tarihSozlu(bTarih)} saat ${_saatSozlu(bSaat)}';
+
+    // Onay iste — her durumda "farkli saat soyleyebilirsiniz" ipucuyla.
+    String c;
+    if (tamIstek) {
+      await _konus(
+          '$kim, $zaman, $_hizmetAd. Onaylıyor musunuz? Farklı bir saat isterseniz söyleyin.');
+      c = await _dinle(pause: 2, listen: 8);
+    } else if (istenenSaat.isNotEmpty) {
+      await _konus(
+          'Vermek istediğiniz saatte başka bir müşterimizin randevusu bulunuyor. Şu an en yakın müsait saat $zaman. $kim için bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
+      c = await _dinle(pause: 2, listen: 8);
+    } else {
+      await _konus(
+          '$kim için en yakın müsait saat $zaman. Bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
+      c = await _dinle(pause: 2, listen: 8);
+    }
+    if (_iptal) return;
+
+    if (_olumluMu(_fold(c))) {
+      await _randevuYaz(false); // onaylandi -> olustur
+      return;
+    }
+
+    // ONAY YOK: once cevapta yeni saat/gun var mi ("hayir saat 3 olsun") DENE.
+    if (await _tercihDuzeltDeneVeTekrar(c)) return;
+
+    // Cevapta belirgin saat/gun yoktu -> ACIKCA sor.
+    await _konus('Peki, hangi saate ya da güne almak istersiniz? Vazgeçmek için iptal deyin.');
+    final d = await _dinle(pause: 2, listen: 10);
+    if (_iptal) return;
+    if (d.trim().isNotEmpty && await _tercihDuzeltDeneVeTekrar(d)) return;
+
+    await _konus('İptal ettim, randevu oluşturulmadı.');
+  }
+
+  /// Metinde YENI saat/tarih/vakit varsa gunceller ve musaitligi BASTAN
+  /// degerlendirir (musteri/hizmet KORUNUR). Degisiklik olduysa true doner.
+  Future<bool> _tercihDuzeltDeneVeTekrar(String metin) async {
+    // Metni cozdur ama SADECE tarih/saat/vakit'i al (musteri/hizmet DOKUNMA).
+    final r = await sesliRandevuCoz(widget.salonId, metin,
+        personelId: widget.personelId);
+    final yTarih = (r['tarih'] ?? '').toString();
+    final ySaat = (r['saat'] ?? '').toString();
+    final yVakit = (r['vakit'] ?? '').toString();
+    if (yTarih.isEmpty && ySaat.isEmpty && yVakit.isEmpty) {
+      return false; // metinde yeni saat/gun yok -> duzeltme degil
+    }
+    _ss(() {
+      if (yTarih.isNotEmpty) _tarih = yTarih;
+      if (ySaat.isNotEmpty) {
+        _saat = ySaat;
+        _vakit = null; // NET saat verildi -> vakti ezer
+      } else if (yVakit.isNotEmpty) {
+        _vakit = yVakit;
+        _saat = null; // VAKIT verildi -> eski net saati temizle ki vakit gecerli olsun
+      }
+    });
+    await _musaitlikVeOnay(); // yeni tercihle bastan
+    return true;
+  }
+
   Future<void> _onayVeOlustur() async {
     // 1) Onay-ONCESI cakisma kontrolu (OLUSTURMADAN)
-    setState(() => _sistemMesaji = 'Çakışma kontrol ediliyor...');
+    _ss(() => _sistemMesaji = 'Çakışma kontrol ediliyor...');
     final chk = await sesliRandevuOlustur(
       salonid: widget.salonId,
       userId: _musteriId.toString(),
@@ -464,7 +837,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
       onay = await _cakismaOnay((chk['cakisanunsurlar'] ?? '').toString());
     } else {
       await _konus('$ozet. Onaylıyor musunuz?');
-      final c = await _dinle(pause: 3, listen: 10);
+      final c = await _dinle(pause: 2, listen: 8);
       final cl = _fold(c);
       onay = cl.contains('evet') ||
           cl.contains('onay') ||
@@ -530,7 +903,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     // Sesli sor + dinle (karar butonla verilmediyse sesle ver)
     await _konus(
         'Bu randevu başka randevularla çakışıyor. Ekrandaki listeye bakın. Yine de oluşturmak ister misiniz?');
-    final cevap = await _dinle(pause: 3, listen: 10);
+    final cevap = await _dinle(pause: 2, listen: 8);
     final cl = _fold(cevap);
     if (!c.isCompleted) {
       final evet = cl.contains('evet') ||
@@ -552,7 +925,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
 
   /// Randevuyu yazar. Cakisma onaylandiysa (cakismaVar) "yine de olustur" moduyla.
   Future<void> _randevuYaz(bool cakismaVar) async {
-    setState(() => _sistemMesaji = 'Randevu oluşturuluyor...');
+    _ss(() => _sistemMesaji = 'Randevu oluşturuluyor...');
     try {
       final r = await sesliRandevuOlustur(
         salonid: widget.salonId,
@@ -566,6 +939,19 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
         cakisanrandevuekle: cakismaVar ? '1' : '',
       );
 
+      // Olusturma reddedildi (cakisma VEYA calisma saati disi) -> GERCEK nedeni soyle.
+      if (!cakismaVar && (r['cakismavar'] == '1' || r['cakismavar'] == 1)) {
+        final neden = (r['cakisanunsurlar'] ?? '')
+            .toString()
+            .replaceAll(RegExp(r'<[^>]*>'), ' ')
+            .replaceAll(r'\n', ' ')
+            .replaceAll('\n', ' ')
+            .trim();
+        await _konus(neden.isNotEmpty
+            ? 'Randevu oluşturulamadı. $neden'
+            : 'Maalesef o saat müsait değil. Lütfen tekrar deneyin.');
+        return;
+      }
       if (r['hata'] != null) {
         await _konus('Randevu oluşturulamadı.');
         return;
