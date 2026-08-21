@@ -298,10 +298,15 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
     // bilgi ver", "nasil yapiliyor", "detay" sesli randevuya atilmasin; sunucu
     // bilgi kaliplariyla (bedava) cevaplasin. (sesli_randevu'ya dokunmadan, burada guard.)
     final f = _fold(metin);
+    // Genis info/sohbet/devam isaretleri. Herhangi biri geciyorsa = bilgi sorusu,
+    // randevu DEGIL -> sunucu bilgi kaliplariyla cevaplasin. Randevu komutlarinda
+    // bu kelimeler gecmez ("Ayse'ye yarin 3'e lazer") -> onlar yine randevuya gider.
     const bilgiIsaret = [
-      'nedir', 'ne demek', 'ne ise yar', 'nasil yap', 'nasil ol', 'nasil oluyor',
-      'nasil yapiliyor', 'biraz daha', 'daha fazla', 'bilgi ver', 'bilgi al',
-      'anlat', 'detay', 'acikla', 'ne kadar surer', 'peki', 'baska ne', 'devam',
+      'nedir', 'ne demek', 'ne ise', 'ne ise yar', 'nasil', 'ne kadar surer',
+      'kac seans', 'kac gun', 'faydas', 'zarar', 'aci var', 'agri',
+      'biraz daha', 'daha fazla', 'bilgi', 'hakkinda', 'ile ilgili', 'ilgili',
+      'anlat', 'bahset', 'detay', 'acikla', 'aciklar', 'ogren', 'merak',
+      'verir misin', 'verebilir', 'soyler misin', 'peki', 'baska ne', 'devam',
     ];
     for (final b in bilgiIsaret) {
       if (f.contains(b)) return false;
