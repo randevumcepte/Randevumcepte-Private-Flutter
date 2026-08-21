@@ -294,6 +294,18 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
   /// eslesirse randevudur. (Sadece tarih varsa DEGIL -> "bugun ciro" randevu sayilmasin.)
   Future<bool> _randevuNiyetiMi(String metin) async {
     if (metin.toLowerCase().contains('randevu')) return true;
+    // BILGI/SOHBET/DEVAM sorusu -> randevu DEGIL. "dip boya nedir", "biraz daha
+    // bilgi ver", "nasil yapiliyor", "detay" sesli randevuya atilmasin; sunucu
+    // bilgi kaliplariyla (bedava) cevaplasin. (sesli_randevu'ya dokunmadan, burada guard.)
+    final f = _fold(metin);
+    const bilgiIsaret = [
+      'nedir', 'ne demek', 'ne ise yar', 'nasil yap', 'nasil ol', 'nasil oluyor',
+      'nasil yapiliyor', 'biraz daha', 'daha fazla', 'bilgi ver', 'bilgi al',
+      'anlat', 'detay', 'acikla', 'ne kadar surer', 'peki', 'baska ne', 'devam',
+    ];
+    for (final b in bilgiIsaret) {
+      if (f.contains(b)) return false;
+    }
     try {
       final r = await sesliRandevuCoz(widget.salonId, metin,
           personelId: widget.personelId);
