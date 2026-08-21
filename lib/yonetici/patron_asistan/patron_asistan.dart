@@ -7,7 +7,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/yonetici/randevular/sesli_randevu.dart';
 
 /// PATRON ASISTANI — sesli/yazili serbest soru sorup dogal cevap alan ekran.
 ///
@@ -19,7 +21,14 @@ import 'package:randevu_sistem/Backend/backend.dart';
 /// Yetki.varMi('rapor.ciro_kar_gor') ile gizlenir). Sunucu da ayni kontrolu yapar.
 class PatronAsistanEkrani extends StatefulWidget {
   final String salonId;
-  const PatronAsistanEkrani({Key? key, required this.salonId}) : super(key: key);
+  final String personelId; // randevuya devrederken gerekli (giris yapan personel)
+  final dynamic isletmebilgi;
+  const PatronAsistanEkrani({
+    Key? key,
+    required this.salonId,
+    this.personelId = '',
+    this.isletmebilgi,
+  }) : super(key: key);
 
   @override
   State<PatronAsistanEkrani> createState() => _PatronAsistanEkraniState();
@@ -240,6 +249,25 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
     _sonSoru = metin;
     _sonSoruZamani = simdi;
     _metinC.clear();
+
+    // ONCE SAAT / TARIH / HAVA -> yerel/ucretsiz cevapla (randevuya ATMA, kasa verme).
+    final bilgi = await _bilgiCevap(metin);
+    if (bilgi != null) {
+      setState(() {
+        _mesajlar.add(_PatronAsistanMesaj(true, metin));
+        _mesajlar.add(_PatronAsistanMesaj(false, bilgi));
+      });
+      _kaydir();
+      _konus(bilgi);
+      return;
+    }
+
+    // SONRA RANDEVU KOMUTU mu? -> calisan randevu asistanina devret (komutu tasiyarak).
+    if (await _randevuNiyetiMi(metin)) {
+      _randevuyaDevret(metin);
+      return;
+    }
+
     setState(() {
       _mesajlar.add(_PatronAsistanMesaj(true, metin));
       _mesajlar.add(_PatronAsistanMesaj(false, '…'));
@@ -260,6 +288,121 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
     });
     _kaydir();
     if (seslendir) _konus(cevap);
+  }
+
+  /// Komut bir RANDEVU komutu mu? "randevu" gecerse ya da bir hizmet/musteri
+  /// eslesirse randevudur. (Sadece tarih varsa DEGIL -> "bugun ciro" randevu sayilmasin.)
+  Future<bool> _randevuNiyetiMi(String metin) async {
+    if (metin.toLowerCase().contains('randevu')) return true;
+    try {
+      final r = await sesliRandevuCoz(widget.salonId, metin,
+          personelId: widget.personelId);
+      final hizmetler = (r['hizmetler'] as List?) ?? [];
+      final m = (r['musteri'] as Map?) ?? {};
+      // NET randevu isareti: bir HIZMET eslesti YA DA net (tek) bir musteri secildi.
+      // Zayif aday eslesmesi (adaylar) SAYILMAZ -> "hava/nasilsin" randevuya atmasin.
+      return hizmetler.isNotEmpty || m['user_id'] != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Randevu komutunu calisan Sesli Randevu ekranina tasir (tekrar sormaz).
+  void _randevuyaDevret(String metin) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SesliRandevuEkrani(
+          salonId: widget.salonId,
+          personelId: widget.personelId,
+          isletmebilgi: widget.isletmebilgi,
+          baslangicKomut: metin,
+        ),
+      ),
+    );
+  }
+
+  String _fold(String s) => s
+      .replaceAll('İ', 'i')
+      .replaceAll('I', 'ı')
+      .toLowerCase()
+      .replaceAll('ı', 'i')
+      .replaceAll('ş', 's')
+      .replaceAll('ğ', 'g')
+      .replaceAll('ü', 'u')
+      .replaceAll('ö', 'o')
+      .replaceAll('ç', 'c')
+      .trim();
+
+  /// Saat / tarih / hava gibi GERCEK bilgi sorulari (bedava). Cevap ya da null.
+  /// (Backend'e GITMEDEN -> "saat kac" artik kasa raporu vermez.)
+  Future<String?> _bilgiCevap(String metin) async {
+    final c = _fold(metin);
+    if (c.contains('saat kac') || (c.contains('saat') && c.contains('kac'))) {
+      final n = DateTime.now();
+      // SONA NOKTA YOK: "53." -> TTS "elli ucuncu" okuyor.
+      return 'Şu an saat ${n.hour.toString().padLeft(2, '0')} ${n.minute.toString().padLeft(2, '0')}';
+    }
+    if (c.contains('gunlerden ne') ||
+        c.contains('hangi gun') ||
+        c.contains('bugun gun') ||
+        c.contains('tarih ne') ||
+        c.contains('ayin kaci') ||
+        c.contains('bugun ayin')) {
+      final n = DateTime.now();
+      const g = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma',
+          'Cumartesi', 'Pazar'];
+      const a = ['', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+          'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+      return 'Bugün ${g[n.weekday]}, ${n.day} ${a[n.month]} ${n.year}';
+    }
+    if (c.contains('hava') ||
+        c.contains('yagmur') ||
+        c.contains('sicaklik') ||
+        c.contains('derece')) {
+      final sehir = _sehirBul();
+      if (sehir.isEmpty) return 'Konumunuzu bilmediğim için hava durumunu veremiyorum.';
+      final h = await _havaGetir(sehir);
+      return h ?? 'Hava durumuna şu an ulaşamadım.';
+    }
+    return null;
+  }
+
+  String _sehirBul() {
+    try {
+      final b = widget.isletmebilgi;
+      if (b is Map) {
+        for (final k in ['sehir', 'il', 'city']) {
+          final v = (b[k] ?? '').toString().trim();
+          if (v.isNotEmpty) return v;
+        }
+        final adres = (b['adres'] ?? '').toString();
+        if (adres.contains('/')) return adres.split('/').last.trim();
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  Future<String?> _havaGetir(String sehir) async {
+    try {
+      final uri = Uri.parse(
+          'https://wttr.in/${Uri.encodeComponent(sehir)}?format=%C+%t&lang=tr&m');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        var t = res.body.trim();
+        if (t.isNotEmpty && t.length < 60 && !t.toLowerCase().contains('unknown')) {
+          // Sesli okuma icin temizle: "+" ve "°C" TTS'te bozuk okunuyor -> "derece".
+          t = t
+              .replaceAll('+', '')
+              .replaceAll('°C', ' derece')
+              .replaceAll('°', ' derece')
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim();
+          return '$sehir için hava: $t';
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Onaylanan kampanyayi uygula (kupon + SMS gonder).

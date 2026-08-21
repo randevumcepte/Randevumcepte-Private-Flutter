@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// SESLI RANDEVU — sesli diyalog
@@ -16,11 +18,15 @@ class SesliRandevuEkrani extends StatefulWidget {
   final String salonId;
   final String personelId;
   final dynamic isletmebilgi;
+  final String baslangicKomut; // doluysa: ekran acilir acilmaz bu komutla basla
+  final bool patronYetki; // true = hesap sahibi/yonetici -> isletme sorularini da yanit
   const SesliRandevuEkrani({
     Key? key,
     required this.salonId,
     this.personelId = '',
     this.isletmebilgi,
+    this.baslangicKomut = '',
+    this.patronYetki = false,
   }) : super(key: key);
 
   @override
@@ -44,9 +50,14 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   bool _mesgul = false; // akis calisiyor
   bool _iptal = false;
 
-  // Siri tarzi dalga animasyonu: surekli hareket (_pulse) + gercek ses seviyesi
+  // Siri kuresi: surekli yavas donus (_pulse) + gercek ses seviyesi
   late final AnimationController _pulse;
-  double _sesSeviye = 0; // onSoundLevelChange'den gelen anlik ses yuksekligi
+  double _ses = 0; // STT ham ses seviyesi
+  double _sesN = 0; // yumusatilmis 0..1 (kure sese gore titresir)
+  String _kullaniciAd = ''; // giris yapan kullanicinin ilk adi (selam icin)
+  // Isletme (patron) sorusu cevabi -> alt panelde Randevu Ozeti yerine gosterilir.
+  String? _isCevap;
+  Map<String, dynamic>? _isKart;
 
   // Dinleme (tek cumle) tamamlama
   Completer<String>? _dinleC;
@@ -81,8 +92,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   @override
   void initState() {
     super.initState();
-    _pulse = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1000))
+    _pulse = AnimationController(vsync: this, duration: const Duration(seconds: 7))
       ..repeat();
     _bipHazirla();
     _hazirla();
@@ -115,7 +125,23 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         ),
       );
 
+  /// Giris yapan kullanicinin ilk adini prefs 'user'dan al (selam icin).
+  Future<void> _kullaniciAdiYukle() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = prefs.getString('user');
+      if (s != null && s.isNotEmpty) {
+        final u = jsonDecode(s);
+        final name = (u is Map ? (u['name'] ?? '') : '').toString().trim();
+        if (name.isNotEmpty) {
+          _kullaniciAd = name.split(RegExp(r'\s+')).first;
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> _hazirla() async {
+    await _kullaniciAdiYukle();
     final ok = await _speech.initialize(
       onStatus: (s) {
         if (s == 'done' || s == 'notListening') _dinlemeTamamla();
@@ -124,6 +150,12 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     );
     await _sesAyarla();
     if (mounted) _ss(() => _hazir = ok);
+    // Ekran acilir acilmaz otomatik basla: isimle selam + "randevu bilgilerini
+    // soyler misiniz". Komutla gelindiyse (detayli) direkt onu isler.
+    if (ok) {
+      final k = widget.baslangicKomut.trim();
+      _basla(ilkKomut: k.isEmpty ? null : k);
+    }
   }
 
   /// TTS'i mumkun oldugunca dogal/akici yapar: Google motoru + en iyi Turkce ses.
@@ -266,9 +298,20 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       _sistemMesaji = metin;
       _konusma.add('🔊 $metin');
     });
+    _bipKisa(); // asistan KONUSMAYA BASLARKEN bip (bekletmez)
     try {
       await _tts.stop();
       await _tts.speak(metin);
+    } catch (_) {}
+  }
+
+  /// Kisa "konusma basliyor" bip'i — bekletmeden calar (asistan konusurken).
+  void _bipKisa() {
+    try {
+      HapticFeedback.lightImpact();
+    } catch (_) {}
+    try {
+      _bip.play(AssetSource('images/bip6.wav'), volume: 0.7);
     } catch (_) {}
   }
 
@@ -289,7 +332,12 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         },
         listenFor: Duration(seconds: listen),
         pauseFor: Duration(seconds: pause),
-        onSoundLevelChange: (level) => _sesSeviye = level, // Siri dalgasi icin
+        onSoundLevelChange: (level) {
+          // Ham seviyeyi 0..1'e getir + yumusat -> kure sese gore titresir.
+          _ses = level;
+          final hedef = (level.clamp(0.0, 10.0)) / 10.0;
+          _sesN = _sesN + (hedef - _sesN) * 0.4;
+        },
         listenOptions: stt.SpeechListenOptions(
           localeId: 'tr_TR',
           partialResults: true,
@@ -314,11 +362,173 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     return sonuc;
   }
 
+  /// Hakaret/kufur iceriyor mu? (backend kufur seti + kullanici eklemeleri)
+  bool _kufurMu(String metin) {
+    final norm = ' ${_fold(metin)} ';
+    const kelimeler = [
+      'amk', 'aq', 'amina', 'amina koyayim', 'amcik', 'orospu', 'pic', 'siktir',
+      'sikeyim', 'sikerim', 'sikik', 'sicayim', 'yarrak', 'yarak', 'gavat',
+      'kahpe', 'ibne', 'serefsiz', 'pezevenk', 'gerizekali', 'geri zekali',
+      'salak', 'aptal', 'embesil', 'denyo', 'yavsak', 'surtuk', 'godos',
+      // kullanici istegi + es anlamlilar
+      'allah belani versin', 'belani versin', 'cezani versin',
+      'allah cezani versin', 'gebertirim', 'geberesin', 'geber', 'defol',
+      'cehennem ol', 'lanet olsun', 'kahrol', 'kahrolasi', 'namussuz',
+      'haysiyetsiz', 'onursuz', 'alcak', 'terbiyesiz', 'dangalak', 'ahmak',
+      'sersem', 'hayvan herif', 'esek herif', 'adi herif', 'mal herif',
+      'aptal herif', 'salak herif',
+    ];
+    for (final k in kelimeler) {
+      if (norm.contains(' $k ')) return true;
+    }
+    return false;
+  }
+
+  String _kufurCevabi() =>
+      'Efendim, sizi saygıya davet ediyorum. Böyle konuşmaya devam ederseniz görüşmeyi kapatmak zorunda kalacağım.';
+
+  /// Saat / tarih / hava gibi GERCEK bilgi sorulari (bedava). Cevap doner ya da null.
+  Future<String?> _bilgiCevap(String metin) async {
+    final c = _fold(metin);
+    // SAAT (yerel, offline)
+    if (c.contains('saat kac') ||
+        (c.contains('saat') && c.contains('kac'))) {
+      final n = DateTime.now();
+      // SONA NOKTA YOK: "53." -> TTS "elli ucuncu" okuyor.
+      return 'Şu an saat ${n.hour.toString().padLeft(2, '0')} ${n.minute.toString().padLeft(2, '0')}';
+    }
+    // TARIH / GUN (yerel, offline)
+    if (c.contains('gunlerden ne') ||
+        c.contains('bugun gun') ||
+        c.contains('tarih ne') ||
+        c.contains('hangi gun') ||
+        c.contains('ayin kaci') ||
+        c.contains('bugun ayin')) {
+      final n = DateTime.now();
+      const gunler = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma',
+          'Cumartesi', 'Pazar'];
+      return 'Bugün ${gunler[n.weekday]}, ${n.day} ${_aylar[n.month]} ${n.year}';
+    }
+    // HAVA (wttr.in — ucretsiz, anahtarsiz; salonun sehriyle)
+    if (c.contains('hava') || c.contains('yagmur') || c.contains('sicaklik') ||
+        c.contains('derece') || c.contains('kar yag')) {
+      final sehir = _sehirBul();
+      if (sehir.isEmpty) {
+        return 'Konumunuzu bilmediğim için hava durumunu veremiyorum, ama randevu oluşturabilirim.';
+      }
+      final h = await _havaGetir(sehir);
+      return h ?? 'Hava durumuna şu an ulaşamadım, ama randevu oluşturabilirim.';
+    }
+    return null;
+  }
+
+  /// isletmebilgi'den sehir cikar (sehir/il/city; yoksa adresin son parcasi).
+  String _sehirBul() {
+    try {
+      final b = widget.isletmebilgi;
+      if (b is Map) {
+        for (final k in ['sehir', 'il', 'city']) {
+          final v = (b[k] ?? '').toString().trim();
+          if (v.isNotEmpty) return v;
+        }
+        final adres = (b['adres'] ?? '').toString();
+        if (adres.contains('/')) return adres.split('/').last.trim();
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  /// wttr.in'den kisa hava metni ("Güneşli +25°C"). Ulasilamazsa null.
+  Future<String?> _havaGetir(String sehir) async {
+    try {
+      final uri = Uri.parse(
+          'https://wttr.in/${Uri.encodeComponent(sehir)}?format=%C+%t&lang=tr&m');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        var t = res.body.trim();
+        if (t.isNotEmpty && t.length < 60 && !t.toLowerCase().contains('unknown')) {
+          // Sesli okuma icin temizle: "+" ve "°C" TTS'te bozuk okunuyor -> "derece".
+          t = t
+              .replaceAll('+', '')
+              .replaceAll('°C', ' derece')
+              .replaceAll('°', ' derece')
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim();
+          return '$sehir için hava: $t';
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Randevu disi SOHBET kaliplari. Uygun cevabi doner; randevu komutuysa null.
+  String? _sohbetCevap(String metin) {
+    final c = _fold(metin);
+    // Net randevu belirtisi varsa sohbet sayma -> komut olarak isle.
+    if (c.contains('randevu') ||
+        c.contains('bugun') ||
+        c.contains('yarin') ||
+        c.contains('obur') ||
+        RegExp(r'\d').hasMatch(c)) {
+      return null;
+    }
+    bool has(List<String> ks) => ks.any((k) => c.contains(k));
+
+    if (has(['sen kimsin', 'kimsin', 'adin ne', 'adiniz ne', 'sen nesin',
+        'kimsiniz', 'kim oldugun'])) {
+      return 'Ben salonunuzun sesli randevu asistanıyım. Sesli komutla hızlıca randevu oluşturmanız için buradayım. Bir randevu oluşturmak ister misiniz?';
+    }
+    if (has(['ne yapabilir', 'ne yapar', 'ne ise yara', 'gorevin',
+        'neler yapabilir', 'ne yapiyorsun', 'ne is yapar'])) {
+      return 'Sesli komutla randevu oluşturabilirim. Örneğin, yarın saat ikide Ayşe Hanıma cilt bakımı diyebilirsiniz.';
+    }
+    if (has(['kim yaptin', 'kim yazdi', 'seni kim', 'kim gelistir', 'uretici',
+        'kim uretti'])) {
+      return 'Beni salonunuzun yazılım ekibi randevular için hazırladı. Hadi bir randevu oluşturalım mı?';
+    }
+    if (has(['nasilsin', 'naber', 'ne haber', 'iyi misin', 'keyifler',
+        'nabersin', 'napiyorsun'])) {
+      return 'Teşekkür ederim, gayet iyiyim. Sizin için bir randevu oluşturayım mı?';
+    }
+    if (has(['tesekkur', 'sagol', 'sag ol', 'eyvallah', 'minnettar', 'helal',
+        'ellerine saglik'])) {
+      return 'Rica ederim! Başka bir randevu için buradayım.';
+    }
+    if (has(['seni seviyorum', 'harikasin', 'supersin', 'muhtesemsin',
+        'cok iyisin', 'bravo', 'helal olsun'])) {
+      return 'Çok naziksiniz! Hadi size güzel bir randevu oluşturalım mı?';
+    }
+    if (has(['selam', 'merhaba', 'gunaydin', 'iyi gunler', 'iyi aksamlar',
+        'iyi geceler', 'hosgeldin', 'alo'])) {
+      return 'Merhaba! Size nasıl yardımcı olabilirim? Bir randevu oluşturmak ister misiniz?';
+    }
+    if (has(['mac', 'skor', 'futbol', 'fenerbahce', 'galatasaray', 'besiktas',
+        'trabzon'])) {
+      return 'Spor konusunda bilgim yok, ama size randevu oluşturabilirim.';
+    }
+    if (has(['dolar', 'euro', 'borsa', 'altin fiyat', 'doviz', 'haberler'])) {
+      return 'Bu konuda bilgim yok, ama randevu oluşturmak için buradayım.';
+    }
+    if (has(['sarki', 'muzik', 'fikra', 'saka yap', 'espri', 'sarki soyle'])) {
+      return 'Şarkı ve espri konusunda pek iyi değilim ama randevu ayarlamada ustayım. Ne zamana randevu istersiniz?';
+    }
+    if (has(['yemek tarif', 'nasil yapilir', 'film oner', 'kitap oner',
+        'tarif ver'])) {
+      return 'Bu konuda bilgim yok, ama size randevu oluşturabilirim.';
+    }
+    if (has(['kac yasinda', 'yasin kac', 'nerelisin', 'evli misin', 'robot musun',
+        'insan misin', 'gercek misin'])) {
+      return 'Ben bir randevu asistanıyım. Sorduğunuz için teşekkürler! Bir randevu oluşturalım mı?';
+    }
+    return null;
+  }
+
   void _dinlemeTamamla() {
     if (_dinleC != null && !_dinleC!.isCompleted) {
       _dinleC!.complete(_dinleSon.trim());
     }
-    _sesSeviye = 0;
+    _ses = 0;
+    _sesN = 0;
     if (mounted) _ss(() => _dinliyor = false);
   }
 
@@ -326,48 +536,141 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   /* ANA AKIS                                                           */
   /* ------------------------------------------------------------------ */
 
-  Future<void> _basla() async {
+  /// Ana asistan dongusu: konus -> SINIFLANDIR -> yonlendir. Tek ekran hepsini
+  /// yonetir. Sahip: randevu + isletme sorulari; personel: sadece randevu.
+  Future<void> _basla({String? ilkKomut}) async {
     if (_mesgul) {
-      // Devam eden dinlemeyi durdur
       await _speech.stop();
       _dinlemeTamamla();
       return;
     }
     _sifirla();
-    _ss(() => _mesgul = true);
+    _ss(() {
+      _mesgul = true;
+      _isCevap = null;
+      _isKart = null;
+    });
     try {
-      // EN BASTA: takvim acik mi + hizmet var mi? Yoksa konuşma isteme.
-      _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
-      final durum = await sesliRandevuTakvimDurumu(widget.personelId);
-      if (durum['acik'] != true) {
-        await _konus(
-            'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
-        return;
+      final selam =
+          _kullaniciAd.isNotEmpty ? 'Merhaba ${_kullaniciAd}.' : 'Merhaba.';
+      int kufurSay = 0;
+      bool ilk = true;
+      int bosSay = 0;
+      while (!_iptal && mounted) {
+        // KOMUT AL
+        final String c;
+        if (ilk &&
+            ilkKomut != null &&
+            ilkKomut.trim().isNotEmpty &&
+            !_genelBaslatma(ilkKomut)) {
+          c = ilkKomut.trim();
+          _ss(() => _konusma.add('🎤 $c'));
+        } else {
+          await _konus(ilk
+              ? (widget.patronYetki
+                  ? '$selam Randevu oluşturabilir ya da işletmenizi sorabilirsiniz.'
+                  : '$selam Randevu bilgilerini söyler misiniz?')
+              : 'Buyurun.');
+          c = await _dinle(pause: 3, listen: 20);
+        }
+        ilk = false;
+        if (_iptal) return;
+        if (c.trim().isEmpty) {
+          if (++bosSay >= 2) return;
+          await _konus('Sizi duyamadım.');
+          continue;
+        }
+        bosSay = 0;
+
+        // 1) KUFUR -> nazik uyari (2. kez kapat)
+        if (_kufurMu(c)) {
+          kufurSay++;
+          if (kufurSay >= 2) {
+            await _konus('Bu şekilde devam edemeyeceğim. Görüşmeyi kapatıyorum.');
+            return;
+          }
+          await _konus(_kufurCevabi());
+          continue;
+        }
+        // 2) SAAT / TARIH / HAVA (bedava)
+        final bilgi = await _bilgiCevap(c);
+        if (bilgi != null) {
+          _ss(() {
+            _isCevap = bilgi;
+            _isKart = null;
+          });
+          await _konus(bilgi);
+          continue;
+        }
+        // 3) RANDEVU mu? -> coz + randevu alt-akisi
+        _randevuAlanlariSifirla();
+        await _uygula(c);
+        if (_iptal) return;
+        final randevuMu = c.toLowerCase().contains('randevu') ||
+            _hizmetId != null ||
+            _musteriId != null ||
+            _adaylar.isNotEmpty;
+        if (randevuMu) {
+          _ss(() {
+            _isCevap = null; // alt panel Randevu Ozeti'ne donsun
+            _isKart = null;
+          });
+          await _randevuAkisi();
+          if (_iptal) return;
+          continue;
+        }
+        // 4) ISLETME sorusu (sahip) ya da sohbet/yonlendirme (personel)
+        if (widget.patronYetki) {
+          await _isSorusu(c);
+        } else {
+          final sohbet = _sohbetCevap(c);
+          final m = sohbet ??
+              'Bu konuda bilgim yok, ama size randevu oluşturabilirim.';
+          _ss(() {
+            _isCevap = m;
+            _isKart = null;
+          });
+          await _konus(m);
+        }
       }
-      if (durum['hizmet_var'] != true) {
-        await _konus(
-            'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
-        return;
-      }
-      await _konus('Randevunuzu oluşturun.');
-      final komut = await _dinle(pause: 3, listen: 20);
-      if (_iptal) return;
-      if (komut.trim().isEmpty) {
-        await _konus('Sizi duyamadım. Tekrar deneyin.');
-        return;
-      }
-      await _uygula(komut);
-      if (_iptal) return;
-      // Once HIZMET: personelde yoksa musteriyi sormadan hemen uyar ve dur.
-      await _hizmetCoz();
-      if (_iptal || _hizmetId == null) return;
-      await _musteriCoz();
-      if (_iptal || _musteriId == null) return;
-      // Tarih/saat/vakit tercihine gore EN YAKIN BOS slotu bul, sesli onaylat, olustur.
-      await _musaitlikVeOnay();
     } finally {
       if (mounted) _ss(() => _mesgul = false);
     }
+  }
+
+  /// Randevu alt-akisi: takvim/hizmet kontrolu + hizmet/musteri/musaitlik/olustur.
+  Future<void> _randevuAkisi() async {
+    _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
+    final durum = await sesliRandevuTakvimDurumu(widget.personelId);
+    if (durum['acik'] != true) {
+      await _konus(
+          'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
+      return;
+    }
+    if (durum['hizmet_var'] != true) {
+      await _konus(
+          'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
+      return;
+    }
+    // _uygula zaten cagrildi -> alanlar dolu.
+    await _hizmetCoz();
+    if (_iptal || _hizmetId == null) return;
+    await _musteriCoz();
+    if (_iptal || _musteriId == null) return;
+    await _musaitlikVeOnay();
+  }
+
+  /// Sadece randevu alanlarini temizle (yeni komut icin); _mesgul/_iptal'e dokunma.
+  void _randevuAlanlariSifirla() {
+    _musteriId = null;
+    _musteriAd = null;
+    _adaylar = [];
+    _spokenAd = null;
+    _hizmetId = null;
+    _hizmetAd = null;
+    _tarih = null;
+    _saat = null;
+    _vakit = null;
   }
 
   void _sifirla() {
@@ -602,6 +905,22 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       }
     }
     return tamSayisi == 1 ? tekTam : null;
+  }
+
+  /// "randevu oluştur / almak istiyorum" gibi DETAYSIZ baslatma ifadesi mi?
+  /// (Detay yoksa "bilgim yok" deme; isimle selam verip detay iste.)
+  bool _genelBaslatma(String s) {
+    const at = {
+      'randevu', 'randevusu', 'olustur', 'olusturmak', 'olusturalim',
+      'olusturabilir', 'istiyorum', 'isterim', 'almak', 'alabilir', 'vermek',
+      'ver', 'al', 'bir', 'lutfen', 'bana', 'asistan', 'merhaba', 'selam',
+      'olabilir', 'mi', 'miyim', 'acmak', 'ac'
+    };
+    final kalan = _fold(s)
+        .split(RegExp(r'\s+'))
+        .where((w) => w.length >= 2 && !at.contains(w))
+        .toList();
+    return kalan.isEmpty;
   }
 
   /// "yeni müşteri / hayır / değil / yok / başka" gibi RED/YENI ifadesi mi?
@@ -972,7 +1291,8 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       // Kutlama: klik/di-ding sesi + titresim + eglenceli popup
       await _bipCal();
       await _konus('Randevu oluşturuldu.');
-      await _basariPopupGoster();
+      await _basariPopupGoster(); // Tamam'a basilana kadar bekler
+      // Tamam -> _randevuAkisi doner -> ana dongu "Buyurun" ile devam eder (basa don).
     } catch (e) {
       await _konus('Randevu oluşturulurken hata oldu.');
     }
@@ -1061,6 +1381,321 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   /* UI                                                                 */
   /* ------------------------------------------------------------------ */
 
+  /* ------------------------------------------------------------------ */
+  /* ISLETME (PATRON) SORUSU + KART CIZIMI (Patron Asistan'dan tasindi)  */
+  /* ------------------------------------------------------------------ */
+
+  static const Color _kMor = Color(0xFF5C008E);
+  static const Color _kMor2 = Color(0xFF7B2FB8);
+
+  /// Isletme sorusu: backend'e sor, cevabi + karti ALT PANELDE goster + sesli oku.
+  Future<void> _isSorusu(String metin) async {
+    _ss(() {
+      _sistemMesaji = 'Bakıyorum…';
+      _isCevap = '…';
+      _isKart = null;
+    });
+    final yanit = await patronAsistanSor(widget.salonId, metin);
+    final cevap = (yanit['cevap'] ?? 'Bir sorun oldu.').toString();
+    final kart =
+        yanit['kart'] is Map ? Map<String, dynamic>.from(yanit['kart']) : null;
+    if (!mounted) return;
+    _ss(() {
+      _isCevap = cevap;
+      _isKart = kart;
+      _sistemMesaji = cevap;
+    });
+    await _konus(cevap);
+  }
+
+  String _tl(dynamic n) {
+    final d = (n is num) ? n.toDouble() : double.tryParse('$n') ?? 0;
+    final tam = d.round().toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < tam.length; i++) {
+      if (i > 0 && (tam.length - i) % 3 == 0) buf.write('.');
+      buf.write(tam[i]);
+    }
+    return '${buf.toString()} ₺';
+  }
+
+  Widget _kartSatir(String etiket, String deger) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+              child: Text(etiket,
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF555555)))),
+          Text(deger,
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: _kMor)),
+        ],
+      ),
+    );
+  }
+
+  Widget _bilancoGrup(String t) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 11, bottom: 3),
+      child: Text(t,
+          style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: _kMor2,
+              letterSpacing: .4)),
+    );
+  }
+
+  Widget _dokumSatir(Map<String, dynamic> m) {
+    final vurgu = m['vurgu'] == true;
+    final karVar = m.containsKey('kar');
+    final karPoz = m['kar'] == true;
+    final renk = karVar
+        ? (karPoz ? const Color(0xFF2E9E5B) : const Color(0xFFD9534F))
+        : (vurgu ? _kMor : const Color(0xFF3a2a5c));
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Text(m['etiket'].toString(),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: vurgu ? FontWeight.w700 : FontWeight.w500,
+                    color: const Color(0xFF555555))),
+          ),
+          const SizedBox(width: 10),
+          Text(m['deger'].toString(),
+              style: TextStyle(
+                  fontSize: 13.5, fontWeight: FontWeight.w800, color: renk)),
+        ],
+      ),
+    );
+  }
+
+  Widget _bilancoSatir(Map<String, dynamic> m) {
+    final kar = m['kar'] == true;
+    final renk = kar ? const Color(0xFF2E9E5B) : const Color(0xFFD9534F);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text((m['ay'] ?? '').toString(),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF3a2a5c))),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                    color: renk.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(9)),
+                child: Text('${kar ? "Kâr" : "Zarar"} ${m['net']}',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w800, color: renk)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text('Gelir: ${m['gelir']}    Gider: ${m['gider']}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6A5A8C))),
+        ],
+      ),
+    );
+  }
+
+  Widget _karsSatir(Map<String, dynamic> m, String buAd, String onAd) {
+    final iyi = m['iyi'] == true;
+    final yon = (m['yon'] ?? 'flat').toString();
+    final yuzde = m['yuzde'] ?? 0;
+    final renk = yon == 'flat'
+        ? const Color(0xFF9E9E9E)
+        : (iyi ? const Color(0xFF2E9E5B) : const Color(0xFFD9534F));
+    final ok = yon == 'up' ? '▲' : (yon == 'down' ? '▼' : '—');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(m['etiket'].toString(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF3a2a5c))),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                    color: renk.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(9)),
+                child: Text('$ok %$yuzde',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w800, color: renk)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text('$onAd: ${m['onceki']}    →    $buAd: ${m['bu']}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6A5A8C))),
+        ],
+      ),
+    );
+  }
+
+  /// Patron Asistan kart cizimi (kasa/ciro/hizmet/urun/personel/musteri/ozet/
+  /// bugun/karsilastirma/bilanco). PDF paylas butonu haric.
+  Widget _kart(Map<String, dynamic> k) {
+    final tip = (k['tip'] ?? '').toString();
+    final List<Widget> satirlar = [];
+
+    if (tip == 'kasa') {
+      if (k['toplam'] != null) satirlar.add(_kartSatir('Toplam', _tl(k['toplam'])));
+      final s = (k['satirlar'] as List?) ?? [];
+      for (final r in s) {
+        final m = Map<String, dynamic>.from(r as Map);
+        satirlar.add(_kartSatir(m['etiket'].toString(), _tl(m['tutar'])));
+      }
+    } else if (tip == 'personel_sirali' || tip == 'hizmet' || tip == 'urun') {
+      final s = (k['satirlar'] as List?) ?? [];
+      for (final r in s.take(5)) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final ad = (m['ad'] ?? m['personel_adi'] ?? m['hizmet_adi'] ?? m['urun_adi'] ?? '').toString();
+        satirlar.add(_kartSatir(ad, _tl(m['ciro'] ?? 0)));
+      }
+    } else if (tip == 'personel_tek') {
+      satirlar.add(_kartSatir('Ciro', _tl(k['ciro'] ?? 0)));
+      satirlar.add(_kartSatir('İşlem', '${k['islem'] ?? 0}'));
+      satirlar.add(_kartSatir('Sıralama', '${k['sira'] ?? '-'}.'));
+    } else if (tip == 'musteri') {
+      satirlar.add(_kartSatir('Aktif müşteri', '${k['toplam_aktif'] ?? 0}'));
+      satirlar.add(_kartSatir('Yeni / Tekrar', '${k['yeni'] ?? 0} / ${k['tekrar'] ?? 0}'));
+    } else if (tip == 'ozet') {
+      satirlar.add(_kartSatir('Toplam tahsilat', _tl(k['toplam_gelir'] ?? 0)));
+      satirlar.add(_kartSatir('Randevu / Adisyon', '${k['toplam_randevu'] ?? 0} / ${k['toplam_adisyon'] ?? 0}'));
+      satirlar.add(_kartSatir('Nakit / Kart', '${_tl(k['nakit'] ?? 0)} / ${_tl(k['kart'] ?? 0)}'));
+    } else if (tip == 'bugun') {
+      final s = (k['liste'] as List?) ?? [];
+      for (final r in s.take(6)) {
+        final m = Map<String, dynamic>.from(r as Map);
+        satirlar.add(_kartSatir(
+            '${m['saat'] ?? ''} ${m['musteri'] ?? ''}'.trim(), (m['personel'] ?? '').toString()));
+      }
+      if (s.isEmpty) satirlar.add(_kartSatir('Randevu', 'yok'));
+    } else if (tip == 'karsilastirma') {
+      final s = (k['satirlar'] as List?) ?? [];
+      final buAd = (k['bu_ad'] ?? 'bu').toString();
+      final onAd = (k['onceki_ad'] ?? 'önceki').toString();
+      for (final r in s) {
+        satirlar.add(_karsSatir(Map<String, dynamic>.from(r as Map), buAd, onAd));
+      }
+    } else if (tip == 'bilanco') {
+      final dokum = (k['dokum'] as List?) ?? [];
+      for (final r in dokum) {
+        final m = Map<String, dynamic>.from(r as Map);
+        if (m['grup'] != null) {
+          satirlar.add(_bilancoGrup(m['grup'].toString()));
+        } else {
+          satirlar.add(_dokumSatir(m));
+        }
+      }
+      final s = (k['satirlar'] as List?) ?? [];
+      if (s.isNotEmpty) {
+        satirlar.add(_bilancoGrup('AYLIK TREND'));
+        for (final r in s) {
+          satirlar.add(_bilancoSatir(Map<String, dynamic>.from(r as Map)));
+        }
+      }
+    }
+
+    if (satirlar.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFECE7F6)),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0A000000), blurRadius: 6, offset: Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text((k['baslik'] ?? '').toString().toUpperCase(),
+              style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  color: _kMor2,
+                  letterSpacing: .3)),
+          const SizedBox(height: 6),
+          ...satirlar,
+        ],
+      ),
+    );
+  }
+
+  /// Alt panel: isletme (patron) sorusunun cevabi + kart.
+  Widget _isCevapKart() {
+    final cevap = _isCevap ?? '';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEBF7)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.auto_awesome_rounded, size: 19, color: Color(0xFF8B5CF6)),
+              SizedBox(width: 8),
+              Text('Asistan',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF221F35))),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(cevap,
+              style: const TextStyle(
+                  fontSize: 15, height: 1.4, color: Color(0xFF2B2740))),
+          if (_isKart != null) _kart(_isKart!),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1072,6 +1707,15 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         foregroundColor: const Color(0xFF221F35),
         title: const Text('Sesli Asistan',
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        actions: [
+          if (_sunulan.length >= 2)
+            IconButton(
+              tooltip: 'Asistan sesi',
+              icon: const Icon(Icons.record_voice_over_rounded),
+              color: const Color(0xFF8B5CF6),
+              onPressed: _sesSecPaneliAc,
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -1079,211 +1723,137 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _sistemKart(),
-            const SizedBox(height: 26),
+            const SizedBox(height: 22),
             _mikrofon(),
-            const SizedBox(height: 26),
-            _sesSecici(),
-            const SizedBox(height: 16),
-            _ozetKart(),
+            const SizedBox(height: 30),
+            // ALT PANEL DINAMIK: isletme cevabi varsa onu, yoksa Randevu Ozeti.
+            _isCevap != null ? _isCevapKart() : _ozetKart(),
           ],
         ),
       ),
     );
   }
 
-  // Ferah beyaz asistan balonu + gradyan AI orb (eski koyu mor kaldirildi).
-  Widget _sistemKart() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFECE9F7)),
-        boxShadow: [
-          BoxShadow(
-              color: const Color(0xFF7C3AED).withOpacity(0.07),
-              blurRadius: 22,
-              offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 22),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Text(
-                _sistemMesaji,
-                style: const TextStyle(
-                    fontSize: 15.5,
-                    height: 1.4,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF2B2740)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _mikrofon() {
     final aktif = _dinliyor;
-    final c1 = aktif ? const Color(0xFFF43F5E) : const Color(0xFF8B5CF6);
-    final c2 = aktif ? const Color(0xFFEC4899) : const Color(0xFF6366F1);
     return Center(
       child: Column(
         children: [
           GestureDetector(
             onTap: _basla,
+            behavior: HitTestBehavior.opaque,
             child: SizedBox(
-              width: 210,
-              height: 210,
-              child: AnimatedBuilder(
-                animation: _pulse,
-                builder: (context, _) {
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (aktif)
-                        for (final o in const [0.0, 0.4, 0.8])
-                          _halka(((_pulse.value + o) % 1.0), c1),
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                              colors: [c1, c2],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                                color: c1.withOpacity(0.5),
-                                blurRadius: 34,
-                                spreadRadius: 2),
-                          ],
-                        ),
-                        child: Center(
-                          child: aktif
-                              ? _dalga()
-                              : Icon(
-                                  _mesgul
-                                      ? Icons.stop_rounded
-                                      : Icons.mic_rounded,
-                                  color: Colors.white,
-                                  size: 50),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+              width: 200,
+              height: 200,
+              child: Center(child: _orb(size: 168, aktif: aktif)),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            aktif
-                ? 'Dinliyorum…'
-                : (_mesgul ? 'İşleniyor…' : 'Başlamak için dokun'),
-            style: const TextStyle(
-                color: Color(0xFF6B6880),
-                fontSize: 14.5,
-                fontWeight: FontWeight.w500),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              aktif
+                  ? (_dinleSon.isNotEmpty ? _dinleSon : 'Dinliyorum…')
+                  : (_mesgul ? _sistemMesaji : 'Başlamak için dokun'),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: Color(0xFF6B6880),
+                  fontSize: 15,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Genisleyip solan nabiz halkasi (dinlerken).
-  Widget _halka(double v, Color renk) {
-    return Container(
-      width: 120 + v * 82,
-      height: 120 + v * 82,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: renk.withOpacity((1 - v) * 0.16),
-      ),
-    );
-  }
-
-  // Hey Siri tarzi ses dalgasi: surekli hafif hareket + GERCEK ses seviyesine
-  // gore yukselen barlar (onSoundLevelChange -> _sesSeviye).
-  Widget _dalga() {
-    final t = _pulse.value * 2 * pi;
-    final amp = (((_sesSeviye) + 2.0) / 12.0).clamp(0.0, 1.0); // 0..1
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (i) {
-        final taban = 9.0 + (sin(t + i * 0.7).abs()) * 9.0;
-        final h = (taban + amp * 34.0).clamp(6.0, 52.0);
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 3.5),
-          width: 6,
-          height: h,
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(6)),
-        );
-      }),
-    );
-  }
-
-  Widget _sesSecici() {
-    if (_sunulan.length < 2) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEEEBF7)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.record_voice_over_rounded,
-                  size: 17, color: Color(0xFF8B5CF6)),
-              SizedBox(width: 7),
-              Text('Asistan sesi',
-                  style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4A4660))),
-              SizedBox(width: 6),
-              Text('(dokunup dinle)',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF9A96AD))),
-            ],
+  /// Siri tarzi iridescent kure. aktif = dinliyor (sese gore BELIRGIN titresir).
+  Widget _orb({required double size, required bool aktif}) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (c, _) {
+        final olcek = aktif ? (1.0 + _sesN * 0.16) : 1.0;
+        // Konusurken hafif tremble: ses seviyesine gore genlik (olculu).
+        final ph = _pulse.value * 2 * pi;
+        final genlik = aktif ? _sesN * 3.0 : 0.0;
+        final dx = sin(ph * 57) * genlik;
+        final dy = cos(ph * 63) * genlik;
+        return Transform.translate(
+          offset: Offset(dx, dy),
+          child: Transform.scale(
+            scale: olcek,
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: CustomPaint(
+                painter:
+                    _SiriOrbPainter(_pulse.value, aktif ? _sesN : 0.0, aktif),
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: _sunulan.map((s) {
-              final name = s['name']!;
-              final secili = name == _seciliSes;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
+        );
+      },
+    );
+  }
+
+  /// Sag ust ikondan acilan ses secme paneli (alt sheet). Dokun -> dinle -> sec.
+  void _sesSecPaneliAc() {
+    if (_sunulan.length < 2) return;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFE0DCEC),
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: const [
+                  Icon(Icons.record_voice_over_rounded,
+                      size: 20, color: Color(0xFF8B5CF6)),
+                  SizedBox(width: 8),
+                  Text('Asistan sesi',
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF221F35))),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text('Dokunup dinleyin, beğendiğinizi seçin.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF8A8699))),
+              const SizedBox(height: 14),
+              ..._sunulan.map((s) {
+                final name = s['name']!;
+                final secili = name == _seciliSes;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: GestureDetector(
-                    onTap: () => _sesDene(name),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(vertical: 11),
+                    onTap: () {
+                      _sesDene(name);
+                      setSheet(() {});
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
                         gradient: secili
                             ? const LinearGradient(colors: [
@@ -1292,34 +1862,35 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
                               ])
                             : null,
                         color: secili ? null : const Color(0xFFF3F1FA),
-                        borderRadius: BorderRadius.circular(13),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          if (secili)
-                            const Icon(Icons.check_rounded,
-                                size: 16, color: Colors.white),
-                          if (secili) const SizedBox(width: 5),
-                          Text(
-                            s['etiket']!,
-                            style: TextStyle(
+                          Icon(
+                              secili
+                                  ? Icons.check_circle_rounded
+                                  : Icons.volume_up_rounded,
+                              size: 20,
                               color: secili
                                   ? Colors.white
-                                  : const Color(0xFF5A5670),
-                              fontWeight:
-                                  secili ? FontWeight.w600 : FontWeight.w500,
-                            ),
-                          ),
+                                  : const Color(0xFF8B5CF6)),
+                          const SizedBox(width: 10),
+                          Text(s['etiket']!,
+                              style: TextStyle(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: secili
+                                      ? Colors.white
+                                      : const Color(0xFF4A4660))),
                         ],
                       ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1405,5 +1976,106 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       ),
     );
   }
+}
 
+/// Patron Asistan'daki ile ayni Siri tarzi iridescent kure (donen bloblar,
+/// dis tepki halkalari, sese gore titresen cekirdek).
+class _SiriOrbPainter extends CustomPainter {
+  final double t;
+  final double level;
+  final bool aktif;
+  _SiriOrbPainter(this.t, this.level, this.aktif);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+    final ang = t * 2 * pi;
+
+    // Dis tepki halkalari (dinlerken, sese gore genisler/parlar).
+    if (aktif) {
+      for (int i = 0; i < 3; i++) {
+        final f = 1 - i * 0.28;
+        final rr = r * (0.86 + i * 0.16) + level * r * 0.40;
+        final op = ((0.30 * f) * (0.5 + level)).clamp(0.0, 0.6);
+        canvas.drawCircle(
+          c,
+          rr,
+          Paint()
+            ..color = const Color(0xFF3AD8FF).withOpacity(op)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6,
+        );
+      }
+    }
+
+    // Kureyi daireye kirp.
+    canvas.save();
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: c, radius: r)));
+
+    // Koyu zemin.
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader =
+            const RadialGradient(colors: [Color(0xFF2A0B4A), Color(0xFF0E0022)])
+                .createShader(Rect.fromCircle(center: c, radius: r)),
+    );
+
+    // Donen iridescent bloblar (additive karisim).
+    final blobs = <List<dynamic>>[
+      [const Color(0xFF00D2FF), 0.0],
+      [const Color(0xFF7C4DFF), 2.1],
+      [const Color(0xFFFF4DA6), 4.2],
+      [const Color(0xFF00E5A8), 5.6],
+    ];
+    final kayma = r * (0.34 + level * 0.24);
+    for (final b in blobs) {
+      final col = b[0] as Color;
+      final ph = b[1] as double;
+      final bc = Offset(
+        c.dx + cos(ang + ph) * kayma,
+        c.dy + sin(ang * 1.3 + ph) * kayma,
+      );
+      canvas.drawCircle(
+        bc,
+        r * 0.85,
+        Paint()
+          ..blendMode = BlendMode.plus
+          ..shader = RadialGradient(
+                  colors: [col.withOpacity(0.85), col.withOpacity(0.0)])
+              .createShader(Rect.fromCircle(center: bc, radius: r * 0.85)),
+      );
+    }
+
+    // Merkez parlak cekirdek (sese gore buyur).
+    final cr = r * (0.42 + level * 0.34);
+    canvas.drawCircle(
+      c,
+      cr,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = RadialGradient(colors: [
+          Colors.white.withOpacity(0.9),
+          Colors.white.withOpacity(0.0)
+        ]).createShader(Rect.fromCircle(center: c, radius: cr)),
+    );
+
+    canvas.restore();
+
+    // Cam kenar cizgisi.
+    canvas.drawCircle(
+      c,
+      r - 0.6,
+      Paint()
+        ..color = Colors.white.withOpacity(0.16)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SiriOrbPainter old) =>
+      old.t != t || old.level != level || old.aktif != aktif;
 }

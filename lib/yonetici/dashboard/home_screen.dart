@@ -18,7 +18,7 @@ import 'package:sticky_headers/sticky_headers/widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
-import 'package:randevu_sistem/yonetici/patron_asistan/patron_asistan.dart';
+import 'package:randevu_sistem/yonetici/randevular/sesli_randevu.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/ajanda.dart';
@@ -337,9 +337,9 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
-      // PATRON ASISTANI — sesli/yazili isletme asistani. Sadece Hesap Sahibi +
-      // Yonetici gorur (rapor.ciro_kar_gor); Sekreter/Personel'e gizli.
-      floatingActionButton: (seciliisletme != null && Yetki.varMi('rapor.ciro_kar_gor'))
+      // ASISTAN — herkese gorunur. Sahip/Yonetici: isletme + randevu (Patron
+      // Asistan); Personel: sadece randevu (Sesli Randevu). Yetki backend'de de var.
+      floatingActionButton: (seciliisletme != null)
           ? FloatingActionButton.extended(
               heroTag: 'patronAsistanFab',
               backgroundColor: const Color(0xFF5C008E),
@@ -347,10 +347,18 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               icon: const Icon(Icons.mic),
               label: const Text('Asistan'),
               onPressed: () {
+                final pid = _resolvePersonelIdAny();
+                // TEK EKRAN: herkes Sesli Asistan'i kullanir. Sahip/Yonetici ise
+                // isletme sorularini da yanitlar (patronYetki).
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => PatronAsistanEkrani(salonId: seciliisletme!),
+                    builder: (_) => SesliRandevuEkrani(
+                      salonId: seciliisletme!,
+                      personelId: pid,
+                      isletmebilgi: widget.isletmebilgi,
+                      patronYetki: Yetki.varMi('rapor.ciro_kar_gor'),
+                    ),
                   ),
                 );
               },
@@ -1036,6 +1044,19 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         return '';
       }
     }
+    return '';
+  }
+
+  /// Giris yapan kullanicinin BU salondaki personel id'si (ROLDEN BAGIMSIZ).
+  /// Asistan -> randevu icin: sahip de personel de kendi adina randevu acar.
+  String _resolvePersonelIdAny() {
+    try {
+      for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
+        if (e['salon_id'].toString() == widget.isletmebilgi['id'].toString()) {
+          return e['id'].toString();
+        }
+      }
+    } catch (_) {}
     return '';
   }
 
