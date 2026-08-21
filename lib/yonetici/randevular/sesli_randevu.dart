@@ -387,6 +387,25 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   String _kufurCevabi() =>
       'Efendim, sizi saygıya davet ediyorum. Böyle konuşmaya devam ederseniz görüşmeyi kapatmak zorunda kalacağım.';
 
+  /// Mesaj bir BILGI/DANISMA sorusu mu? (hizmet adi gecse bile randevu DEGIL ->
+  /// isletme/kalip asistanina gitmeli). Randevu KOMUTLARI bu isaretleri icermez.
+  bool _bilgiSorusuMu(String metin) {
+    final c = _fold(metin);
+    const isaret = [
+      'nedir', 'ne demek', 'ne ise', 'nasil', 'ne kadar', 'ne kadar surer',
+      'kac seans', 'kac gun', 'kac saat', 'faydas', 'zarar', 'agri',
+      'biraz daha', 'daha fazla', 'bilgi', 'hakkinda', 'ile ilgili', 'ilgili',
+      'anlat', 'bahset', 'detay', 'acikla', 'aciklar', 'ogren', 'merak',
+      'verir misin', 'verebilir', 'soyler misin', 'peki', 'baska ne',
+      'yapilir mi', 'olur mu', 'gerekli mi', 'nasil bir', 'ne yaptir',
+      'fiyat', 'ucret', 'kac para', 'kac tl', 'kac lira', 'kaca',
+    ];
+    for (final k in isaret) {
+      if (c.contains(k)) return true;
+    }
+    return false;
+  }
+
   /// Saat / tarih / hava gibi GERCEK bilgi sorulari (bedava). Cevap doner ya da null.
   Future<String?> _bilgiCevap(String metin) async {
     final c = _fold(metin);
@@ -462,6 +481,39 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   }
 
   /// Randevu disi SOHBET kaliplari. Uygun cevabi doner; randevu komutuysa null.
+  /// Kullanici tesekkur/veda ederse (kapat/iptal demeden) gorusmeyi kibarca
+  /// bitirmek icin. Net randevu belirtisi varsa (randevu/tarih/sayi) tesekkur sayma.
+  bool _tesekkurMu(String metin) {
+    final c = _fold(metin);
+    if (c.contains('randevu') ||
+        c.contains('bugun') ||
+        c.contains('yarin') ||
+        c.contains('obur') ||
+        RegExp(r'\d').hasMatch(c)) {
+      return false;
+    }
+    const ks = [
+      'tesekkur',
+      'tesekurler',
+      'sagol',
+      'sag ol',
+      'sagolun',
+      'eyvallah',
+      'minnettar',
+      'ellerine saglik',
+      'ellerinize saglik',
+      'allah razi olsun',
+      'var ol',
+      'yeter bu kadar',
+      'kendine iyi bak',
+      'gorusuruz',
+      'hosca kal',
+      'hoscakal',
+      'iyi gunler dilerim',
+    ];
+    return ks.any((k) => c.contains(k));
+  }
+
   String? _sohbetCevap(String metin) {
     final c = _fold(metin);
     // Net randevu belirtisi varsa sohbet sayma -> komut olarak isle.
@@ -490,10 +542,8 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         'nabersin', 'napiyorsun'])) {
       return 'Teşekkür ederim, gayet iyiyim. Sizin için bir randevu oluşturayım mı?';
     }
-    if (has(['tesekkur', 'sagol', 'sag ol', 'eyvallah', 'minnettar', 'helal',
-        'ellerine saglik'])) {
-      return 'Rica ederim! Başka bir randevu için buradayım.';
-    }
+    // Not: tesekkur/veda artik _tesekkurMu ile ana donguce yakalanip gorusme
+    // kibarca kapatiliyor; burada tekrar ele almiyoruz.
     if (has(['seni seviyorum', 'harikasin', 'supersin', 'muhtesemsin',
         'cok iyisin', 'bravo', 'helal olsun'])) {
       return 'Çok naziksiniz! Hadi size güzel bir randevu oluşturalım mı?';
@@ -566,11 +616,13 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
           c = ilkKomut.trim();
           _ss(() => _konusma.add('🎤 $c'));
         } else {
-          await _konus(ilk
-              ? (widget.patronYetki
-                  ? '$selam Randevu oluşturabilir ya da işletmenizi sorabilirsiniz.'
-                  : '$selam Randevu bilgilerini söyler misiniz?')
-              : 'Buyurun.');
+          // Sadece ilk turda selam+yonlendirme konus; sonraki turlarda
+          // "Buyurun." tekrari kotu duruyor -> sessizce dinlemeye gec (bip yeterli).
+          if (ilk) {
+            await _konus(widget.patronYetki
+                ? '$selam Randevu oluşturabilir ya da işletmenizi sorabilirsiniz.'
+                : '$selam Randevu bilgilerini söyler misiniz?');
+          }
           c = await _dinle(pause: 3, listen: 20);
         }
         ilk = false;
@@ -592,6 +644,12 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
           await _konus(_kufurCevabi());
           continue;
         }
+        // 1b) TESEKKUR -> nazik kapanis (kapat/iptal demeye gerek yok)
+        if (_tesekkurMu(c)) {
+          await _konus(
+              'Ben teşekkür ediyorum. Başka bir isteğiniz yoksa konuşmayı kapatıyorum.');
+          return;
+        }
         // 2) SAAT / TARIH / HAVA (bedava)
         final bilgi = await _bilgiCevap(c);
         if (bilgi != null) {
@@ -600,6 +658,18 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
             _isKart = null;
           });
           await _konus(bilgi);
+          continue;
+        }
+        // 2c) BILGI/DANISMA sorusu (sahip/yonetici): mesaj bir bilgi sorusuysa
+        //     (nedir/nasil/bilgi/hakkinda/ilgili/fiyat... VE "randevu" GECMIYORSA),
+        //     hizmet adi gecse bile randevuya GITME -> isletme/kalip asistanina git.
+        //     "dip boyasi ile ilgili bilgi ver" randevu ACMAZ, bilgi verir.
+        //     Randevu komutlari (bilgi kelimesi icermeyen) bu guard'a TAKILMAZ -> normal
+        //     randevu akisi bozulmadan calisir. (Additive/guard'li; mevcut akisa dokunmaz.)
+        if (widget.patronYetki &&
+            !c.toLowerCase().contains('randevu') &&
+            _bilgiSorusuMu(c)) {
+          await _isSorusu(c);
           continue;
         }
         // 3) RANDEVU mu? -> coz + randevu alt-akisi
@@ -1292,7 +1362,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       await _bipCal();
       await _konus('Randevu oluşturuldu.');
       await _basariPopupGoster(); // Tamam'a basilana kadar bekler
-      // Tamam -> _randevuAkisi doner -> ana dongu "Buyurun" ile devam eder (basa don).
+      // Tamam -> _randevuAkisi doner -> ana dongu sessizce dinlemeye doner (basa don).
     } catch (e) {
       await _konus('Randevu oluşturulurken hata oldu.');
     }
