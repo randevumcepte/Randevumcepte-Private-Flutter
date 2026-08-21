@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -26,7 +27,8 @@ class SesliRandevuEkrani extends StatefulWidget {
   State<SesliRandevuEkrani> createState() => _SesliRandevuEkraniState();
 }
 
-class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
+class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
+    with SingleTickerProviderStateMixin {
   static const Color mor = Color(0xFF7C3AED);
   static const List<String> _aylar = [
     '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -41,6 +43,10 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
   bool _dinliyor = false;
   bool _mesgul = false; // akis calisiyor
   bool _iptal = false;
+
+  // Siri tarzi dalga animasyonu: surekli hareket (_pulse) + gercek ses seviyesi
+  late final AnimationController _pulse;
+  double _sesSeviye = 0; // onSoundLevelChange'den gelen anlik ses yuksekligi
 
   // Dinleme (tek cumle) tamamlama
   Completer<String>? _dinleC;
@@ -75,6 +81,9 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
   @override
   void initState() {
     super.initState();
+    _pulse = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1000))
+      ..repeat();
     _bipHazirla();
     _hazirla();
   }
@@ -210,6 +219,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     _speech.stop();
     _tts.stop();
     _bip.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
@@ -279,6 +289,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
         },
         listenFor: Duration(seconds: listen),
         pauseFor: Duration(seconds: pause),
+        onSoundLevelChange: (level) => _sesSeviye = level, // Siri dalgasi icin
         listenOptions: stt.SpeechListenOptions(
           localeId: 'tr_TR',
           partialResults: true,
@@ -307,6 +318,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     if (_dinleC != null && !_dinleC!.isCompleted) {
       _dinleC!.complete(_dinleSon.trim());
     }
+    _sesSeviye = 0;
     if (mounted) _ss(() => _dinliyor = false);
   }
 
@@ -957,15 +969,62 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
         return;
       }
 
+      // Kutlama: klik/di-ding sesi + titresim + eglenceli popup
+      await _bipCal();
       await _konus('Randevu oluşturuldu.');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Randevu oluşturuldu ✓')),
-        );
-      }
+      await _basariPopupGoster();
     } catch (e) {
       await _konus('Randevu oluşturulurken hata oldu.');
     }
+  }
+
+  /// Basari kutlamasi: ortada eglenceli emojili popup (marka moru) + Tamam.
+  Future<void> _basariPopupGoster() async {
+    if (!mounted) return;
+    final ozet = [
+      _musteriAd ?? 'Müşteri',
+      '${_tarihSozlu(_tarih)} · ${_saatSozlu(_saat)}',
+      if ((_hizmetAd ?? '').isNotEmpty) _hizmetAd!,
+    ].join('\n');
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(26, 28, 26, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🎉', style: TextStyle(fontSize: 62)),
+              const SizedBox(height: 8),
+              const Text('Randevu Oluşturuldu!',
+                  style: TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold, color: mor)),
+              const SizedBox(height: 10),
+              Text(ozet,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, height: 1.45)),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: mor,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Tamam',
+                      style: TextStyle(fontSize: 16, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /* ------------------------------------------------------------------ */
@@ -1007,49 +1066,75 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F5FB),
       appBar: AppBar(
-        backgroundColor: mor,
-        foregroundColor: Colors.white,
-        title: const Text('Sesli Randevu'),
+        backgroundColor: const Color(0xFFF6F5FB),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: const Color(0xFF221F35),
+        title: const Text('Sesli Asistan',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _sistemKart(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 26),
             _mikrofon(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 26),
             _sesSecici(),
             const SizedBox(height: 16),
             _ozetKart(),
-            if (_konusma.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _konusmaKart(),
-            ],
           ],
         ),
       ),
     );
   }
 
+  // Ferah beyaz asistan balonu + gradyan AI orb (eski koyu mor kaldirildi).
   Widget _sistemKart() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5C008E), Color(0xFF7B2FB8), Color(0xFF9D5DC8)],
-        ),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFECE9F7)),
+        boxShadow: [
+          BoxShadow(
+              color: const Color(0xFF7C3AED).withOpacity(0.07),
+              blurRadius: 22,
+              offset: const Offset(0, 8)),
+        ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.auto_awesome, color: Colors.white),
-          const SizedBox(width: 10),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.auto_awesome_rounded,
+                color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 13),
           Expanded(
-            child: Text(
-              _sistemMesaji,
-              style: const TextStyle(color: Colors.white, fontSize: 15),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                _sistemMesaji,
+                style: const TextStyle(
+                    fontSize: 15.5,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF2B2740)),
+              ),
             ),
           ),
         ],
@@ -1059,73 +1144,178 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
 
   Widget _mikrofon() {
     final aktif = _dinliyor;
+    final c1 = aktif ? const Color(0xFFF43F5E) : const Color(0xFF8B5CF6);
+    final c2 = aktif ? const Color(0xFFEC4899) : const Color(0xFF6366F1);
     return Center(
       child: Column(
         children: [
           GestureDetector(
             onTap: _basla,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: aktif ? Colors.redAccent : mor,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: (aktif ? Colors.redAccent : mor).withOpacity(0.35),
-                    blurRadius: 18,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Icon(
-                aktif ? Icons.hearing : (_mesgul ? Icons.stop : Icons.mic),
-                color: Colors.white,
-                size: 44,
+            child: SizedBox(
+              width: 210,
+              height: 210,
+              child: AnimatedBuilder(
+                animation: _pulse,
+                builder: (context, _) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (aktif)
+                        for (final o in const [0.0, 0.4, 0.8])
+                          _halka(((_pulse.value + o) % 1.0), c1),
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              colors: [c1, c2],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                                color: c1.withOpacity(0.5),
+                                blurRadius: 34,
+                                spreadRadius: 2),
+                          ],
+                        ),
+                        child: Center(
+                          child: aktif
+                              ? _dalga()
+                              : Icon(
+                                  _mesgul
+                                      ? Icons.stop_rounded
+                                      : Icons.mic_rounded,
+                                  color: Colors.white,
+                                  size: 50),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             aktif
-                ? 'Dinliyorum...'
-                : (_mesgul ? 'Sürüyor... (durdurmak için dokun)' : 'Başlamak için dokun'),
-            style: const TextStyle(color: Colors.black54),
+                ? 'Dinliyorum…'
+                : (_mesgul ? 'İşleniyor…' : 'Başlamak için dokun'),
+            style: const TextStyle(
+                color: Color(0xFF6B6880),
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
   }
 
+  // Genisleyip solan nabiz halkasi (dinlerken).
+  Widget _halka(double v, Color renk) {
+    return Container(
+      width: 120 + v * 82,
+      height: 120 + v * 82,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: renk.withOpacity((1 - v) * 0.16),
+      ),
+    );
+  }
+
+  // Hey Siri tarzi ses dalgasi: surekli hafif hareket + GERCEK ses seviyesine
+  // gore yukselen barlar (onSoundLevelChange -> _sesSeviye).
+  Widget _dalga() {
+    final t = _pulse.value * 2 * pi;
+    final amp = (((_sesSeviye) + 2.0) / 12.0).clamp(0.0, 1.0); // 0..1
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (i) {
+        final taban = 9.0 + (sin(t + i * 0.7).abs()) * 9.0;
+        final h = (taban + amp * 34.0).clamp(6.0, 52.0);
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3.5),
+          width: 6,
+          height: h,
+          decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(6)),
+        );
+      }),
+    );
+  }
+
   Widget _sesSecici() {
     if (_sunulan.length < 2) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFEEEBF7)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Asistan sesi (dokunup dinle)',
-              style: TextStyle(fontSize: 13, color: Colors.black54)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
+            children: const [
+              Icon(Icons.record_voice_over_rounded,
+                  size: 17, color: Color(0xFF8B5CF6)),
+              SizedBox(width: 7),
+              Text('Asistan sesi',
+                  style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4A4660))),
+              SizedBox(width: 6),
+              Text('(dokunup dinle)',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF9A96AD))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
             children: _sunulan.map((s) {
               final name = s['name']!;
               final secili = name == _seciliSes;
-              return ChoiceChip(
-                label: Text(s['etiket']!),
-                selected: secili,
-                selectedColor: mor.withOpacity(0.18),
-                labelStyle: TextStyle(
-                  color: secili ? mor : Colors.black87,
-                  fontWeight: secili ? FontWeight.bold : FontWeight.normal,
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => _sesDene(name),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      decoration: BoxDecoration(
+                        gradient: secili
+                            ? const LinearGradient(colors: [
+                                Color(0xFF8B5CF6),
+                                Color(0xFF6366F1)
+                              ])
+                            : null,
+                        color: secili ? null : const Color(0xFFF3F1FA),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (secili)
+                            const Icon(Icons.check_rounded,
+                                size: 16, color: Colors.white),
+                          if (secili) const SizedBox(width: 5),
+                          Text(
+                            s['etiket']!,
+                            style: TextStyle(
+                              color: secili
+                                  ? Colors.white
+                                  : const Color(0xFF5A5670),
+                              fontWeight:
+                                  secili ? FontWeight.w600 : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                onSelected: (_) => _sesDene(name),
               );
             }).toList(),
           ),
@@ -1136,18 +1326,34 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
 
   Widget _ozetKart() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12)],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEBF7)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Randevu',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+          Row(
+            children: const [
+              Icon(Icons.event_available_rounded,
+                  size: 19, color: Color(0xFF8B5CF6)),
+              SizedBox(width: 8),
+              Text('Randevu Özeti',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF221F35))),
+            ],
+          ),
+          const SizedBox(height: 8),
           _satir('Personel', _personelAd, true),
           _satir('Müşteri', _musteriAd, _musteriId != null),
           _satir('Hizmet', _hizmetAd, _hizmetId != null),
@@ -1160,44 +1366,44 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani> {
 
   Widget _satir(String etiket, String? deger, bool tamam) {
     final dolu = deger != null && deger.isNotEmpty;
+    final ok = tamam && dolu;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         children: [
-          Icon(tamam && dolu ? Icons.check_circle : Icons.radio_button_unchecked,
-              size: 20,
-              color: tamam && dolu ? const Color(0xFF16A34A) : Colors.grey),
-          const SizedBox(width: 10),
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: ok
+                  ? const Color(0xFF22C55E).withOpacity(0.12)
+                  : const Color(0xFFF1F0F6),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              ok ? Icons.check_rounded : Icons.circle_outlined,
+              size: 15,
+              color: ok ? const Color(0xFF16A34A) : const Color(0xFFBDBACB),
+            ),
+          ),
+          const SizedBox(width: 12),
           SizedBox(
-              width: 78,
-              child: Text(etiket, style: const TextStyle(color: Colors.black54))),
+              width: 74,
+              child: Text(etiket,
+                  style:
+                      const TextStyle(color: Color(0xFF8A8699), fontSize: 14))),
           Expanded(
             child: Text(dolu ? deger : '—',
                 style: TextStyle(
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: dolu ? Colors.black : Colors.black38)),
+                    color: dolu
+                        ? const Color(0xFF221F35)
+                        : const Color(0xFFC3C0D0))),
           ),
         ],
       ),
     );
   }
 
-  Widget _konusmaKart() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: _konusma
-            .map((m) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(m, style: const TextStyle(fontSize: 13)),
-                ))
-            .toList(),
-      ),
-    );
-  }
 }
