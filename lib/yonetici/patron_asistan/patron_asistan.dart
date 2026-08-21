@@ -293,35 +293,13 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
   /// Komut bir RANDEVU komutu mu? "randevu" gecerse ya da bir hizmet/musteri
   /// eslesirse randevudur. (Sadece tarih varsa DEGIL -> "bugun ciro" randevu sayilmasin.)
   Future<bool> _randevuNiyetiMi(String metin) async {
-    if (metin.toLowerCase().contains('randevu')) return true;
-    // BILGI/SOHBET/DEVAM sorusu -> randevu DEGIL. "dip boya nedir", "biraz daha
-    // bilgi ver", "nasil yapiliyor", "detay" sesli randevuya atilmasin; sunucu
-    // bilgi kaliplariyla (bedava) cevaplasin. (sesli_randevu'ya dokunmadan, burada guard.)
-    final f = _fold(metin);
-    // Genis info/sohbet/devam isaretleri. Herhangi biri geciyorsa = bilgi sorusu,
-    // randevu DEGIL -> sunucu bilgi kaliplariyla cevaplasin. Randevu komutlarinda
-    // bu kelimeler gecmez ("Ayse'ye yarin 3'e lazer") -> onlar yine randevuya gider.
-    const bilgiIsaret = [
-      'nedir', 'ne demek', 'ne ise', 'ne ise yar', 'nasil', 'ne kadar surer',
-      'kac seans', 'kac gun', 'faydas', 'zarar', 'aci var', 'agri',
-      'biraz daha', 'daha fazla', 'bilgi', 'hakkinda', 'ile ilgili', 'ilgili',
-      'anlat', 'bahset', 'detay', 'acikla', 'aciklar', 'ogren', 'merak',
-      'verir misin', 'verebilir', 'soyler misin', 'peki', 'baska ne', 'devam',
-    ];
-    for (final b in bilgiIsaret) {
-      if (f.contains(b)) return false;
-    }
-    try {
-      final r = await sesliRandevuCoz(widget.salonId, metin,
-          personelId: widget.personelId);
-      final hizmetler = (r['hizmetler'] as List?) ?? [];
-      final m = (r['musteri'] as Map?) ?? {};
-      // NET randevu isareti: bir HIZMET eslesti YA DA net (tek) bir musteri secildi.
-      // Zayif aday eslesmesi (adaylar) SAYILMAZ -> "hava/nasilsin" randevuya atmasin.
-      return hizmetler.isNotEmpty || m['user_id'] != null;
-    } catch (_) {
-      return false;
-    }
+    // Randevu SADECE acik "randevu" sozcugu gecince acilir. Sadece hizmet adinin
+    // gecmesi ("dip boyam geldi", "lazer nedir", "keratin hakkinda bilgi") randevu
+    // SAYILMAZ -> mesaj sunucuya gider, bilgi kaliplari (bedava) cevaplar. Kullanici
+    // randevu istedigini "... randevu al" diyerek belirtir (asistanin yonlendirmesi de
+    // boyle diyor). Boylece bilgi/sohbet sorulari yanlislikla randevuya KACMAZ.
+    // (sesli_randevu modulune dokunmadan, patron asistaninin kendi yonlendirmesi.)
+    return _fold(metin).contains('randevu');
   }
 
   /// Randevu komutunu calisan Sesli Randevu ekranina tasir (tekrar sormaz).
