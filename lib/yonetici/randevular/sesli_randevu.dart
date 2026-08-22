@@ -87,6 +87,12 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   String? _saat; // H:i
   String? _vakit; // sabah | ogleden_sonra | aksam
   String _personelAd = 'Siz';
+  // Randevunun ACILACAGI personel. Bos = giris yapan personel (widget.personelId).
+  // Komutta baska personel adi gecerse backend onu doner -> burada guncellenir
+  // (her personel herkese randevu acabilir). Takvim/musaitlik/olustur bunu kullanir.
+  String _hedefPersonelId = '';
+  String get _aktifPersonelId =>
+      _hedefPersonelId.isNotEmpty ? _hedefPersonelId : widget.personelId;
 
   String _sistemMesaji = 'Mikrofona dokunun ve randevuyu söyleyin.';
   final List<String> _konusma = [];
@@ -789,7 +795,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   Future<void> _randevuAkisi() async {
     try {
       _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
-      final durum = await sesliRandevuTakvimDurumu(widget.personelId);
+      final durum = await sesliRandevuTakvimDurumu(_aktifPersonelId);
       if (durum['acik'] != true) {
         await _konus(
             'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
@@ -833,6 +839,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     _tarih = null;
     _saat = null;
     _vakit = null;
+    _hedefPersonelId = ''; // hedef personel de sifirlansin -> sonraki komut giris yapana doner
   }
 
   void _sifirla() {
@@ -846,6 +853,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     _tarih = null;
     _saat = null;
     _vakit = null;
+    _hedefPersonelId = '';
     _konusma.clear();
   }
 
@@ -853,7 +861,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   Future<Map<String, dynamic>> _uygula(String metin) async {
     _ss(() => _sistemMesaji = 'Anlıyorum...');
     final r = await sesliRandevuCoz(widget.salonId, metin,
-        personelId: widget.personelId);
+        personelId: _aktifPersonelId);
     if (r['basarili'] != true) return r;
 
     // Tarih / saat
@@ -877,10 +885,16 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       _hizmetFiyat = '${h['fiyat'] ?? 0}';
       _hizmetSure = '${h['sure_dk'] ?? 30}';
     }
-    // Personel (sabit = siz)
+    // Personel: backend cozdugu personeli doner (giris yapan VEYA komutta gecen
+    // baska personel). Hedef personel_id'yi guncelle -> takvim/musaitlik/olustur
+    // artik bu personel adina calisir. (Her personel herkese randevu acabilir.)
     final p = r['personel'] as Map?;
     if (p != null && p['personel_adi'] != null) {
       _personelAd = p['personel_adi'].toString();
+    }
+    if (p != null && p['personel_id'] != null) {
+      final pid = p['personel_id'].toString();
+      if (pid.isNotEmpty && pid != '0') _hedefPersonelId = pid;
     }
     // Musteri
     final m = (r['musteri'] as Map?) ?? {};
@@ -1266,7 +1280,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     _ss(() => _sistemMesaji = 'Uygun saat aranıyor...');
     final m = await sesliRandevuMusaitlik(
       widget.salonId,
-      widget.personelId,
+      _aktifPersonelId,
       _hizmetId.toString(),
       tarih: _tarih ?? '',
       saat: _saat ?? '',
@@ -1293,20 +1307,24 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
 
     final kim = _musteriAd ?? 'müşteri';
     final zaman = '${_tarihSozlu(bTarih)} saat ${_saatSozlu(bSaat)}';
+    // Randevu BASKA bir personele aciliyorsa onayda belirt (kendisi ise ekleme).
+    final baskaPersonel =
+        _hedefPersonelId.isNotEmpty && _hedefPersonelId != widget.personelId;
+    final personelOn = baskaPersonel ? '$_personelAd personeline, ' : '';
 
     // Onay iste — her durumda "farkli saat soyleyebilirsiniz" ipucuyla.
     String c;
     if (tamIstek) {
       await _konus(
-          '$kim, $zaman, $_hizmetAd. Onaylıyor musunuz? Farklı bir saat isterseniz söyleyin.');
+          '$personelOn$kim, $zaman, $_hizmetAd. Onaylıyor musunuz? Farklı bir saat isterseniz söyleyin.');
       c = await _dinle(pause: 2, listen: 8);
     } else if (istenenSaat.isNotEmpty) {
       await _konus(
-          'Vermek istediğiniz saatte başka bir müşterimizin randevusu bulunuyor. Şu an en yakın müsait saat $zaman. $kim için bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
+          'Vermek istediğiniz saatte başka bir müşterimizin randevusu bulunuyor. Şu an en yakın müsait saat $zaman. $personelOn$kim için bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
       c = await _dinle(pause: 2, listen: 8);
     } else {
       await _konus(
-          '$kim için en yakın müsait saat $zaman. Bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
+          '$personelOn$kim için en yakın müsait saat $zaman. Bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
       c = await _dinle(pause: 2, listen: 8);
     }
     if (_iptal) return;
@@ -1333,7 +1351,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   Future<bool> _tercihDuzeltDeneVeTekrar(String metin) async {
     // Metni cozdur ama SADECE tarih/saat/vakit'i al (musteri/hizmet DOKUNMA).
     final r = await sesliRandevuCoz(widget.salonId, metin,
-        personelId: widget.personelId);
+        personelId: _aktifPersonelId);
     final yTarih = (r['tarih'] ?? '').toString();
     final ySaat = (r['saat'] ?? '').toString();
     final yVakit = (r['vakit'] ?? '').toString();
@@ -1363,7 +1381,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       tarih: _tarih!,
       saat: _saat!,
       hizmetId: _hizmetId.toString(),
-      personelId: widget.personelId,
+      personelId: _aktifPersonelId,
       fiyat: _hizmetFiyat,
       sureDk: _hizmetSure,
       sadeceKontrol: '1',
@@ -1476,7 +1494,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         tarih: _tarih!,
         saat: _saat!,
         hizmetId: _hizmetId.toString(),
-        personelId: widget.personelId,
+        personelId: _aktifPersonelId,
         fiyat: _hizmetFiyat,
         sureDk: _hizmetSure,
         cakisanrandevuekle: cakismaVar ? '1' : '',
