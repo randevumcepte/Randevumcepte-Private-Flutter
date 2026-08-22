@@ -1168,15 +1168,19 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     int deneme = 0;
     while (_hizmetId == null && !_iptal && deneme < 3) {
       deneme++;
-      // Personelde bu hizmet yok -> kibar uyar + BASKA bir hizmet iste, dinle.
-      await _konus(
-          'Bu personele kayıtlı böyle bir hizmet bulunmamaktadır. Lütfen başka bir hizmet söyleyin.');
+      // ILK soru NAZIK "hangi hizmet?" olsun: kullanici hizmeti hic soylemeden
+      // ("randevu olusturmak istiyorum") gelmis olabilir; ona "boyle hizmet yok"
+      // demek yanlis. Ancak SONRAKI denemelerde (soyledi ama eslesmedi) uyar.
+      final soru = deneme == 1
+          ? 'Hangi hizmet için randevu oluşturalım?'
+          : 'Bu personele kayıtlı böyle bir hizmet bulamadım. Lütfen başka bir hizmet söyleyin.';
+      await _konus(soru);
       final c = await _dinle();
       if (c.isEmpty) continue;
       await _uygula(c);
     }
     if (_hizmetId == null && !_iptal) {
-      await _konus('Hizmet bulunamadı, işlemi iptal ediyorum.');
+      await _konus('Hizmeti anlayamadım, işlemi iptal ediyorum.');
       _ss(() => _iptal = true);
     }
   }
