@@ -785,11 +785,19 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
             'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
         return;
       }
-      // _uygula zaten cagrildi -> alanlar dolu.
+      // KONUSMA AKISINA GORE ILERLE: ilk komuttan DUYULAN alanlar (_uygula ile)
+      // zaten dolduruldu. Burada SADECE eksik olanlari, bilinenleri hatirlatarak
+      // konusarak tamamlariz (hizmet -> musteri -> tarih -> saat). Kullanici
+      // dilerse tek cevapta birden fazlasini soyler (_uygula hepsini yakalar).
       await _hizmetCoz();
       if (_iptal || _hizmetId == null) return;
       await _musteriCoz();
       if (_iptal || _musteriId == null) return;
+      await _tarihCozSes();
+      if (_iptal) return;
+      await _saatCozSes();
+      if (_iptal) return;
+      // Saat/tarih net degilse _musaitlikVeOnay en yakin uygun slotu bulup onaylatir.
       await _musaitlikVeOnay();
     } finally {
       // Bu randevu turu bitti (olustu / iptal / vazgecildi) -> alanlari temizle
@@ -899,7 +907,9 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
           soru =
               'Müşteri adını tam anlayamadım. Lütfen sadece müşterinin adını söyleyin. Yeni müşteri için "yeni" deyin.';
         } else if (deneme == 1) {
-          soru = 'Müşteri kim?';
+          soru = (_hizmetAd ?? '').isNotEmpty
+              ? '${_hizmetAd} için müşteri kim?'
+              : 'Müşteri kim?';
         } else {
           soru = 'Adı tekrar söyleyin, yeni müşteri için "yeni" deyin.';
         }
@@ -1171,8 +1181,11 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       // ILK soru NAZIK "hangi hizmet?" olsun: kullanici hizmeti hic soylemeden
       // ("randevu olusturmak istiyorum") gelmis olabilir; ona "boyle hizmet yok"
       // demek yanlis. Ancak SONRAKI denemelerde (soyledi ama eslesmedi) uyar.
+      final kime = (_musteriAd ?? '').isNotEmpty ? _musteriAd! : '';
       final soru = deneme == 1
-          ? 'Hangi hizmet için randevu oluşturalım?'
+          ? (kime.isNotEmpty
+              ? '$kime için hangi hizmet?'
+              : 'Hangi hizmet için randevu oluşturalım?')
           : 'Bu personele kayıtlı böyle bir hizmet bulamadım. Lütfen başka bir hizmet söyleyin.';
       await _konus(soru);
       final c = await _dinle();
@@ -1185,26 +1198,39 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     }
   }
 
+  /// TARIH eksikse konusarak sorar. Zaten duyulduysa (veya vakit verildiyse
+  /// -> "yarin sabah") hic sormaz. 2 denede net alinamazsa ZORLAMAZ; sonrasinda
+  /// _musaitlikVeOnay en yakin uygun gunu bulur (akis kesilmez).
   Future<void> _tarihCozSes() async {
+    if (_tarih != null || _iptal) return;
     int deneme = 0;
-    while (_tarih == null && !_iptal && deneme < 3) {
+    while (_tarih == null && !_iptal && deneme < 2) {
       deneme++;
-      await _konus('Hangi gün?');
+      await _konus(deneme == 1
+          ? 'Randevu hangi gün olsun?'
+          : 'Anlayamadım. Bugün, yarın ya da bir tarih söyleyin.');
       final c = await _dinle();
+      if (_iptal) return;
       if (c.isEmpty) continue;
       await _uygula(c);
     }
   }
 
+  /// SAAT eksikse bir kez sorar. Kullanici net saat verirse onu kullaniriz;
+  /// "en uygun/farketmez/sen ayarla" derse ya da net anlasilmazsa saat bos
+  /// kalir -> _musaitlikVeOnay en yakin uygun saati bulup onaylatir. Vakit
+  /// (sabah/aksam) zaten verildiyse hic sormaz.
   Future<void> _saatCozSes() async {
-    int deneme = 0;
-    while (_saat == null && !_iptal && deneme < 3) {
-      deneme++;
-      await _konus('Saat kaçta?');
-      final c = await _dinle();
-      if (c.isEmpty) continue;
-      await _uygula(c);
-    }
+    if (_saat != null || _vakit != null || _iptal) return;
+    await _konus('Saat kaçta olsun? İsterseniz en uygun saati ben ayarlayabilirim.');
+    final c = await _dinle();
+    if (_iptal || c.isEmpty) return;
+    final cl = _fold(c);
+    // "sen ayarla / en yakin / farketmez / ne uygunsa" -> saati musaitlik bulsun.
+    const birak = ['farketmez', 'fark etmez', 'sen ayarla', 'sen bil', 'en yakin',
+        'ne uygunsa', 'uygun olan', 'musaitse', 'onemli degil', 'sen sec'];
+    if (birak.any((k) => cl.contains(k))) return;
+    await _uygula(c); // saat/vakit doldurmayi dene; olmazsa musaitlik devreye girer
   }
 
   /* ------------------------------------------------------------------ */
