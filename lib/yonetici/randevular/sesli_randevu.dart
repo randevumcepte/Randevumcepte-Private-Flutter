@@ -62,6 +62,8 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   // Dinleme (tek cumle) tamamlama
   Completer<String>? _dinleC;
   String _dinleSon = '';
+  bool _konusmaBasladi = false; // _dinle: kullanici konusmaya basladi mi
+  bool _dinlemeBekle = false; // _dinle: konusma baslamadan gelen erken 'done'lari yok say
 
   // TTS ses secimi — musteriye sunulan 2 secenek (varsayilan Ses 1)
   List<Map<String, String>> _sesler = []; // cihazdaki tum tr sesler
@@ -144,7 +146,14 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     await _kullaniciAdiYukle();
     final ok = await _speech.initialize(
       onStatus: (s) {
-        if (s == 'done' || s == 'notListening') _dinlemeTamamla();
+        if (s == 'done' || s == 'notListening') {
+          // Kullanici HENUZ konusmaya baslamadiysa ve bilerek bekliyorsak
+          // (gec baslama), cihazin baslangic sessizliginde firlattigi erken
+          // kapanmayi YOK SAY -> "dinliyor ama kesildi" olmasin. Watchdog
+          // yine de sonsuz takilmayi onler.
+          if (_dinlemeBekle && !_konusmaBasladi) return;
+          _dinlemeTamamla();
+        }
       },
       onError: (e) => _dinlemeTamamla(),
     );
@@ -316,22 +325,64 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   }
 
   /// Tek cumle dinler; oturum kapaninca duyulan metni doner.
-  /// pause = konusma bitince kac sn sessizlikten sonra KAPANSIN (kisa = hizli).
-  Future<String> _dinle({int pause = 2, int listen = 15}) async {
+  /// Davranis: kullanici KONUSMAYA BASLAYANA KADAR bekler (2-3 sn gec baslamak
+  /// sorun degil), konusma bitince kisa bir sessizlikte kapanir. STT hic cevap
+  /// vermezse watchdog ile zorla kapatir -> sonsuz "dinliyor" takilmasi olmaz.
+  /// pause = konusma bittikten sonra kac sn sessizlikte KAPANSIN.
+  Future<String> _dinle({int pause = 2, int listen = 20}) async {
     if (!_hazir) return '';
     _dinleC = Completer<String>();
     _dinleSon = '';
+    _konusmaBasladi = false;
+    _dinlemeBekle = true; // konusma baslamadan gelen erken 'done'lari yok say
     _ss(() => _dinliyor = true);
     await _bipCal();
+
+    Timer? sessizlikT; // konusma bitince kapatan sayac (cumle sonu)
+    Timer? watchdogT; // hic cevap gelmezse zorla kapat (anti-hang)
+    final int sessizlikMs = pause.clamp(1, 5) * 1000 + 400;
+
+    void kapat() {
+      sessizlikT?.cancel();
+      watchdogT?.cancel();
+      _dinlemeBekle = false;
+      try {
+        _speech.stop();
+      } catch (_) {}
+      _dinlemeTamamla();
+    }
+
+    // Konusma BASLADIKTAN sonra yeni kelime gelmezse (cumle bitti) kapat.
+    void sessizligiZamanla() {
+      sessizlikT?.cancel();
+      sessizlikT = Timer(Duration(milliseconds: sessizlikMs), () {
+        if (_konusmaBasladi) kapat();
+      });
+    }
+
+    // Guvenlik agi: hic konusma olmasa bile listen suresi dolunca kapat.
+    watchdogT = Timer(Duration(seconds: listen + 3), kapat);
+
     try {
       await _speech.listen(
         onResult: (r) {
-          _dinleSon = r.recognizedWords.trim();
-          _ss(() {});
-          if (r.finalResult) _dinlemeTamamla();
+          final t = r.recognizedWords.trim();
+          if (t.isNotEmpty) {
+            _dinleSon = t;
+            _konusmaBasladi = true;
+            _ss(() {});
+            if (r.finalResult) {
+              kapat();
+              return;
+            }
+            sessizligiZamanla(); // her yeni kelimede cumle-bitti sayacini sifirla
+          }
         },
-        listenFor: Duration(seconds: listen),
-        pauseFor: Duration(seconds: pause),
+        // pauseFor/listenFor'u GENIS tut: baslangictaki 2-3 sn sessizlik
+        // dinlemeyi KESMESIN. Konusma bitince kapatmayi kendi kisa sessizlik
+        // sayacimiz yapar (hizli).
+        listenFor: Duration(seconds: listen + 3),
+        pauseFor: Duration(seconds: listen + 3),
         onSoundLevelChange: (level) {
           // Ham seviyeyi 0..1'e getir + yumusat -> kure sese gore titresir.
           _ses = level;
@@ -346,9 +397,12 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         ),
       );
     } catch (_) {
-      _dinlemeTamamla();
+      kapat();
     }
     final sonuc = await _dinleC!.future;
+    sessizlikT?.cancel();
+    watchdogT?.cancel();
+    _dinlemeBekle = false;
     print('SESLIDBG STT duydu: "$sonuc"');
     if (sonuc.isNotEmpty) {
       _ss(() => _konusma.add('🎤 $sonuc'));
@@ -673,7 +727,15 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
           continue;
         }
         // 3) RANDEVU mu? -> coz + randevu alt-akisi
-        _randevuAlanlariSifirla();
+        // SADECE yeni bir randevu sinyali (randevu/tarih/saat/rakam) varsa dolu
+        // alanlari sifirla. Sadece isim gibi kisa bir ifade geldiyse dolu
+        // hizmet/tarih/saat KORUNUR -> "bu hizmet yok deyip alanlari sildi"
+        // bug'i olmaz. (Alanlar zaten her randevu turu sonunda temizleniyor,
+        // bkz. _randevuAkisi finally -> stale sizinti yok.)
+        if (_yeniRandevuSinyali(c) ||
+            (_hizmetId == null && _tarih == null && _saat == null)) {
+          _randevuAlanlariSifirla();
+        }
         await _uygula(c);
         if (_iptal) return;
         final randevuMu = c.toLowerCase().contains('randevu') ||
@@ -710,24 +772,31 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
 
   /// Randevu alt-akisi: takvim/hizmet kontrolu + hizmet/musteri/musaitlik/olustur.
   Future<void> _randevuAkisi() async {
-    _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
-    final durum = await sesliRandevuTakvimDurumu(widget.personelId);
-    if (durum['acik'] != true) {
-      await _konus(
-          'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
-      return;
+    try {
+      _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
+      final durum = await sesliRandevuTakvimDurumu(widget.personelId);
+      if (durum['acik'] != true) {
+        await _konus(
+            'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
+        return;
+      }
+      if (durum['hizmet_var'] != true) {
+        await _konus(
+            'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
+        return;
+      }
+      // _uygula zaten cagrildi -> alanlar dolu.
+      await _hizmetCoz();
+      if (_iptal || _hizmetId == null) return;
+      await _musteriCoz();
+      if (_iptal || _musteriId == null) return;
+      await _musaitlikVeOnay();
+    } finally {
+      // Bu randevu turu bitti (olustu / iptal / vazgecildi) -> alanlari temizle
+      // ki bir sonraki komuta stale hizmet/tarih/saat SIZMASIN. Boylece ana
+      // dongudeki kosullu sifirlama (bkz. _yeniRandevuSinyali) guvenle calisir.
+      _randevuAlanlariSifirla();
     }
-    if (durum['hizmet_var'] != true) {
-      await _konus(
-          'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
-      return;
-    }
-    // _uygula zaten cagrildi -> alanlar dolu.
-    await _hizmetCoz();
-    if (_iptal || _hizmetId == null) return;
-    await _musteriCoz();
-    if (_iptal || _musteriId == null) return;
-    await _musaitlikVeOnay();
   }
 
   /// Sadece randevu alanlarini temizle (yeni komut icin); _mesgul/_iptal'e dokunma.
@@ -880,7 +949,20 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       }
     }
     if (_musteriId == null && !_iptal) {
-      await _konus('Müşteriyi belirleyemedim. Yeni müşteri için "yeni" diyerek tekrar deneyin.');
+      // Ad soylendi ama portfoyde bulunamadi -> dolu randevuyu (hizmet/tarih/
+      // saat) KORUYARAK yeni musteri olarak kaydetmeyi teklif et. (Eskiden ana
+      // donguye dusup dolu alanlari sifirliyor, sonra "bu hizmet yok" diyordu.)
+      final ad = _spokenAd ?? '';
+      if (ad.length >= 2) {
+        await _konus('$ad adında kayıtlı müşteri bulamadım. Yeni müşteri olarak kaydedeyim mi?');
+        final c = await _dinle();
+        if (_iptal) return;
+        if (_olumlu(c) || _yeniMi(c)) {
+          await _yeniMusteriOlustur(ad);
+          return;
+        }
+      }
+      await _konus('Müşteriyi belirleyemedim. İsterseniz baştan söyleyebilirsiniz.');
     }
   }
 
@@ -991,6 +1073,21 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         .where((w) => w.length >= 2 && !at.contains(w))
         .toList();
     return kalan.isEmpty;
+  }
+
+  /// Metin GERCEKTEN yeni bir randevu komutu mu? ("randevu" kelimesi, tarih/gun,
+  /// vakit ya da rakam iceriyorsa evet). Sadece isim gibi kisa cevaplarda false
+  /// -> devam eden randevunun dolu alanlari (hizmet/tarih/saat) silinmez.
+  bool _yeniRandevuSinyali(String s) {
+    final c = _fold(s);
+    if (c.contains('randevu')) return true;
+    if (RegExp(r'\d').hasMatch(c)) return true;
+    const zaman = [
+      'bugun', 'yarin', 'obur', 'sabah', 'ogle', 'oglen', 'aksam', 'gece',
+      'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi', 'pazar',
+      'hafta', 'gun'
+    ];
+    return zaman.any((k) => c.contains(k));
   }
 
   /// "yeni müşteri / hayır / değil / yok / başka" gibi RED/YENI ifadesi mi?
