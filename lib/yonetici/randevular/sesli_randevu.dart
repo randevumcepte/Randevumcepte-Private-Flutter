@@ -357,15 +357,6 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     _konusmaBasladi = false;
     _dinlemeBekle = true; // konusma baslamadan gelen erken 'done'lari yok say
     _ss(() => _dinliyor = true);
-    // DEFANSIF: onceki STT oturumu tam kapanmadiysa once kapat. Cok turdan sonra
-    // speech_to_text bazen hala "listening" sanip yeni oturumu baslatmiyordu ->
-    // "Dinliyorum"da takilma. Kapatip kisa bekleyince temiz baslar.
-    try {
-      if (_speech.isListening) {
-        await _speech.stop();
-        await Future.delayed(const Duration(milliseconds: 200));
-      }
-    } catch (_) {}
     await _bipCal();
 
     Timer? sessizlikT; // konusma bitince kapatan sayac (cumle sonu)
@@ -429,16 +420,6 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     } catch (_) {
       kapat();
     }
-    // WATCHDOG: onStatus/onResult HIC gelmezse (STT takilirsa) sonsuza kadar asili
-    // kalmasin -> dinleme suresi + 2 sn sonra zorla tamamla, sonraki tur temiz baslar.
-    Timer(Duration(seconds: listen + 2), () {
-      if (_dinleC != null && !_dinleC!.isCompleted) {
-        try {
-          _speech.stop();
-        } catch (_) {}
-        _dinlemeTamamla();
-      }
-    });
     final sonuc = await _dinleC!.future;
     sessizlikT?.cancel();
     watchdogT?.cancel();
@@ -717,8 +698,9 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
                 ? '$selam Randevu oluşturabilir ya da işletmenizi sorabilirsiniz.'
                 : '$selam Randevu bilgilerini söyler misiniz?');
           }
-          // pause 1 sn: konusma bitince HIZLI cevap (5sn -> ~2-3sn). listen 14 sn.
-          c = await _dinle(pause: 1, listen: 14);
+          // Baslangic sessizligi KESMEZ (genis pauseFor). Konusma bitince ~2.4 sn'de
+          // kapanir -> hizli ama kesmez. (pause 1 kesiyordu, 3 yavasti.)
+          c = await _dinle(pause: 2, listen: 15);
         }
         ilk = false;
         if (_iptal) return;
