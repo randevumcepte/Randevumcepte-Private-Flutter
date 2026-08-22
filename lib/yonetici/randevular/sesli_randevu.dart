@@ -310,8 +310,23 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     _bipKisa(); // asistan KONUSMAYA BASLARKEN bip (bekletmez)
     try {
       await _tts.stop();
-      await _tts.speak(metin);
+      await _tts.speak(_seslendirmeMetni(metin)); // BUYUK harfleri harf harf okumasin
     } catch (_) {}
+  }
+
+  /// Turkce kucuk harf (Dart'in toLowerCase'i Turkce degil: I->i yapar, biz ı).
+  String _trKucuk(String s) =>
+      s.replaceAll('I', 'ı').replaceAll('İ', 'i').toLowerCase();
+
+  /// TTS icin metni hazirlar: TAMAMI BUYUK harf olan kelimeleri (LAZER, AYŞE
+  /// gibi DB'den gelen ad/hizmet adlari) bas harfi buyuk forma cevirir. Aksi
+  /// halde motor bunlari kisaltma sanip HARF HARF okuyor. Ekrandaki yazi
+  /// degismez; sadece OKUNUS duzelir.
+  String _seslendirmeMetni(String s) {
+    return s.replaceAllMapped(RegExp(r'[A-ZÇĞİÖŞÜ]{2,}'), (m) {
+      final w = m.group(0)!;
+      return w.substring(0, 1) + _trKucuk(w.substring(1));
+    });
   }
 
   /// Kisa "konusma basliyor" bip'i — bekletmeden calar (asistan konusurken).
