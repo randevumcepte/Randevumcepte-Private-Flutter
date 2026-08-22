@@ -5129,7 +5129,7 @@ async {
 }
 String arayanBilgiVer(String phone){
 
-  dynamic musteriAdi = arayanbilgi(phone,'370');
+  dynamic musteriAdi = arayanbilgi(phone,'246');
   log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
   return musteriAdi["musteri_adi"];
 }
@@ -6935,11 +6935,13 @@ Future<Map<String, dynamic>> sesliRandevuOlustur({
   };
 
   try {
-    // NOT: sadece_kontrol modu apptest'te; ayni DB'yi kullandigi icin gercek
-    // cakisma/olusturma calisir. (randevuEkleGuncelle app'i etkilenmez.)
+    // CANLI (app) uca gonder: normal randevu ile BIREBIR ayni bildirim
+    // algoritmasini kullansin -> WhatsApp-first + push (apptest eski SMS-only
+    // kod calistiriyordu). Aktif akis sadece_kontrol kullanmaz (onu kullanan
+    // _onayVeOlustur olu kod), o yuzden guvenli.
     final res = await http
         .post(
-          Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/randevuekleguncelle'),
+          Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuekleguncelle'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(formData),
         )
