@@ -795,8 +795,61 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   }
 
   /// Randevu alt-akisi: takvim/hizmet kontrolu + hizmet/musteri/musaitlik/olustur.
+  /// YETKILI kullanici (randevu.tum_personel_gor) icin: randevu KIME diye sorar.
+  /// Komuttan personel zaten cozulduyse (hedef dolu) sormaz. "bana/kendime" -> giris
+  /// yapan personel. Yetkisiz kullanicida hic calismaz (hep kendi takvimi).
+  Future<void> _hedefPersoneliSec() async {
+    if (!Yetki.varMi('randevu.tum_personel_gor')) return; // yetkisiz -> hep kendine
+    if (_hedefPersonelId.isNotEmpty) return; // komuttan zaten cozuldu
+    for (int i = 0; i < 3 && !_iptal; i++) {
+      await _konus(i == 0
+          ? 'Hangi personele randevu oluşturayım? Kendiniz için "bana" diyebilirsiniz.'
+          : 'Personel adını tekrar söyleyin, kendiniz için "bana" deyin.');
+      final c = await _dinle();
+      if (_iptal) return;
+      if (c.trim().isEmpty) continue;
+      final f = _fold(c);
+      if (f == 'ben' ||
+          f.contains('bana') ||
+          f.contains('kendim') ||
+          f.contains('kendi takvim') ||
+          f.contains('benim takvim')) {
+        _hedefPersonelId = widget.personelId; // giris yapan personel
+        return;
+      }
+      // Personel adini backend ile coz (tumPersonel:true -> baska personel serbest).
+      final r = await sesliRandevuCoz(widget.salonId, c,
+          personelId: widget.personelId, tumPersonel: true);
+      final p = r['personel'] as Map?;
+      final pid = (p != null ? (p['personel_id'] ?? '') : '').toString();
+      if (pid.isNotEmpty && pid != '0') {
+        _hedefPersonelId = pid;
+        _personelAd = (p!['personel_adi'] ?? '').toString();
+        if (_personelAd.isNotEmpty) {
+          await _konus('$_personelAd için randevu oluşturuyorum.');
+        }
+        return;
+      }
+      await _konus('Bu isimde bir personel bulamadım.');
+    }
+    // Cozulemedi -> guvenli varsayilan: giris yapan personel.
+    if (_hedefPersonelId.isEmpty) _hedefPersonelId = widget.personelId;
+  }
+
   Future<void> _randevuAkisi() async {
     try {
+      // YETKILI kullanici (randevu.tum_personel_gor) ve komutta personel gecmediyse
+      // "Hangi personele?" diye sor. Yetkisizse ya da komutta personel varsa atlanir.
+      await _hedefPersoneliSec();
+      if (_iptal) return;
+      // Hedef, giris yapandan FARKLIYSA: ilk komutta giris yapan icin cozulmus olabilecek
+      // hizmeti sifirla -> _hizmetCoz hedef personel icin yeniden cozsun (tutarlilik).
+      if (_hedefPersonelId.isNotEmpty &&
+          _hedefPersonelId != widget.personelId &&
+          _hizmetId != null) {
+        _hizmetId = null;
+        _hizmetAd = null;
+      }
       _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
       final durum = await sesliRandevuTakvimDurumu(_aktifPersonelId);
       if (durum['acik'] != true) {
