@@ -821,8 +821,10 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       final r = await sesliRandevuCoz(widget.salonId, c,
           personelId: widget.personelId, tumPersonel: true);
       final p = r['personel'] as Map?;
+      // sabit=true => isim eslesMEdi, backend giris yapana dustu -> KABUL ETME.
+      final sabitP = p != null && p['sabit'] == true;
       final pid = (p != null ? (p['personel_id'] ?? '') : '').toString();
-      if (pid.isNotEmpty && pid != '0') {
+      if (!sabitP && pid.isNotEmpty && pid != '0') {
         _hedefPersonelId = pid;
         _personelAd = (p!['personel_adi'] ?? '').toString();
         if (_personelAd.isNotEmpty) {
@@ -944,14 +946,16 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       _hizmetFiyat = '${h['fiyat'] ?? 0}';
       _hizmetSure = '${h['sure_dk'] ?? 30}';
     }
-    // Personel: backend cozdugu personeli doner (giris yapan VEYA komutta gecen
-    // baska personel). Hedef personel_id'yi guncelle -> takvim/musaitlik/olustur
-    // artik bu personel adina calisir. (Her personel herkese randevu acabilir.)
+    // Personel: SADECE komutta ACIKCA gecen personeli hedef yap. Backend, cumlede
+    // isim gecmezse giris yapani 'sabit=true' ile doner -> ONU hedef YAPMA; boylece
+    // yetkiliye "Hangi personele?" diye sorulabilir (aksi halde hedef hep Ferdi kalir
+    // ve secim adimi hic calismaz). sabit=false = kullanici komutta personeli soyledi.
     final p = r['personel'] as Map?;
     if (p != null && p['personel_adi'] != null) {
       _personelAd = p['personel_adi'].toString();
     }
-    if (p != null && p['personel_id'] != null) {
+    final sabitP = p != null && p['sabit'] == true;
+    if (p != null && !sabitP && p['personel_id'] != null) {
       final pid = p['personel_id'].toString();
       if (pid.isNotEmpty && pid != '0') _hedefPersonelId = pid;
     }
