@@ -854,14 +854,22 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       }
       _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
       final durum = await sesliRandevuTakvimDurumu(_aktifPersonelId);
+      // Randevu baska bir personele mi aciliyor? -> uyari metinlerini ona gore kur.
+      final baskaP =
+          _hedefPersonelId.isNotEmpty && _hedefPersonelId != widget.personelId;
+      final pAd = (_personelAd.isNotEmpty && _personelAd != 'Siz')
+          ? _personelAd
+          : 'Bu personel';
       if (durum['acik'] != true) {
-        await _konus(
-            'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
+        await _konus(baskaP
+            ? '$pAd adlı personelin randevu takvimi kapalı (takvimi "Görünür" ve çalışma saatleri tanımlı olmalı). Bu personele randevu oluşturamıyorum.'
+            : 'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
         return;
       }
       if (durum['hizmet_var'] != true) {
-        await _konus(
-            'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
+        await _konus(baskaP
+            ? '$pAd adlı personele tanımlı hizmet bulunmuyor. Bu personele randevu oluşturamıyorum.'
+            : 'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
         return;
       }
       // KONUSMA AKISINA GORE ILERLE: ilk komuttan DUYULAN alanlar (_uygula ile)
