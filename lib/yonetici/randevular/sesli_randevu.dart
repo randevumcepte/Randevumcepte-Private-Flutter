@@ -1379,15 +1379,15 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     String c;
     if (tamIstek) {
       await _konus(
-          '$personelOn$kim, $zaman, $_hizmetAd. Onaylıyor musunuz? Farklı bir saat isterseniz söyleyin.');
+          '$personelOn$kim, $zaman, $_hizmetAd. Onaylıyor musunuz? Düzeltmek istediğiniz olursa söyleyin; örneğin saat, tarih, müşteri ya da hizmet.');
       c = await _dinle(pause: 2, listen: 8);
     } else if (istenenSaat.isNotEmpty) {
       await _konus(
-          'Vermek istediğiniz saatte başka bir müşterimizin randevusu bulunuyor. Şu an en yakın müsait saat $zaman. $personelOn$kim için bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
+          'Vermek istediğiniz saatte başka bir müşterimizin randevusu bulunuyor. Şu an en yakın müsait saat $zaman. $personelOn$kim için bu saate oluşturayım mı? Düzeltmek istediğiniz olursa söyleyin; örneğin saat, tarih, müşteri ya da hizmet.');
       c = await _dinle(pause: 2, listen: 8);
     } else {
       await _konus(
-          '$personelOn$kim için en yakın müsait saat $zaman. Bu saate oluşturayım mı? Farklı bir saat isterseniz söyleyin.');
+          '$personelOn$kim için en yakın müsait saat $zaman. Bu saate oluşturayım mı? Düzeltmek istediğiniz olursa söyleyin; örneğin saat, tarih, müşteri ya da hizmet.');
       c = await _dinle(pause: 2, listen: 8);
     }
     if (_iptal) return;
@@ -1409,32 +1409,111 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     await _konus('İptal ettim, randevu oluşturulmadı.');
   }
 
-  /// Metinde YENI saat/tarih/vakit varsa gunceller ve musaitligi BASTAN
-  /// degerlendirir (musteri/hizmet KORUNUR). Degisiklik olduysa true doner.
+  bool _alanGec(String f, List<String> ks) => ks.any((k) => f.contains(k));
+
+  /// GENEL DUZELTME: onayda kullanici HERHANGI bir alani duzeltmek isterse
+  /// (saat/tarih/musteri/hizmet/personel) yakalar, gunceller ve BASTAN onaylatir.
+  ///  - Yeni deger cumlede varsa dogrudan uygular ("saat 3 olsun", "musteri Fatma",
+  ///    "hizmet sac kesimi", "Didem'e olsun").
+  ///  - Sadece "X yanlis/degistir/guncelle" derse o alani YENIDEN SORAR.
+  /// Bir sey degistiyse true (ve tekrar onaylatir), yoksa false.
   Future<bool> _tercihDuzeltDeneVeTekrar(String metin) async {
-    // Metni cozdur ama SADECE tarih/saat/vakit'i al (musteri/hizmet DOKUNMA).
+    final f = _fold(metin);
     final r = await sesliRandevuCoz(widget.salonId, metin,
         personelId: _aktifPersonelId,
-        // Baskasina randevu SADECE 'tum personel takvimi' yetkisi olanlara. Yetki
-        // yoksa backend cumledeki baska personeli yoksayar -> kendi takvimine yazar.
         tumPersonel: Yetki.varMi('randevu.tum_personel_gor'));
+    bool degisti = false;
+
+    // SAAT / TARIH / VAKIT (yeni deger)
     final yTarih = (r['tarih'] ?? '').toString();
     final ySaat = (r['saat'] ?? '').toString();
     final yVakit = (r['vakit'] ?? '').toString();
-    if (yTarih.isEmpty && ySaat.isEmpty && yVakit.isEmpty) {
-      return false; // metinde yeni saat/gun yok -> duzeltme degil
+    if (yTarih.isNotEmpty) { _tarih = yTarih; degisti = true; }
+    if (ySaat.isNotEmpty) {
+      _saat = ySaat; _vakit = null; degisti = true;
+    } else if (yVakit.isNotEmpty) {
+      _vakit = yVakit; _saat = null; degisti = true;
     }
-    _ss(() {
-      if (yTarih.isNotEmpty) _tarih = yTarih;
-      if (ySaat.isNotEmpty) {
-        _saat = ySaat;
-        _vakit = null; // NET saat verildi -> vakti ezer
-      } else if (yVakit.isNotEmpty) {
-        _vakit = yVakit;
-        _saat = null; // VAKIT verildi -> eski net saati temizle ki vakit gecerli olsun
+
+    // PERSONEL (yetkili + komutta ACIKCA baska personel -> sabit=false)
+    final p = r['personel'] as Map?;
+    final sabitP = p != null && p['sabit'] == true;
+    if (p != null && !sabitP) {
+      final pid = (p['personel_id'] ?? '').toString();
+      if (pid.isNotEmpty && pid != '0' && pid != _aktifPersonelId) {
+        _hedefPersonelId = pid;
+        _personelAd = (p['personel_adi'] ?? '').toString();
+        _hizmetId = null; _hizmetAd = null; // yeni personelde hizmeti yeniden coz
+        degisti = true;
       }
-    });
-    await _musaitlikVeOnay(); // yeni tercihle bastan
+    }
+
+    // HIZMET (yeni hizmet adi)
+    final hizmetler = (r['hizmetler'] as List?) ?? [];
+    if (hizmetler.isNotEmpty) {
+      final h = hizmetler.first;
+      final hid = h['hizmet_id'] is int ? h['hizmet_id'] : int.tryParse('${h['hizmet_id']}');
+      if (hid != null && hid != _hizmetId) {
+        _hizmetId = hid;
+        _hizmetAd = h['hizmet_adi']?.toString();
+        _hizmetFiyat = '${h['fiyat'] ?? 0}';
+        _hizmetSure = '${h['sure_dk'] ?? 30}';
+        degisti = true;
+      }
+    }
+
+    // MUSTERI (yeni NET musteri)
+    final m = (r['musteri'] as Map?) ?? {};
+    if (m['user_id'] != null) {
+      final uid = m['user_id'] is int ? m['user_id'] : int.tryParse('${m['user_id']}');
+      if (uid != null && uid != _musteriId) {
+        _musteriId = uid;
+        final adaylar = (m['adaylar'] as List?) ?? [];
+        if (adaylar.isNotEmpty) _musteriAd = adaylar.first['name']?.toString();
+        degisti = true;
+      }
+    }
+
+    // YENI deger yok ama ACIK "X yanlis/degistir" -> o alani YENIDEN SOR
+    if (!degisti) {
+      final duzKelime = _alanGec(f,
+          ['yanlis', 'degil', 'degistir', 'guncelle', 'duzelt', 'olmadi', 'hatali', 'yenile']);
+      if (_alanGec(f, ['musteri', 'isim', 'kisi']) && (duzKelime || _alanGec(f, ['musteri']))) {
+        _musteriId = null; _musteriAd = null; _adaylar = []; _spokenAd = null;
+        await _musteriCoz();
+        if (_iptal) return true;
+        degisti = _musteriId != null;
+      } else if (_alanGec(f, ['hizmet', 'islem']) && duzKelime) {
+        _hizmetId = null; _hizmetAd = null;
+        await _hizmetCoz();
+        if (_iptal) return true;
+        degisti = _hizmetId != null;
+      } else if (_alanGec(f, ['saat', 'kacta', 'vakit'])) {
+        _saat = null; _vakit = null;
+        await _saatCozSes();
+        if (_iptal) return true;
+        degisti = true;
+      } else if (_alanGec(f, ['tarih', 'gun', 'hangi gun'])) {
+        _tarih = null;
+        await _tarihCozSes();
+        if (_iptal) return true;
+        degisti = true;
+      } else if (_alanGec(f, ['personel', 'eleman', 'calisan']) &&
+          Yetki.varMi('randevu.tum_personel_gor')) {
+        _hedefPersonelId = ''; _hizmetId = null; _hizmetAd = null;
+        await _hedefPersoneliSec();
+        if (_iptal) return true;
+        degisti = true;
+      }
+    }
+
+    if (!degisti) return false;
+    // Personel/hizmet degistiyse hizmet bos kalmis olabilir -> once onu coz.
+    if (_hizmetId == null) {
+      await _hizmetCoz();
+      if (_iptal || _hizmetId == null) return true;
+    }
+    await _musaitlikVeOnay(); // guncel bilgilerle BASTAN onaylat
     return true;
   }
 
