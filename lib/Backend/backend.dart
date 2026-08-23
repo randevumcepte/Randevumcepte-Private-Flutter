@@ -6727,9 +6727,12 @@ Future<int> faturasizGizleDurum(String salonId) async {
 /// NOT: Endpoint su an sadece TEST sunucusunda (apptest). Canliya deploy edilince
 /// base URL app.randevumcepte.com.tr olarak degistirilecek.
 Future<Map<String, dynamic>> sesliRandevuCoz(String salonid, String metin,
-    {String personelId = ''}) async {
+    {String personelId = '', bool tumPersonel = false}) async {
   final params = {'salonid': salonid, 'metin': metin};
   if (personelId.isNotEmpty) params['personel_id'] = personelId;
+  // Yetki: cumlede gecen BASKA personele randevu SADECE bu bayrak 1 ise. Yetki
+  // yoksa backend baska personeli yoksayar -> randevu giris yapan personele yazilir.
+  params['tum_personel'] = tumPersonel ? '1' : '0';
   final uri = Uri.parse('https://app.randevumcepte.com.tr/api/v1/sesli-randevu-coz')
       .replace(queryParameters: params);
   try {

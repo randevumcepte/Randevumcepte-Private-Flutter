@@ -9,6 +9,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 
 /// SESLI RANDEVU — sesli diyalog
 /// Kullanici konusur -> sistem anlar -> eksik/belirsiz alanlari SESLI sorar ->
@@ -863,7 +864,10 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   Future<Map<String, dynamic>> _uygula(String metin) async {
     _ss(() => _sistemMesaji = 'Anlıyorum...');
     final r = await sesliRandevuCoz(widget.salonId, metin,
-        personelId: _aktifPersonelId);
+        personelId: _aktifPersonelId,
+        // Baskasina randevu SADECE 'tum personel takvimi' yetkisi olanlara. Yetki
+        // yoksa backend cumledeki baska personeli yoksayar -> kendi takvimine yazar.
+        tumPersonel: Yetki.varMi('randevu.tum_personel_gor'));
     if (r['basarili'] != true) return r;
 
     // Tarih / saat
@@ -1353,7 +1357,10 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   Future<bool> _tercihDuzeltDeneVeTekrar(String metin) async {
     // Metni cozdur ama SADECE tarih/saat/vakit'i al (musteri/hizmet DOKUNMA).
     final r = await sesliRandevuCoz(widget.salonId, metin,
-        personelId: _aktifPersonelId);
+        personelId: _aktifPersonelId,
+        // Baskasina randevu SADECE 'tum personel takvimi' yetkisi olanlara. Yetki
+        // yoksa backend cumledeki baska personeli yoksayar -> kendi takvimine yazar.
+        tumPersonel: Yetki.varMi('randevu.tum_personel_gor'));
     final yTarih = (r['tarih'] ?? '').toString();
     final ySaat = (r['saat'] ?? '').toString();
     final yVakit = (r['vakit'] ?? '').toString();
