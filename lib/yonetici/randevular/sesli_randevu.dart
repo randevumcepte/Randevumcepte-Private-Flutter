@@ -94,6 +94,9 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   String _hedefPersonelId = '';
   String get _aktifPersonelId =>
       _hedefPersonelId.isNotEmpty ? _hedefPersonelId : widget.personelId;
+  // Akisin herhangi bir adiminda kullanici BASKA bir alani duzeltirse true olur ->
+  // _randevuAkisi dongusu bastan degerlendirir (eksik/degisen alani yeniden cozer).
+  bool _yenidenDegerlendir = false;
 
   String _sistemMesaji = 'Mikrofona dokunun ve randevuyu söyleyin.';
   final List<String> _konusma = [];
@@ -838,53 +841,169 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     if (_hedefPersonelId.isEmpty) _hedefPersonelId = widget.personelId;
   }
 
+  bool _alanGec(String f, List<String> ks) => ks.any((k) => f.contains(k));
+
+  /// AKISIN HERHANGI BIR ADIMINDA capraz alan duzeltmesi. Kullanici mevcut sorunun
+  /// disinda BASKA bir alani ACIKCA anip duzeltmek isterse (or. hizmet sorulurken
+  /// "personeli degistir", saat sorulurken "hizmet sac boyama olsun") yakalar; ilgili
+  /// alani gunceller/sifirlar ve _yenidenDegerlendir=true yapar -> _randevuAkisi bastan
+  /// cozer. SADECE ilgili alan ACIKCA anildiginda tetiklenir (normal cevabi kacirmaz).
+  Future<bool> _araDuzeltmeUygula(String c) async {
+    final f = _fold(c);
+    final istPersonel = _alanGec(f, ['personel', 'eleman', 'calisan']);
+    final istMusteri = _alanGec(f, ['musteri', 'isim', 'kisi']);
+    final istHizmet = _alanGec(f, ['hizmet', 'islem']);
+    final istSaat = _alanGec(f, ['saat', 'kacta']);
+    final istTarih = _alanGec(f, ['tarih', 'hangi gun']);
+    if (!(istPersonel || istMusteri || istHizmet || istSaat || istTarih)) {
+      return false; // alan ACIKCA anilmadi -> bu mevcut sorunun cevabi, duzeltme degil
+    }
+    final r = await sesliRandevuCoz(widget.salonId, c,
+        personelId: _aktifPersonelId,
+        tumPersonel: Yetki.varMi('randevu.tum_personel_gor'));
+    bool degisti = false;
+
+    if (istPersonel && Yetki.varMi('randevu.tum_personel_gor')) {
+      final p = r['personel'] as Map?;
+      final sabitP = p != null && p['sabit'] == true;
+      final pid = (p != null ? (p['personel_id'] ?? '') : '').toString();
+      if (p != null && !sabitP && pid.isNotEmpty && pid != '0') {
+        _hedefPersonelId = pid;
+        _personelAd = (p['personel_adi'] ?? '').toString();
+      } else {
+        _hedefPersonelId = ''; // yeni ad yok -> tekrar sorulacak
+      }
+      _hizmetId = null;
+      _hizmetAd = null; // personel degisti -> hizmet yeniden cozulsun
+      degisti = true;
+    }
+    if (istHizmet) {
+      final hizmetler = (r['hizmetler'] as List?) ?? [];
+      if (hizmetler.isNotEmpty) {
+        final h = hizmetler.first;
+        _hizmetId =
+            h['hizmet_id'] is int ? h['hizmet_id'] : int.tryParse('${h['hizmet_id']}');
+        _hizmetAd = h['hizmet_adi']?.toString();
+        _hizmetFiyat = '${h['fiyat'] ?? 0}';
+        _hizmetSure = '${h['sure_dk'] ?? 30}';
+      } else {
+        _hizmetId = null;
+        _hizmetAd = null; // yeni ad yok -> tekrar sor
+      }
+      degisti = true;
+    }
+    if (istMusteri) {
+      final m = (r['musteri'] as Map?) ?? {};
+      if (m['user_id'] != null) {
+        _musteriId =
+            m['user_id'] is int ? m['user_id'] : int.tryParse('${m['user_id']}');
+        final ad = (m['adaylar'] as List?) ?? [];
+        if (ad.isNotEmpty) _musteriAd = ad.first['name']?.toString();
+      } else {
+        _musteriId = null;
+        _musteriAd = null;
+        _adaylar = [];
+        _spokenAd = null;
+        final adT = (m['ad_tahmini'] ?? '').toString().trim();
+        if (adT.isNotEmpty) _spokenAd = _isimTemizle(adT);
+      }
+      degisti = true;
+    }
+    if (istSaat) {
+      final ys = (r['saat'] ?? '').toString();
+      final yv = (r['vakit'] ?? '').toString();
+      if (ys.isNotEmpty) {
+        _saat = ys;
+        _vakit = null;
+      } else if (yv.isNotEmpty) {
+        _vakit = yv;
+        _saat = null;
+      } else {
+        _saat = null;
+        _vakit = null;
+      }
+      degisti = true;
+    }
+    if (istTarih) {
+      final yt = (r['tarih'] ?? '').toString();
+      _tarih = yt.isNotEmpty ? yt : null;
+      degisti = true;
+    }
+    if (degisti) {
+      _yenidenDegerlendir = true;
+      await _konus('Tamam, güncelliyorum.');
+    }
+    return degisti;
+  }
+
   Future<void> _randevuAkisi() async {
     try {
-      // YETKILI kullanici (randevu.tum_personel_gor) ve komutta personel gecmediyse
-      // "Hangi personele?" diye sor. Yetkisizse ya da komutta personel varsa atlanir.
-      await _hedefPersoneliSec();
-      if (_iptal) return;
-      // Hedef, giris yapandan FARKLIYSA: ilk komutta giris yapan icin cozulmus olabilecek
-      // hizmeti sifirla -> _hizmetCoz hedef personel icin yeniden cozsun (tutarlilik).
-      if (_hedefPersonelId.isNotEmpty &&
-          _hedefPersonelId != widget.personelId &&
-          _hizmetId != null) {
-        _hizmetId = null;
-        _hizmetAd = null;
+      // SLOT-DOLDURMA + ARA DUZELTME dongusu: eksik alanlari sirayla cozer; kullanici
+      // HERHANGI bir adimda baska alani duzeltirse (_araDuzeltmeUygula ile) _yenidenDegerlendir
+      // set edilir ve dongu BASTAN doner -> degisen/eksik alani yeniden cozer. Boylece
+      // "hizmet sorulurken personeli degistir", "saat sorulurken hizmeti degistir" calisir.
+      while (!_iptal && mounted) {
+        _yenidenDegerlendir = false;
+
+        // 1) PERSONEL (yetkili + secilmemis) -> "Hangi personele?"
+        await _hedefPersoneliSec();
+        if (_iptal) return;
+        if (_yenidenDegerlendir) continue;
+        // Hedef giris yapandan FARKLIYSA: giris yapan icin cozulmus hizmeti sifirla.
+        if (_hedefPersonelId.isNotEmpty &&
+            _hedefPersonelId != widget.personelId &&
+            _hizmetId != null) {
+          _hizmetId = null;
+          _hizmetAd = null;
+        }
+
+        // 2) TAKVIM DURUMU (hedef personel icin). Baska personele aciliyorsa uyari
+        // metinleri o personele gore (diger sekmeden gelen iyilestirme korundu).
+        _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
+        final durum = await sesliRandevuTakvimDurumu(_aktifPersonelId);
+        final baskaP =
+            _hedefPersonelId.isNotEmpty && _hedefPersonelId != widget.personelId;
+        final pAd = (_personelAd.isNotEmpty && _personelAd != 'Siz')
+            ? _personelAd
+            : 'Bu personel';
+        if (durum['acik'] != true) {
+          await _konus(baskaP
+              ? '$pAd adlı personelin randevu takvimi kapalı (takvimi "Görünür" ve çalışma saatleri tanımlı olmalı). Bu personele randevu oluşturamıyorum.'
+              : 'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
+          return;
+        }
+        if (durum['hizmet_var'] != true) {
+          await _konus(baskaP
+              ? '$pAd adlı personele tanımlı hizmet bulunmuyor. Bu personele randevu oluşturamıyorum.'
+              : 'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
+          return;
+        }
+
+        // 3) HIZMET
+        if (_hizmetId == null) {
+          await _hizmetCoz();
+          if (_iptal) return;
+          if (_yenidenDegerlendir) continue;
+          if (_hizmetId == null) return;
+        }
+        // 4) MUSTERI
+        if (_musteriId == null) {
+          await _musteriCoz();
+          if (_iptal) return;
+          if (_yenidenDegerlendir) continue;
+          if (_musteriId == null) return;
+        }
+        // 5) TARIH / SAAT (opsiyonel; net degilse musaitlik en yakini bulur)
+        await _tarihCozSes();
+        if (_iptal) return;
+        if (_yenidenDegerlendir) continue;
+        await _saatCozSes();
+        if (_iptal) return;
+        if (_yenidenDegerlendir) continue;
+
+        break; // tum alanlar hazir
       }
-      _ss(() => _sistemMesaji = 'Kontrol ediliyor...');
-      final durum = await sesliRandevuTakvimDurumu(_aktifPersonelId);
-      // Randevu baska bir personele mi aciliyor? -> uyari metinlerini ona gore kur.
-      final baskaP =
-          _hedefPersonelId.isNotEmpty && _hedefPersonelId != widget.personelId;
-      final pAd = (_personelAd.isNotEmpty && _personelAd != 'Siz')
-          ? _personelAd
-          : 'Bu personel';
-      if (durum['acik'] != true) {
-        await _konus(baskaP
-            ? '$pAd adlı personelin randevu takvimi kapalı (takvimi "Görünür" ve çalışma saatleri tanımlı olmalı). Bu personele randevu oluşturamıyorum.'
-            : 'Randevu takviminiz açık değil. Çalışma saatleriniz tanımlı olmadan randevu oluşturamıyorum.');
-        return;
-      }
-      if (durum['hizmet_var'] != true) {
-        await _konus(baskaP
-            ? '$pAd adlı personele tanımlı hizmet bulunmuyor. Bu personele randevu oluşturamıyorum.'
-            : 'Size tanımlı hizmet bulunmuyor. Lütfen önce hizmetlerinizi tanımlayın.');
-        return;
-      }
-      // KONUSMA AKISINA GORE ILERLE: ilk komuttan DUYULAN alanlar (_uygula ile)
-      // zaten dolduruldu. Burada SADECE eksik olanlari, bilinenleri hatirlatarak
-      // konusarak tamamlariz (hizmet -> musteri -> tarih -> saat). Kullanici
-      // dilerse tek cevapta birden fazlasini soyler (_uygula hepsini yakalar).
-      await _hizmetCoz();
-      if (_iptal || _hizmetId == null) return;
-      await _musteriCoz();
-      if (_iptal || _musteriId == null) return;
-      await _tarihCozSes();
       if (_iptal) return;
-      await _saatCozSes();
-      if (_iptal) return;
-      // Saat/tarih net degilse _musaitlikVeOnay en yakin uygun slotu bulup onaylatir.
       await _musaitlikVeOnay();
     } finally {
       // Bu randevu turu bitti (olustu / iptal / vazgecildi) -> alanlari temizle
@@ -1017,6 +1136,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
         final c = await _dinle();
         if (_iptal) return;
         if (c.trim().isEmpty) continue;
+        if (await _araDuzeltmeUygula(c)) return; // baska alan duzeltmesi -> bastan degerlendir
         if (_yeniMi(c)) {
           await _yeniMusteriOlustur(_spokenAd);
           return;
@@ -1039,6 +1159,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
             'Şunlardan biri mi: ${adlar.join(", ")}? Değilse yeni müşteri için "yeni" deyin.');
         final c = await _dinle();
         if (_iptal) return;
+        if (await _araDuzeltmeUygula(c)) return; // baska alan duzeltmesi -> bastan degerlendir
         if (_yeniMi(c)) {
           await _yeniMusteriOlustur(_spokenAd);
           return;
@@ -1290,6 +1411,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       await _konus(soru);
       final c = await _dinle();
       if (c.isEmpty) continue;
+      if (await _araDuzeltmeUygula(c)) return; // baska alan duzeltmesi -> bastan degerlendir
       await _uygula(c);
     }
     if (_hizmetId == null && !_iptal) {
@@ -1312,6 +1434,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       final c = await _dinle();
       if (_iptal) return;
       if (c.isEmpty) continue;
+      if (await _araDuzeltmeUygula(c)) return; // baska alan duzeltmesi -> bastan degerlendir
       await _uygula(c);
     }
   }
@@ -1330,6 +1453,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     const birak = ['farketmez', 'fark etmez', 'sen ayarla', 'sen bil', 'en yakin',
         'ne uygunsa', 'uygun olan', 'musaitse', 'onemli degil', 'sen sec'];
     if (birak.any((k) => cl.contains(k))) return;
+    if (await _araDuzeltmeUygula(c)) return; // baska alan duzeltmesi -> bastan degerlendir
     await _uygula(c); // saat/vakit doldurmayi dene; olmazsa musaitlik devreye girer
   }
 
@@ -1416,8 +1540,6 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
 
     await _konus('İptal ettim, randevu oluşturulmadı.');
   }
-
-  bool _alanGec(String f, List<String> ks) => ks.any((k) => f.contains(k));
 
   /// GENEL DUZELTME: onayda kullanici HERHANGI bir alani duzeltmek isterse
   /// (saat/tarih/musteri/hizmet/personel) yakalar, gunceller ve BASTAN onaylatir.
