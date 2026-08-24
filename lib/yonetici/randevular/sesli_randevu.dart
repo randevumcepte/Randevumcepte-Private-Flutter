@@ -328,11 +328,30 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   String _trKucuk(String s) =>
       s.replaceAll('I', 'ı').replaceAll('İ', 'i').toLowerCase();
 
-  /// TTS icin metni hazirlar: TAMAMI BUYUK harf olan kelimeleri (LAZER, AYŞE
-  /// gibi DB'den gelen ad/hizmet adlari) bas harfi buyuk forma cevirir. Aksi
-  /// halde motor bunlari kisaltma sanip HARF HARF okuyor. Ekrandaki yazi
+  /// Marka/yabanci terimlerin Turkce TTS ile DOGRU okunmasi icin fonetik
+  /// karsiliklari. EKRANDAKI YAZI DEGISMEZ; sadece seslendirilen metin degisir.
+  /// Ornek: "Hydrafacial" yaziyor ama asistan "Hidrafesil" (hidrafeşıl) diye okur.
+  /// Yeni terim eklemek = bu haritaya bir satir eklemek.
+  static const Map<String, String> _markaSozluk = {
+    'hydrafacial': 'Hidrafeşıl',
+    'hydra facial': 'Hidrafeşıl',
+    'hidrafacial': 'Hidrafeşıl',
+  };
+  String _markaOkunus(String s) {
+    var out = s;
+    _markaSozluk.forEach((k, v) {
+      out = out.replaceAll(RegExp(RegExp.escape(k), caseSensitive: false), v);
+    });
+    return out;
+  }
+
+  /// TTS icin metni hazirlar: (1) marka terimlerini fonetik okunusa cevirir
+  /// (Hydrafacial -> Hidrafesıl), (2) TAMAMI BUYUK harf olan kelimeleri (LAZER,
+  /// AYŞE gibi DB'den gelen ad/hizmet adlari) bas harfi buyuk forma cevirir.
+  /// Aksi halde motor bunlari kisaltma sanip HARF HARF okuyor. Ekrandaki yazi
   /// degismez; sadece OKUNUS duzelir.
   String _seslendirmeMetni(String s) {
+    s = _markaOkunus(s);
     return s.replaceAllMapped(RegExp(r'[A-ZÇĞİÖŞÜ]{2,}'), (m) {
       final w = m.group(0)!;
       return w.substring(0, 1) + _trKucuk(w.substring(1));
