@@ -211,14 +211,25 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
 
     await _tts.setLanguage('tr-TR');
 
-    // 3) Turkce sesleri topla (kullanici ekrandan secebilsin)
+    // 3) Turkce sesleri topla (kullanici ekrandan secebilsin). iOS'ta 'quality'
+    //    alanina gore ENHANCED/PREMIUM sesleri one aliriz (compact = robotik).
     try {
       final voices = await _tts.getVoices;
       if (voices is List) {
-        _sesler = voices
+        final trAll = voices
             .map((v) => Map<String, dynamic>.from(v as Map))
             .where((v) =>
                 (v['locale'] ?? '').toString().toLowerCase().startsWith('tr'))
+            .toList();
+        // Kaliteye gore sirala: premium > enhanced > default/compact
+        int kaliteSkor(Map v) {
+          final q = (v['quality'] ?? '').toString().toLowerCase();
+          if (q.contains('premium')) return 3;
+          if (q.contains('enhanced')) return 2;
+          return 1;
+        }
+        trAll.sort((a, b) => kaliteSkor(b).compareTo(kaliteSkor(a)));
+        _sesler = trAll
             .map((v) => {
                   'name': v['name'].toString(),
                   'locale': v['locale'].toString(),
@@ -227,16 +238,16 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       }
     } catch (_) {}
 
-    // 4) Hiz/ton (iOS'ta olcek farkli; 0.50 dogal tempo)
-    await _tts.setSpeechRate(Platform.isIOS ? 0.50 : 0.46);
-    await _tts.setPitch(Platform.isIOS ? 1.0 : 1.06);
+    // 4) Hiz/ton. iOS compact ses yavas okununca "baygin" duyuluyor -> biraz hizli.
+    await _tts.setSpeechRate(Platform.isIOS ? 0.54 : 0.46);
+    await _tts.setPitch(Platform.isIOS ? 1.02 : 1.06);
     await _tts.awaitSpeakCompletion(true);
 
     // 5) Musteriye sunulacak sesleri belirle (platforma gore)
     _sunulan = [];
     if (Platform.isIOS) {
-      // iOS: cihazdaki TUM Turkce sesleri sun (Yelda compact/enhanced vb.).
-      // Boylece kullanici enhanced ses indirdiyse ekrandan secebilir.
+      // iOS: en kaliteli Turkce ses varsayilan (Ses 1). Enhanced/premium indirilmisse
+      // otomatik o secilir; degilse compact Yelda'ya duser (kalite Apple sinirlidir).
       for (var i = 0; i < _sesler.length && i < 3; i++) {
         _sunulan.add({
           'etiket': 'Ses ${i + 1}',
