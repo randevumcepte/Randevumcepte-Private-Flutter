@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -177,19 +178,40 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     }
   }
 
-  /// TTS'i mumkun oldugunca dogal/akici yapar: Google motoru + en iyi Turkce ses.
+  /// TTS'i mumkun oldugunca dogal/akici yapar. iOS ve Android'de FARKLI kurulum:
+  /// - iOS: paylasimli ses oturumu + PLAYBACK kategorisi (net/yuksek ses, sessize
+  ///   anahtarindan etkilenmez). iOS'ta erkek Turkce ses YOK -> en kaliteli Turkce
+  ///   ses (varsa enhanced/premium Yelda) secilir.
+  /// - Android: TEK motora sabitlenir (Google varsa). Boylece cihaz varsayilan
+  ///   motoru + Google motoru AYNI ANDA konusup "yanki/cift ses" yapmaz.
   Future<void> _sesAyarla() async {
-    // 1) Google TTS motoru (Samsung varsayilanindan daha dogal)
-    try {
-      final engines = await _tts.getEngines;
-      if (engines is List && engines.contains('com.google.android.tts')) {
-        await _tts.setEngine('com.google.android.tts');
-      }
-    } catch (_) {}
+    // 1) iOS ses oturumu: net ve yuksek ses
+    if (Platform.isIOS) {
+      try {
+        await _tts.setSharedInstance(true);
+        await _tts.setIosAudioCategory(
+          IosTextToSpeechAudioCategory.playback,
+          [
+            IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
+            IosTextToSpeechAudioCategoryOptions.duckOthers,
+          ],
+        );
+      } catch (_) {}
+    }
+
+    // 2) Android: TEK motora sabitle (Google varsa) -> cift/yankili ses onlenir
+    if (Platform.isAndroid) {
+      try {
+        final engines = await _tts.getEngines;
+        if (engines is List && engines.contains('com.google.android.tts')) {
+          await _tts.setEngine('com.google.android.tts');
+        }
+      } catch (_) {}
+    }
 
     await _tts.setLanguage('tr-TR');
 
-    // 2) Turkce sesleri topla (kullanici ekrandan secebilsin)
+    // 3) Turkce sesleri topla (kullanici ekrandan secebilsin)
     try {
       final voices = await _tts.getVoices;
       if (voices is List) {
@@ -205,21 +227,34 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       }
     } catch (_) {}
 
-    // 3) Hiz/ton
-    await _tts.setSpeechRate(0.46);
-    await _tts.setPitch(1.06);
+    // 4) Hiz/ton (iOS'ta olcek farkli; 0.50 dogal tempo)
+    await _tts.setSpeechRate(Platform.isIOS ? 0.50 : 0.46);
+    await _tts.setPitch(Platform.isIOS ? 1.0 : 1.06);
     await _tts.awaitSpeakCompletion(true);
 
-    // 4) Musteriye sunulacak 2 sesi belirle (isimle; yoksa siraya gore yedek)
+    // 5) Musteriye sunulacak sesleri belirle (platforma gore)
     _sunulan = [];
-    final s1 = _sesBul(_ses1Name) ?? (_sesler.isNotEmpty ? _sesler[0] : null);
-    final s2 = _sesBul(_ses2Name) ??
-        (_sesler.length > 4 ? _sesler[4] : (_sesler.length > 1 ? _sesler[1] : null));
-    if (s1 != null) {
-      _sunulan.add({'etiket': 'Ses 1', 'name': s1['name']!, 'locale': s1['locale']!});
-    }
-    if (s2 != null && s2['name'] != s1?['name']) {
-      _sunulan.add({'etiket': 'Ses 2', 'name': s2['name']!, 'locale': s2['locale']!});
+    if (Platform.isIOS) {
+      // iOS: cihazdaki TUM Turkce sesleri sun (Yelda compact/enhanced vb.).
+      // Boylece kullanici enhanced ses indirdiyse ekrandan secebilir.
+      for (var i = 0; i < _sesler.length && i < 3; i++) {
+        _sunulan.add({
+          'etiket': 'Ses ${i + 1}',
+          'name': _sesler[i]['name']!,
+          'locale': _sesler[i]['locale']!,
+        });
+      }
+    } else {
+      // Android: isimle sabit 2 secenek; yoksa siraya gore yedek
+      final s1 = _sesBul(_ses1Name) ?? (_sesler.isNotEmpty ? _sesler[0] : null);
+      final s2 = _sesBul(_ses2Name) ??
+          (_sesler.length > 4 ? _sesler[4] : (_sesler.length > 1 ? _sesler[1] : null));
+      if (s1 != null) {
+        _sunulan.add({'etiket': 'Ses 1', 'name': s1['name']!, 'locale': s1['locale']!});
+      }
+      if (s2 != null && s2['name'] != s1?['name']) {
+        _sunulan.add({'etiket': 'Ses 2', 'name': s2['name']!, 'locale': s2['locale']!});
+      }
     }
 
     // 5) Varsayilan: kayitli secim (sunulanlar icindeyse) yoksa Ses 1
@@ -312,7 +347,12 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     } catch (_) {}
   }
 
+  // Ust uste konusmayi (yanki/cift ses) onlemek icin token: her _konus cagrisi
+  // token'i artirir; stop() sonrasi kendinden yeni bir cagri geldiyse konusmaz.
+  int _konusToken = 0;
+
   Future<void> _konus(String metin) async {
+    final int tok = ++_konusToken;
     _ss(() {
       _sistemMesaji = metin;
       _konusma.add('🔊 $metin');
@@ -320,6 +360,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     _bipKisa(); // asistan KONUSMAYA BASLARKEN bip (bekletmez)
     try {
       await _tts.stop();
+      if (tok != _konusToken) return; // daha yeni bir konusma geldi -> bunu iptal et
       await _tts.speak(_seslendirmeMetni(metin)); // BUYUK harfleri harf harf okumasin
     } catch (_) {}
   }
