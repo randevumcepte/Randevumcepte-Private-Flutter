@@ -46,6 +46,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   final stt.SpeechToText _speech = stt.SpeechToText();
   final FlutterTts _tts = FlutterTts();
   AudioPlayer _bip = AudioPlayer(); // isinmis player (duyulur); bozulursa yenilenir
+  AudioPlayer _sesCalar = AudioPlayer(); // BULUT TTS mp3 calar (sadece iOS)
 
   bool _hazir = false;
   bool _dinliyor = false;
@@ -315,6 +316,8 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
   void dispose() {
     _speech.stop();
     _tts.stop();
+    try { _sesCalar.stop(); } catch (_) {}
+    try { _sesCalar.dispose(); } catch (_) {}
     _bip.dispose();
     _pulse.dispose();
     super.dispose();
@@ -369,10 +372,60 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
       _konusma.add('🔊 $metin');
     });
     _bipKisa(); // asistan KONUSMAYA BASLARKEN bip (bekletmez)
+
+    // iOS'ta cihaz sesi (Yelda) kotu -> SUNUCU (Google WaveNet erkek) sesi kullan.
+    // Basarisiz olursa (internet yok / anahtar yok) cihaz TTS'ine DUSER (regresyon yok).
+    // Android'de cihaz sesi zaten harika -> dokunmuyoruz.
+    if (Platform.isIOS) {
+      final ok = await _bulutKonus(metin, tok);
+      if (ok) return;
+    }
+
     try {
       await _tts.stop();
       if (tok != _konusToken) return; // daha yeni bir konusma geldi -> bunu iptal et
       await _tts.speak(_seslendirmeMetni(metin)); // BUYUK harfleri harf harf okumasin
+    } catch (_) {}
+  }
+
+  /// Sunucudan MP3 URL'i alip calar. Basari=true. Herhangi bir sorunda false ->
+  /// cagiran cihaz TTS'ine duser. Token ile ust uste calmayi engeller.
+  Future<bool> _bulutKonus(String metin, int tok) async {
+    try {
+      final r = await http
+          .post(
+            Uri.parse('https://app.randevumcepte.com.tr/api/v1/seslendir'),
+            body: {'metin': metin},
+          )
+          .timeout(const Duration(seconds: 12));
+      if (tok != _konusToken) return true; // yeni konusma geldi -> eskiyi calma
+      if (r.statusCode == 200) {
+        final j = jsonDecode(r.body);
+        if (j is Map && j['basarili'] == true && j['url'] != null) {
+          await _tts.stop();
+          await _mp3Cal(j['url'].toString(), tok);
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// MP3'u calar ve BITENE KADAR bekler (cihaz TTS'teki awaitSpeakCompletion gibi).
+  Future<void> _mp3Cal(String url, int tok) async {
+    try {
+      await _sesCalar.stop();
+      if (tok != _konusToken) return;
+      final tamam = Completer<void>();
+      late StreamSubscription sub;
+      sub = _sesCalar.onPlayerComplete.listen((_) {
+        try { sub.cancel(); } catch (_) {}
+        if (!tamam.isCompleted) tamam.complete();
+      });
+      await _sesCalar.play(UrlSource(url));
+      await tamam.future.timeout(const Duration(seconds: 90), onTimeout: () {
+        try { sub.cancel(); } catch (_) {}
+      });
     } catch (_) {}
   }
 
