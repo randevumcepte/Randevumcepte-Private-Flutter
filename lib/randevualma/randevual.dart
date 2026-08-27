@@ -215,8 +215,14 @@ class AppointmentEditorState extends State<RandevuAl> {
     var personelData =
         await personelAdiminaGec(sube, await appBundleAl(), hizmetId);
     List<Personel> hizmetPersonelleriListe = personelData['personeller'];
+    // "Farketmez" (backend'de id=0 sahte personel) musteri randevu ekraninda
+    // gosterilmesin — musteri belirli personel secsin. Geri getirmek icin
+    // asagidaki filtreyi kaldirip duz atamayi (yorumdaki satiri) kullanin.
+    hizmetPersonelleriListe =
+        hizmetPersonelleriListe.where((p) => p.id != '0').toList();
     setState(() {
       filtreliPersonelListesi[index] = hizmetPersonelleriListe;
+      // filtreliPersonelListesi[index] = hizmetPersonelleriListe; // Farketmez'li hali
       personelSecimHintText[index] = 'Personel seç...';
     });
   }
