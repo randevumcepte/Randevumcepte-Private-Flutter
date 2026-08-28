@@ -3622,49 +3622,14 @@ void launchURL(String url) async {
   }
 }
 void logyaz(int statusCode, String? reasonPhrase) async {
-
-  Map<String, dynamic> formData = {
-    'aciklama': "Loglama : " + statusCode.toString() + " : " + (reasonPhrase ?? 'No reason available'),
-  };
-
-  final response = await http.get(
-    Uri.parse("https://nifty-lamport.92-205-164-182.plesk.page/writelog.php?aciklama2=&aciklama=Bir hata oluştu : " + statusCode.toString() + " : " + (reasonPhrase ?? 'No reason available')),
-    headers: {'Content-Type': 'application/json'},
-
-  );
-  if (response.statusCode == 200) {
-
-
-    debugPrint("log yazdırıldı");
-
-  } else {
-
-    debugPrint("log yazdırılamadı : "+response.body);
-
-  }
+  // Uzak loglama sunucusu kapatıldı - no-op (sunucuya istek gönderilmez)
+  debugPrint("logyaz: " + statusCode.toString() + " : " + (reasonPhrase ?? 'No reason available'));
 }
 
 
 void logyaz2(String logstr) async {
-  log("istek logu yazılıyor : "+logstr);
-  final logstr2 = Uri.encodeComponent(logstr);
-  log("https://nifty-lamport.92-205-164-182.plesk.page/writelog.php?aciklama=&aciklama2="+logstr2);
-  final response = await http.get(
-
-    Uri.parse("https://nifty-lamport.92-205-164-182.plesk.page/writelog.php?aciklama=&aciklama2="+logstr2),
-    headers: {'Content-Type': 'application/json'},
-
-  );
-  if (response.statusCode == 200) {
-
-
-    debugPrint("log yazdırıldı");
-
-  } else {
-
-    debugPrint("log yazdırılamadı : "+response.body);
-
-  }
+  // Uzak loglama sunucusu kapatıldı - no-op (sunucuya istek gönderilmez)
+  debugPrint("logyaz2: " + logstr);
 }
 Future<void> randevuEkleGuncelle(
     String cakismavarmi,

@@ -65,7 +65,7 @@ class DashBoard extends StatefulWidget{
 class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   List<Map<String, dynamic>> randevuList = [];
   late Kullanici kullanici;
-  late int uyelikturu;
+  int uyelikturu = 0; // yuklenene kadar 0 (< 3) -> Asistan FAB gizli kalir
   late Future<List<EAsistan>> futureEAsistanData;
   late int kullanicirolu;
   late String? seciliisletme;
@@ -437,11 +437,13 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   _branchPerformanceCard(context),
                 ],
               ],
-              // Santral — herkese gorunur.
-              const SizedBox(height: 18),
-              _premiumSectionHeader(context, 'Santral Aktivitesi', null),
-              const SizedBox(height: 10),
-              _premiumSantralRow(context),
+              // Santral bilgilendirme — yalniz uyelik_turu == 3 pakette gorunur.
+              if (uyelikturu == 3) ...[
+                const SizedBox(height: 18),
+                _premiumSectionHeader(context, 'Santral Aktivitesi', null),
+                const SizedBox(height: 10),
+                _premiumSantralRow(context),
+              ],
               // Bugunun Randevulari — rol 5 icin yetki bagimsiz goster.
               if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
                 const SizedBox(height: 18),
