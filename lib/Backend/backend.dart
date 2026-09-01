@@ -6636,6 +6636,93 @@ Future<String?> mobilWebViewUrl(String salonId, {String hedef = 'kontor'}) async
 }
 
 // ============================================================
+// DOGUM GUNU POPUP (mobil)
+// Web'deki isletmeyonetim uclarinin Bearer'li /api/v1 karsiligi.
+// Bugun dogum gunu olan musterileri getirir, tek tikla WhatsApp/SMS
+// kutlama gonderir, "Hayir" secimini sunucuda kalici saklar.
+// ============================================================
+Future<String?> _dgBearerToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  final rawToken = prefs.getString('token');
+  if (rawToken == null || rawToken.isEmpty) return null;
+  try {
+    final decoded = jsonDecode(rawToken);
+    return decoded is String ? decoded : decoded?.toString();
+  } catch (_) {
+    return rawToken; // direkt string olabilir
+  }
+}
+
+/// Bugun (ay-gun) dogum gunu olan aktif portfoy musterileri.
+/// Her ogede: id, name, cep_telefon, dogum_tarihi, gonderildi(bool).
+Future<List<Map<String, dynamic>>> dogumGunuBugunListesi(String salonId) async {
+  try {
+    final token = await _dgBearerToken();
+    if (token == null) return [];
+    final res = await http.get(
+      Uri.parse('$_apiBase/dogum-gunu/bugun?sube=$salonId'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 12));
+    if (res.statusCode == 200) {
+      final body = json.decode(res.body);
+      if (body is Map && body['liste'] is List) {
+        return (body['liste'] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    } else {
+      log('dogumGunuBugunListesi: status ${res.statusCode}');
+    }
+  } catch (e) {
+    log('dogumGunuBugunListesi: $e');
+  }
+  return [];
+}
+
+/// Secili musteriye dogum gunu kutlamasi gonderir (WhatsApp -> SMS fallback).
+/// Doner: {ok: bool, mesaj: String, ...}
+Future<Map<String, dynamic>> dogumGunuMesajGonderMobil(
+    String salonId, String musteriId) async {
+  try {
+    final token = await _dgBearerToken();
+    if (token == null) return {'ok': false, 'mesaj': 'Oturum bulunamadı.'};
+    final res = await http.post(
+      Uri.parse('$_apiBase/dogum-gunu/gonder?sube=$salonId'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'musteri_id': musteriId, 'sube': salonId}),
+    ).timeout(const Duration(seconds: 20));
+    final body = json.decode(res.body);
+    if (body is Map) return Map<String, dynamic>.from(body);
+  } catch (e) {
+    log('dogumGunuMesajGonderMobil: $e');
+  }
+  return {'ok': false, 'mesaj': 'Sunucuya bağlanılamadı.'};
+}
+
+/// "Hayir" secimini sunucuda kalici isaretler (kanal=atlandi).
+Future<void> dogumGunuAtlaMobil(String salonId, String musteriId) async {
+  try {
+    final token = await _dgBearerToken();
+    if (token == null) return;
+    await http.post(
+      Uri.parse('$_apiBase/dogum-gunu/atla?sube=$salonId'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'musteri_id': musteriId, 'sube': salonId}),
+    ).timeout(const Duration(seconds: 12));
+  } catch (e) {
+    log('dogumGunuAtlaMobil: $e');
+  }
+}
+
+// ============================================================
 // FATURA ISARETLEME / FATURASIZ GIZLE (gizli muhasebe modu)
 // ============================================================
 

@@ -20,6 +20,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/yonetici/randevular/sesli_randevu.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
+import 'package:randevu_sistem/Frontend/dogum_gunu_popup.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/ajanda.dart';
 import 'package:randevu_sistem/Models/dashboard.dart';
@@ -69,6 +70,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   late Future<List<EAsistan>> futureEAsistanData;
   late int kullanicirolu;
   late String? seciliisletme;
+  bool _bdayGosterildi = false; // dogum gunu popup: oturum basina bir kez
   late String isletmeadi;
   late String _isletmeadi;
   bool _showAppBar = false;
@@ -121,6 +123,19 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
 
   void _onYetkiDegisti() {
     if (mounted) setState(() {});
+  }
+
+  /// Bugun dogum gunu olan musteriler icin kutlama popup'ini tetikler.
+  /// Oturum basina bir kez; backend yetkiyi (musteri.liste_gor) dogrular,
+  /// yetkisiz/dogum gunu yoksa sessizce hicbir sey gostermez.
+  void _dogumGunuKontrol() {
+    if (_bdayGosterildi) return;
+    if (seciliisletme == null || seciliisletme!.isEmpty) return;
+    _bdayGosterildi = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      dogumGunuPopupBaslat(context, seciliisletme!);
+    });
   }
 
   @override
@@ -224,6 +239,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         randevuList = randevulariBugun;
       });
       dataLoaded = true;
+      // Dogum gunu popup — veriler yuklendikten sonra bir kez (fire-and-forget).
+      _dogumGunuKontrol();
     } catch (e, st) {
       // Network/backend hatası: ekranı preload'ta kilitlemek yerine
       // hatayı logla ve kullanıcıya bilgi ver. Boş state ile devam et.
