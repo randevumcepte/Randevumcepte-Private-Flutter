@@ -4939,6 +4939,34 @@ Future<bool> yorumBildir(int yorumId, String sebep) async {
   }
 }
 
+/// Isletme admin: bu salonun tum yorumlari + bildirilen sayilari
+/// Apple 1.2 UGC moderasyon paneli.
+Future<Map<String, dynamic>?> musteriYorumlariAdmin(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/musteri-yorumlari-admin/$salonId'),
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+  } catch (_) {}
+  return null;
+}
+
+/// Isletme admin: yorumu sil (moderasyon, 24 saat SLA)
+Future<bool> musteriYorumSil(int yorumId) async {
+  try {
+    final res = await http.delete(
+      Uri.parse('$_apiBase/musteri-yorumu-sil/$yorumId'),
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 10));
+    return res.statusCode == 200;
+  } catch (_) {
+    return false;
+  }
+}
+
 Future<Map<String, dynamic>> easistan(String salonid, String currpage, int bugunYarin) async {
   try {
     final uri = Uri.parse('https://demoapp.randevumcepte.com.tr/api/v1/easistandata/$bugunYarin/$salonid?page=$currpage');

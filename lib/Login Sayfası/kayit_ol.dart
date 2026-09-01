@@ -95,7 +95,7 @@ class _KayitOlState extends State<KayitOl> {
 
         if (!_sartlariKabul) {
           formWarningDialogs(context, 'UYARI',
-              'Kayıt olabilmek için Kullanıcı Sözleşmesi ve KVKK metnini okuyup kabul etmeniz gereklidir.');
+              'Kayıt olabilmek için Kullanım Şartları ve Gizlilik Politikasını okuyup kabul etmeniz gereklidir.');
           return;
         }
 

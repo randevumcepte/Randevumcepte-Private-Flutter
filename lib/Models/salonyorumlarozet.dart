@@ -1,5 +1,6 @@
 class SalonYorumItem {
   final int id;
+  final int? userId; // Yorumu yazan kullanici id — kendi yorumuna 'bildir' butonu gizlensin
   final String kullaniciAdi;
   final int puan;
   final String yorum;
@@ -7,6 +8,7 @@ class SalonYorumItem {
 
   const SalonYorumItem({
     required this.id,
+    this.userId,
     required this.kullaniciAdi,
     required this.puan,
     required this.yorum,
@@ -16,6 +18,7 @@ class SalonYorumItem {
   factory SalonYorumItem.fromJson(Map<String, dynamic> json) {
     return SalonYorumItem(
       id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      userId: int.tryParse(json['user_id']?.toString() ?? ''),
       kullaniciAdi: (json['kullanici_adi'] ?? 'Müşteri').toString(),
       puan: int.tryParse(json['puan']?.toString() ?? '0') ?? 0,
       yorum: (json['yorum'] ?? '').toString(),

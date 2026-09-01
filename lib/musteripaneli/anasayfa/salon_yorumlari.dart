@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/salonyorumlarozet.dart';
@@ -26,6 +29,7 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
   bool _loading = true;
   String? _hata;
   int _puanFiltre = 0; // 0 = tümü
+  int? _mevcutUserId; // "Kötüye Kullanım Bildir" butonu kendi yorumunda gizlensin
 
   // Yorum birakma formu
   final TextEditingController _yorumCtrl = TextEditingController();
@@ -35,7 +39,20 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
   @override
   void initState() {
     super.initState();
+    _mevcutUserIdYukle();
     _yukle();
+  }
+
+  Future<void> _mevcutUserIdYukle() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final musteriStr = prefs.getString('musteri');
+      if (musteriStr != null && musteriStr.isNotEmpty) {
+        final m = jsonDecode(musteriStr);
+        final id = int.tryParse((m['id'] ?? '').toString());
+        if (mounted) setState(() => _mevcutUserId = id);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -573,20 +590,6 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
                 ),
               ),
               if (y.puan > 0) _yildizSatiri(y.puan.toDouble(), size: 13, gap: 1.5),
-              // Apple 1.2 UGC uyumu: her yoruma "uygunsuz icerik bildir" butonu
-              const SizedBox(width: 4),
-              InkWell(
-                onTap: () => _yorumBildirDialog(context, y),
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.outlined_flag_rounded,
-                    size: 18,
-                    color: scheme.onSurface.withValues(alpha: 0.35),
-                  ),
-                ),
-              ),
             ],
           ),
           if (y.yorum.trim().isNotEmpty) ...[
@@ -597,6 +600,28 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
                 fontSize: 13,
                 height: 1.5,
                 color: scheme.onSurface.withValues(alpha: 0.78),
+              ),
+            ),
+          ],
+          // Apple 1.2 UGC uyumu: her yoruma "kotuye kullanim bildir" text buton
+          // Kendi yorumuna gizli (y.userId == _mevcutUserId).
+          if (_mevcutUserId == null || y.userId == null || y.userId != _mevcutUserId) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _yorumBildirDialog(context, y),
+                icon: const Icon(Icons.outlined_flag_rounded, size: 16),
+                label: const Text(
+                  'Kötüye Kullanım Bildir',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFDC2626),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
             ),
           ],

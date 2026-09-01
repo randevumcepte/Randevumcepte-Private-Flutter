@@ -47,6 +47,7 @@ import 'menu/seanstakibi/seanstakibi.dart';
 import 'menu/seanstakibi/seanstakibiyeni.dart';
 import 'menu/senetler/senetlistesi.dart';
 import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
+import 'menu/musteri_yorumlari/musteri_yorumlari_yonetim.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_dashboard.dart';
 import 'package:randevu_sistem/yonetici/hesabim/hesabim_ekrani.dart';
@@ -607,6 +608,24 @@ class _MenuState extends State<Menu> {
                       );
                     },
                   ),
+
+                // Apple 1.2 UGC uyumu: musteri yorumlari moderasyon paneli
+                _buildMenuButton(
+                  icon: Icons.rate_review_outlined,
+                  label: 'Müşteri Yorumları',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.rightToLeft,
+                        duration: const Duration(milliseconds: 300),
+                        child: MusteriYorumlariYonetim(
+                          salonId: widget.isletmebilgi['id'].toString(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
 
                 if (Yetki.varMi('pazarlama.anket_yonet'))
                   _buildMenuButton(
