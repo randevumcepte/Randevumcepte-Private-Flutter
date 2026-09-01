@@ -4914,6 +4914,31 @@ Future<bool> yorumGonder(int salonId, int puan, String yorum) async {
   return true;
 }
 
+/// Apple 1.2 UGC uyumu: uygunsuz yorumu isletme sahibine bildirir.
+/// Backend salon_yorumlar.bildirilen_sayisi + son sebep alanini gunceller.
+Future<bool> yorumBildir(int yorumId, String sebep) async {
+  try {
+    final SharedPreferences localStorage = await SharedPreferences.getInstance();
+    final musteriStr = localStorage.getString('musteri');
+    int? bildirenId;
+    if (musteriStr != null && musteriStr.isNotEmpty) {
+      bildirenId = jsonDecode(musteriStr)['id'];
+    }
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/yorum-bildir'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'yorum_id': yorumId,
+        'sebep': sebep,
+        'bildiren_id': bildirenId,
+      }),
+    ).timeout(const Duration(seconds: 10));
+    return response.statusCode == 200;
+  } catch (e) {
+    return false;
+  }
+}
+
 Future<Map<String, dynamic>> easistan(String salonid, String currpage, int bugunYarin) async {
   try {
     final uri = Uri.parse('https://demoapp.randevumcepte.com.tr/api/v1/easistandata/$bugunYarin/$salonid?page=$currpage');

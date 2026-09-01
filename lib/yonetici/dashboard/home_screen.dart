@@ -468,12 +468,14 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                 const SizedBox(height: 10),
                 _premiumTodayAppointments(context),
               ],
-              // Asistanim — herkese gorunur (yetki kontrolu icermez)
-              const SizedBox(height: 18),
-              _premiumSectionHeader(context, 'Asistanım', null),
-              const SizedBox(height: 10),
-              _premiumEAsistan(context),
-              const SizedBox(height: 16),
+              // Asistanim — sadece premium (uyelik_turu >= 3) icin gosterilir
+              if (uyelikturu >= 3) ...[
+                const SizedBox(height: 18),
+                _premiumSectionHeader(context, 'Asistanım', null),
+                const SizedBox(height: 10),
+                _premiumEAsistan(context),
+                const SizedBox(height: 16),
+              ],
             ],
           ),
         ),

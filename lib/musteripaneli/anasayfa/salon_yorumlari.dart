@@ -573,6 +573,20 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
                 ),
               ),
               if (y.puan > 0) _yildizSatiri(y.puan.toDouble(), size: 13, gap: 1.5),
+              // Apple 1.2 UGC uyumu: her yoruma "uygunsuz icerik bildir" butonu
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: () => _yorumBildirDialog(context, y),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    Icons.outlined_flag_rounded,
+                    size: 18,
+                    color: scheme.onSurface.withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
             ],
           ),
           if (y.yorum.trim().isNotEmpty) ...[
@@ -588,6 +602,83 @@ class _SalonYorumlariSayfasiState extends State<SalonYorumlariSayfasi> {
           ],
         ],
       ),
+    );
+  }
+
+  /// Apple 1.2 UGC uyumu: yorumu uygunsuz icerik olarak isletme sahibine bildir.
+  /// Backend /api/v1/yorum-bildir uctan 'bildirilen_sayisi' artar, isletme
+  /// admin panelinden bildirilen yorumlari gorup silebilir (24 saat SLA).
+  void _yorumBildirDialog(BuildContext context, SalonYorumItem y) {
+    String? secilenSebep;
+    final sebepler = [
+      'Spam veya reklam',
+      'Hakaret veya küfür',
+      'Kişisel bilgi ifşası',
+      'Yanıltıcı / sahte yorum',
+      'Diğer',
+    ];
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setSt) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              top: 16, left: 20, right: 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Uygunsuz İçerik Bildir',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                const Text(
+                  'Bu yorumu neden bildirmek istiyorsunuz? Bildiriminiz işletme sahibine iletilecek ve 24 saat içinde değerlendirilecektir.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF6B7280), height: 1.4),
+                ),
+                const SizedBox(height: 14),
+                ...sebepler.map((s) => RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: s,
+                      groupValue: secilenSebep,
+                      onChanged: (v) => setSt(() => secilenSebep = v),
+                      title: Text(s, style: const TextStyle(fontSize: 14)),
+                    )),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.send_rounded, size: 18),
+                    label: const Text('Bildir'),
+                    onPressed: secilenSebep == null
+                        ? null
+                        : () async {
+                            Navigator.pop(ctx);
+                            final ok = await yorumBildir(y.id, secilenSebep!);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok
+                                    ? 'Bildiriminiz alındı, teşekkürler.'
+                                    : 'Bildirim gönderilemedi. Lütfen tekrar deneyin.'),
+                                backgroundColor: ok ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              ),
+                            );
+                          },
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        });
+      },
     );
   }
 
