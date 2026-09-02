@@ -171,6 +171,19 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
 
   Future<void> initialize() async {
     bool dataLoaded = false;
+    // WATCHDOG: 20s Future.wait timeout'unun DISINDA kalan (kendi timeout'u
+    // olmayan) bir await sonsuza kadar askida kalirsa tam ekran preloader
+    // (isloading) hic kapanmaz. Bu guvenlik zamanlayicisi 25sn sonra her
+    // kosulda isloading'i kapatir -> "Panel verileri yuklenemedi / Yeniden
+    // Dene" ekranina duser (sonsuz spinner yerine).
+    Future.delayed(const Duration(seconds: 25), () {
+      if (mounted && isloading) {
+        setState(() {
+          isloading = false;
+          randevularYukleniyor = false;
+        });
+      }
+    });
     try {
       SharedPreferences localStorage = await SharedPreferences.getInstance();
       isletmeadi = localStorage.getString('isletmeadi') ?? '';
@@ -356,7 +369,9 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       backgroundColor: Colors.white,
       // ASISTAN — herkese gorunur. Sahip/Yonetici: isletme + randevu (Patron
       // Asistan); Personel: sadece randevu (Sesli Randevu). Yetki backend'de de var.
-      floatingActionButton: (seciliisletme != null)
+      // >>> ARCHIVE-GECICI: Bu marka icin sesli asistan KAPATILDI. Archive alindiktan
+      // sonra `false &&` ifadesini kaldirip eski hale don. <<<
+      floatingActionButton: (false && seciliisletme != null)
           ? FloatingActionButton.extended(
               heroTag: 'patronAsistanFab',
               backgroundColor: const Color(0xFF5C008E),

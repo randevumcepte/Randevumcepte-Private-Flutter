@@ -778,7 +778,7 @@ Future<OzetSayfasi> dashboardGunlukRapor(String salonid, {String personelId = ''
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
-  );
+  ).timeout(const Duration(seconds: 15));
 
 
   log("Özet Sayfası "+response.body);
@@ -4999,7 +4999,8 @@ Future<List<EAsistan>> easistandashboard(String salonid, int bugunYarin) async {
     );
 
 
-    final response = await http.get(url, headers: {"Content-Type": "application/json"});
+    final response = await http.get(url, headers: {"Content-Type": "application/json"})
+        .timeout(const Duration(seconds: 15));
 
 
 
