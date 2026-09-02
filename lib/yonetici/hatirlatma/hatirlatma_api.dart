@@ -46,6 +46,9 @@ class HatirlatmaApi {
       final list = (j is Map ? j['hatirlatmalar'] : null) as List? ?? [];
       final out = list
           .map((e) => Hatirlatma.fromJson(Map<String, dynamic>.from(e)))
+          // Dogum gunu app'te ayri merkezi modal ile gosteriliyor
+          // (dogum_gunu_popup.dart) -> sagdan cikan feed kartinda tekrar cikmasin.
+          .where((h) => h.tip != 'dogum_gunu')
           .toList();
       // Oncelik (yuksek once)
       out.sort((a, b) => b.oncelik.compareTo(a.oncelik));
