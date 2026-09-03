@@ -26,6 +26,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   // Çark kurulumu
   bool _sistemLoading = false;
   int _carkAktif = 1;
+  // Çevirme aralığı (takvim günü): 1 = her gün (varsayılan)
+  int _cevirmeAraligiGun = 1;
   List<Map<String, dynamic>> _dilimler = [];
   // Çoklu şube: çarkın uygulanacağı şubeler (varsayılan: bulunulan şube)
   List<String> _seciliCarkSubeler = [];
@@ -281,6 +283,8 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
     setState(() {
       if (r != null) {
         _carkAktif = (r['sistem']?['aktifmi'] as num?)?.toInt() ?? 1;
+        final aralik = (r['sistem']?['cevirme_araligi_gun'] as num?)?.toInt() ?? 1;
+        _cevirmeAraligiGun = aralik < 1 ? 1 : aralik;
         _dilimler = ((r['dilimler'] as List?) ?? [])
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList();
@@ -514,6 +518,52 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
                   await carkAdminAktifToggle(_salonId, v);
                 },
                 contentPadding: EdgeInsets.zero,
+              ),
+              Divider(),
+              // Çevirme sıklığı: kaç günde bir çevrilebilir (1 = her gün)
+              Row(
+                children: [
+                  Icon(Icons.repeat, size: 20, color: scheme.primary),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Çevirme sıklığı', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                        Text('Müşteri kaç günde bir çevirebilsin? 1 = her gün',
+                            style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.remove_circle_outline),
+                    color: scheme.primary,
+                    onPressed: _cevirmeAraligiGun > 1
+                        ? () => setState(() {
+                              _cevirmeAraligiGun--;
+                              _dilimDirty = true;
+                            })
+                        : null,
+                  ),
+                  Container(
+                    constraints: BoxConstraints(minWidth: 48),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _cevirmeAraligiGun == 1 ? '1 gün' : '$_cevirmeAraligiGun gün',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add_circle_outline),
+                    color: scheme.primary,
+                    onPressed: _cevirmeAraligiGun < 365
+                        ? () => setState(() {
+                              _cevirmeAraligiGun++;
+                              _dilimDirty = true;
+                            })
+                        : null,
+                  ),
+                ],
               ),
               Divider(),
               Row(
@@ -869,7 +919,9 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   Future<void> _kaydet() async {
     final r = await carkAdminDilimKaydet(_salonId, _dilimler,
-        aktifmi: _carkAktif, salonIds: _seciliCarkSubeler);
+        aktifmi: _carkAktif,
+        cevirmeAraligiGun: _cevirmeAraligiGun,
+        salonIds: _seciliCarkSubeler);
     if (!mounted) return;
     if (r != null && r['basarili'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Çark kaydedildi'), backgroundColor: Colors.green));
