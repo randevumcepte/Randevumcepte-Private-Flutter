@@ -222,13 +222,13 @@ class _PersonellerState extends State<Personeller> {
   Future<void> _sifreGonder(Personel p) async {
     final onay = await _onaylat(
       baslik: 'Yeni şifre gönder?',
-      icerik: '${p.personel_adi} için yeni şifre üretilecek ve SMS olarak gönderilecek.',
+      icerik: '${p.personel_adi} için yeni şifre üretilecek ve WhatsApp/SMS ile gönderilecek.',
       onayText: 'Evet, gönder',
     );
     if (onay != true) return;
     final ok = await personelSifreGonder(p.id);
     if (!mounted) return;
-    _snack(ok ? 'Şifre SMS olarak gönderildi' : 'Şifre gönderilemedi', basari: ok);
+    _snack(ok ? 'Yeni şifre gönderildi' : 'Şifre gönderilemedi', basari: ok);
   }
 
   Future<void> _aktifPasifToggle(Personel p) async {
