@@ -33,6 +33,13 @@ class NotificationTypes {
   // Personelin yetkileri yonetici tarafindan guncellendi -> popup + logout.
   static const yetkiDegisti            = 'yetki_degisti';
 
+  // Guvenlik: hesabin oturumu sunucuda sonlandirildi (token revoke).
+  // Bu tiplerin push'u extra['force_logout']='1' tasir; algilama bayrak
+  // uzerinden yapilir (bkz. NotificationService._isForceLogout).
+  static const sifreDegisti            = 'sifre_degisti';
+  static const personelPasif           = 'personel_pasif';
+  static const personelSilindi         = 'personel_silindi';
+
   // Fotograf yukleme (isletme -> musteri kendi fotograflari; musteri -> yetkili musteri detay)
   static const isletmeResimYukledi     = 'isletme_resim_yuklendi';
   static const musteriResimYukledi     = 'musteri_resim_yuklendi';

@@ -14,6 +14,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
 import 'package:randevu_sistem/services/notification_popup.dart';
 import 'package:randevu_sistem/services/notification_router.dart';
@@ -61,7 +62,35 @@ Future<void> rmcNotificationBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   log('🔔 [BG] FCM mesaj: ${message.messageId} data=${message.data}');
 
+  // GUVENLIK: sifre degisti / personel pasif-silme -> sunucuda token revoke
+  // edildi. Arka plandayken UI acamayiz; yereldeki oturum verisini SIL ki
+  // uygulama tekrar acildiginda login ekranina dussun (checklogin 'token'a bakar).
+  if (message.data['force_logout']?.toString() == '1') {
+    try {
+      await _rmcClearSession();
+      log('🔒 [BG] force_logout — yerel oturum verisi temizlendi');
+    } catch (e) {
+      log('force_logout [BG] temizleme hatasi: $e');
+    }
+    return;
+  }
+
   // SIP/santral kaldirildi: gelen cagri CallKit push'u artik islenmiyor.
+}
+
+/// force_logout durumunda yereldeki oturum anahtarlarini siler. UI'siz calisir,
+/// arka plan isolate'inde de guvenlidir. checklogin.dart 'token' anahtarina
+/// baktigi icin en kritik anahtar odur; digerleri temiz baslangic icin.
+Future<void> _rmcClearSession() async {
+  final prefs = await SharedPreferences.getInstance();
+  const anahtarlar = [
+    'token', 'userToken', 'user', 'musteri', 'user_type', 'sube', 'isletmeadi',
+    'notif_kullanici_tipi', 'notif_user_id', 'notif_personel_id',
+    'notif_yetkili_id', 'notif_salon_id',
+  ];
+  for (final k in anahtarlar) {
+    await prefs.remove(k);
+  }
 }
 
 /// Token / izin durumu. UI bunu dinleyip uyarı banner'ı gösterebilir.
@@ -414,6 +443,12 @@ class NotificationService {
     log('🔔 [FG] ${message.notification?.title} data=${message.data}');
     final payload = NotificationPayload.fromMap(message.data);
 
+    // GUVENLIK: force_logout → oturumu hemen kapat, mesaji goster, login'e don.
+    if (_isForceLogout(payload)) {
+      await _handleForceLogout(payload);
+      return;
+    }
+
     // Yetki degisti → Yetki.tazele tetiklenir; eski cache ile fark varsa
     // Yetki.yetkiAyarlariDegisti notifier'i true olur ve bottom_nav
     // listener'i otomatik popup + logout akisini calistirir.
@@ -490,6 +525,12 @@ class NotificationService {
     final ctx = navigatorKey.currentContext;
     if (ctx == null) return;
 
+    // GUVENLIK: force_logout tiklamada da oturumu kapatir.
+    if (_isForceLogout(payload)) {
+      _handleForceLogout(payload);
+      return;
+    }
+
     // Foreground'da flutter_local_notifications callback'i _handleTap'i
     // dogrudan cagiriyor — _onMessageOpened bypass olur. Sube otomatik secimi
     // burada da devrede olsun (arka planda; awaits router degil).
@@ -529,6 +570,59 @@ class NotificationService {
     } catch (e) {
       log('Yetki push handler hatasi: $e');
     }
+  }
+
+  /// Push extra'sinda force_logout=1 var mi? Backend sifre degisimi / personel
+  /// pasif-silme'de bu bayragi gonderir (tip'ten bagimsiz).
+  bool _isForceLogout(NotificationPayload payload) =>
+      payload.raw['force_logout']?.toString() == '1';
+
+  /// GUVENLIK: sunucuda token revoke edildi. Yereldeki oturumu temizle,
+  /// kullaniciya sebebini goster ve login (OnBoarding) ekranina don.
+  /// Foreground, arka plan tiklama ve cold-start (getInitialMessage) yollarinin
+  /// hepsinde calisir.
+  Future<void> _handleForceLogout(NotificationPayload payload) async {
+    try {
+      await _rmcClearSession();
+      await Yetki.temizle();
+    } catch (e) {
+      log('force_logout temizleme hatasi: $e');
+    }
+    // Cihaz kaydini da kaldir (best-effort) — pasif hesaba push gitmesin.
+    try {
+      await unregister();
+    } catch (_) {}
+
+    final baslik = payload.title ?? 'Oturum Sonlandırıldı';
+    final govde  = payload.body  ??
+        'Oturumunuz sonlandırıldı. Lütfen tekrar giriş yapınız.';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null) return;
+      try {
+        await showDialog<void>(
+          context: ctx,
+          barrierDismissible: false,
+          builder: (dctx) => AlertDialog(
+            title: Text(baslik),
+            content: Text(govde),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dctx).pop(),
+                child: const Text('Tamam'),
+              ),
+            ],
+          ),
+        );
+      } catch (_) {}
+      final ctx2 = navigatorKey.currentContext;
+      if (ctx2 == null) return;
+      Navigator.of(ctx2).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => OnBoardingPage()),
+        (route) => false,
+      );
+    });
   }
 
   Future<void> _showAsLocal(
