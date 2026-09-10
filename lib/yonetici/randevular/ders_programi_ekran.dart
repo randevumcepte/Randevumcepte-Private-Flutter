@@ -456,7 +456,7 @@ class _SablonSheetState extends State<_SablonSheet> {
               ),
               const SizedBox(height: 10),
               _lbl('Ders Adı'),
-              TextField(controller: _dersTipiC, decoration: _dec(hint: 'Reformer / Mat / Birebir')),
+              TextField(controller: _dersTipiC, decoration: _dec(hint: 'Ders adı')),
               const SizedBox(height: 10),
               _lbl('Eğitmen'),
               DropdownButtonFormField<String>(

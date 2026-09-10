@@ -127,7 +127,7 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
                       style: TextStyle(fontSize: 12.5, color: Colors.black54)),
                 ),
                 _label('Ders Adı'),
-                TextField(controller: _dersTipiC, decoration: _dec('Reformer / Mat / Crossfit / Birebir')),
+                TextField(controller: _dersTipiC, decoration: _dec('Ders adı')),
                 const SizedBox(height: 12),
                 _label('Eğitmen'),
                 DropdownButtonFormField<String>(
