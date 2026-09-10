@@ -39,7 +39,6 @@ import 'appointment-editor.dart';
 import 'saat_kapama_form.dart';
 import 'grup_dersi_katilimci_ekran.dart';
 import 'grup_dersi_ekle_ekran.dart';
-import 'ders_programi_ekran.dart';
 
 class Takvim extends StatefulWidget {
   final int selectedTab;
@@ -773,27 +772,6 @@ class TakvimState extends State<Takvim> with RouteAware {
               onPressed: _saatKapamaAc,
               icon: const Icon(Icons.lock_clock),
               iconSize: 24,
-            ),
-          if (Yetki.varMi('randevu.olustur') && widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
-            IconButton(
-              tooltip: 'Ders Programı',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DersProgramiEkran(
-                      salonId: widget.isletmebilgi["id"].toString(),
-                      isletmebilgi: widget.isletmebilgi,
-                    ),
-                  ),
-                ).then((_) => getUpdatedAppointments(
-                      DateFormat('yyyy-MM-dd').format(seciliTarih),
-                      DateFormat('yyyy-MM-dd').format(seciliTarih),
-                      true,
-                    ));
-              },
-              icon: const Icon(Icons.grid_view),
-              iconSize: 22,
             ),
           if (Yetki.varMi('randevu.olustur') && widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
             IconButton(
