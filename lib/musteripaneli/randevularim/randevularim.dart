@@ -8,7 +8,6 @@ import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
 import 'package:randevu_sistem/randevualma/randevual.dart';
-import 'package:randevu_sistem/musteripaneli/randevularim/grup_derslerim_ekran.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 class MusteriRandevulari extends StatefulWidget {
@@ -195,8 +194,6 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
           child: Column(
             children: [
               _topBar(context),
-              if (widget.isletmebilgi != null && widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
-                _grupDersleriButonu(context),
               _filterStrip(context),
               const SizedBox(height: 6),
               Expanded(child: _content(context)),
@@ -206,36 +203,6 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
         ),
       ),
       floatingActionButton: _onlineRandevuAktif ? _fab(context) : null,
-    );
-  }
-
-  // Grup derslerim (dahil oldugum grup dersleri + kendi "Geldim") giris butonu
-  Widget _grupDersleriButonu(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => GrupDerslerimEkran(userId: widget.md.id.toString())),
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3ECFA),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE9DDF5)),
-          ),
-          child: Row(
-            children: const [
-              Icon(Icons.groups, color: Color(0xFF5C008E)),
-              SizedBox(width: 10),
-              Expanded(child: Text('Grup Derslerim', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF5C008E)))),
-              Icon(Icons.chevron_right, color: Color(0xFF5C008E)),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/musteripaneli/randevularim/randevularim.dart';
+import 'package:randevu_sistem/musteripaneli/randevularim/grup_derslerim_ekran.dart';
 
 
 
@@ -57,7 +58,11 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
   int _selectedTab = 0;
   bool _isKeyboardVisible = false;
 
-  // SAYFALARI DİNAMİK GETTER YAPIYORUZ
+  // Bu isletmede grup dersi modulu acik mi (salonlar.grup_dersi_aktif)
+  bool get _grupAktif =>
+      widget.isletmebilgi is Map && widget.isletmebilgi['grup_dersi_aktif'].toString() == '1';
+
+  // SAYFALARI DİNAMİK GETTER YAPIYORUZ (grup dersi aktifse "Derslerim" sekmesi eklenir)
   List<Widget> get _pages => [
     MusteriAnsayfa(
       kullanicirolu: 0,
@@ -70,6 +75,11 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
       isletmebilgi: widget.isletmebilgi,
       geriButonu: false,
     ),
+    if (_grupAktif)
+      GrupDerslerimEkran(
+        userId: widget.musteriId.id.toString(),
+        salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
+      ),
     MenuPage(
       onLogout: _handleLogout,
       md: widget.musteriId,
@@ -210,13 +220,16 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
           selectedFontSize: 10,
           unselectedFontSize: 10,
           type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
                 icon: Icon(Icons.home_outlined), label: "Ana Sayfa"),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
                 icon: Icon(Icons.calendar_month_outlined),
                 label: "Randevularım"),
-            BottomNavigationBarItem(
+            if (_grupAktif)
+              const BottomNavigationBarItem(
+                  icon: Icon(Icons.groups_outlined), label: "Derslerim"),
+            const BottomNavigationBarItem(
                 icon: Icon(Icons.checklist_outlined), label: "Menü"),
           ],
         ),

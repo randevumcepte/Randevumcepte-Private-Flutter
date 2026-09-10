@@ -7,8 +7,9 @@ const Color _mor = Color(0xFF5C008E);
 const List<String> _gunAd = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 class GrupDerslerimEkran extends StatefulWidget {
-  final String userId; // musteri (danisan) id
-  const GrupDerslerimEkran({Key? key, required this.userId}) : super(key: key);
+  final String userId;   // musteri (danisan) id
+  final String? salonId; // sadece bu isletmenin derslerini getir
+  const GrupDerslerimEkran({Key? key, required this.userId, this.salonId}) : super(key: key);
 
   @override
   State<GrupDerslerimEkran> createState() => _GrupDerslerimEkranState();
@@ -28,7 +29,7 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
   Future<void> _yukle() async {
     setState(() { _yukleniyor = true; _hata = null; });
     try {
-      final r = await danisanGrupDerslerim(widget.userId);
+      final r = await danisanGrupDerslerim(widget.userId, salonId: widget.salonId);
       setState(() { _dersler = r; _yukleniyor = false; });
     } catch (e) {
       setState(() { _hata = e.toString(); _yukleniyor = false; });
