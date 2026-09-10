@@ -54,7 +54,7 @@ class _SipTestScreenState extends State<SipTestScreen> {
     await SipChannel.register(
       number: '12',
       host: '34.45.69.65',
-      password: 'RandevumCepte35..',
+      password: 'FizyoFLY35..',
     );
   }
 

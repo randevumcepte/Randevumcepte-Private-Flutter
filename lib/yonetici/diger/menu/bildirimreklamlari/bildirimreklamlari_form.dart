@@ -314,7 +314,7 @@ class _BildirimReklamiFormState extends State<BildirimReklamiForm> {
               Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_lbl('İndirim Tipi'), _drop(_kuponTip, const {'yuzde': 'Yüzde (%)', 'tutar': 'Tutar (₺)'}, (v) => setState(() => _kuponTip = v))])),
                 const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_lbl('Değer'), _tf(_kuponDeger, '20', sayi: true)])),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_lbl('Değer'), _tf(_kuponDeger, '432', sayi: true)])),
               ]),
               const SizedBox(height: 10),
               _lbl('Kupon Ne İçin?'),

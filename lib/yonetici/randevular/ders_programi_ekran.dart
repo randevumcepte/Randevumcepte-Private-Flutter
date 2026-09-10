@@ -113,7 +113,7 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: _mor, title: const Text('Ders Programı')),
+      appBar: AppBar(backgroundColor: _mor, foregroundColor: Colors.white, title: const Text('Ders Programı')),
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -133,7 +133,7 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
   Widget _yayinlaCubugu() {
     return Container(
       color: const Color(0xFFF3ECFA),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Row(
         children: [
           Expanded(
@@ -148,30 +148,42 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
                 if (d != null) setState(() => _baslangic = d);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
                 child: Row(children: [
-                  const Icon(Icons.calendar_today, size: 16, color: _mor),
+                  const Icon(Icons.calendar_today, size: 15, color: _mor),
                   const SizedBox(width: 6),
-                  Text('${_baslangic.year}-${_ik(_baslangic.month)}-${_ik(_baslangic.day)}'),
+                  Flexible(
+                    child: Text('${_baslangic.year}-${_ik(_baslangic.month)}-${_ik(_baslangic.day)}',
+                        overflow: TextOverflow.ellipsis),
+                  ),
                 ]),
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 64,
-            child: DropdownButtonFormField<int>(
-              value: _hafta,
-              decoration: const InputDecoration(isDense: true, filled: true, fillColor: Colors.white, border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12)),
-              items: List.generate(12, (i) => i + 1).map((h) => DropdownMenuItem(value: h, child: Text('$h'))).toList(),
-              onChanged: (v) => setState(() => _hafta = v ?? 4),
+          const SizedBox(width: 6),
+          Container(
+            width: 62,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: _hafta,
+                isExpanded: true,
+                isDense: true,
+                items: List.generate(12, (i) => i + 1).map((h) => DropdownMenuItem(value: h, child: Text('$h'))).toList(),
+                onChanged: (v) => setState(() => _hafta = v ?? 4),
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: _mor),
-            icon: const Icon(Icons.rocket_launch, size: 18),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _mor,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: const Icon(Icons.rocket_launch, size: 17),
             label: const Text('Yayınla'),
             onPressed: _yayinla,
           ),

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show Factory;
 import 'package:flutter/gestures.dart';
@@ -25,8 +24,6 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
   Map<String, dynamic>? _kanal;
   Map<String, dynamic>? _ozet;
   Timer? _qrPoll;
-  String? _qrBase64;
-  bool _qrYukleniyor = false;
 
   // Loglar
   bool _logLoading = false;
@@ -93,10 +90,11 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
       _durumLoading = false;
     });
     final status = _durum?['status']?.toString();
-    if (status == 'qr-pending' && _qrPoll == null) {
-      _qrYukle();
+    // Baglama web'den yapiliyor; burada sadece "connected" olma durumunu
+    // yakalamak icin durum polling'i yapiyoruz (QR mobilde gosterilmiyor).
+    if (status != 'connected' && _qrPoll == null) {
       _qrPoll = Timer.periodic(Duration(seconds: 4), (_) {
-        _statusVeQrPoll();
+        _statusPoll();
       });
     } else if (status == 'connected' && _qrPoll != null) {
       _qrPoll!.cancel();
@@ -104,36 +102,13 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
     }
   }
 
-  Future<void> _statusVeQrPoll() async {
+  Future<void> _statusPoll() async {
     final d = await whatsappDurum(_salonId);
     if (!mounted) return;
     setState(() => _durum = d);
-    if (d?['status'] == 'qr-pending') _qrYukle();
     if (d?['status'] == 'connected') {
       _qrPoll?.cancel();
       _qrPoll = null;
-      _yukleDurum();
-    }
-  }
-
-  Future<void> _qrYukle() async {
-    if (_qrYukleniyor) return;
-    setState(() => _qrYukleniyor = true);
-    final r = await whatsappQR(_salonId);
-    if (!mounted) return;
-    setState(() {
-      _qrBase64 = r?['qr']?.toString() ?? r?['qrcode']?.toString();
-      _qrYukleniyor = false;
-    });
-  }
-
-  Future<void> _baglat() async {
-    final r = await whatsappBaslat(_salonId);
-    if (!mounted) return;
-    if (r != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Oturum başlatıldı, QR bekleniyor...')),
-      );
       _yukleDurum();
     }
   }
@@ -366,54 +341,26 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
                   Text(numara, style: TextStyle(color: Colors.grey.shade700)),
                 ],
                 SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (status == 'connected') ...[
+                if (status == 'connected')
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       ElevatedButton.icon(
                         onPressed: _cikis,
                         icon: Icon(Icons.logout),
                         label: Text('Çıkış Yap'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                       ),
-                    ] else ...[
-                      ElevatedButton.icon(
-                        onPressed: _baglat,
-                        icon: Icon(Icons.qr_code),
-                        label: Text('WhatsApp\'ı Bağla'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF25D366), foregroundColor: Colors.white, padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14)),
-                      ),
                     ],
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
-          if (status == 'qr-pending' && _qrBase64 != null) ...[
+          // WhatsApp baglama (QR / telefon numarasiyla baglanma) artik sadece
+          // web panelinden yapiliyor. Bagli degilse kullaniciyi bilgilendir.
+          if (status != 'connected') ...[
             SizedBox(height: 16),
-            Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-              child: Column(
-                children: [
-                  Text('WhatsApp\'tan QR\'ı Tarayın', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                  SizedBox(height: 4),
-                  Text('Telefon > Ayarlar > Bağlı Cihazlar > Cihaz Bağla', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  SizedBox(height: 16),
-                  if (_qrBase64!.startsWith('data:image') || _qrBase64!.length > 100)
-                    Image.memory(
-                      base64Decode(_qrBase64!.replaceAll(RegExp(r'^data:image/[^;]+;base64,'), '')),
-                      width: 260,
-                      height: 260,
-                    )
-                  else
-                    Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text('QR henüz oluşmadı, lütfen bekleyin...', style: TextStyle(color: Colors.grey)),
-                    ),
-                ],
-              ),
-            ),
+            _webBaglamaBilgisi(),
           ],
           SizedBox(height: 16),
           // Kanal toggle
@@ -438,6 +385,42 @@ class _WhatsappYonetimiPageState extends State<WhatsappYonetimiPage> with Ticker
           ),
           SizedBox(height: 16),
           if (_ozet != null) _ozetCardlar(scheme, _ozet!),
+        ],
+      ),
+    );
+  }
+
+  /// WhatsApp baglama (QR / telefon numarasiyla baglanma) artik yalnizca web
+  /// panelinden yapiliyor. Mobilde sadece bilgilendirme gosteriyoruz.
+  Widget _webBaglamaBilgisi() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Color(0xFFBFDBFE)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Color(0xFF2563EB), size: 22),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('WhatsApp bağlantısı web panelinden yapılır',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF1E3A8A))),
+                SizedBox(height: 6),
+                Text(
+                  'WhatsApp hesabınızı bağlamak için bilgisayarınızdan web yönetim paneline '
+                  'giriş yapıp WhatsApp Yönetimi bölümünden QR kodu okutun. Bağlantı '
+                  'tamamlandığında durum bu ekranda "Bağlı" olarak görünür.',
+                  style: TextStyle(fontSize: 12.5, color: Color(0xFF1E40AF), height: 1.45),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

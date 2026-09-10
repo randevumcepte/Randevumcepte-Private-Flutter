@@ -6,25 +6,27 @@
 	<string>AIzaSyDF1aqOtMfdJwp8zOuml_EWtYUYH0nhgWw</string>
 	<key>GCM_SENDER_ID</key>
 	<string>51858922753</string>
+	<key>CFBundleIdentifier</key>
+	<string></string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.randevumcepte.fizyofly</string>
+	<string>com.randevumcepte.salooncadde</string>
 	<key>PROJECT_ID</key>
 	<string>randevumcepte-uygulamalar</string>
 	<key>STORAGE_BUCKET</key>
 	<string>randevumcepte-uygulamalar.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
-	<false></false>
+	<false/>
 	<key>IS_ANALYTICS_ENABLED</key>
-	<false></false>
+	<false/>
 	<key>IS_APPINVITE_ENABLED</key>
-	<true></true>
+	<true/>
 	<key>IS_GCM_ENABLED</key>
-	<true></true>
+	<true/>
 	<key>IS_SIGNIN_ENABLED</key>
-	<true></true>
+	<true/>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:51858922753:ios:ec3b97ab422f24bb8ccf00</string>
+	<string>1:51858922753:ios:0f8595da552b57038ccf00</string>
 </dict>
 </plist>

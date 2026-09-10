@@ -173,14 +173,14 @@ TextEditingController ceptelefon = TextEditingController();
               child: Padding(
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(
-                  'images/salooncaddeicon.png',
+                  'images/fizyofly.png',
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             const SizedBox(height: 18),
             Image.asset(
-              'images/salooncaddeicon.png',
+              'images/fizyofly.png',
               height: 28,
               fit: BoxFit.contain,
             ),
@@ -382,10 +382,10 @@ TextEditingController ceptelefon = TextEditingController();
       'cep_telefon':tel,
       'sms_baslik' : '',
       'sms_apikey' : '',
-      'salonidler' : '246',
+      'salonidler' : '432',
       'sms_username':'',
       'sms_secret':'',
-      'isletmeadi': 'Saloon Cadde',
+      'isletmeadi': 'FizyoFLY',
       'appBundle': appBundle
       // Add other form fields
     };

@@ -86,8 +86,8 @@ class _TanitimOnizlemeEkraniState extends State<_TanitimOnizlemeEkrani>
 
   // Önizlemede farklı logoların renklere yansımasını görmek için demo listesi.
   final List<Map<String, String>> _demoLogolar = const [
-    {'logo': 'images/salooncaddeicon.png', 'ad': 'Saloon Cadde'},
-    {'logo': 'images/randevumcepte.png', 'ad': 'RandevumCepte'},
+    {'logo': 'images/fizyofly.png', 'ad': 'FizyoFLY'},
+    {'logo': 'images/randevumcepte.png', 'ad': 'FizyoFLY'},
     {'logo': 'images/giza.png', 'ad': 'Giza'},
     {'logo': 'images/aronshine.png', 'ad': 'Aron Shine'},
     {'logo': 'images/aydangurece.png', 'ad': 'Aydan Gürece'},

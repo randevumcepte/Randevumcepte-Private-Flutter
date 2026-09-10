@@ -10,7 +10,7 @@ import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'login_page.dart';
 
 /// Açılış / tanıtım ekranı.
-/// Arka plandaki sabit video yerine, salonun kendi logosunu (images/salooncaddeicon.png)
+/// Arka plandaki sabit video yerine, salonun kendi logosunu (images/fizyoflyic.png)
 /// kullanan otomatik animasyonlu bir sahne gösterilir: beyaz zemin + efekt çizgiler +
 /// dönen ışınlar + nabız gibi atan halkalar + süzülen ışık topları + ortada logo.
 class OnBoardingPage extends StatefulWidget {
@@ -30,7 +30,7 @@ class _OnBoardingPageState extends State<OnBoardingPage>
 
   bool _onlineRandevuAktif = false;
   bool _lisansAktif = true; // lisans bittiyse 'Randevu Al' gizlenir
-  // Beyaz etiket kurulumda jenerik "RandevumCepte" yazip sonra isletme adina
+  // Beyaz etiket kurulumda jenerik "FizyoFLY" yazip sonra isletme adina
   // atlamamak icin bos baslar; en son bilinen ad SharedPreferences'tan aninda
   // yazilir, ag cevabi gelince guncellenir ve yeniden onbellege alinir.
   String _salonAdi = '';
@@ -38,7 +38,7 @@ class _OnBoardingPageState extends State<OnBoardingPage>
 
   // Logo yolu — beyaz etiket build'de salon logosuna göre bu tek satır değişir.
   // Palet ve ekrandaki logo aynı görselden gelir.
-  static const String _logoYolu = 'images/salooncaddeicon.png';
+  static const String _logoYolu = 'images/fizyoflyic.png';
   LogoPalet _palet = LogoPalet.varsayilan; // logodan türetilen renkler
 
   @override

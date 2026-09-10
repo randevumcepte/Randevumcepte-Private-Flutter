@@ -1,7 +1,7 @@
 name: randevu_sistem
-description: Saloon Cadde Randevu Sistemi Uygulaması
+description: FizyoFLY Randevu Sistemi Uygulaması
 publish_to: 'none'
-version: 1.0.14+22
+version: 1.0.0+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -93,7 +93,7 @@ dependencies:
 
   # Audio / SIP / Background
   audioplayers: ^6.4.0
-  flutter_background_service: ^5.1.0
+  # flutter_background_service: ^5.1.0  # KAPATILDI: kod tabaninda kullanilmiyor + iOS'ta ReplayKit private API'lere (RPSystemBroadcastPickerView, PGHostedWindow) referans veriyor, Apple reject 90683 sebebi
 
   # Konfeti — cark kazaninca animasyon
   confetti: ^0.7.0
@@ -156,8 +156,8 @@ flutter:
 
   assets:
     - images/
-    - images/salooncaddeicon.png
-    - images/salooncaddeicon.png
+    - images/fizyofly.png
+    - images/fizyofly.png
     - images/ring.mp3
     - images/bip6.wav
     - images/announcement.png
@@ -168,12 +168,13 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "images/salooncaddeicon.png"
+  image_path: "images/fizyofly.png"
   remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"  # <-- FizyoFLY logoya uygun renk kodu (örn: pembe #FFC0CB). Kendi logo rengini gir.
 
 flutter_native_splash:
   color: "#ffffff"
-  image: images/salooncaddeicon.png
+  image: images/fizyofly.png
   android: true
   ios: true
   web: false

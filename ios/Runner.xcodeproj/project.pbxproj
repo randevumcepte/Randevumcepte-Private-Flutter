@@ -48,8 +48,6 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		C0039F862E6EE3100004AB80 /* siprix.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = siprix.xcframework; path = ".symlinks/plugins/siprix_voip_sdk_ios/ios/../../../../../../../.pub-cache/hosted/pub.dev/siprix_voip_sdk_ios-1.0.23/ios/siprix.xcframework"; sourceTree = "<group>"; };
-		C0039F892E6EE3190004AB80 /* siprixMedia.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = siprixMedia.xcframework; path = ".symlinks/plugins/siprix_voip_sdk_ios/ios/../../../../../../../.pub-cache/hosted/pub.dev/siprix_voip_sdk_ios-1.0.23/ios/siprixMedia.xcframework"; sourceTree = "<group>"; };
 		C02AA2822E3A60F500055CC8 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		C088A5112ECB786000D3BF2E /* ring.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = ring.mp3; sourceTree = "<group>"; };
 		C08926ED2F7B456600269109 /* File.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = File.txt; sourceTree = "<group>"; };
@@ -73,8 +71,6 @@
 		2A339BFAA783C7CDF744B921 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C0039F892E6EE3190004AB80 /* siprixMedia.xcframework */,
-				C0039F862E6EE3100004AB80 /* siprix.xcframework */,
 				CC7DA338AF1214479256644A /* Pods_Runner.framework */,
 			);
 			name = Frameworks;
@@ -280,13 +276,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -355,13 +347,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -485,7 +473,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 24DZ882DDK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Saloon Cadde";
+				INFOPLIST_KEY_CFBundleDisplayName = FizyoFLY;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -494,10 +482,10 @@
 				);
 				MARKETING_VERSION = 1.0.1;
 				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.salooncadde;
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.fizyofly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = SaloonCadde2;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FizyoFLY2026;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -677,7 +665,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 24DZ882DDK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Saloon Cadde";
+				INFOPLIST_KEY_CFBundleDisplayName = FizyoFLY;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -686,10 +674,10 @@
 				);
 				MARKETING_VERSION = 1.0.1;
 				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.salooncadde;
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.fizyofly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = SaloonCadde2;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FizyoFLY2026;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -712,7 +700,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 24DZ882DDK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Saloon Cadde";
+				INFOPLIST_KEY_CFBundleDisplayName = FizyoFLY;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -721,10 +709,10 @@
 				);
 				MARKETING_VERSION = 1.0.1;
 				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.salooncadde;
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.fizyofly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = SaloonCadde2;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FizyoFLY2026;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

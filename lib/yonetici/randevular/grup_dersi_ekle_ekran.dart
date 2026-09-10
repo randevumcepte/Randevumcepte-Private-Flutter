@@ -110,6 +110,7 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: _mor,
+        foregroundColor: Colors.white,
         title: Text(widget.duzenlenecek == null ? 'Grup Dersi Ekle' : 'Grup Dersi Düzenle'),
       ),
       body: _yukleniyor

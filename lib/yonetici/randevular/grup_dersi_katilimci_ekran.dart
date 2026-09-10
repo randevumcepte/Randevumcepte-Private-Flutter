@@ -140,6 +140,7 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: _mor,
+        foregroundColor: Colors.white,
         title: const Text('Ders Katılımcıları'),
         actions: [
           if (o != null)

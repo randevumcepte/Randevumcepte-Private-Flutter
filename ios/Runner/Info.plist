@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Saloon Cadde</string>
+	<string>FizyoFLY</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleGetInfoString</key>
@@ -17,7 +17,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>salooncadde</string>
+	<string>fizyofly</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,6 +27,8 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string></string>
@@ -44,10 +46,14 @@
 	<string>Profil fotoğrafı çekmek ve müşteri bilgilerini kartvizit veya kimlik benzeri belgelerden otomatik okumak (OCR) için kamera erişimi gerekiyor.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Bu uygulama müşterilerinizi rehberinizden kaydetmek için izin istiyor.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sesli asistan özelliğiyle randevu oluşturmak ve konuşarak arama yapabilmek için mikrofon erişimi gerekiyor.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Profil fotoğrafınızı kaydedebilmek için galeriye yazma izni gerekiyor.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil fotoğrafı seçmek ve müşteri bilgilerini kartvizit veya belge görüntüsünden otomatik okumak (OCR) için galeri erişimi gerekiyor.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Sesli asistan özelliğinde söylediklerinizi metne çevirerek randevu, müşteri ve rapor sorgularınızı işleyebilmek için konuşma tanıma izni gerekiyor.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

@@ -26,25 +26,6 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:51858922753:android:cf5f2801c6af46a98ccf00",
-        "android_client_info": {
-          "package_name": "com.randevumcepte.aronguzellik"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:51858922753:android:4d9b32cd95d8404b8ccf00",
         "android_client_info": {
           "package_name": "com.randevumcepte.bercislinaguzellik"
@@ -121,28 +102,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:51858922753:android:eef591d49776af6e8ccf00",
+        "mobilesdk_app_id": "1:51858922753:android:bb4b1c5dd54cd1578ccf00",
         "android_client_info": {
-          "package_name": "com.randevumcepte.gamzeakkaya"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDc6O5sLHrjrwnJLYFcGRQ2bJyEWufgS3U"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:51858922753:android:7d746ccc37f82ee88ccf00",
-        "android_client_info": {
-          "package_name": "com.randevumcepte.gizaatolyesi"
+          "package_name": "com.randevumcepte.fizyofly"
         }
       },
       "oauth_client": [],

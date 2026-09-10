@@ -1,4 +1,4 @@
-package com.randevumcepte.salooncadde
+package com.randevumcepte.fizyofly
 
 import io.flutter.embedding.android.FlutterActivity
 

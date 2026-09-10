@@ -328,6 +328,57 @@ class _WheelPageState extends State<WheelPage>
     );
   }
 
+  /// Apple 5.3.2 uyumu: çarkıfelek kampanya kuralları + Apple disclaimer
+  /// dialog'u. AppBar'daki info butonu ve _buildLinks içindeki alt buton
+  /// üzerinden erişilebilir.
+  void _showKurallarDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Kampanya Kuralları',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text('Çarkı Çevir Kampanyası — Resmi Kurallar\n',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              Text(
+                '1) Kampanya, uygulamayı işletmenize ait mobil uygulama üzerinden kullanan müşterilerimize açıktır.\n\n'
+                '2) Her müşteri, hesabındaki uygun (onaylı) randevu başına 1 hak kazanır. Aynı gün içinde tek çevirme hakkı vardır.\n\n'
+                '3) Çarkta kazanılan ödül, ilgili işletmede kullanılabilecek indirim kuponu veya sadakat puanıdır. Nakit ödül, kripto para veya para değerli hiçbir şey verilmez.\n\n'
+                '4) Kupon kodları, işletmenin belirlediği geçerlilik süresi içinde ibraz edilerek kullanılmalıdır. İşletme süre sınırı koymamışsa kupon süresizdir. Kupon detayında yer alan bilgi geçerlidir.\n\n'
+                '5) Ödül kazanan kişi kupon kodunu üçüncü şahıslara devredemez. Kupon sadece hesabın sahibine aittir.\n\n'
+                '6) İşletme, kampanyanın kurallarını, ödüllerini veya çarktaki dilim oranlarını önceden haber vermeksizin değiştirme hakkını saklı tutar.\n\n'
+                '7) Katılım için satın alma zorunluluğu yoktur. Uygulama üzerinden kayıt ücretsizdir.\n\n'
+                '8) Bu kampanya bir çekiliş veya kumar oyunu değildir; sadakat programı kapsamında bir promosyondur.\n\n',
+                style: TextStyle(fontSize: 13, height: 1.5),
+              ),
+              Divider(),
+              SizedBox(height: 6),
+              Text('Apple Muafiyet Bildirimi (Apple Disclaimer)',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              SizedBox(height: 4),
+              Text(
+                'Bu kampanya tamamen ilgili işletme tarafından düzenlenmektedir. Apple Inc. bu kampanyanın sponsoru değildir, kampanyaya katılmamaktadır ve kampanya ile hiçbir şekilde ilişkili değildir.\n\n'
+                'This promotion is run solely by the business owner. Apple Inc. is not a sponsor of, nor involved in any way with this contest.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showWinDialog(
       Map<String, dynamic> dilim, String? odulKodu, Map<String, dynamic> sonuc) {
     final tip = (dilim['tip'] ?? '').toString();
@@ -407,6 +458,11 @@ class _WheelPageState extends State<WheelPage>
                 ),
               );
             },
+          ),
+          IconButton(
+            tooltip: 'Kampanya Kuralları',
+            icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+            onPressed: _showKurallarDialog,
           ),
         ],
       ),
@@ -702,8 +758,10 @@ class _WheelPageState extends State<WheelPage>
   }
 
   Widget _buildLinks() {
-    return Row(
+    return Column(
       children: [
+        Row(
+          children: [
         Expanded(
           child: OutlinedButton.icon(
             icon: const Icon(Icons.card_giftcard, size: 18),
@@ -742,6 +800,18 @@ class _WheelPageState extends State<WheelPage>
               );
             },
           ),
+        ),
+      ],
+    ),
+        const SizedBox(height: 10),
+        // Apple 5.3.2 uyumu: çarkıfelek kural sayfası + Apple disclaimer erişilebilir olmalı
+        TextButton.icon(
+          icon: const Icon(Icons.gavel_rounded, size: 16, color: Color(0xFF6B7280)),
+          label: const Text(
+            'Kampanya Kuralları ve Bilgilendirme',
+            style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+          ),
+          onPressed: _showKurallarDialog,
         ),
       ],
     );

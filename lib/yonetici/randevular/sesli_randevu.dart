@@ -377,7 +377,10 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     // Basarisiz olursa (internet yok / anahtar yok) cihaz TTS'ine DUSER (regresyon yok).
     // Android'de cihaz sesi zaten harika -> dokunmuyoruz.
     if (Platform.isIOS) {
-      final ok = await _bulutKonus(metin, tok);
+      // Buluta da CIHAZ yolundaki normalizasyonu uygula: BUYUK harf kelimeleri
+      // (LAZER, AYŞE) bas harfi buyuk forma cevir + marka telaffuzu. Aksi halde
+      // Google WaveNet buyuk harfleri KISALTMA sanip harf harf okuyor.
+      final ok = await _bulutKonus(_seslendirmeMetni(metin), tok);
       if (ok) return;
     }
 
