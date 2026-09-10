@@ -22,6 +22,7 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
   List<GrupDersSecenek> _personeller = [];
   List<GrupDersSecenek> _hizmetler = [];
   List<GrupDersSablon> _sablon = [];
+  List _eslesme = [];
   DateTime _baslangic = DateTime.now();
   int _hafta = 4;
 
@@ -39,6 +40,7 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
         _personeller = (r['personeller'] as List).cast<GrupDersSecenek>();
         _hizmetler = (r['hizmetler'] as List).cast<GrupDersSecenek>();
         _sablon = (r['sablon'] as List).cast<GrupDersSablon>();
+        _eslesme = (r['eslesme'] as List? ?? []);
         _yukleniyor = false;
       });
     } catch (e) {
@@ -84,6 +86,7 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
         salonId: widget.salonId,
         personeller: _personeller,
         hizmetler: _hizmetler,
+        eslesme: _eslesme,
         mevcut: mevcut,
         varsayilanGun: gun ?? 1,
       ),
@@ -362,6 +365,7 @@ class _SablonSheet extends StatefulWidget {
   final String salonId;
   final List<GrupDersSecenek> personeller;
   final List<GrupDersSecenek> hizmetler;
+  final List eslesme;
   final GrupDersSablon? mevcut;
   final int varsayilanGun;
   const _SablonSheet({
@@ -369,6 +373,7 @@ class _SablonSheet extends StatefulWidget {
     required this.salonId,
     required this.personeller,
     required this.hizmetler,
+    required this.eslesme,
     required this.mevcut,
     required this.varsayilanGun,
   }) : super(key: key);
@@ -385,10 +390,31 @@ class _SablonSheetState extends State<_SablonSheet> {
   TimeOfDay _saat = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _bitis = const TimeOfDay(hour: 10, minute: 0);
   bool _kaydediyor = false;
+  final Map<String, Set<String>> _h2p = {};
+  final Map<String, Set<String>> _p2h = {};
+
+  List<GrupDersSecenek> get _personelGoster {
+    if (_hizmetId != null && (_h2p[_hizmetId]?.isNotEmpty ?? false)) {
+      return widget.personeller.where((p) => _h2p[_hizmetId]!.contains(p.id)).toList();
+    }
+    return widget.personeller;
+  }
+
+  List<GrupDersSecenek> get _hizmetGoster {
+    if (_personelId != null && (_p2h[_personelId]?.isNotEmpty ?? false)) {
+      return widget.hizmetler.where((h) => _p2h[_personelId]!.contains(h.id)).toList();
+    }
+    return widget.hizmetler;
+  }
 
   @override
   void initState() {
     super.initState();
+    for (final e in widget.eslesme) {
+      final p = e['personel_id'].toString(), h = e['hizmet_id'].toString();
+      (_h2p[h] ??= <String>{}).add(p);
+      (_p2h[p] ??= <String>{}).add(h);
+    }
     final m = widget.mevcut;
     _gun = m?.haftaGunu ?? widget.varsayilanGun;
     if (m != null) {
@@ -461,16 +487,24 @@ class _SablonSheetState extends State<_SablonSheet> {
               const SizedBox(height: 10),
               _lbl('Eğitmen'),
               DropdownButtonFormField<String>(
-                value: _personelId, isExpanded: true, decoration: _dec(),
-                items: [const DropdownMenuItem<String>(value: null, child: Text('— Seçiniz —')), ...widget.personeller.map((p) => DropdownMenuItem(value: p.id, child: Text(p.ad)))],
-                onChanged: (v) => setState(() => _personelId = v),
+                value: _personelGoster.any((p) => p.id == _personelId) ? _personelId : null,
+                isExpanded: true, decoration: _dec(),
+                items: [const DropdownMenuItem<String>(value: null, child: Text('— Seçiniz —')), ..._personelGoster.map((p) => DropdownMenuItem(value: p.id, child: Text(p.ad)))],
+                onChanged: (v) => setState(() {
+                  _personelId = v;
+                  if (_hizmetId != null && v != null && (_p2h[v]?.isNotEmpty ?? false) && !_p2h[v]!.contains(_hizmetId)) _hizmetId = null;
+                }),
               ),
               const SizedBox(height: 10),
               _lbl('Hizmet (paket düşümü için)'),
               DropdownButtonFormField<String>(
-                value: _hizmetId, isExpanded: true, decoration: _dec(),
-                items: [const DropdownMenuItem<String>(value: null, child: Text('— Hizmet bağlama (paket düşmez) —')), ...widget.hizmetler.map((h) => DropdownMenuItem(value: h.id, child: Text(h.ad)))],
-                onChanged: (v) => setState(() => _hizmetId = v),
+                value: _hizmetGoster.any((h) => h.id == _hizmetId) ? _hizmetId : null,
+                isExpanded: true, decoration: _dec(),
+                items: [const DropdownMenuItem<String>(value: null, child: Text('— Hizmet bağlama (paket düşmez) —')), ..._hizmetGoster.map((h) => DropdownMenuItem(value: h.id, child: Text(h.ad)))],
+                onChanged: (v) => setState(() {
+                  _hizmetId = v;
+                  if (_personelId != null && v != null && (_h2p[v]?.isNotEmpty ?? false) && !_h2p[v]!.contains(_personelId)) _personelId = null;
+                }),
               ),
               const SizedBox(height: 10),
               Row(children: [

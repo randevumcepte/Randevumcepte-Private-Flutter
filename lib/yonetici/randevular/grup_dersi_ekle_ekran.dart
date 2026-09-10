@@ -28,6 +28,24 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
   bool _kaydediyor = false;
   List<GrupDersSecenek> _personeller = [];
   List<GrupDersSecenek> _hizmetler = [];
+  final Map<String, Set<String>> _h2p = {}; // hizmet_id -> personel_id'ler
+  final Map<String, Set<String>> _p2h = {}; // personel_id -> hizmet_id'ler
+
+  // Secilen hizmete gore filtreli egitmen listesi (eslesme yoksa tumu)
+  List<GrupDersSecenek> get _personelGoster {
+    if (_hizmetId != null && (_h2p[_hizmetId]?.isNotEmpty ?? false)) {
+      return _personeller.where((p) => _h2p[_hizmetId]!.contains(p.id)).toList();
+    }
+    return _personeller;
+  }
+
+  // Secilen egitmene gore filtreli hizmet listesi (eslesme yoksa tumu)
+  List<GrupDersSecenek> get _hizmetGoster {
+    if (_personelId != null && (_p2h[_personelId]?.isNotEmpty ?? false)) {
+      return _hizmetler.where((h) => _p2h[_personelId]!.contains(h.id)).toList();
+    }
+    return _hizmetler;
+  }
 
   final _dersTipiC = TextEditingController();
   final _kapasiteC = TextEditingController(text: '3');
@@ -67,6 +85,11 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
   Future<void> _yukle() async {
     try {
       final r = await dersProgramiListe(widget.salonId);
+      for (final e in (r['eslesme'] as List? ?? [])) {
+        final p = e['personel_id'].toString(), h = e['hizmet_id'].toString();
+        (_h2p[h] ??= <String>{}).add(p);
+        (_p2h[p] ??= <String>{}).add(h);
+      }
       setState(() {
         _personeller = (r['personeller'] as List).cast<GrupDersSecenek>();
         _hizmetler = (r['hizmetler'] as List).cast<GrupDersSecenek>();
@@ -132,23 +155,38 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
                 const SizedBox(height: 12),
                 _label('Eğitmen'),
                 DropdownButtonFormField<String>(
-                  value: _personelId,
+                  value: _personelGoster.any((p) => p.id == _personelId) ? _personelId : null,
                   isExpanded: true,
                   decoration: _dec('— Seçiniz —'),
-                  items: _personeller.map((p) => DropdownMenuItem(value: p.id, child: Text(p.ad))).toList(),
-                  onChanged: (v) => setState(() => _personelId = v),
+                  items: [
+                    const DropdownMenuItem<String>(value: null, child: Text('— Seçiniz —')),
+                    ..._personelGoster.map((p) => DropdownMenuItem(value: p.id, child: Text(p.ad))),
+                  ],
+                  onChanged: (v) => setState(() {
+                    _personelId = v;
+                    // Egitmen degisti: secili hizmet bu egitmene uymuyorsa sifirla
+                    if (_hizmetId != null && v != null && (_p2h[v]?.isNotEmpty ?? false) && !_p2h[v]!.contains(_hizmetId)) {
+                      _hizmetId = null;
+                    }
+                  }),
                 ),
                 const SizedBox(height: 12),
                 _label('Hizmet (paket düşümü için)'),
                 DropdownButtonFormField<String>(
-                  value: _hizmetId,
+                  value: _hizmetGoster.any((h) => h.id == _hizmetId) ? _hizmetId : null,
                   isExpanded: true,
                   decoration: _dec('— Hizmet bağlama (paket düşmez) —'),
                   items: [
                     const DropdownMenuItem<String>(value: null, child: Text('— Hizmet bağlama (paket düşmez) —')),
-                    ..._hizmetler.map((h) => DropdownMenuItem(value: h.id, child: Text(h.ad))),
+                    ..._hizmetGoster.map((h) => DropdownMenuItem(value: h.id, child: Text(h.ad))),
                   ],
-                  onChanged: (v) => setState(() => _hizmetId = v),
+                  onChanged: (v) => setState(() {
+                    _hizmetId = v;
+                    // Hizmet degisti: secili egitmen bu hizmeti yapmiyorsa sifirla
+                    if (_personelId != null && v != null && (_h2p[v]?.isNotEmpty ?? false) && !_h2p[v]!.contains(_personelId)) {
+                      _personelId = null;
+                    }
+                  }),
                 ),
                 const SizedBox(height: 12),
                 _label('Tarih'),

@@ -113,7 +113,10 @@ Future<Map<String, dynamic>> dersProgramiListe(String salonId) async {
   final sablon = (j['sablon'] as List)
       .map((e) => GrupDersSablon.fromJson(Map<String, dynamic>.from(e)))
       .toList();
-  return {'personeller': personeller, 'hizmetler': hizmetler, 'sablon': sablon};
+  final eslesme = ((j['eslesme'] as List?) ?? [])
+      .map((e) => Map<String, dynamic>.from(e))
+      .toList();
+  return {'personeller': personeller, 'hizmetler': hizmetler, 'sablon': sablon, 'eslesme': eslesme};
 }
 
 Future<void> dersSablonKaydet({
