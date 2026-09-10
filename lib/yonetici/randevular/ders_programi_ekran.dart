@@ -147,64 +147,101 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
     );
   }
 
+  Widget _miniLabel(String t) => Text(t,
+      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF9B7BB8), letterSpacing: .4));
+
   Widget _yayinlaCubugu() {
     return Container(
-      color: const Color(0xFFF3ECFA),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Row(
+      margin: const EdgeInsets.fromLTRB(12, 14, 12, 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFECE8F4)),
+        boxShadow: const [BoxShadow(color: Color(0x0F5C008E), blurRadius: 10, offset: Offset(0, 3))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: InkWell(
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: _baslangic,
-                  firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (d != null) setState(() => _baslangic = d);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                child: Row(children: [
-                  const Icon(Icons.calendar_today, size: 15, color: _mor),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text('${_baslangic.year}-${_ik(_baslangic.month)}-${_ik(_baslangic.day)}',
-                        overflow: TextOverflow.ellipsis),
-                  ),
-                ]),
+          const Text('Haftalık programı bir kez tanımlayın, "Programı Yayınla" ileriye dönük dersleri takvime oluşturur.',
+              style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.35)),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _miniLabel('BAŞLANGIÇ'),
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _baslangic,
+                          firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (d != null) setState(() => _baslangic = d);
+                      },
+                      child: Container(
+                        height: 46,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(color: const Color(0xFFF8F6FB), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE9DDF5))),
+                        child: Row(children: [
+                          const Icon(Icons.calendar_today, size: 16, color: _mor),
+                          const SizedBox(width: 8),
+                          Flexible(child: Text('${_baslangic.year}-${_ik(_baslangic.month)}-${_ik(_baslangic.day)}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            width: 104,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: _hafta,
-                isExpanded: true,
-                isDense: true,
-                items: List.generate(12, (i) => i + 1)
-                    .map((h) => DropdownMenuItem(value: h, child: Text('$h hafta')))
-                    .toList(),
-                onChanged: (v) => setState(() => _hafta = v ?? 4),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _miniLabel('KAÇ HAFTA'),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(color: const Color(0xFFF8F6FB), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE9DDF5))),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _hafta,
+                          isExpanded: true,
+                          isDense: true,
+                          style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C3E50), fontSize: 14),
+                          items: List.generate(12, (i) => i + 1).map((h) => DropdownMenuItem(value: h, child: Text('$h hafta'))).toList(),
+                          onChanged: (v) => setState(() => _hafta = v ?? 4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 6),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _mor,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              visualDensity: VisualDensity.compact,
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _mor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.rocket_launch, size: 18),
+              label: const Text('Programı Yayınla', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              onPressed: _yayinla,
             ),
-            icon: const Icon(Icons.rocket_launch, size: 17),
-            label: const Text('Yayınla'),
-            onPressed: _yayinla,
           ),
         ],
       ),
@@ -215,38 +252,64 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
     final dersler = _sablon.where((s) => s.haftaGunu == gun).toList();
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFECE8F4))),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFECE8F4)),
+        boxShadow: const [BoxShadow(color: Color(0x0A5C008E), blurRadius: 8, offset: Offset(0, 2))],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: const BoxDecoration(
-              color: Color(0xFFF3ECFA),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              color: Color(0xFFF6F1FB),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               border: Border(bottom: BorderSide(color: Color(0xFFECE8F4))),
             ),
             child: Row(
               children: [
-                Container(width: 6, height: 6, decoration: const BoxDecoration(color: _mor, shape: BoxShape.circle)),
-                const SizedBox(width: 8),
-                Text(_gunAd[gun], style: const TextStyle(color: _mor, fontWeight: FontWeight.bold, fontSize: 14)),
+                Container(width: 7, height: 7, decoration: const BoxDecoration(color: _mor, shape: BoxShape.circle)),
+                const SizedBox(width: 9),
+                Text(_gunAd[gun], style: const TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w800, fontSize: 14.5)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: dersler.isEmpty ? const Color(0xFFEDEFF2) : const Color(0xFFEDE3F7),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(dersler.isEmpty ? 'ders yok' : '${dersler.length} ders',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dersler.isEmpty ? Colors.black45 : _mor)),
+                ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
             child: Column(
               children: [
                 ...dersler.map((s) => _dersSatiri(s)),
                 InkWell(
                   onTap: () => _sablonDuzenle(gun: gun),
+                  borderRadius: BorderRadius.circular(10),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(top: 4),
-                    decoration: BoxDecoration(border: Border.all(color: const Color(0xFFB7CCE0), style: BorderStyle.solid), borderRadius: BorderRadius.circular(8)),
-                    child: const Text('＋ Ders Ekle', textAlign: TextAlign.center, style: TextStyle(color: _mor, fontWeight: FontWeight.w600)),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7FD),
+                      border: Border.all(color: const Color(0xFFE0D0F0)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, size: 18, color: _mor),
+                        SizedBox(width: 6),
+                        Text('Ders Ekle', style: TextStyle(color: _mor, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
                   ),
                 ),
               ],
