@@ -37,6 +37,9 @@ import '../adisyonlar/satislar/tahsilat.dart';
 import '../diger/menu/randvular/randevularmenu.dart';
 import 'appointment-editor.dart';
 import 'saat_kapama_form.dart';
+import 'grup_dersi_katilimci_ekran.dart';
+import 'grup_dersi_ekle_ekran.dart';
+import 'ders_programi_ekran.dart';
 
 class Takvim extends StatefulWidget {
   final int selectedTab;
@@ -769,6 +772,49 @@ class TakvimState extends State<Takvim> with RouteAware {
               tooltip: 'Saat Kapama',
               onPressed: _saatKapamaAc,
               icon: const Icon(Icons.lock_clock),
+              iconSize: 24,
+            ),
+          if (Yetki.varMi('randevu.olustur'))
+            IconButton(
+              tooltip: 'Ders Programı',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DersProgramiEkran(
+                      salonId: widget.isletmebilgi["id"].toString(),
+                      isletmebilgi: widget.isletmebilgi,
+                    ),
+                  ),
+                ).then((_) => getUpdatedAppointments(
+                      DateFormat('yyyy-MM-dd').format(seciliTarih),
+                      DateFormat('yyyy-MM-dd').format(seciliTarih),
+                      true,
+                    ));
+              },
+              icon: const Icon(Icons.grid_view),
+              iconSize: 22,
+            ),
+          if (Yetki.varMi('randevu.olustur'))
+            IconButton(
+              tooltip: 'Grup Dersi Ekle',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GrupDersiEkleEkran(
+                      salonId: widget.isletmebilgi["id"].toString(),
+                      isletmebilgi: widget.isletmebilgi,
+                      onSecilenTarih: seciliTarih,
+                    ),
+                  ),
+                ).then((_) => getUpdatedAppointments(
+                      DateFormat('yyyy-MM-dd').format(seciliTarih),
+                      DateFormat('yyyy-MM-dd').format(seciliTarih),
+                      true,
+                    ));
+              },
+              icon: const Icon(Icons.groups),
               iconSize: 24,
             ),
           if (Yetki.varMi('randevu.olustur'))
@@ -1823,6 +1869,28 @@ List<Widget> _buildAppointmentsForResource(
   }
 
   void _appointmentDetayGoster(Appointment appointment) {
+    // GRUP DERSI oturumu (backend location=='ders', id='ders-{oturumId}') —
+    // normal randevu detayi yerine katilimci yonetim ekranini ac.
+    if (appointment.location?.toString() == 'ders') {
+      final oturumId = int.tryParse(appointment.id.toString().replaceFirst('ders-', '')) ?? 0;
+      if (oturumId > 0) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GrupDersiKatilimciEkran(
+              salonId: widget.isletmebilgi["id"].toString(),
+              oturumId: oturumId,
+              isletmebilgi: widget.isletmebilgi,
+            ),
+          ),
+        ).then((_) => getUpdatedAppointments(
+              DateFormat('yyyy-MM-dd').format(seciliTarih),
+              DateFormat('yyyy-MM-dd').format(seciliTarih),
+              true,
+            ));
+      }
+      return;
+    }
     // Saat kapama kaydina tiklandiysa: normal randevu detayini gostermek yerine
     // "Bu kapali saat kaydini silmek istediginize emin misiniz?" onay
     // penceresi cikar. Onaylanirsa kapaliSaatSil ile silinir.
