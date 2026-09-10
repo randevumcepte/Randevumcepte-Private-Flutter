@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
 import 'package:randevu_sistem/yonetici/randevular/grup_dersi_rapor_ekran.dart';
+import 'package:randevu_sistem/yonetici/randevular/saat_secici.dart';
 
 const Color _mor = Color(0xFF5C008E);
 const List<String> _gunAd = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -475,12 +476,12 @@ class _SablonSheetState extends State<_SablonSheet> {
               Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _lbl('Başlangıç'),
-                  _saatKutu(_st(_saat), () async { final t = await showTimePicker(context: context, initialTime: _saat); if (t != null) setState(() => _saat = t); }),
+                  _saatKutu(_st(_saat), () async { final t = await saatSecici(context, _saat); if (t != null) setState(() => _saat = t); }),
                 ])),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _lbl('Bitiş'),
-                  _saatKutu(_st(_bitis), () async { final t = await showTimePicker(context: context, initialTime: _bitis); if (t != null) setState(() => _bitis = t); }),
+                  _saatKutu(_st(_bitis), () async { final t = await saatSecici(context, _bitis); if (t != null) setState(() => _bitis = t); }),
                 ])),
                 const SizedBox(width: 10),
                 SizedBox(width: 80, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
+import 'package:randevu_sistem/yonetici/randevular/saat_secici.dart';
 
 const Color _mor = Color(0xFF5C008E);
 
@@ -167,7 +168,7 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         _label('Başlangıç'),
                         _secimKutu(_saatStr(_saat), Icons.access_time, () async {
-                          final t = await showTimePicker(context: context, initialTime: _saat);
+                          final t = await saatSecici(context, _saat);
                           if (t != null) setState(() => _saat = t);
                         }),
                       ]),
@@ -177,7 +178,7 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         _label('Bitiş'),
                         _secimKutu(_saatStr(_bitis), Icons.access_time, () async {
-                          final t = await showTimePicker(context: context, initialTime: _bitis);
+                          final t = await saatSecici(context, _bitis);
                           if (t != null) setState(() => _bitis = t);
                         }),
                       ]),
