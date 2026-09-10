@@ -126,7 +126,7 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
                   child: Text('Kapasiteli grup dersi. Hizmet seçerseniz "Geldi"de paketten seans düşer ve ders online rezervasyona açılır.',
                       style: TextStyle(fontSize: 12.5, color: Colors.black54)),
                 ),
-                _label('Ders Tipi'),
+                _label('Ders Adı'),
                 TextField(controller: _dersTipiC, decoration: _dec('Reformer / Mat / Crossfit / Birebir')),
                 const SizedBox(height: 12),
                 _label('Eğitmen'),

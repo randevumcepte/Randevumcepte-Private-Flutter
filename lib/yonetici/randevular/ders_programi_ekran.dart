@@ -381,7 +381,7 @@ class _SablonSheetState extends State<_SablonSheet> {
                 onChanged: (v) => setState(() => _gun = v ?? 1),
               ),
               const SizedBox(height: 10),
-              _lbl('Ders Tipi'),
+              _lbl('Ders Adı'),
               TextField(controller: _dersTipiC, decoration: _dec(hint: 'Reformer / Mat / Birebir')),
               const SizedBox(height: 10),
               _lbl('Eğitmen'),
