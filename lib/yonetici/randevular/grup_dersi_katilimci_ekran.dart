@@ -139,9 +139,11 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
     final dolu = o != null && _aktifSayi >= o.kapasite;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: _mor,
-        foregroundColor: Colors.white,
-        title: const Text('Ders Katılımcıları'),
+        backgroundColor: Colors.white,
+        foregroundColor: _mor,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: _mor),
+        title: const Text('Ders Katılımcıları', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w700)),
         actions: [
           if (o != null)
             IconButton(icon: const Icon(Icons.edit), tooltip: 'Dersi Düzenle', onPressed: _dersiDuzenle),

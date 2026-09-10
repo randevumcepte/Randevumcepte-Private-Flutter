@@ -113,7 +113,13 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: _mor, foregroundColor: Colors.white, title: const Text('Ders Programı')),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: _mor,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: _mor),
+        title: const Text('Ders Programı', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w700)),
+      ),
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -163,15 +169,17 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
           ),
           const SizedBox(width: 6),
           Container(
-            width: 62,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            width: 104,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<int>(
                 value: _hafta,
                 isExpanded: true,
                 isDense: true,
-                items: List.generate(12, (i) => i + 1).map((h) => DropdownMenuItem(value: h, child: Text('$h'))).toList(),
+                items: List.generate(12, (i) => i + 1)
+                    .map((h) => DropdownMenuItem(value: h, child: Text('$h hafta')))
+                    .toList(),
                 onChanged: (v) => setState(() => _hafta = v ?? 4),
               ),
             ),
@@ -201,9 +209,19 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(color: _mor, borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-            child: Text(_gunAd[gun], textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF3ECFA),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              border: Border(bottom: BorderSide(color: Color(0xFFECE8F4))),
+            ),
+            child: Row(
+              children: [
+                Container(width: 6, height: 6, decoration: const BoxDecoration(color: _mor, shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Text(_gunAd[gun], style: const TextStyle(color: _mor, fontWeight: FontWeight.bold, fontSize: 14)),
+              ],
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(8),

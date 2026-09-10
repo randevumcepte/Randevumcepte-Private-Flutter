@@ -109,9 +109,12 @@ class _GrupDersiEkleEkranState extends State<GrupDersiEkleEkran> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: _mor,
-        foregroundColor: Colors.white,
-        title: Text(widget.duzenlenecek == null ? 'Grup Dersi Ekle' : 'Grup Dersi Düzenle'),
+        backgroundColor: Colors.white,
+        foregroundColor: _mor,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: _mor),
+        title: Text(widget.duzenlenecek == null ? 'Grup Dersi Ekle' : 'Grup Dersi Düzenle',
+            style: const TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w700)),
       ),
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())
