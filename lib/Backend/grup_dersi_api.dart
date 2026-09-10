@@ -146,6 +146,15 @@ Future<void> dersSablonSil(String salonId, int sablonId) async {
   if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Silinemedi');
 }
 
+// ---------- Rapor ----------
+
+// Donus: {'ozet':Map, 'egitmen':List, 'ders':List, 'tarih1':.., 'tarih2':..}
+Future<Map<String, dynamic>> grupDersiRapor(String salonId, String tarih1, String tarih2) async {
+  final j = await _post('grup-dersi-rapor', {'salon_id': salonId, 'tarih1': tarih1, 'tarih2': tarih2});
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Rapor alınamadı');
+  return j;
+}
+
 // ---------- Danisan (musteri) tarafi ----------
 
 // Musterinin dahil oldugu grup dersleri (gecmis 3 gun + ileri). Her kayit:

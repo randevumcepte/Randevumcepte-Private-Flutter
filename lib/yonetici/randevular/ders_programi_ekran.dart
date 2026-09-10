@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
+import 'package:randevu_sistem/yonetici/randevular/grup_dersi_rapor_ekran.dart';
 
 const Color _mor = Color(0xFF5C008E);
 const List<String> _gunAd = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -119,6 +120,16 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
         elevation: 1,
         iconTheme: const IconThemeData(color: _mor),
         title: const Text('Ders Programı', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+            tooltip: 'Rapor',
+            icon: const Icon(Icons.bar_chart),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => GrupDersiRaporEkran(salonId: widget.salonId)),
+            ),
+          ),
+        ],
       ),
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())
