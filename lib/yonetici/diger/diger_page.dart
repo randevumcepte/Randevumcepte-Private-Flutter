@@ -39,6 +39,8 @@ import 'menu/kasa/masraflar.dart';
 import 'menu/musteriler/musteriliste.dart';
 import 'menu/ongorusmeler/ongorusmeler.dart';
 import 'menu/randvular/randevularmenu.dart';
+import 'package:randevu_sistem/yonetici/randevular/ders_programi_ekran.dart';
+import 'package:randevu_sistem/yonetici/randevular/grup_dersi_rapor_ekran.dart';
 import 'menu/satislar/paketsatislariyeni.dart';
 import 'menu/stok/stok_yonetimi.dart';
 import 'menu/satisraporlari/satisraporlaripersonel.dart';
@@ -543,6 +545,42 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: AsistanimPage(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
+                // Grup Dersleri modulu (salonlar.grup_dersi_aktif == 1)
+                if (widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
+                  _buildMenuButton(
+                    icon: Icons.groups,
+                    label: 'Grup Dersleri',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: DersProgramiEkran(
+                            salonId: widget.isletmebilgi["id"].toString(),
+                            isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                if (widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
+                  _buildMenuButton(
+                    icon: Icons.bar_chart,
+                    label: 'Grup Dersi Raporu',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: GrupDersiRaporEkran(
+                            salonId: widget.isletmebilgi["id"].toString(),
+                          ),
                         ),
                       );
                     },

@@ -774,7 +774,7 @@ class TakvimState extends State<Takvim> with RouteAware {
               icon: const Icon(Icons.lock_clock),
               iconSize: 24,
             ),
-          if (Yetki.varMi('randevu.olustur'))
+          if (Yetki.varMi('randevu.olustur') && widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
             IconButton(
               tooltip: 'Ders Programı',
               onPressed: () {
@@ -795,7 +795,7 @@ class TakvimState extends State<Takvim> with RouteAware {
               icon: const Icon(Icons.grid_view),
               iconSize: 22,
             ),
-          if (Yetki.varMi('randevu.olustur'))
+          if (Yetki.varMi('randevu.olustur') && widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
             IconButton(
               tooltip: 'Grup Dersi Ekle',
               onPressed: () {

@@ -195,7 +195,8 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
           child: Column(
             children: [
               _topBar(context),
-              _grupDersleriButonu(context),
+              if (widget.isletmebilgi != null && widget.isletmebilgi["grup_dersi_aktif"].toString() == "1")
+                _grupDersleriButonu(context),
               _filterStrip(context),
               const SizedBox(height: 6),
               Expanded(child: _content(context)),
