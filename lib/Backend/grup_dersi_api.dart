@@ -146,6 +146,26 @@ Future<void> dersSablonSil(String salonId, int sablonId) async {
   if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Silinemedi');
 }
 
+// ---------- Danisan (musteri) tarafi ----------
+
+// Musterinin dahil oldugu grup dersleri (gecmis 3 gun + ileri). Her kayit:
+// katilimci_id, durum, oturum_id, ders_tipi, tarih, saat, saat_bitis, salon_adi,
+// personel, gecmis(bool), geldim_isaretleyebilir(bool)
+Future<List<Map<String, dynamic>>> danisanGrupDerslerim(String userId, {String? salonId}) async {
+  final body = <String, dynamic>{'user_id': userId};
+  if (salonId != null) body['salon_id'] = salonId;
+  final j = await _post('danisan-grup-derslerim', body);
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Yuklenemedi');
+  return (j['dersler'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
+}
+
+// Danisan kendi katilimini "Geldim" isaretler. Donus 'dusum' bilgisi.
+Future<String?> danisanDersGeldim(String userId, int katilimciId) async {
+  final j = await _post('danisan-ders-geldim', {'user_id': userId, 'katilimci_id': katilimciId});
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'İşlem başarısız');
+  return j['dusum']?.toString();
+}
+
 // Donus: {'olusan':int, 'atlanan':int}
 Future<Map<String, dynamic>> dersProgramiYayinla(String salonId, String baslangic, int hafta) async {
   final j = await _post('ders-programi-yayinla', {'salon_id': salonId, 'baslangic': baslangic, 'hafta': hafta});
