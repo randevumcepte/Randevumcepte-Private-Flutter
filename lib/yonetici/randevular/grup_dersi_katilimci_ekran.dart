@@ -1,3 +1,4 @@
+import 'dart:async';
 // Grup dersi katilimci yonetim ekrani — takvimde ders bloguna tiklayinca acilir.
 // Katilimci ekle/cikar/geldi-gelmedi + dersi duzenle/iptal. Web panel modalinin mobil karsiligi.
 import 'package:flutter/material.dart';
@@ -308,17 +309,36 @@ class _MusteriAraSheet extends StatefulWidget {
 class _MusteriAraSheetState extends State<_MusteriAraSheet> {
   final _c = TextEditingController();
   bool _ara = false;
+  String? _hata;
   List<MusteriDanisan> _sonuc = [];
+  Timer? _deb;
+
+  @override
+  void dispose() {
+    _deb?.cancel();
+    _c.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String v) {
+    _deb?.cancel();
+    _deb = Timer(const Duration(milliseconds: 400), _search);
+  }
 
   Future<void> _search() async {
     final q = _c.text.trim();
-    if (q.length < 2) return;
-    setState(() => _ara = true);
+    if (q.length < 2) {
+      setState(() { _sonuc = []; _hata = null; });
+      return;
+    }
+    setState(() { _ara = true; _hata = null; });
     try {
       final r = await musterilistegetirSayfali('', widget.salonId, q, '20', '0');
+      if (!mounted) return;
       setState(() { _sonuc = r; _ara = false; });
-    } catch (_) {
-      setState(() { _sonuc = []; _ara = false; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _sonuc = []; _ara = false; _hata = 'Arama başarısız: $e'; });
     }
   }
 
@@ -341,6 +361,7 @@ class _MusteriAraSheetState extends State<_MusteriAraSheet> {
               controller: _c,
               autofocus: true,
               textInputAction: TextInputAction.search,
+              onChanged: _onChanged,
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
                 hintText: 'İsim veya telefon (en az 2 harf)',
@@ -352,18 +373,22 @@ class _MusteriAraSheetState extends State<_MusteriAraSheet> {
             Expanded(
               child: _ara
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.separated(
-                      itemCount: _sonuc.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (_, i) {
-                        final m = _sonuc[i];
-                        return ListTile(
-                          title: Text(m.name),
-                          subtitle: Text(m.cep_telefon),
-                          onTap: () => Navigator.pop(context, m),
-                        );
-                      },
-                    ),
+                  : _hata != null
+                      ? Center(child: Padding(padding: const EdgeInsets.all(16), child: Text(_hata!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red))))
+                      : (_sonuc.isEmpty
+                          ? Center(child: Text(_c.text.trim().length < 2 ? 'Aramak için isim/telefon yazın' : 'Sonuç bulunamadı', style: const TextStyle(color: Colors.grey)))
+                          : ListView.separated(
+                              itemCount: _sonuc.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (_, i) {
+                                final m = _sonuc[i];
+                                return ListTile(
+                                  title: Text(m.name),
+                                  subtitle: Text(m.cep_telefon),
+                                  onTap: () => Navigator.pop(context, m),
+                                );
+                              },
+                            )),
             ),
           ],
         ),
