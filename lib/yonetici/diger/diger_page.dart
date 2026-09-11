@@ -628,7 +628,7 @@ class _MenuState extends State<Menu> {
                   },
                 ),
 
-                if (widget.uyelikturu > 2 && Yetki.varMi('gorusme.liste_gor'))
+                if (widget.uyelikturu > 2 && Yetki.varMi('gorusme.liste_gor') && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'Ön Görüşmeler',
@@ -684,7 +684,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (Yetki.varMi('pazarlama.cark_yonet'))
+                if (Yetki.varMi('pazarlama.cark_yonet') && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
                     icon: Icons.casino_outlined,
                     label: 'Çarkıfelek',
@@ -790,7 +790,7 @@ class _MenuState extends State<Menu> {
                       },
                   ),
                 // Personel (rol 5): kendi hakedis/maas/prim/odeme gecmisi (read-only)
-                if (kullanicirolu == 5)
+                if (kullanicirolu == 5 && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
                     icon: Icons.account_balance_wallet_outlined,
                     label: 'Hakedişlerim',
@@ -818,7 +818,7 @@ class _MenuState extends State<Menu> {
 
                 // Yönetim Bölümü
                 _buildSectionTitle('YÖNETİM'),
-                if (widget.uyelikturu > 1 && Yetki.varMi('form.olustur'))
+                if (widget.uyelikturu > 1 && Yetki.varMi('form.olustur') && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
                     icon: Icons.description_outlined,
                     label: 'Form Yönetimi',
@@ -852,7 +852,7 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (Yetki.varMi('rapor.satis'))
+                if (Yetki.varMi('rapor.satis') && widget.isletmebilgi["studyo_modu"].toString() != "1")
                 _buildMenuButton(
                   icon: Icons.analytics_rounded,
                   label: 'Satış Raporları',
@@ -904,7 +904,7 @@ class _MenuState extends State<Menu> {
                     (Yetki.varMi('urun.tanim_olustur') ||
                         Yetki.varMi('urun.stok_giris') ||
                         Yetki.varMi('urun.stok_sayim') ||
-                        Yetki.varMi('urun.tedarikci_yonet')))
+                        Yetki.varMi('urun.tedarikci_yonet')) && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
                     icon: Icons.inventory_2_rounded,
                     label: 'Stok Yönetimi',
@@ -927,7 +927,7 @@ class _MenuState extends State<Menu> {
                         Yetki.varMi('finans.kasa_giris_cikis') ||
                         Yetki.varMi('finans.masraf_gor') ||
                         Yetki.varMi('finans.masraf_ekle') ||
-                        Yetki.varMi('finans.alacak_yonet')))
+                        Yetki.varMi('finans.alacak_yonet')) && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
                     icon: Icons.account_balance_wallet_rounded,
                     label: 'Kasa Raporu',
@@ -945,7 +945,7 @@ class _MenuState extends State<Menu> {
 
                 if (widget.uyelikturu > 1 &&
                     (Yetki.varMi('finans.masraf_gor') ||
-                        Yetki.varMi('finans.masraf_ekle')))
+                        Yetki.varMi('finans.masraf_ekle')) && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
                     icon: Icons.money_off_rounded,
                     label: 'Masraflar',
