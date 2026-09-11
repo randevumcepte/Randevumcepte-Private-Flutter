@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show appBundleAl;
 import 'package:randevu_sistem/Models/olcum.dart';
 
-const String _kBase = 'https://app.randevumcepte.com.tr/api/v1';
+// GEÇİCİ: vucut olcumu once TEST sunucusunda denenecek (apptest). Canliya
+// cikinca 'app.randevumcepte.com.tr' yap. DB ortak oldugu icin veri ayni yere duser.
+const String _kBase = 'https://apptest.randevumcepte.com.tr/api/v1';
 
 Future<int?> _callerUserId() async {
   final ls = await SharedPreferences.getInstance();
