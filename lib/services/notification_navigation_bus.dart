@@ -20,6 +20,9 @@ class NotificationIntent {
   /// Müşterinin kendi fotoğrafları ekranı — isletme resim yükleyince
   /// gönderilen push tıklanınca burası açılır. params: yok.
   static const myPhotos      = 'my_photos';
+  /// Grup dersleri (Derslerim) ekrani — ders bitiminde "katildiniz mi?" push'u
+  /// tiklaninca acilir.
+  static const groupClasses  = 'group_classes';
 
   /// İşletme tarafı hedefleri
   static const adminCalendar      = 'admin_calendar';

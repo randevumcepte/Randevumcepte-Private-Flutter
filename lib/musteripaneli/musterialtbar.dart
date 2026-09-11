@@ -158,6 +158,15 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
           builder: (_) => ImageGallery(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
         ));
         break;
+      case NotificationIntent.groupClasses:
+        // Ders bitimi "katildiniz mi?" push -> Derslerim ekrani
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => GrupDerslerimEkran(
+            userId: widget.musteriId.id.toString(),
+            salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
+          ),
+        ));
+        break;
     }
   }
 
@@ -339,6 +348,15 @@ class _MusteriAltBarState  extends State<MusteriAltBar> {
         // Isletme resim yukledi -> musteri kendi fotograf galerisi
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ImageGallery(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.groupClasses:
+        // Ders bitimi "katildiniz mi?" push -> Derslerim ekrani
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => GrupDerslerimEkran(
+            userId: widget.musteriId.id.toString(),
+            salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
+          ),
         ));
         break;
     }

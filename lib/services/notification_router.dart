@@ -26,6 +26,13 @@ class NotificationRouter {
     final isMusteri = tip == 'musteri';
 
     try {
+      // Grup dersi katilim sorusu: type'tan bagimsiz, deepLink 'group_classes' ise
+      // musteriyi Derslerim ekranina yonlendir.
+      if (isMusteri && (payload.deepLink ?? '').startsWith('group_classes')) {
+        NotificationNavigationBus.publish(
+            const NotificationIntent(NotificationIntent.groupClasses));
+        return;
+      }
       switch (type) {
         // Fotograf yukleme bildirimleri:
         //  - isletme_resim_yuklendi: musteri kendi fotograf ekranina gider
