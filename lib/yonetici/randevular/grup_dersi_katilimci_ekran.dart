@@ -155,8 +155,9 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
           ? null
           : FloatingActionButton.extended(
               backgroundColor: _mor,
-              icon: const Icon(Icons.person_add),
-              label: const Text('Katılımcı Ekle'),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.person_add, color: Colors.white),
+              label: const Text('Katılımcı Ekle', style: TextStyle(color: Colors.white)),
               onPressed: _katilimciEkleAra,
             ),
       body: _yukleniyor
