@@ -17,6 +17,7 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import '../anasayfa/raporlar/seanslar.dart';
 import 'musteriresimleri.dart';
 import 'musterisözlesmeleri.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteribilgileri/vucut_olcumu.dart';
 
 class MenuPage extends StatefulWidget {
   final VoidCallback onLogout;
@@ -361,6 +362,28 @@ class _MenuPageState extends State<MenuPage> {
                       );
                     },
                   ),
+                  if (widget.isletmebilgi is Map &&
+                      widget.isletmebilgi['studyo_modu']?.toString() == '1')
+                    _buildMenuButton(
+                      icon: Icons.monitor_weight_outlined,
+                      label: 'Gelişimim (Vücut Ölçümü)',
+                      onTap: () {
+                        final salonId = widget.isletmebilgi is Map
+                            ? widget.isletmebilgi['id']?.toString()
+                            : null;
+                        Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.rightToLeft,
+                            duration: const Duration(milliseconds: 300),
+                            child: VucutOlcumuEkran(
+                              businessMode: false,
+                              salonId: salonId,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   _buildMenuButton(
                     icon: Icons.photo_library_outlined,
                     label: 'Resimlerim',

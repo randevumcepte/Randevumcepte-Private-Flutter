@@ -20,6 +20,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/arsiv/arsivyonetimipage.dart'
 import 'package:randevu_sistem/musteripaneli/menu/musteriresimleri.dart';
 import 'harici_tahsilat.dart';
 import 'musteribilgileri/musterisaglikbilgileri.dart';
+import 'musteribilgileri/vucut_olcumu.dart';
 import 'musteriduzenle.dart';
 
 class MusteriDetaylari extends StatefulWidget {
@@ -1024,6 +1025,26 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				),
 			),
 		));
+		final studyoModu = widget.isletmebilgi is Map &&
+				widget.isletmebilgi['studyo_modu']?.toString() == '1';
+		if (studyoModu) {
+			items.add(_ActionItem(
+				'Vücut Ölçümü',
+				Icons.monitor_weight_outlined,
+				const Color(0xFF7C3AED),
+				() => Navigator.push(
+					context,
+					MaterialPageRoute(
+						builder: (_) => VucutOlcumuEkran(
+							businessMode: true,
+							salonId: _salonId,
+							musteriId: int.tryParse(_md.id) ?? 0,
+							musteriAdi: _md.name,
+						),
+					),
+				),
+			));
+		}
 		if (Yetki.varMi('musteri.duzenle')) {
 			final karada = _karaListe == 1;
 			items.add(_ActionItem(
