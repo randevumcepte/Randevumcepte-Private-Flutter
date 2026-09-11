@@ -41,22 +41,29 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
 
-  Future<void> _geldim(Map<String, dynamic> d) async {
+  Future<void> _katilim(Map<String, dynamic> d, String durum) async {
+    final geldi = durum == 'geldi';
     final onay = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Katıldım'),
-        content: Text('${d['ders_tipi']} (${d['tarih']} ${d['saat']}) dersine katıldığınızı bildiriyorsunuz. Onaylıyor musunuz?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(geldi ? 'Katıldım' : 'Katılmadım'),
+        content: Text('${d['ders_tipi']} • ${d['tarih']} ${d['saat']}\n\n'
+            '${geldi ? "Bu derse katıldığınızı" : "Bu derse katılmadığınızı"} bildiriyorsunuz. Onaylıyor musunuz?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Evet, katıldım')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(geldi ? 'Evet, katıldım' : 'Evet, katılmadım',
+                style: TextStyle(color: geldi ? const Color(0xFF059669) : const Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+          ),
         ],
       ),
     );
     if (onay != true) return;
     try {
-      await danisanDersGeldim(widget.userId, int.parse(d['katilimci_id'].toString()));
-      _snack('Katılımınız kaydedildi ✨');
+      await danisanDersKatilim(widget.userId, int.parse(d['katilimci_id'].toString()), durum);
+      _snack(geldi ? 'Katılımınız kaydedildi ✨' : 'Bilginiz için teşekkürler.');
       await _yukle();
     } catch (e) {
       _snack('Hata: $e');
@@ -142,20 +149,44 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
             Padding(padding: const EdgeInsets.only(top: 2), child: Text('👤 ${d['personel']}', style: const TextStyle(color: Colors.black54, fontSize: 13))),
           if ((d['salon_adi'] ?? '').toString().isNotEmpty)
             Padding(padding: const EdgeInsets.only(top: 2), child: Text('📍 ${d['salon_adi']}', style: const TextStyle(color: Colors.black45, fontSize: 12.5))),
-          if (geldimGoster)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669)),
-                  icon: const Icon(Icons.check_circle_outline, size: 18),
-                  label: const Text('Katıldım'),
-                  onPressed: () => _geldim(d),
+          if (geldimGoster) ...[
+            const Padding(
+              padding: EdgeInsets.only(top: 12, bottom: 8),
+              child: Text('Bu derse katıldınız mı?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2C3E50))),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFEF4444),
+                      side: const BorderSide(color: Color(0xFFF0B4AC)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('Katılmadım'),
+                    onPressed: () => _katilim(d, 'gelmedi'),
+                  ),
                 ),
-              ),
-            )
-          else if (gecmis && durum == 'rezerve')
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: const Text('Katıldım'),
+                    onPressed: () => _katilim(d, 'geldi'),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (gecmis && durum == 'rezerve')
             const Padding(padding: EdgeInsets.only(top: 8), child: Text('Katılım işaretlenmedi', style: TextStyle(color: Colors.grey, fontSize: 12))),
         ],
       ),

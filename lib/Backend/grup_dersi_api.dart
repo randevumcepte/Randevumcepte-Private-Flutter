@@ -171,9 +171,9 @@ Future<List<Map<String, dynamic>>> danisanGrupDerslerim(String userId, {String? 
   return (j['dersler'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
 }
 
-// Danisan kendi katilimini "Geldim" isaretler. Donus 'dusum' bilgisi.
-Future<String?> danisanDersGeldim(String userId, int katilimciId) async {
-  final j = await _post('danisan-ders-geldim', {'user_id': userId, 'katilimci_id': katilimciId});
+// Danisan kendi katilimini bildirir: durum = 'geldi' | 'gelmedi'. Donus 'dusum'.
+Future<String?> danisanDersKatilim(String userId, int katilimciId, String durum) async {
+  final j = await _post('danisan-ders-katilim', {'user_id': userId, 'katilimci_id': katilimciId, 'durum': durum});
   if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'İşlem başarısız');
   return j['dusum']?.toString();
 }
