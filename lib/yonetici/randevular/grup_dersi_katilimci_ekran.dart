@@ -282,14 +282,16 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
     final aktif = k.durum == d;
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
-        backgroundColor: aktif ? renk : Colors.transparent,
+        backgroundColor: aktif ? renk : Colors.white,
         foregroundColor: aktif ? Colors.white : Colors.black54,
         side: BorderSide(color: aktif ? renk : const Color(0xFFD7DDE3)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         minimumSize: const Size(0, 32),
       ),
-      onPressed: aktif ? null : () => _durumDegistir(k, d),
-      child: Text(lbl, style: const TextStyle(fontSize: 12)),
+      // Aktif butonu devre disi BIRAKMA (null olsaydi disabled gri renge duserdi,
+      // koyu-uzerine-koyu olurdu). Aktifken no-op.
+      onPressed: aktif ? () {} : () => _durumDegistir(k, d),
+      child: Text(lbl, style: TextStyle(fontSize: 12, color: aktif ? Colors.white : Colors.black54)),
     );
   }
 }
