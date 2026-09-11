@@ -3267,7 +3267,10 @@ class _AppointmentCardState extends State<_AppointmentCard> {
           child: Text(
             contentText,
             style: TextStyle(
-              color: Colors.white,
+              // Zemin parlakligina gore kontrast: acik zemin -> koyu yazi,
+              // koyu zemin -> beyaz. (Ders bloklari personel renginde oldugu icin
+              // sabit beyaz yazi acik renklerde okunmuyordu.)
+              color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
               fontSize: fontSize,
               fontWeight: FontWeight.w500,
               height: 1.1,
