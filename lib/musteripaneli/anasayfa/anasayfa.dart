@@ -52,6 +52,10 @@ class MusteriAnsayfa extends StatefulWidget {
 }
 
 class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
+  // Studyo modu: carkifelek + puan/kupon (odul) kartlari gizli
+  bool get _studyo =>
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
   MusteriOzet? ozetsayfabilgi;
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
@@ -418,10 +422,12 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       _sectionHeader(context, 'Sana Özel'),
                       const SizedBox(height: 10),
                       _reklamKartlari(context),
-                      _carkPromoCard(context),
-                      const SizedBox(height: 10),
-                      _puanKuponRow(context),
-                      const SizedBox(height: 12),
+                      if (!_studyo) ...[
+                        _carkPromoCard(context),
+                        const SizedBox(height: 10),
+                        _puanKuponRow(context),
+                        const SizedBox(height: 12),
+                      ],
                       _yorumlarCard(context),
                       const SizedBox(height: 12),
                       _duyurularCard(context),
