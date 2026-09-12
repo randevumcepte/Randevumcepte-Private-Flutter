@@ -4,6 +4,7 @@
 // Tasarim webdeki "Guncel VKI" ozet karti (renkli gauge) + gecmis listesi gibi.
 // Boy ve Yas sabit: ekleme formunda son olcumden/dogum tarihinden on-dolu gelir,
 // her seferinde tekrar girilmez. Dogum tarihi varsa yas otomatik hesaplanir (kilitli).
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/olcum_api.dart';
 import 'package:randevu_sistem/Models/olcum.dart';
@@ -41,6 +42,36 @@ class _Zon {
   final Color renk;
   const _Zon(this.ad, this.gen, this.renk);
 }
+
+// ---- Gelisim grafigi icin izlenebilir metrikler ----
+// Kullanici bu listeden secer, grafik ve ozet buna gore degisir.
+// dusenIyi: degerin AZALMASI olumlu mu? (kilo/yag/vki dususu iyi, kas artisi iyi)
+class _Metrik {
+  final String key;
+  final String etiket;
+  final String birim;
+  final double? Function(VucutOlcum) al;
+  final bool dusenIyi;
+  const _Metrik(this.key, this.etiket, this.birim, this.al, this.dusenIyi);
+}
+
+const List<_Metrik> _metrikTanim = [
+  _Metrik('kilo', 'Kilo', 'kg', _mKilo, true),
+  _Metrik('vki', 'VKİ', '', _mVki, true),
+  _Metrik('yag', 'Yağ', '%', _mYag, true),
+  _Metrik('kasKg', 'Kas', 'kg', _mKasKg, false),
+  _Metrik('kasPuan', 'Kas Puanı', '', _mKasPuan, false),
+  _Metrik('icYag', 'İç Yağ.', '', _mIcYag, true),
+  _Metrik('odem', 'Ödem', '', _mOdem, true),
+];
+
+double? _mKilo(VucutOlcum o) => o.kilo;
+double? _mVki(VucutOlcum o) => o.vki;
+double? _mYag(VucutOlcum o) => o.yagOrani;
+double? _mKasKg(VucutOlcum o) => o.kasKg;
+double? _mKasPuan(VucutOlcum o) => o.kasPuani;
+double? _mIcYag(VucutOlcum o) => o.icYaglanma;
+double? _mOdem(VucutOlcum o) => o.odem;
 
 // Dogum tarihinden yas hesapla (gecersizse null).
 int? yasHesapla(String? dt) {
@@ -83,6 +114,7 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
   bool _yukleniyor = true;
   String? _hata;
   List<VucutOlcum> _liste = [];
+  String _metrik = 'kilo'; // gelisim grafiginde secili metrik
 
   @override
   void initState() {
@@ -136,6 +168,30 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
     return null;
   }
 
+  // Grafik icin tarihe gore ARTAN sirali kopya (isletme listesi azalan gelir).
+  List<VucutOlcum> get _artan {
+    final c = [..._liste];
+    c.sort((a, b) {
+      final t = a.tarih.compareTo(b.tarih);
+      return t != 0 ? t : a.id.compareTo(b.id);
+    });
+    return c;
+  }
+
+  // En az 2 veri noktasi olan metrikler (tek nokta ile trend cizilmez).
+  List<_Metrik> get _mevcutMetrikler {
+    final v = _artan;
+    return _metrikTanim
+        .where((m) => v.where((o) => m.al(o) != null).length >= 2)
+        .toList();
+  }
+
+  String _kisaTarih(String t) {
+    final s = t.length >= 10 ? t.substring(0, 10) : t;
+    final p = s.split('-');
+    return p.length == 3 ? '${p[2]}/${p[1]}' : s;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -186,6 +242,7 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
                               ),
                             ),
                           _ozetKart(),
+                          _grafikKart(),
                           const SizedBox(height: 16),
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 8),
@@ -234,6 +291,216 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
           ),
         ),
       );
+
+  // ---- Gelisim grafigi: secilen metrigin zaman icindeki degisimi ----
+  Widget _grafikKart() {
+    final metrikler = _mevcutMetrikler;
+    if (metrikler.isEmpty) return const SizedBox.shrink();
+    final secili = metrikler.firstWhere((m) => m.key == _metrik,
+        orElse: () => metrikler.first);
+
+    // Secili metrigin (varsa) noktalarini artan tarihe gore topla.
+    final noktalar = <FlSpot>[];
+    final tarihler = <String>[];
+    double minY = double.infinity, maxY = -double.infinity;
+    var i = 0;
+    for (final o in _artan) {
+      final val = secili.al(o);
+      if (val == null) continue;
+      noktalar.add(FlSpot(i.toDouble(), val));
+      tarihler.add(_kisaTarih(o.tarih));
+      if (val < minY) minY = val;
+      if (val > maxY) maxY = val;
+      i++;
+    }
+    if (noktalar.length < 2) return const SizedBox.shrink();
+
+    // Y ekseni icin nefes payi.
+    final aralik = (maxY - minY).abs();
+    final pay = aralik < 0.5 ? 1.0 : aralik * 0.18;
+    final altY = minY - pay;
+    final ustY = maxY + pay;
+
+    // Ilk -> son degisim ve yorum (metrigin yonune gore olumlu/olumsuz).
+    final ilk = noktalar.first.y;
+    final son = noktalar.last.y;
+    final fark = son - ilk;
+    final iyi = secili.dusenIyi ? fark < 0 : fark > 0;
+    final degismedi = fark.abs() < (aralik < 0.5 ? 0.05 : 0.1);
+    final farkRenk = degismedi
+        ? const Color(0xFF888888)
+        : (iyi ? const Color(0xFF28A745) : const Color(0xFFDC3545));
+    final ok = degismedi ? '●' : (fark > 0 ? '▲' : '▼');
+    final cizgiRenk = _primary;
+
+    final bottomAralik =
+        (noktalar.length / 4).ceilToDouble().clamp(1.0, double.infinity);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.show_chart, size: 18, color: _primary),
+              const SizedBox(width: 6),
+              const Text('Gelişim Grafiği',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              const Spacer(),
+              Text('$ok ${fark.abs().toStringAsFixed(aralik < 0.5 ? 2 : 1)}${secili.birim}',
+                  style: TextStyle(
+                      color: farkRenk,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Metrik secici cipler
+          SizedBox(
+            height: 34,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: metrikler.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, idx) {
+                final m = metrikler[idx];
+                final aktif = m.key == secili.key;
+                return GestureDetector(
+                  onTap: () => setState(() => _metrik = m.key),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: aktif ? _primary : const Color(0xFFF0F0F7),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      m.etiket,
+                      style: TextStyle(
+                        color: aktif ? Colors.white : const Color(0xFF555566),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 190,
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: (noktalar.length - 1).toDouble(),
+                minY: altY,
+                maxY: ustY,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: (ustY - altY) / 4,
+                  getDrawingHorizontalLine: (_) =>
+                      FlLine(color: const Color(0xFFEDEDF3), strokeWidth: 1),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      interval: (ustY - altY) / 4,
+                      getTitlesWidget: (value, meta) => Text(
+                        value.toStringAsFixed(aralik < 5 ? 1 : 0),
+                        style: const TextStyle(
+                            fontSize: 9.5, color: Color(0xFF999999)),
+                      ),
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      interval: bottomAralik,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.round();
+                        if (idx < 0 || idx >= tarihler.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(tarihler[idx],
+                              style: const TextStyle(
+                                  fontSize: 9, color: Color(0xFF999999))),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => const Color(0xFF2A2A3C),
+                    getTooltipItems: (spots) => spots.map((s) {
+                      final idx = s.x.round();
+                      final t = (idx >= 0 && idx < tarihler.length)
+                          ? tarihler[idx]
+                          : '';
+                      return LineTooltipItem(
+                        '${s.y.toStringAsFixed(aralik < 5 ? 1 : 0)}${secili.birim}\n$t',
+                        const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: noktalar,
+                    isCurved: true,
+                    curveSmoothness: 0.25,
+                    color: cizgiRenk,
+                    barWidth: 3,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, pct, bar, index) =>
+                          FlDotCirclePainter(
+                        radius: 3.5,
+                        color: Colors.white,
+                        strokeWidth: 2,
+                        strokeColor: cizgiRenk,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: cizgiRenk.withOpacity(0.10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   // ---- Web'deki "Guncel VKI" ozet karti (renkli gauge) ----
   Widget _ozetKart() {
