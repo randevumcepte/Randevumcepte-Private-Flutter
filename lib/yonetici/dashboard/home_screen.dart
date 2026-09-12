@@ -460,12 +460,6 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   _topPerformersCard(context),
                 ],
-                // Saatlik yogunluk — Personel de kendi randevu yogunlugunu gorebilir.
-                // (Studyo modunda KALIR; yalnizca asagidaki bosluk doldurma onerisi gizlenir.)
-                if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
-                  const SizedBox(height: 12),
-                  _hourlyDensityCard(context),
-                ],
                 // Bos Slot Onerisi (bosluk doldurma) — Studyo modunda gizli; Personel (rol 5) icin de gizli.
                 if (!_studyo && kullanicirolu != 5 && Yetki.varMi('randevu.takvim_gor')) ...[
                   const SizedBox(height: 12),
@@ -475,6 +469,12 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   _branchPerformanceCard(context),
                 ],
+              ],
+              // Saatlik yogunluk — parasal DEGIL; studyo modunda da GORUNUR.
+              // (Performans blogunun DISINDA tutuldu ki !_studyo blogu bunu gizlemesin.)
+              if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
+                const SizedBox(height: 18),
+                _hourlyDensityCard(context),
               ],
               // Santral bilgilendirme — yalniz uyelik_turu == 3 pakette gorunur.
               if (uyelikturu == 3) ...[
@@ -922,17 +922,21 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       ));
     }
     // WhatsApp durum gostergesi: profil ikonunun altinda (top bar'da) — burada degil.
-    if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
-    pills.add(Expanded(
-      child: _quickPill(
-        context,
-        icon: Icons.account_balance_wallet_outlined,
-        // rapor.ciro_kar_gor yetkisi yoksa "****" goster.
-        value: Yetki.tutarGoster('${ozetsayfabilgi.toplamkasa} ₺', 'rapor.ciro_kar_gor'),
-        label: 'Bugünkü Kasa',
-        tint: const Color(0xFF10B981),
-      ),
-    ));
+    // Studyo modu: parasal veri yok -> Bugunku Kasa pill'i gosterilmez.
+    if (!_studyo) {
+      if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
+      pills.add(Expanded(
+        child: _quickPill(
+          context,
+          icon: Icons.account_balance_wallet_outlined,
+          // rapor.ciro_kar_gor yetkisi yoksa "****" goster.
+          value: Yetki.tutarGoster('${ozetsayfabilgi.toplamkasa} ₺', 'rapor.ciro_kar_gor'),
+          label: 'Bugünkü Kasa',
+          tint: const Color(0xFF10B981),
+        ),
+      ));
+    }
+    if (pills.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
