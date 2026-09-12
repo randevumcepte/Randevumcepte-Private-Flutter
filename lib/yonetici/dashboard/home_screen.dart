@@ -442,11 +442,13 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                 const SizedBox(height: 10),
                 _premiumDailyGrid(context),
               ],
-              // Performans / Karsilastirma
+              // Performans / Karsilastirma (Kasa, Alacak, Ciro, Karsilastirma, Zirvedekiler)
               //  - Rol 5 (Personel): personel.kendi_ciro_gor yetkisi açıksa görür.
               //  - Diger roller: rapor.satis yetkisiyle gate.
-              if ((kullanicirolu == 5 && Yetki.varMi('personel.kendi_ciro_gor')) ||
-                  (kullanicirolu != 5 && Yetki.varMi('rapor.satis'))) ...[
+              //  - Studyo modu: parasal/karsilastirma yok -> tum blok gizli.
+              if (!_studyo &&
+                  ((kullanicirolu == 5 && Yetki.varMi('personel.kendi_ciro_gor')) ||
+                  (kullanicirolu != 5 && Yetki.varMi('rapor.satis')))) ...[
                 const SizedBox(height: 18),
                 _periodChips(context),
                 const SizedBox(height: 10),
@@ -1132,7 +1134,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ));
     }
-    if (kullanicirolu == 5 || Yetki.varMi('gorusme.liste_gor')) {
+    if (!_studyo && (kullanicirolu == 5 || Yetki.varMi('gorusme.liste_gor'))) {
       items.add(_DashItem(
         icon: Icons.chat_bubble_outline_rounded,
         title: 'Ön Görüşme',
@@ -1172,26 +1174,27 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
           ),
         ),
       ));
-      items.add(_DashItem(
-        icon: Icons.inventory_2_outlined,
-        title: 'Ürün Satışı',
-        value: ozetsayfabilgi.urunsatissayisi.toString(),
-        tint: ext.infoColor,
-        onTap: () => Navigator.push(
-          context,
-          PageTransition(
-            type: PageTransitionType.rightToLeft,
-            duration: const Duration(milliseconds: 400),
-            child: AdisyonlarPage(
-              kullanicirolu: widget.kullanicirolu,
-              kullanici: widget.kullanici,
-              isletmebilgi: widget.isletmebilgi,
-              geriGitBtn: true,
-              ilkSatisTuruId: "3", // Ürün Satışları filtresi
+      if (!_studyo)
+        items.add(_DashItem(
+          icon: Icons.inventory_2_outlined,
+          title: 'Ürün Satışı',
+          value: ozetsayfabilgi.urunsatissayisi.toString(),
+          tint: ext.infoColor,
+          onTap: () => Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 400),
+              child: AdisyonlarPage(
+                kullanicirolu: widget.kullanicirolu,
+                kullanici: widget.kullanici,
+                isletmebilgi: widget.isletmebilgi,
+                geriGitBtn: true,
+                ilkSatisTuruId: "3", // Ürün Satışları filtresi
+              ),
             ),
           ),
-        ),
-      ));
+        ));
     }
     if (items.isEmpty) return const SizedBox.shrink();
 
