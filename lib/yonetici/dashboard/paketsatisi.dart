@@ -736,7 +736,10 @@ class _PaketSatisiState extends State<PaketSatisi> {
                     return;
                   }
 
-                  if (selectedPaketSatici == null) {
+                  // Studyo modunda satici (personel) secimi zorunlu degil (prim yok).
+                  final bool _studyoModu = widget.isletmebilgi is Map &&
+                      widget.isletmebilgi['studyo_modu']?.toString() == '1';
+                  if (selectedPaketSatici == null && !_studyoModu) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Lütfen bir satıcı seçin'),

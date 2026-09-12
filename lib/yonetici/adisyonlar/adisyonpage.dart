@@ -11,6 +11,7 @@
 
   import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
   import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
+  import 'package:randevu_sistem/Backend/odeme_durumu_api.dart';
   import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
   import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
   import 'package:randevu_sistem/Backend/backend.dart';
@@ -835,39 +836,58 @@
                             SizedBox(
                               width: double.infinity,
                               height: 38,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => TahsilatEkrani(
-                                        kullanicirolu: widget.kullanicirolu,
-                                        isletmebilgi: widget.isletmebilgi,
-                                        musteridanisanid: adisyon.user_id,
-                                        adisyonId: adisyon.id,
+                              child: _studyo
+                                  ? ElevatedButton.icon(
+                                      onPressed: () => _studyoOdemeIsaretle(
+                                          adisyon, true, isOpenTab),
+                                      icon: Icon(Icons.check_circle_outline,
+                                          size: 16),
+                                      label: Text('Ödeme Alındı',
+                                          style: TextStyle(fontSize: 13)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF1FBF6F),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    )
+                                  : ElevatedButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => TahsilatEkrani(
+                                              kullanicirolu:
+                                                  widget.kullanicirolu,
+                                              isletmebilgi: widget.isletmebilgi,
+                                              musteridanisanid: adisyon.user_id,
+                                              adisyonId: adisyon.id,
+                                            ),
+                                          ),
+                                        ).then((sonuc) async {
+                                          if (sonuc != true) return;
+                                          await _refreshAdisyonAfterPayment(
+                                              adisyon, isOpenTab);
+                                        });
+                                      },
+                                      icon: Icon(Icons.payment_outlined,
+                                          size: 16),
+                                      label: Text('Tahsilat Yap',
+                                          style: TextStyle(fontSize: 13)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.purple.shade700,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
                                       ),
                                     ),
-                                  ).then((sonuc) async {
-                                    // Sadece tahsilat gercekten yapildiysa (ekran
-                                    // true dondurur) yenile + bildirim goster.
-                                    // Carpi/geri ile cikista sonuc null gelir.
-                                    if (sonuc != true) return;
-                                    await _refreshAdisyonAfterPayment(
-                                        adisyon, isOpenTab);
-                                  });
-                                },
-                                icon: Icon(Icons.payment_outlined, size: 16),
-                                label: Text('Tahsilat Yap',
-                                    style: TextStyle(fontSize: 13)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.purple.shade700,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
                             ),
                           ],
                         ],
@@ -1041,6 +1061,30 @@
                                 ],
                               ),
                             ),
+                            if (_studyo) ...[
+                              SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 44,
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    Navigator.of(ctx).pop();
+                                    await _studyoOdemeIsaretle(
+                                        adisyon, false, isOpenTab);
+                                  },
+                                  icon: Icon(Icons.undo, size: 16),
+                                  label: Text('Ödeme Alınmadı (Geri Al)'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.orange.shade800,
+                                    side: BorderSide(
+                                        color: Colors.orange.shade300),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -1281,6 +1325,27 @@
         }).toList(),
       );
     }
+    // Studyo modu: satis takibi listesinden dogrudan ikili odeme isaretleme.
+    Future<void> _studyoOdemeIsaretle(
+        Adisyon adisyon, bool alindi, bool isOpenTab) async {
+      final salonId = widget.isletmebilgi is Map
+          ? (widget.isletmebilgi['id']?.toString() ?? '')
+          : '';
+      bool ok = false;
+      try {
+        ok = await adisyonOdemeIsaretle(
+            salonId: salonId, adisyonId: adisyon.id, alindi: alindi);
+      } catch (_) {}
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok
+            ? (alindi ? 'Ödeme alındı olarak işaretlendi.' : 'Ödeme geri alındı.')
+            : 'İşlem başarısız.'),
+        backgroundColor: ok ? const Color(0xFF1FBF6F) : Colors.redAccent,
+      ));
+      if (ok) await _refreshAdisyonAfterPayment(adisyon, isOpenTab);
+    }
+
     Future<void> _refreshAdisyonAfterPayment(Adisyon oldAdisyon, bool wasInOpenTab) async {
       try {
         // Sadece bu adisyonu güncellemek için API çağrısı yap

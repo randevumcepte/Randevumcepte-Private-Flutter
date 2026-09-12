@@ -843,7 +843,10 @@ class _HizmetSatisiState extends State<HizmetSatisi> {
                       return;
                     }
 
-                    if (selectedpersonel == null) {
+                    // Studyo modunda personel secimi zorunlu degil (prim yok).
+                    final bool _studyoModu = widget.isletmebilgi is Map &&
+                        widget.isletmebilgi['studyo_modu']?.toString() == '1';
+                    if (selectedpersonel == null && !_studyoModu) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Lütfen bir personel seçin'),
