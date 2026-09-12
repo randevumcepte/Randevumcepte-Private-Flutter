@@ -2474,7 +2474,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
         child: Row(
           children: [
             Expanded(child: satisTakibiBtn),
-            if (tahsilatYetkisi) ...[
+            if (tahsilatYetkisi && !_studyo) ...[
               const SizedBox(width: 12),
               Expanded(child: tahsilEtBtn),
             ],
