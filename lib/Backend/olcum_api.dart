@@ -11,13 +11,16 @@ const String _kBase = 'https://apptest.randevumcepte.com.tr/api/v1';
 
 Future<int?> _callerUserId() async {
   final ls = await SharedPreferences.getInstance();
-  final s = ls.getString('user');
-  if (s == null) return null;
-  try {
-    return int.tryParse(jsonDecode(s)['id'].toString());
-  } catch (_) {
-    return null;
+  // Isletme/personel girisi 'user', danisan/musteri girisi 'musteri' key'inde saklanir.
+  for (final key in ['user', 'musteri']) {
+    final s = ls.getString(key);
+    if (s == null) continue;
+    try {
+      final id = int.tryParse(jsonDecode(s)['id'].toString());
+      if (id != null && id > 0) return id;
+    } catch (_) {}
   }
+  return null;
 }
 
 Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {

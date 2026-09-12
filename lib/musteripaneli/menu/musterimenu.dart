@@ -379,6 +379,7 @@ class _MenuPageState extends State<MenuPage> {
                             child: VucutOlcumuEkran(
                               businessMode: false,
                               salonId: salonId,
+                              dogumTarihi: widget.md.dogum_tarihi,
                             ),
                           ),
                         );
