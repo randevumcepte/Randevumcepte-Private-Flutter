@@ -18,6 +18,7 @@ import 'package:sticky_headers/sticky_headers/widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/yonetici/randevular/sesli_randevu.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/dogum_gunu_popup.dart';
@@ -68,6 +69,9 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   bool get _studyo =>
       widget.isletmebilgi is Map &&
       widget.isletmebilgi['studyo_modu']?.toString() == '1';
+  // Studyo modu: bugunku grup dersi + katilimci sayisi (Ozet grid tile'lari)
+  int? _studyoDersSayisi;
+  int? _studyoKatilimci;
   List<Map<String, dynamic>> randevuList = [];
   late Kullanici kullanici;
   int uyelikturu = 0; // yuklenene kadar 0 (< 3) -> Asistan FAB gizli kalir
@@ -258,6 +262,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       dataLoaded = true;
       // Dogum gunu popup — veriler yuklendikten sonra bir kez (fire-and-forget).
       _dogumGunuKontrol();
+      // Studyo modu: bugunku grup dersi + katilimci sayisi (fire-and-forget).
+      if (_studyo) _studyoDersOzetGetir();
     } catch (e, st) {
       // Network/backend hatası: ekranı preload'ta kilitlemek yerine
       // hatayı logla ve kullanıcıya bilgi ver. Boş state ile devam et.
@@ -1107,6 +1113,23 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return '';
   }
 
+  // Studyo modu: bugunku grup dersi (oturum) + katilimci sayisini getir.
+  Future<void> _studyoDersOzetGetir() async {
+    final salon = seciliisletme;
+    if (salon == null || salon.isEmpty) return;
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final bugun = '${now.year}-${two(now.month)}-${two(now.day)}';
+    try {
+      final rapor = await grupDersiRapor(salon, bugun, bugun);
+      if (!mounted) return;
+      setState(() {
+        _studyoDersSayisi = int.tryParse((rapor['oturum'] ?? 0).toString()) ?? 0;
+        _studyoKatilimci = int.tryParse((rapor['katilim'] ?? 0).toString()) ?? 0;
+      });
+    } catch (_) {}
+  }
+
   Widget _premiumDailyGrid(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
@@ -1136,6 +1159,23 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
             ),
           ),
         ),
+      ));
+    }
+    // Studyo modu: Bugunku Grup Dersi + Katilimci sayisi.
+    if (_studyo) {
+      items.add(_DashItem(
+        icon: Icons.fitness_center_rounded,
+        title: 'Grup Dersi',
+        value: (_studyoDersSayisi ?? 0).toString(),
+        tint: scheme.primary,
+        onTap: () {},
+      ));
+      items.add(_DashItem(
+        icon: Icons.groups_rounded,
+        title: 'Katılımcı',
+        value: (_studyoKatilimci ?? 0).toString(),
+        tint: ext.successColor,
+        onTap: () {},
       ));
     }
     if (!_studyo && (kullanicirolu == 5 || Yetki.varMi('gorusme.liste_gor'))) {
