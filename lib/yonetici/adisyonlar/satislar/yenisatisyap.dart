@@ -1278,10 +1278,10 @@ class _SatisEkraniState extends State<SatisEkrani> {
                       Personel pers = item.personel;
                       satan = pers.personel_adi;
                     } else {
-                      satan = item.personel["personel_adi"] ?? "Personel Yok";
+                      satan = item.personel["personel_adi"] ?? (_studyo ? "" : "Personel Yok");
                     }
                   } else {
-                    satan = "Personel Yok";
+                    satan = (_studyo ? "" : "Personel Yok");
                   }
                   tutar = tryformat.format(double.parse(item.fiyat.replaceAll(",", ".")));
                   icon = Icons.spa_rounded;
@@ -1293,7 +1293,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   key = item.urun_id.toString();
                   kalem = item.urun?["urun_adi"] ?? "";
                   adet = item.adet;
-                  satan = item.personel?["personel_adi"] ?? "Personel Yok";
+                  satan = item.personel?["personel_adi"] ?? (_studyo ? "" : "Personel Yok");
                   tutar = tryformat.format(double.parse(item.fiyat.replaceAll(",", ".")));
                   icon = Icons.shopping_bag_rounded;
                   iconColor = context.appTheme.infoColor;
@@ -1304,7 +1304,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                   key = item.paket_id.toString();
                   kalem = item.paket?["paket_adi"] ?? "";
                   adet = "1";
-                  satan = item.personel?["personel_adi"] ?? "Personel Yok";
+                  satan = item.personel?["personel_adi"] ?? (_studyo ? "" : "Personel Yok");
                   tutar = tryformat.format(double.parse(item.fiyat.replaceAll(",", ".")));
                   icon = Icons.card_membership_rounded;
                   iconColor = _successColor;
@@ -2830,7 +2830,8 @@ class _SatisEkraniState extends State<SatisEkrani> {
               child: _buildKalemListesi(),
             ),
 
-            if (secilimusteridanisan != null &&
+            if (!_studyo &&
+                secilimusteridanisan != null &&
                 adisyonkalemleri.any((e) => e is AdisyonHizmet || e is AdisyonUrun || e is AdisyonPaket))
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),

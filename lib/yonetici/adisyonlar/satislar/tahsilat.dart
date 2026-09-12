@@ -1242,9 +1242,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16,),
-            if (_gapKampanya != null && _gapKampanya!['hasCampaign'] == true && _gapBannerVisible)
+            if (!_studyo && _gapKampanya != null && _gapKampanya!['hasCampaign'] == true && _gapBannerVisible)
               _buildGapKampanyaBanner(),
-            if (secilimusteridanisan != null && adisyonkalemleri.any((e) => e is AdisyonHizmet || e is AdisyonUrun || e is AdisyonPaket))
+            if (!_studyo && secilimusteridanisan != null && adisyonkalemleri.any((e) => e is AdisyonHizmet || e is AdisyonUrun || e is AdisyonPaket))
               _buildCarkKuponBanner(),
             widget.adisyonId == '' ?
             Container(
@@ -1506,10 +1506,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
                                   satan = pers.personel_adi;
                                 }
                                 else {
-                                  satan = item.personel["personel_adi"] ?? "Personel Yok";
+                                  satan = item.personel["personel_adi"] ?? (_studyo ? "" : "Personel Yok");
                                 }
                               } else {
-                                satan = "Personel Yok";
+                                satan = (_studyo ? "" : "Personel Yok");
                               }
 
                               tutar = tryformat.format(double.parse(item.fiyat));
@@ -1523,9 +1523,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                               // Null check ekleyin
                               if(item.personel != null) {
-                                satan = item.personel["personel_adi"] ?? "Personel Yok";
+                                satan = item.personel["personel_adi"] ?? (_studyo ? "" : "Personel Yok");
                               } else {
-                                satan = "Personel Yok";
+                                satan = (_studyo ? "" : "Personel Yok");
                               }
 
                               tutar=tryformat.format(double.parse(item.fiyat));
@@ -1539,9 +1539,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
                               // Null check ekleyin
                               if(item.personel != null) {
-                                satan = item.personel["personel_adi"] ?? "Personel Yok";
+                                satan = item.personel["personel_adi"] ?? (_studyo ? "" : "Personel Yok");
                               } else {
-                                satan = "Personel Yok";
+                                satan = (_studyo ? "" : "Personel Yok");
                               }
 
                               tutar =tryformat.format(double.parse(item.fiyat));
