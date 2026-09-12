@@ -216,13 +216,13 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
           adisyon_id: adisyonId,
           paket_id: p.id,
           fiyat: _guncelFiyat(p).toString(),
-          personel_id: selectedSatici!.id,
+          personel_id: selectedSatici?.id ?? "",
           taksitli_tahsilat_id: "",
           senet_id: "",
           indirim_tutari: "",
           hediye: "false",
           paket: p.toJson(),
-          personel: selectedSatici!.toJson(),
+          personel: selectedSatici?.toJson() ?? {},
           seans_baslangic_saati: seans_saati.text,
         );
         final eklenen = await adisyonpaketekle(
@@ -300,22 +300,24 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: Column(
                     children: [
-                      AramaliDropdownFormField<Personel>(
-                        value: selectedSatici,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText: 'Satıcı',
-                          prefixIcon: const Icon(Icons.person_outline_rounded),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      if (!_studyo) ...[
+                        AramaliDropdownFormField<Personel>(
+                          value: selectedSatici,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Satıcı',
+                            prefixIcon: const Icon(Icons.person_outline_rounded),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          hint: const Text('Satıcı seçin'),
+                          items: personeller
+                              .map((p) => DropdownMenuItem(value: p, child: Text(p.personel_adi)))
+                              .toList(),
+                          onChanged: (v) => setState(() => selectedSatici = v),
                         ),
-                        hint: const Text('Satıcı seçin'),
-                        items: personeller
-                            .map((p) => DropdownMenuItem(value: p, child: Text(p.personel_adi)))
-                            .toList(),
-                        onChanged: (v) => setState(() => selectedSatici = v),
-                      ),
-                      const SizedBox(height: 10),
+                        const SizedBox(height: 10),
+                      ],
                       Row(
                         children: [
                           Expanded(

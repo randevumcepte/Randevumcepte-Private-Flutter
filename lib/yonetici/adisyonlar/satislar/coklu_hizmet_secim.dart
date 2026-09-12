@@ -243,7 +243,7 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
           sure: (int.tryParse(h.sure) ?? 0).toString(),
           fiyat: _guncelFiyat(h).toStringAsFixed(2).replaceAll('.', ','),
           geldi: "1",
-          personel_id: selectedpersonel!.id,
+          personel_id: selectedpersonel?.id ?? "",
           cihaz_id: "",
           oda_id: "",
           dogrulama_kodu: "",
@@ -252,7 +252,7 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
           indirim_tutari: "",
           hediye: "",
           hizmet: h.hizmet,
-          personel: selectedpersonel!,
+          personel: selectedpersonel,
           seans_sayisi: _seansGonder,
         );
         final eklenen = await adisyonhizmetekle(ah, widget.musteriid, context, seciliisletme!);
@@ -325,30 +325,32 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: Column(
                     children: [
-                      AramaliDropdownFormField<Personel>(
-                        value: selectedpersonel,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText: 'Personel',
-                          prefixIcon: const Icon(Icons.person_outline_rounded),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      if (!_studyo) ...[
+                        AramaliDropdownFormField<Personel>(
+                          value: selectedpersonel,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Personel',
+                            prefixIcon: const Icon(Icons.person_outline_rounded),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          hint: const Text('Personel seçin'),
+                          items: personeller
+                              .map((p) => DropdownMenuItem(value: p, child: Text(p.personel_adi)))
+                              .toList(),
+                          onChanged: (v) => setState(() {
+                            selectedpersonel = v;
+                            // Yeni personele atanmamış seçili hizmetleri kaldır
+                            // (atanmış hizmeti yoksa hepsi geçerli, dokunma).
+                            final izinli = _izinliHizmetIdler();
+                            if (izinli.isNotEmpty) {
+                              _seciliHizmetIdler.removeWhere((id) => !izinli.contains(id));
+                            }
+                          }),
                         ),
-                        hint: const Text('Personel seçin'),
-                        items: personeller
-                            .map((p) => DropdownMenuItem(value: p, child: Text(p.personel_adi)))
-                            .toList(),
-                        onChanged: (v) => setState(() {
-                          selectedpersonel = v;
-                          // Yeni personele atanmamış seçili hizmetleri kaldır
-                          // (atanmış hizmeti yoksa hepsi geçerli, dokunma).
-                          final izinli = _izinliHizmetIdler();
-                          if (izinli.isNotEmpty) {
-                            _seciliHizmetIdler.removeWhere((id) => !izinli.contains(id));
-                          }
-                        }),
-                      ),
-                      const SizedBox(height: 10),
+                        const SizedBox(height: 10),
+                      ],
                       Row(
                         children: [
                           Expanded(
