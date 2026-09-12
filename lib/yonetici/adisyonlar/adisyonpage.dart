@@ -92,6 +92,10 @@
 
     List<Adisyon> _acikAdisyonlar = [];
     List<Adisyon> _kapaliAdisyonlar = [];
+    // Studyo modu (fiyat gizleme): listede tutarlar gizli
+    bool get _studyo =>
+        widget.isletmebilgi is Map &&
+        widget.isletmebilgi['studyo_modu']?.toString() == '1';
     int _currentPage = 1;
     int _currentPageAcik = 1;
 
@@ -677,6 +681,7 @@
                             ),
                           ),
                           SizedBox(width: 8),
+                          if (!_studyo)
                           Text(
                             '₺${toplam.toStringAsFixed(2).replaceAll('.', ',')}',
                             style: TextStyle(
@@ -772,9 +777,11 @@
                             ),
                             SizedBox(width: 10),
                             Text(
-                              isFullPaid
-                                  ? 'Tamamlandı'
-                                  : 'Kalan ₺${kalan.toStringAsFixed(2).replaceAll('.', ',')}',
+                              _studyo
+                                  ? (isFullPaid ? 'Ödendi' : 'Detay')
+                                  : (isFullPaid
+                                      ? 'Tamamlandı'
+                                      : 'Kalan ₺${kalan.toStringAsFixed(2).replaceAll('.', ',')}'),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -806,6 +813,7 @@
                       children: [
                         _buildCompactSalesContent(adisyon.icerikKisaltilmis),
                         SizedBox(height: 10),
+                        if (!_studyo)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -1006,6 +1014,7 @@
                             SizedBox(height: 8),
                             _buildCompactSalesContent(adisyon.icerikKisaltilmis),
                             SizedBox(height: 16),
+                            if (!_studyo)
                             Container(
                               padding: EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 12),
@@ -1260,7 +1269,7 @@
                       style: TextStyle(
                           fontSize: 13, color: Colors.grey.shade800)),
                 ),
-                if (fiyat.isNotEmpty)
+                if (fiyat.isNotEmpty && !_studyo)
                   Text(fiyat,
                       style: TextStyle(
                           fontSize: 13,
