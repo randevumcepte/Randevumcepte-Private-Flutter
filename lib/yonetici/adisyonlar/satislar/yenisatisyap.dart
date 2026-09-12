@@ -19,6 +19,7 @@ import 'package:randevu_sistem/Models/taksitlitahsilatlar.dart';
 import 'package:randevu_sistem/yonetici/dashboard/urunsatisiduzenleme.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/Backend/odeme_durumu_api.dart';
 
 import 'package:randevu_sistem/Frontend/lazyload.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -439,6 +440,32 @@ class _SatisEkraniState extends State<SatisEkrani> {
     if (id.isNotEmpty && mounted) {
       setState(() => yeniSatisAdisyonId = id);
     }
+  }
+
+  // Studyo modu: Yeni Satis ekraninda tutar yerine dogrudan "Ödeme Alındı".
+  // Kalem eklenince adisyon zaten olusur (yeniSatisAdisyonId). tamOde -> tarih/saat + kapali.
+  Future<void> _studyoOdemeAl() async {
+    if (yeniSatisAdisyonId.isEmpty || adisyonkalemleri.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Lütfen önce en az bir hizmet veya paket ekleyin.'),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
+    final salonId = widget.isletmebilgi is Map
+        ? (widget.isletmebilgi['id']?.toString() ?? seciliisletme)
+        : seciliisletme;
+    bool ok = false;
+    try {
+      ok = await adisyonOdemeIsaretle(
+          salonId: salonId, adisyonId: yeniSatisAdisyonId, alindi: true);
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok ? 'Ödeme alındı olarak işaretlendi.' : 'İşlem başarısız.'),
+      backgroundColor: ok ? const Color(0xFF1FBF6F) : Colors.redAccent,
+    ));
+    if (ok) Navigator.of(context).pop({'refresh': true});
   }
 
   void hizmetsatisi(AdisyonHizmet? mevcutadisyonhizmet) async {
@@ -2477,6 +2504,25 @@ class _SatisEkraniState extends State<SatisEkrani> {
             if (tahsilatYetkisi && !_studyo) ...[
               const SizedBox(width: 12),
               Expanded(child: tahsilEtBtn),
+            ],
+            if (tahsilatYetkisi && _studyo) ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _studyoOdemeAl(),
+                  icon: const Icon(Icons.check_circle_outline, size: 20),
+                  label: const Text('Ödeme Alındı',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1FBF6F),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    elevation: 4,
+                  ),
+                ),
+              ),
             ],
           ],
         ),
