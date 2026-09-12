@@ -461,12 +461,12 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   _topPerformersCard(context),
                 ],
                 // Saatlik yogunluk — Personel de kendi randevu yogunlugunu gorebilir.
-                // Studyo modu: saat bazli yogunluk + bosluk doldurma onerisi gizli.
-                if (!_studyo && (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor'))) ...[
+                // (Studyo modunda KALIR; yalnizca asagidaki bosluk doldurma onerisi gizlenir.)
+                if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
                   const SizedBox(height: 12),
                   _hourlyDensityCard(context),
                 ],
-                // Bos Slot Onerisi — Personel (rol 5) icin gizli.
+                // Bos Slot Onerisi (bosluk doldurma) — Studyo modunda gizli; Personel (rol 5) icin de gizli.
                 if (!_studyo && kullanicirolu != 5 && Yetki.varMi('randevu.takvim_gor')) ...[
                   const SizedBox(height: 12),
                   _emptySlotOpportunitiesCard(context),
