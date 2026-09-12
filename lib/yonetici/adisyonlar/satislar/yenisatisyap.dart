@@ -1766,7 +1766,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
               ),
             ));
           }
-          if (urunYet) {
+          if (urunYet && !_studyo) {
             if (btns.isNotEmpty) btns.add(SizedBox(width: 8));
             btns.add(Expanded(
               child: _buildActionButton(

@@ -36,6 +36,8 @@
     this.son_tahsilat_tarihi = '',
     this.fatura_kesildi = 0,
     this.salonAdi = '',
+    this.odendi = 0,
+    this.odendi_tarihi = '',
 
 
   });
@@ -72,6 +74,9 @@
   final String icerikKisaltilmis;
   final String son_tahsilat_tarihi;
   final int fatura_kesildi;
+  // Studyo modu: odeme durumu + tam tarih/saat (d.m.Y H:i)
+  final int odendi;
+  final String odendi_tarihi;
   // Musteri panelinde bundle birden cok subeyi kapsiyorsa hangi subeden alindigi.
   final String salonAdi;
 
@@ -112,6 +117,8 @@
       user_id : json["user_id"].toString(),
       son_tahsilat_tarihi: json["son_tahsilat_tarihi"]?.toString() ?? '',
       fatura_kesildi: int.tryParse(json["fatura_kesildi"]?.toString() ?? '0') ?? 0,
+      odendi: int.tryParse(json["odendi"]?.toString() ?? '0') ?? 0,
+      odendi_tarihi: json["odendi_tarihi"]?.toString() ?? '',
       salonAdi: json["salon_adi"]?.toString() ?? '',
 
 

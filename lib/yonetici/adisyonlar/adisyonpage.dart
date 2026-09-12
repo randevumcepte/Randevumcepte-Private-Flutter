@@ -779,7 +779,11 @@
                             SizedBox(width: 10),
                             Text(
                               _studyo
-                                  ? (isFullPaid ? 'Ödendi' : 'Detay')
+                                  ? (isFullPaid
+                                      ? (adisyon.odendi_tarihi.isNotEmpty
+                                          ? '✓ ${adisyon.odendi_tarihi}'
+                                          : 'Ödendi')
+                                      : '')
                                   : (isFullPaid
                                       ? 'Tamamlandı'
                                       : 'Kalan ₺${kalan.toStringAsFixed(2).replaceAll('.', ',')}'),
@@ -1182,7 +1186,7 @@
                     Text('Hizmet Ekle'),
                   ]),
                 ),
-              if (Yetki.varMi('urun.sat'))
+              if (Yetki.varMi('urun.sat') && !_studyo)
                 PopupMenuItem(
                   value: 'urun',
                   child: Row(children: [
