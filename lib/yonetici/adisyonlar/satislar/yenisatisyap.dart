@@ -70,6 +70,10 @@ class SatisEkrani extends StatefulWidget {
 }
 
 class _SatisEkraniState extends State<SatisEkrani> {
+  // Studyo modu (fiyat gizleme): satis ekraninda kalem fiyatlari gizli
+  bool get _studyo =>
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
   bool isloading = true;
   Color? aktifPasifRenk;
   bool kalemleryukleniyor = false;
@@ -1514,6 +1518,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                             ),
                           ),
                           SizedBox(height: 4),
+                          if (!_studyo)
                           Text(
                             '$tutar ₺',
                             style: TextStyle(
