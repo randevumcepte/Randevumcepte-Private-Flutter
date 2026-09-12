@@ -32,6 +32,10 @@ class CokluPaketSecim extends StatefulWidget {
 }
 
 class _CokluPaketSecimState extends State<CokluPaketSecim> {
+  // Studyo modu: fiyat gizli + satici (personel) zorunlu degil
+  bool get _studyo =>
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
   bool isloading = true;
   bool _kaydediliyor = false;
 
@@ -191,7 +195,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
   }
 
   Future<void> _kaydet() async {
-    if (selectedSatici == null) {
+    if (selectedSatici == null && !_studyo) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lütfen bir satıcı seçin'), backgroundColor: Colors.red),
       );
@@ -265,6 +269,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                         children: [
                           Text('${_seciliPaketIdler.length} paket seçildi',
                               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                          if (!_studyo)
                           Text(tryf.format(_secilenToplam),
                               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                         ],
@@ -413,6 +418,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                                         ],
                                       ),
                                     ),
+                                    if (!_studyo)
                                     SizedBox(
                                       width: 120,
                                       child: TextField(
