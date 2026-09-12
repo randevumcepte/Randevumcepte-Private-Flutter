@@ -1,15 +1,69 @@
 // Vucut Olcumu ekrani (Pilates/studyo modu).
 // businessMode=true  -> isletme: listeler + ekler + siler (musteriId zorunlu)
-// businessMode=false -> danisan: kendi olcumleri (salt-okunur) + gelisim grafigi
+// businessMode=false -> danisan: kendi olcumleri (salt-okunur)
+// Tasarim webdeki "Guncel VKI" ozet karti (renkli gauge) + gecmis listesi gibi.
+// Boy ve Yas sabit: ekleme formunda son olcumden/dogum tarihinden on-dolu gelir,
+// her seferinde tekrar girilmez. Dogum tarihi varsa yas otomatik hesaplanir (kilitli).
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/olcum_api.dart';
 import 'package:randevu_sistem/Models/olcum.dart';
+
+// VKI sinif/renk/skala yardimcilari (web ile birebir ayni esikler).
+class _Vki {
+  static const zonlar = [
+    _Zon('Zayıf', 14, Color(0xFF17A2B8)),
+    _Zon('Normal', 26, Color(0xFF28A745)),
+    _Zon('Fazla', 20, Color(0xFFFD7E14)),
+    _Zon('Obez', 40, Color(0xFFDC3545)),
+  ];
+
+  static Color renk(double v) {
+    if (v <= 0) return const Color(0xFF9AA0B0);
+    if (v < 18.5) return const Color(0xFF17A2B8);
+    if (v < 25) return const Color(0xFF28A745);
+    if (v < 30) return const Color(0xFFFD7E14);
+    return const Color(0xFFDC3545);
+  }
+
+  static String sinif(double v) => VucutOlcum.vkiSinif(v);
+
+  // 15..40 araliginda skala uzerinde konum (0..1)
+  static double konum(double v) {
+    const min = 15.0, max = 40.0;
+    final p = (v - min) / (max - min);
+    return p.clamp(0.0, 1.0);
+  }
+}
+
+class _Zon {
+  final String ad;
+  final int gen;
+  final Color renk;
+  const _Zon(this.ad, this.gen, this.renk);
+}
+
+// Dogum tarihinden yas hesapla (gecersizse null).
+int? yasHesapla(String? dt) {
+  if (dt == null || dt.isEmpty || dt == 'null') return null;
+  DateTime? d;
+  try {
+    d = DateTime.parse(dt);
+  } catch (_) {
+    return null;
+  }
+  final now = DateTime.now();
+  var y = now.year - d.year;
+  if (now.month < d.month || (now.month == d.month && now.day < d.day)) y--;
+  if (y < 0 || y > 130) return null;
+  return y;
+}
 
 class VucutOlcumuEkran extends StatefulWidget {
   final bool businessMode;
   final String? salonId;
   final int? musteriId; // businessMode icin
   final String? musteriAdi;
+  final String? dogumTarihi; // varsa yas otomatik hesaplanir
 
   const VucutOlcumuEkran({
     Key? key,
@@ -17,6 +71,7 @@ class VucutOlcumuEkran extends StatefulWidget {
     this.salonId,
     this.musteriId,
     this.musteriAdi,
+    this.dogumTarihi,
   }) : super(key: key);
 
   @override
@@ -58,11 +113,27 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
     }
   }
 
-  // Danisan grafigi icin artan tarih ister; isletme listesi azalan gelir.
-  List<VucutOlcum> get _artanTarih {
-    final l = List<VucutOlcum>.from(_liste);
-    l.sort((a, b) => a.tarih.compareTo(b.tarih));
-    return l;
+  // Isletme listesi azalan (yeni ustte) gelir. VKI'si olan en yeni olcum.
+  VucutOlcum? get _sonVkili {
+    for (final o in _liste) {
+      if ((o.vki ?? 0) > 0) return o;
+    }
+    return _liste.isNotEmpty ? _liste.first : null;
+  }
+
+  // Ekleme formuna on-dolu deger: en yeni boy / yas (dogum tarihi yoksa).
+  double? get _sonBoy {
+    for (final o in _liste) {
+      if ((o.boy ?? 0) > 0) return o.boy;
+    }
+    return null;
+  }
+
+  int? get _sonYas {
+    for (final o in _liste) {
+      if (o.yas != null && o.yas! > 0) return o.yas;
+    }
+    return null;
   }
 
   @override
@@ -104,11 +175,17 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
                         children: [
-                          _grafikKart('Kilo (kg)', _artanTarih.map((o) => o.kilo).toList(),
-                              const Color(0xFF1E88E5)),
-                          const SizedBox(height: 12),
-                          _grafikKart('VKİ', _artanTarih.map((o) => o.vki).toList(),
-                              const Color(0xFF7C3AED)),
+                          if (widget.musteriAdi != null &&
+                              widget.musteriAdi!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4, bottom: 10),
+                              child: Text(
+                                '${widget.musteriAdi} — Vücut Ölçümleri',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800, fontSize: 16),
+                              ),
+                            ),
+                          _ozetKart(),
                           const SizedBox(height: 16),
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 8),
@@ -158,48 +235,182 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
         ),
       );
 
-  Widget _grafikKart(String baslik, List<double?> ham, Color renk) {
-    final noktalar = ham.where((e) => e != null).map((e) => e!).toList();
-    if (noktalar.length < 2) return const SizedBox.shrink();
-    final ilk = noktalar.first, son = noktalar.last;
-    final fark = son - ilk;
-    final farkStr = (fark > 0 ? '+' : '') + fark.toStringAsFixed(1);
+  // ---- Web'deki "Guncel VKI" ozet karti (renkli gauge) ----
+  Widget _ozetKart() {
+    final son = _sonVkili;
+    final v = son?.vki ?? 0;
+    if (son == null || v <= 0) return const SizedBox.shrink();
+    final renk = _Vki.renk(v);
+    final sinif = _Vki.sinif(v);
+    final pos = _Vki.konum(v);
+
+    // Boy/Yas ozette gosterilecek: dogum tarihinden yas oncelik.
+    final yasGoster = yasHesapla(widget.dogumTarihi) ?? son.yas ?? _sonYas;
+    final boyGoster = son.boy ?? _sonBoy;
+
+    // Onceki olcume gore kilo degisimi.
+    Widget? delta;
+    if ((son.kilo ?? 0) > 0) {
+      VucutOlcum? onceki;
+      var gecti = false;
+      for (final o in _liste) {
+        if (identical(o, son)) {
+          gecti = true;
+          continue;
+        }
+        if (gecti && (o.kilo ?? 0) > 0) {
+          onceki = o;
+          break;
+        }
+      }
+      if (onceki != null) {
+        final d = son.kilo! - onceki.kilo!;
+        if (d.abs() >= 0.05) {
+          final arti = d > 0;
+          final dRenk = arti ? const Color(0xFFDC3545) : const Color(0xFF28A745);
+          delta = Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                    color: dRenk, fontWeight: FontWeight.w700, fontSize: 12.5),
+                children: [
+                  TextSpan(text: '${arti ? '▲' : '▼'} ${d.abs().toStringAsFixed(1)} kg '),
+                  const TextSpan(
+                      text: '(önceki ölçüme göre)',
+                      style: TextStyle(
+                          color: Color(0xFF888888),
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12.5)),
+                ],
+              ),
+            ),
+          );
+        } else {
+          delta = const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('● Kilo sabit',
+                style: TextStyle(color: Color(0xFF888888), fontSize: 12.5)),
+          );
+        }
+      }
+    }
+
+    Widget cip(IconData ic, String metin) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F0F7),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(ic, size: 13, color: Colors.black45),
+              const SizedBox(width: 5),
+              Text(metin,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        );
+
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border(left: BorderSide(color: renk, width: 6)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2)),
+        ],
       ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (son.tarih.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.access_time, size: 14, color: Colors.black38),
+                  const SizedBox(width: 5),
+                  Text('Son ölçüm: ${son.tarih}',
+                      style: const TextStyle(fontSize: 12.5, color: Colors.black54)),
+                ],
+              ),
+            ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(baslik, style: const TextStyle(fontWeight: FontWeight.w700)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: (fark <= 0 ? Colors.green : Colors.orange).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '$farkStr  (${son.toStringAsFixed(1)})',
-                  style: TextStyle(
-                    color: fark <= 0 ? Colors.green.shade700 : Colors.orange.shade800,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
+              // Sol: dev VKI rakami
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('GÜNCEL VKİ',
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF8A8FA3))),
+                  Text(v.toStringAsFixed(1),
+                      style: TextStyle(
+                          fontSize: 44,
+                          height: 1.05,
+                          fontWeight: FontWeight.w800,
+                          color: renk)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+                    decoration: BoxDecoration(
+                        color: renk, borderRadius: BorderRadius.circular(20)),
+                    child: Text(sinif,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700)),
                   ),
+                ],
+              ),
+              const SizedBox(width: 18),
+              // Sag: cipler + gauge + scale + delta
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (boyGoster != null)
+                          cip(Icons.straighten, 'Boy ${boyGoster.toStringAsFixed(1)} cm'),
+                        if (yasGoster != null) cip(Icons.cake_outlined, 'Yaş $yasGoster'),
+                        if ((son.kilo ?? 0) > 0)
+                          cip(Icons.monitor_weight_outlined,
+                              'Kilo ${son.kilo!.toStringAsFixed(1)} kg'),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _GaugeBar(pos: pos),
+                    const SizedBox(height: 4),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 1),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('15', style: TextStyle(fontSize: 9.5, color: Color(0xFF999999))),
+                          Text('18.5', style: TextStyle(fontSize: 9.5, color: Color(0xFF999999))),
+                          Text('25', style: TextStyle(fontSize: 9.5, color: Color(0xFF999999))),
+                          Text('30', style: TextStyle(fontSize: 9.5, color: Color(0xFF999999))),
+                          Text('40+', style: TextStyle(fontSize: 9.5, color: Color(0xFF999999))),
+                        ],
+                      ),
+                    ),
+                    if (delta != null) delta,
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 70,
-            width: double.infinity,
-            child: CustomPaint(painter: _Sparkline(noktalar, renk)),
           ),
         ],
       ),
@@ -207,12 +418,14 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
   }
 
   Widget _olcumKart(VucutOlcum o) {
-    final sinif = VucutOlcum.vkiSinif(o.vki);
-    Widget metrik(String ad, double? v, String birim) {
-      if (v == null) return const SizedBox.shrink();
+    final v = o.vki ?? 0;
+    final sinif = _Vki.sinif(v);
+    final renk = _Vki.renk(v);
+    Widget metrik(String ad, double? val, String birim) {
+      if (val == null) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.only(right: 16, top: 4),
-        child: Text('$ad: ${v.toStringAsFixed(1)}$birim',
+        child: Text('$ad: ${val.toStringAsFixed(1)}$birim',
             style: const TextStyle(fontSize: 12, color: Colors.black87)),
       );
     }
@@ -234,16 +447,16 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
               const SizedBox(width: 6),
               Text(o.tarih, style: const TextStyle(fontWeight: FontWeight.w700)),
               const Spacer(),
-              if (o.vki != null)
+              if (v > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _primary.withOpacity(0.10),
+                    color: renk.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('VKİ ${o.vki!.toStringAsFixed(1)}  $sinif',
-                      style: const TextStyle(
-                          color: _primary, fontWeight: FontWeight.w700, fontSize: 12)),
+                  child: Text('VKİ ${v.toStringAsFixed(1)}  $sinif',
+                      style: TextStyle(
+                          color: renk, fontWeight: FontWeight.w700, fontSize: 12)),
                 ),
               if (widget.businessMode) ...[
                 const SizedBox(width: 4),
@@ -314,18 +527,88 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
       builder: (_) => _OlcumEkleSheet(
         salonId: widget.salonId ?? '',
         musteriId: widget.musteriId ?? 0,
+        dogumTarihi: widget.dogumTarihi,
+        onBoy: _sonBoy,
+        onYas: _sonYas,
       ),
     );
     if (eklendi == true) _yukle();
   }
 }
 
+// Renkli 4 zonlu gauge bar + ustunde ok isaretci.
+class _GaugeBar extends StatelessWidget {
+  final double pos; // 0..1
+  const _GaugeBar({Key? key, required this.pos}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, c) {
+      final w = c.maxWidth;
+      return SizedBox(
+        height: 20,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              top: 6,
+              left: 0,
+              right: 0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  children: _Vki.zonlar
+                      .map((z) => Expanded(
+                            flex: z.gen,
+                            child: Container(height: 14, color: z.renk),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ),
+            // Ok isaretci
+            Positioned(
+              left: (pos * w) - 6,
+              top: 0,
+              child: CustomPaint(size: const Size(12, 9), painter: _OkPainter()),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _OkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(p, Paint()..color = const Color(0xFF222222));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 // ------- Ekleme formu (bottom sheet) -------
 class _OlcumEkleSheet extends StatefulWidget {
   final String salonId;
   final int musteriId;
-  const _OlcumEkleSheet({Key? key, required this.salonId, required this.musteriId})
-      : super(key: key);
+  final String? dogumTarihi;
+  final double? onBoy; // son olcumden gelen boy (on-dolu)
+  final int? onYas; // son olcumden gelen yas (dogum tarihi yoksa)
+  const _OlcumEkleSheet({
+    Key? key,
+    required this.salonId,
+    required this.musteriId,
+    this.dogumTarihi,
+    this.onBoy,
+    this.onYas,
+  }) : super(key: key);
 
   @override
   State<_OlcumEkleSheet> createState() => _OlcumEkleSheetState();
@@ -345,16 +628,36 @@ class _OlcumEkleSheetState extends State<_OlcumEkleSheet> {
   final _not = TextEditingController();
   bool _kaydediyor = false;
 
+  int? _otoYas; // dogum tarihinden hesaplanan yas (varsa yas kilitli)
+
+  @override
+  void initState() {
+    super.initState();
+    // Boy sabit: son olcumden on-dolu.
+    if (widget.onBoy != null && widget.onBoy! > 0) {
+      _boy.text = _sayiStr(widget.onBoy!);
+    }
+    // Yas: dogum tarihi varsa otomatik (kilitli), yoksa son yastan on-dolu.
+    _otoYas = yasHesapla(widget.dogumTarihi);
+    if (_otoYas != null) {
+      _yas.text = _otoYas.toString();
+    } else if (widget.onYas != null && widget.onYas! > 0) {
+      _yas.text = widget.onYas.toString();
+    }
+  }
+
+  String _sayiStr(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+
   String get _tarihStr =>
       '${_tarih.year.toString().padLeft(4, '0')}-${_tarih.month.toString().padLeft(2, '0')}-${_tarih.day.toString().padLeft(2, '0')}';
 
-  String? get _vkiOnizle {
+  double get _vkiDeger {
     final b = double.tryParse(_boy.text.replaceAll(',', '.')) ?? 0;
     final k = double.tryParse(_kilo.text.replaceAll(',', '.')) ?? 0;
-    if (b <= 0 || k <= 0) return null;
+    if (b <= 0 || k <= 0) return 0;
     final m = b / 100;
-    final v = k / (m * m);
-    return '${v.toStringAsFixed(1)} (${VucutOlcum.vkiSinif(v)})';
+    return k / (m * m);
   }
 
   @override
@@ -399,11 +702,16 @@ class _OlcumEkleSheetState extends State<_OlcumEkleSheet> {
   }
 
   Widget _alan(String etiket, TextEditingController c,
-      {String? ipucu, bool sayi = true, bool genis = false}) {
+      {String? ipucu,
+      bool sayi = true,
+      bool genis = false,
+      bool saltOkunur = false,
+      String? yardim}) {
     return SizedBox(
       width: genis ? double.infinity : null,
       child: TextField(
         controller: c,
+        readOnly: saltOkunur,
         keyboardType: sayi
             ? const TextInputType.numberWithOptions(decimal: true)
             : TextInputType.text,
@@ -411,6 +719,13 @@ class _OlcumEkleSheetState extends State<_OlcumEkleSheet> {
         decoration: InputDecoration(
           labelText: etiket,
           hintText: ipucu,
+          helperText: yardim,
+          helperStyle: const TextStyle(fontSize: 10.5, color: _primary),
+          suffixIcon: saltOkunur
+              ? const Icon(Icons.lock_outline, size: 16, color: Colors.black38)
+              : null,
+          filled: saltOkunur,
+          fillColor: saltOkunur ? const Color(0xFFF4F4FB) : null,
           isDense: true,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -422,6 +737,7 @@ class _OlcumEkleSheetState extends State<_OlcumEkleSheet> {
   @override
   Widget build(BuildContext context) {
     final alt = MediaQuery.of(context).viewInsets.bottom;
+    final v = _vkiDeger;
     return Padding(
       padding: EdgeInsets.only(bottom: alt),
       child: Container(
@@ -472,7 +788,13 @@ class _OlcumEkleSheetState extends State<_OlcumEkleSheet> {
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  SizedBox(width: _w(context), child: _alan('Yaş', _yas, ipucu: 'örn. 32')),
+                  SizedBox(
+                    width: _w(context),
+                    child: _alan('Yaş', _yas,
+                        ipucu: 'örn. 32',
+                        saltOkunur: _otoYas != null,
+                        yardim: _otoYas != null ? 'Doğum tarihinden' : null),
+                  ),
                   SizedBox(width: _w(context), child: _alan('Boy (cm)', _boy, ipucu: '170')),
                   SizedBox(width: _w(context), child: _alan('Kilo (kg)', _kilo, ipucu: '68')),
                   SizedBox(width: _w(context), child: _alan('Yağ Oranı (%)', _yag)),
@@ -482,18 +804,38 @@ class _OlcumEkleSheetState extends State<_OlcumEkleSheet> {
                   SizedBox(width: _w(context), child: _alan('İç Yağlanma', _icYag)),
                 ],
               ),
-              if (_vkiOnizle != null) ...[
+              if (v > 0) ...[
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: _primary.withOpacity(0.08),
+                    color: _Vki.renk(v).withOpacity(0.10),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text('Hesaplanan VKİ: $_vkiOnizle',
-                      style: const TextStyle(
-                          color: _primary, fontWeight: FontWeight.w700)),
+                  child: Row(
+                    children: [
+                      const Text('VKİ (otomatik): ',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(v.toStringAsFixed(1),
+                          style: TextStyle(
+                              color: _Vki.renk(v),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: _Vki.renk(v),
+                            borderRadius: BorderRadius.circular(20)),
+                        child: Text(_Vki.sinif(v),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               const SizedBox(height: 12),
@@ -528,60 +870,4 @@ class _OlcumEkleSheetState extends State<_OlcumEkleSheet> {
   }
 
   double _w(BuildContext c) => (MediaQuery.of(c).size.width - 16 * 2 - 10) / 2;
-}
-
-// ------- Basit sparkline cizici -------
-class _Sparkline extends CustomPainter {
-  final List<double> data;
-  final Color color;
-  _Sparkline(this.data, this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (data.length < 2) return;
-    final minV = data.reduce((a, b) => a < b ? a : b);
-    final maxV = data.reduce((a, b) => a > b ? a : b);
-    final aralik = (maxV - minV).abs() < 0.0001 ? 1.0 : (maxV - minV);
-    final dx = size.width / (data.length - 1);
-    final noktalar = <Offset>[];
-    for (var i = 0; i < data.length; i++) {
-      final x = dx * i;
-      final y = size.height - ((data[i] - minV) / aralik) * (size.height - 10) - 5;
-      noktalar.add(Offset(x, y));
-    }
-
-    // dolgu
-    final dolgu = Path()..moveTo(noktalar.first.dx, size.height);
-    for (final p in noktalar) {
-      dolgu.lineTo(p.dx, p.dy);
-    }
-    dolgu.lineTo(noktalar.last.dx, size.height);
-    dolgu.close();
-    canvas.drawPath(
-        dolgu, Paint()..color = color.withOpacity(0.10)..style = PaintingStyle.fill);
-
-    // cizgi
-    final cizgi = Path()..moveTo(noktalar.first.dx, noktalar.first.dy);
-    for (var i = 1; i < noktalar.length; i++) {
-      cizgi.lineTo(noktalar[i].dx, noktalar[i].dy);
-    }
-    canvas.drawPath(
-        cizgi,
-        Paint()
-          ..color = color
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round);
-
-    // noktalar
-    final nokPaint = Paint()..color = color;
-    for (final p in noktalar) {
-      canvas.drawCircle(p, 3, nokPaint);
-      canvas.drawCircle(p, 1.5, Paint()..color = Colors.white);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _Sparkline old) =>
-      old.data != data || old.color != color;
 }

@@ -1040,6 +1040,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 							salonId: _salonId,
 							musteriId: int.tryParse(_md.id) ?? 0,
 							musteriAdi: _md.name,
+							dogumTarihi: _md.dogum_tarihi,
 						),
 					),
 				),
