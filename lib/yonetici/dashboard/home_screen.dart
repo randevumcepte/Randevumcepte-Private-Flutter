@@ -1123,9 +1123,11 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     try {
       final rapor = await grupDersiRapor(salon, bugun, bugun);
       if (!mounted) return;
+      // Sayilar 'ozet' altinda ic ice doner: {ozet:{oturum, katilim, doluluk, ...}}
+      final ozet = rapor['ozet'];
       setState(() {
-        _studyoDersSayisi = int.tryParse((rapor['oturum'] ?? 0).toString()) ?? 0;
-        _studyoKatilimci = int.tryParse((rapor['katilim'] ?? 0).toString()) ?? 0;
+        _studyoDersSayisi = int.tryParse(((ozet is Map ? ozet['oturum'] : null) ?? 0).toString()) ?? 0;
+        _studyoKatilimci = int.tryParse(((ozet is Map ? ozet['katilim'] : null) ?? 0).toString()) ?? 0;
       });
     } catch (_) {}
   }

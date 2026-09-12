@@ -842,7 +842,10 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       });
     }
 
-    if (Yetki.varMi('finans.masraf_ekle')) {
+    // Studyo modu: parasal islem yok -> Yeni Masraf gizli.
+    if (Yetki.varMi('finans.masraf_ekle') &&
+        (widget.isletmebilgi is! Map ||
+            widget.isletmebilgi['studyo_modu']?.toString() != '1')) {
       menuItems.add({
         'icon': Icons.currency_lira_outlined,
         'title': "Yeni Masraf",
