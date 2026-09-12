@@ -64,6 +64,10 @@ class DashBoard extends StatefulWidget{
 }
 
 class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
+  // Studyo modu: saat bazli yogunluk + bosluk doldurma onerisi kartlari gizli
+  bool get _studyo =>
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
   List<Map<String, dynamic>> randevuList = [];
   late Kullanici kullanici;
   int uyelikturu = 0; // yuklenene kadar 0 (< 3) -> Asistan FAB gizli kalir
@@ -455,12 +459,13 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   _topPerformersCard(context),
                 ],
                 // Saatlik yogunluk — Personel de kendi randevu yogunlugunu gorebilir.
-                if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
+                // Studyo modu: saat bazli yogunluk + bosluk doldurma onerisi gizli.
+                if (!_studyo && (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor'))) ...[
                   const SizedBox(height: 12),
                   _hourlyDensityCard(context),
                 ],
                 // Bos Slot Onerisi — Personel (rol 5) icin gizli.
-                if (kullanicirolu != 5 && Yetki.varMi('randevu.takvim_gor')) ...[
+                if (!_studyo && kullanicirolu != 5 && Yetki.varMi('randevu.takvim_gor')) ...[
                   const SizedBox(height: 12),
                   _emptySlotOpportunitiesCard(context),
                 ],
