@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
+import 'package:randevu_sistem/Backend/odeme_durumu_api.dart';
 import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
 import 'package:randevu_sistem/Models/adisyonurunler.dart';
@@ -51,6 +52,13 @@ class TahsilatEkrani extends StatefulWidget {
 }
 
 class _TahsilatState extends State<TahsilatEkrani> {
+
+  // Studyo modu (fiyat gizleme): tutar yerine ikili odeme durumu
+  bool get _studyo =>
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
+  int? _studyoOdendi; // null=bilinmiyor, 0=alinmadi, 1=alindi
+  bool _studyoKaydediyor = false;
 
   bool isloading = true;
   Color? aktifPasifRenk;
@@ -1060,6 +1068,109 @@ class _TahsilatState extends State<TahsilatEkrani> {
       }
     }
   }
+  // Studyo modu: tutar sormadan "odeme alindi/alinmadi"
+  Future<void> _studyoOdemeKaydet(bool alindi) async {
+    setState(() => _studyoKaydediyor = true);
+    final salonId = widget.isletmebilgi is Map
+        ? (widget.isletmebilgi['id']?.toString() ?? '')
+        : '';
+    bool ok = false;
+    try {
+      ok = await adisyonOdemeIsaretle(
+        salonId: salonId,
+        adisyonId: widget.adisyonId,
+        alindi: alindi,
+      );
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _studyoKaydediyor = false;
+      if (ok) _studyoOdendi = alindi ? 1 : 0;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok ? 'Ödeme durumu kaydedildi.' : 'Kaydedilemedi.'),
+      backgroundColor: ok ? Colors.green : Colors.redAccent,
+    ));
+  }
+
+  Widget _buildStudyoOdemePanel() {
+    const mor = Color(0xFF7C3AED);
+    final alindi = _studyoOdendi == 1;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF9FF),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5E5EF)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Ödeme Durumu',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+                const SizedBox(height: 6),
+                Text(
+                  secilimusteridanisan?.name ?? '',
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                ),
+                const SizedBox(height: 14),
+                if (_studyoOdendi != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (alindi ? const Color(0xFF1FBF6F) : const Color(0xFF9097AD)),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(alindi ? '✓ Ödeme Alındı' : 'Ödeme Alınmadı',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1FBF6F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        icon: const Icon(Icons.check),
+                        label: const Text('Ödeme Alındı'),
+                        onPressed: _studyoKaydediyor ? null : () => _studyoOdemeKaydet(true),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: mor,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Color(0xFFCBB8F0)),
+                        ),
+                        onPressed: _studyoKaydediyor ? null : () => _studyoOdemeKaydet(false),
+                        child: const Text('Ödeme Alınmadı'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_studyoKaydediyor) ...[
+                  const SizedBox(height: 12),
+                  const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = context.colors;
@@ -1123,6 +1234,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         ],
       ),
       body: isloading ? Center(child: CircularProgressIndicator(),):
+      _studyo && widget.adisyonId != '' ? _buildStudyoOdemePanel() :
       GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
     child:  SingleChildScrollView(
