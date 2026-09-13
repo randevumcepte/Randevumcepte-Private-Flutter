@@ -36,6 +36,10 @@ class MenuPage extends StatefulWidget {
 }
 
 class _MenuPageState extends State<MenuPage> {
+  // Studyo modu: carkifelek/puan/kupon/sozlesme menu ogeleri gizli
+  bool get _studyo =>
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
   Color get _primaryColor => Theme.of(context).colorScheme.primary;
   Color get _lightPurple =>
       Theme.of(context).colorScheme.primary.withValues(alpha: 0.10);
@@ -277,60 +281,63 @@ class _MenuPageState extends State<MenuPage> {
                       );
                     },
                   ),
-                  _buildMenuButton(
-                    icon: Icons.casino_outlined,
-                    label: 'Çarkıfelek',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: const Duration(milliseconds: 300),
-                          child: WheelPage(
-                            md: widget.md,
-                            isletmebilgi: widget.isletmebilgi,
+                  if (!_studyo) ...[
+                    _buildMenuButton(
+                      icon: Icons.casino_outlined,
+                      label: 'Çarkıfelek',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.rightToLeft,
+                            duration: const Duration(milliseconds: 300),
+                            child: WheelPage(
+                              md: widget.md,
+                              isletmebilgi: widget.isletmebilgi,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuButton(
-                    icon: Icons.stars_rounded,
-                    label: 'Puan Ödüllerim',
-                    onTap: () {
-                      final salonId = widget.isletmebilgi is Map
-                          ? widget.isletmebilgi['id']?.toString()
-                          : null;
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: const Duration(milliseconds: 300),
-                          child: PuanOdullerimPage(
-                            md: widget.md,
-                            salonId: salonId,
+                        );
+                      },
+                    ),
+                    _buildMenuButton(
+                      icon: Icons.stars_rounded,
+                      label: 'Puan Ödüllerim',
+                      onTap: () {
+                        final salonId = widget.isletmebilgi is Map
+                            ? widget.isletmebilgi['id']?.toString()
+                            : null;
+                        Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.rightToLeft,
+                            duration: const Duration(milliseconds: 300),
+                            child: PuanOdullerimPage(
+                              md: widget.md,
+                              salonId: salonId,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuButton(
-                    icon: Icons.card_giftcard_rounded,
-                    label: 'Kuponlarım',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: const Duration(milliseconds: 300),
-                          child: OdullerimPage(md: widget.md),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
+                    _buildMenuButton(
+                      icon: Icons.card_giftcard_rounded,
+                      label: 'Kuponlarım',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.rightToLeft,
+                            duration: const Duration(milliseconds: 300),
+                            child: OdullerimPage(md: widget.md),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
 
                   const SizedBox(height: 12),
                   _buildSectionTitle('BELGELERİM'),
+                  if (!_studyo)
                   _buildMenuButton(
                     icon: Icons.description_outlined,
                     label: 'Sözleşme / Belgelerim',
