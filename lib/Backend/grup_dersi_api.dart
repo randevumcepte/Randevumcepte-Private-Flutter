@@ -184,3 +184,27 @@ Future<Map<String, dynamic>> dersProgramiYayinla(String salonId, String baslangi
   if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Yayinlanamadi');
   return j;
 }
+
+// ── Musteri (danisan) online rezervasyon ──
+// Salonun rezervasyona uygun (dolu olmayan, gelecek, hizmete bagli) dersleri.
+Future<List<Map<String, dynamic>>> grupDersleriUygun(String salonId) async {
+  final r = await http.get(
+    Uri.parse('$_kBase/grup-dersleri/$salonId'),
+    headers: {'Accept': 'application/json'},
+  ).timeout(const Duration(seconds: 30));
+  final j = (r.body.isNotEmpty) ? jsonDecode(r.body) : {};
+  if (j is Map && j['durum'] == 'ok' && j['dersler'] is List) {
+    return (j['dersler'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+  return [];
+}
+
+// Rezervasyon yap. Donus: {durum:'ok'|'hata', mesaj?}. Hak zorunlu.
+Future<Map<String, dynamic>> grupDersiRezervasyonYap(
+    String salonId, int oturumId, int userId) async {
+  return await _post('grup-dersi-rezervasyon', {
+    'salon_id': salonId,
+    'oturum_id': oturumId,
+    'user_id': userId,
+  });
+}

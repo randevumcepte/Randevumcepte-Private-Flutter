@@ -2,6 +2,7 @@
 // derslerde kendisi "Geldim" isaretleyebilir (paketten dusum tetiklenir).
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
+import 'package:randevu_sistem/musteripaneli/randevularim/grup_dersi_rezervasyon_ekran.dart';
 
 const Color _mor = Color(0xFF5C008E);
 const List<String> _gunAd = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -90,6 +91,7 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
 
   @override
   Widget build(BuildContext context) {
+    final salon = widget.salonId;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -98,6 +100,25 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
         iconTheme: const IconThemeData(color: _mor),
         title: const Text('Grup Derslerim', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w700)),
       ),
+      floatingActionButton: (salon == null || salon.isEmpty)
+          ? null
+          : FloatingActionButton.extended(
+              backgroundColor: _mor,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('Rezervasyon Yap',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              onPressed: () async {
+                final degisti = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GrupDersiRezervasyonEkran(
+                        userId: widget.userId, salonId: salon),
+                  ),
+                );
+                if (degisti == true) _yukle(); // yeni rezervasyon -> listemi yenile
+              },
+            ),
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())
           : _hata != null
