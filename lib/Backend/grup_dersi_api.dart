@@ -180,9 +180,11 @@ Future<String?> danisanDersKatilim(String userId, int katilimciId, String durum)
   return j['dusum']?.toString();
 }
 
-// Donus: {'olusan':int, 'atlanan':int}
-Future<Map<String, dynamic>> dersProgramiYayinla(String salonId, String baslangic, int hafta) async {
-  final j = await _post('ders-programi-yayinla', {'salon_id': salonId, 'baslangic': baslangic, 'hafta': hafta});
+// Donus: {'olusan':int, 'atlanan':int}. bitis verilirse (studyo) o tarihe kadar yayinlar.
+Future<Map<String, dynamic>> dersProgramiYayinla(String salonId, String baslangic, int hafta, {String? bitis}) async {
+  final body = <String, dynamic>{'salon_id': salonId, 'baslangic': baslangic, 'hafta': hafta};
+  if (bitis != null && bitis.isNotEmpty) body['bitis'] = bitis;
+  final j = await _post('ders-programi-yayinla', body);
   if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Yayinlanamadi');
   return j;
 }

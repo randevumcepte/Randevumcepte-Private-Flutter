@@ -25,6 +25,14 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
   List _eslesme = [];
   DateTime _baslangic = DateTime.now();
   int _hafta = 4;
+  DateTime? _bitis; // studyo: belirli tarihe kadar yayinla (hafta yerine)
+
+  // Studyo modu: 1 yila kadar (52 hafta) + bitis tarihi ile ozel aralik
+  bool get _studyo =>
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
+  List<int> get _haftaSecenekleri =>
+      _studyo ? const [1, 2, 3, 4, 6, 8, 12, 16, 24, 36, 52] : List.generate(12, (i) => i + 1);
+  String _ymd(DateTime d) => '${d.year}-${_ik(d.month)}-${_ik(d.day)}';
 
   @override
   void initState() {
@@ -61,7 +69,9 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Programı Yayınla'),
-        content: Text('${_baslangic.year}-${_ik(_baslangic.month)}-${_ik(_baslangic.day)} tarihinden itibaren $_hafta hafta boyunca ders oturumları takvime oluşturulacak.'),
+        content: Text(_bitis != null
+            ? '${_ymd(_baslangic)} - ${_ymd(_bitis!)} tarihleri arasında ders oturumları takvime oluşturulacak.'
+            : '${_ymd(_baslangic)} tarihinden itibaren $_hafta hafta boyunca ders oturumları takvime oluşturulacak.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
           TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Yayınla')),
@@ -70,7 +80,8 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
     );
     if (onay != true) return;
     try {
-      final r = await dersProgramiYayinla(widget.salonId, '${_baslangic.year}-${_ik(_baslangic.month)}-${_ik(_baslangic.day)}', _hafta);
+      final r = await dersProgramiYayinla(widget.salonId, _ymd(_baslangic), _hafta,
+          bitis: _bitis != null ? _ymd(_bitis!) : null);
       _snack('${r['olusan']} yeni ders oluşturuldu (${r['atlanan']} zaten vardı).');
     } catch (e) {
       _snack('Hata: $e');
@@ -222,8 +233,8 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
                           isExpanded: true,
                           isDense: true,
                           style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C3E50), fontSize: 14),
-                          items: List.generate(12, (i) => i + 1).map((h) => DropdownMenuItem(value: h, child: Text('$h hafta'))).toList(),
-                          onChanged: (v) => setState(() => _hafta = v ?? 4),
+                          items: _haftaSecenekleri.map((h) => DropdownMenuItem(value: h, child: Text('$h hafta'))).toList(),
+                          onChanged: (v) => setState(() { _hafta = v ?? 4; _bitis = null; }),
                         ),
                       ),
                     ),
@@ -232,6 +243,46 @@ class _DersProgramiEkranState extends State<DersProgramiEkran> {
               ),
             ],
           ),
+          // Studyo modu: hafta yerine belirli bir bitis tarihine kadar yayinla.
+          if (_studyo) ...[
+            const SizedBox(height: 10),
+            _miniLabel('VEYA BİTİŞ TARİHİNE KADAR (opsiyonel)'),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: _bitis ?? _baslangic.add(const Duration(days: 28)),
+                        firstDate: _baslangic,
+                        lastDate: _baslangic.add(const Duration(days: 366)),
+                      );
+                      if (d != null) setState(() => _bitis = d);
+                    },
+                    child: Container(
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(color: const Color(0xFFF8F6FB), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE9DDF5))),
+                      child: Row(children: [
+                        const Icon(Icons.event_available, size: 16, color: _mor),
+                        const SizedBox(width: 8),
+                        Text(_bitis == null ? 'Seçilmedi (hafta kullanılır)' : _ymd(_bitis!),
+                            style: TextStyle(fontWeight: FontWeight.w600, color: _bitis == null ? Colors.black45 : const Color(0xFF2C3E50))),
+                      ]),
+                    ),
+                  ),
+                ),
+                if (_bitis != null)
+                  IconButton(
+                    tooltip: 'Temizle',
+                    onPressed: () => setState(() => _bitis = null),
+                    icon: const Icon(Icons.clear, size: 20, color: Colors.redAccent),
+                  ),
+              ],
+            ),
+          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
