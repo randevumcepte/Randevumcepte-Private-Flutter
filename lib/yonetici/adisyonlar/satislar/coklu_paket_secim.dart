@@ -52,9 +52,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
   // Studyo modu: otomatik ders plani (tekrarli katilim) icin gun + egitmen secimi
   static const List<String> _gunAdi = ['', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
   List<GrupDersSablon> _sablonlar = [];
-  final Set<int> _gunler = {};
-  final Set<String> _saatler = {}; // secili saatler (HH:MM)
-  String? _egitmenId; // gun+saat secildikten sonra secilir
+  final Set<int> _seciliSablon = {}; // secili SABIT ders slotlari (sablon id)
 
   final TextEditingController baslangic_tarihi =
       TextEditingController(text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
@@ -180,45 +178,18 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
     return null;
   }
 
-  // Secili paketlerin hizmetine ait sablonlar
+  String _sHHMM(String s) => s.length >= 5 ? s.substring(0, 5) : s;
+
+  // Secili paketlerin hizmetine ait SABIT ders slotlari (gun+saat+egitmen).
+  // Gun, sonra saat sirasiyla.
   List<GrupDersSablon> get _uygunSablon {
     final hids = _seciliHizmetIdler;
     if (hids.isEmpty) return [];
-    return _sablonlar.where((s) => hids.contains((s.hizmetId ?? '').toString())).toList();
-  }
-
-  String _sHHMM(String s) => s.length >= 5 ? s.substring(0, 5) : s;
-
-  // 1) Gunler: hizmete ait tum sablon gunleri
-  List<int> get _gunSecenek {
-    final set = <int>{};
-    for (final s in _uygunSablon) {
-      set.add(s.haftaGunu);
-    }
-    final l = set.toList()..sort();
+    final l = _sablonlar.where((s) => hids.contains((s.hizmetId ?? '').toString())).toList();
+    l.sort((a, b) => a.haftaGunu != b.haftaGunu
+        ? a.haftaGunu.compareTo(b.haftaGunu)
+        : _sHHMM(a.saat).compareTo(_sHHMM(b.saat)));
     return l;
-  }
-
-  // 2) Saatler: secili gunlerdeki sablon saatleri
-  List<String> get _saatSecenek {
-    final set = <String>{};
-    for (final s in _uygunSablon) {
-      if (!_gunler.contains(s.haftaGunu)) continue;
-      set.add(_sHHMM(s.saat));
-    }
-    final l = set.toList()..sort();
-    return l;
-  }
-
-  // 3) Egitmen: secili gun+saat slotundaki musait egitmenler (Farketmez yok)
-  List<MapEntry<String, String>> get _egitmenSecenek {
-    final m = <String, String>{};
-    for (final s in _uygunSablon) {
-      if (!_gunler.contains(s.haftaGunu)) continue;
-      if (_saatler.isNotEmpty && !_saatler.contains(_sHHMM(s.saat))) continue;
-      if (s.personelId != null && s.personelId!.isNotEmpty) m[s.personelId!] = s.personel;
-    }
-    return m.entries.toList();
   }
 
   double _paketFiyat(Paket p) {
@@ -320,20 +291,23 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
         adisyonId = eklenen.adisyon_id; // zincirle
         eklenenler.add(eklenen);
 
-        // Studyo modu: gun+saat+egitmen secildiyse otomatik ders planini olustur + dagit
-        if (_studyo && _gunler.isNotEmpty && _saatler.isNotEmpty && _egitmenId != null) {
+        // Studyo modu: ders slotu secildiyse otomatik ders planini olustur + dagit
+        if (_studyo && _seciliSablon.isNotEmpty) {
           final hid = _paketHizmetId(p);
           final apId = int.tryParse(eklenen.id);
-          if (hid != null && (int.tryParse(hid) ?? 0) > 0) {
+          // Bu paketin hizmetine ait secili slotlar
+          final paketSlotlari = _uygunSablon
+              .where((s) => _seciliSablon.contains(s.id))
+              .map((s) => s.id)
+              .toList();
+          if (hid != null && (int.tryParse(hid) ?? 0) > 0 && paketSlotlari.isNotEmpty) {
             try {
               final r = await dersTekrarliKaydet(
                 salonId: seciliisletme!,
                 userId: widget.musteriid,
                 hizmetId: int.tryParse(hid) ?? 0,
                 toplamSeans: _paketSeans(p),
-                gunler: _gunler.toList()..sort(),
-                saatler: _saatler.toList()..sort(),
-                personelId: _egitmenId,
+                sablonlar: paketSlotlari,
                 baslangic: baslangic_tarihi.text,
                 adisyonPaketId: apId,
               );
@@ -345,7 +319,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
         }
       }
       if (mounted) {
-        if (_studyo && _gunler.isNotEmpty && _planOlusan > 0) {
+        if (_studyo && _seciliSablon.isNotEmpty && _planOlusan > 0) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('$_planOlusan ders otomatik planlandı'
                 '${_planYerlesmeyen > 0 ? ' • $_planYerlesmeyen seans yerleştirilemedi (uygun oturum yok)' : ''}.'),
@@ -577,12 +551,11 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
     );
   }
 
-  // Studyo modu: paket seciminden sonra "hangi gunler + egitmen" -> otomatik ders plani
+  // Studyo modu: paket seciminden sonra SABIT ders slotlarini sec -> otomatik ders plani.
+  // Her slot = programdaki bir ders (gun + saat + egitmen sabit birlikte).
   Widget _otomatikPlanBolum() {
     final cs = Theme.of(context).colorScheme;
-    final gunSec = _gunSecenek;
-    final saatSec = _saatSecenek;
-    final egitmenSec = _egitmenSecenek;
+    final slotlar = _uygunSablon;
     if (_seciliPaketIdler.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 12),
@@ -597,7 +570,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
             Icon(Icons.event_repeat_rounded, size: 17, color: cs.onSurfaceVariant),
             const SizedBox(width: 8),
             Expanded(
-              child: Text('Paket seçince katılım günü ve eğitmen seçip dersleri otomatik planlayabilirsiniz.',
+              child: Text('Paket seçince müşterinin katılacağı ders slotlarını seçip dersleri otomatik planlayabilirsiniz.',
                   style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant)),
             ),
           ]),
@@ -617,8 +590,11 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
             const SizedBox(width: 6),
             Text('(opsiyonel)', style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant)),
           ]),
+          const SizedBox(height: 4),
+          Text('Müşterinin her hafta katılacağı ders(ler)i seçin — seanslar bu slotlara dağıtılır.',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
           const SizedBox(height: 8),
-          if (gunSec.isEmpty)
+          if (slotlar.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
@@ -628,62 +604,11 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                   style: TextStyle(fontSize: 12, color: Color(0xFF9A3412))),
             )
           else ...[
-            // 1) GUNLER
-            Text('1. Katılım Günleri',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
-            const SizedBox(height: 6),
-            Wrap(spacing: 7, runSpacing: 7, children: [
-              for (final g in gunSec)
-                _cip(_gunAdi[g], _gunler.contains(g), () {
-                  setState(() {
-                    _gunler.contains(g) ? _gunler.remove(g) : _gunler.add(g);
-                    // gun degisince gecersiz saat/egitmen secimini temizle
-                    _saatler.removeWhere((s) => !_saatSecenek.contains(s));
-                    if (_egitmenId != null && !_egitmenSecenek.any((e) => e.key == _egitmenId)) {
-                      _egitmenId = null;
-                    }
-                  });
-                }),
-            ]),
-            // 2) SAATLER (gun secilince)
-            if (_gunler.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text('2. Saat',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
-              const SizedBox(height: 6),
-              if (saatSec.isEmpty)
-                Text('Seçili günlerde ders saati yok.', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant))
-              else
-                Wrap(spacing: 7, runSpacing: 7, children: [
-                  for (final s in saatSec)
-                    _cip(s, _saatler.contains(s), () {
-                      setState(() {
-                        _saatler.contains(s) ? _saatler.remove(s) : _saatler.add(s);
-                        if (_egitmenId != null && !_egitmenSecenek.any((e) => e.key == _egitmenId)) {
-                          _egitmenId = null;
-                        }
-                      });
-                    }),
-                ]),
-            ],
-            // 3) EGITMEN (gun+saat secilince, musait olanlar; Farketmez yok)
-            if (_gunler.isNotEmpty && _saatler.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text('3. Eğitmen',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
-              const SizedBox(height: 6),
-              if (egitmenSec.isEmpty)
-                Text('Seçili gün/saatte müsait eğitmen yok.', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant))
-              else
-                Wrap(spacing: 7, runSpacing: 7, children: [
-                  for (final e in egitmenSec)
-                    _cip(e.value, _egitmenId == e.key, () => setState(() => _egitmenId = e.key)),
-                ]),
-            ],
-            if (_gunler.isNotEmpty && _saatler.isNotEmpty && _egitmenId != null)
+            for (final s in slotlar) _slotKart(s),
+            if (_seciliSablon.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text('Seçilen gün/saat/eğitmene göre seanslar takvime otomatik dağıtılacak.',
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('Seçilen slotlara göre seanslar takvime otomatik dağıtılacak (dolu ders atlanır).',
                     style: TextStyle(fontSize: 11.5, color: cs.primary, fontWeight: FontWeight.w600)),
               ),
           ],
@@ -692,21 +617,62 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
     );
   }
 
-  Widget _cip(String t, bool secili, VoidCallback onTap) {
+  Widget _slotKart(GrupDersSablon s) {
     final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: secili ? cs.primary : Theme.of(context).cardColor,
-          border: Border.all(color: secili ? cs.primary : cs.outlineVariant),
-          borderRadius: BorderRadius.circular(20),
+    final secili = _seciliSablon.contains(s.id);
+    final gun = _gunAdi[s.haftaGunu.clamp(0, 7)];
+    final saat = '${_sHHMM(s.saat)}${s.saatBitis.isNotEmpty ? ' – ${_sHHMM(s.saatBitis)}' : ''}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() => secili ? _seciliSablon.remove(s.id) : _seciliSablon.add(s.id)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: secili ? cs.primary.withValues(alpha: 0.10) : Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: secili ? cs.primary : cs.outlineVariant, width: secili ? 1.6 : 1),
+          ),
+          child: Row(children: [
+            Icon(secili ? Icons.check_circle_rounded : Icons.circle_outlined,
+                color: secili ? cs.primary : cs.outline, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                      child: Text(gun,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: cs.primary)),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(saat, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 3),
+                  Row(children: [
+                    Icon(Icons.person_outline_rounded, size: 13, color: cs.onSurfaceVariant),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        '${s.personel.isNotEmpty && s.personel != 'null' ? s.personel : 'Eğitmen atanmamış'}'
+                        '${s.dersTipi.isNotEmpty && s.dersTipi != 'null' ? ' • ${s.dersTipi}' : ''}'
+                        '${s.kapasite > 0 ? ' • ${s.kapasite} kişi' : ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          ]),
         ),
-        child: Text(t,
-            style: TextStyle(
-                fontSize: 12.5, fontWeight: FontWeight.w600, color: secili ? Colors.white : cs.onSurface)),
       ),
     );
   }

@@ -211,8 +211,9 @@ Future<Map<String, dynamic>> dersTekrarliKaydet({
   required String userId,
   required int hizmetId,
   required int toplamSeans,
-  required List<int> gunler,
+  List<int> gunler = const [],
   List<String> saatler = const [],
+  List<int> sablonlar = const [], // slot bazli: secili sablon id listesi
   String? personelId,
   String? baslangic,
   int? adisyonPaketId,
@@ -225,6 +226,7 @@ Future<Map<String, dynamic>> dersTekrarliKaydet({
     'toplam_seans': toplamSeans,
     'gunler': jsonEncode(gunler),
     'saatler': jsonEncode(saatler),
+    'sablonlar': jsonEncode(sablonlar),
     'personel_id': personelId,
     'baslangic': baslangic,
     'adisyon_paket_id': adisyonPaketId,
