@@ -14,6 +14,7 @@ import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/adisyonpage.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/iletisim_helper.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteribilgileri/musteri_grup_dersleri.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/seanstakibiyeni.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/arsiv/arsivyonetimipage.dart';
@@ -869,6 +870,13 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			children: [
 				_buildSectionsGrid(),
 				const SizedBox(height: 12),
+				// Grup dersi modulu aciksa: musterinin grup dersleri (katildi/katilmadi/sil)
+				if (widget.isletmebilgi is Map &&
+						widget.isletmebilgi['grup_dersi_aktif']?.toString() == '1' &&
+						(_salonId?.isNotEmpty ?? false)) ...[
+					MusteriGrupDersleri(userId: _md.id.toString(), salonId: _salonId!),
+					const SizedBox(height: 12),
+				],
 				_sectionCard(
 					'Kişisel Bilgiler',
 					Icons.badge_outlined,
