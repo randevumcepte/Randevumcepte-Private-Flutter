@@ -41,6 +41,7 @@ import 'deneme.dart';
 import 'gunlukRaporlar/gunlukajandanotlari.dart';
 import 'gunlukRaporlar/rapor_liste.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
+import 'package:randevu_sistem/yonetici/randevular/takvim.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteriliste.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/prim_hakedis.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
@@ -1163,20 +1164,19 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ));
     }
-    // Studyo modu: Bugunku Grup Dersi + Katilimci sayisi. Tiklayinca takvim acilir.
+    // Studyo modu: Bugunku Grup Dersi + Katilimci sayisi. Tiklayinca TAKVIM acilir
+    // (ders oturumlari takvime enjekte edilir; randevu listesine degil).
     if (_studyo) {
       void takvimAc() => Navigator.push(
             context,
             PageTransition(
               type: PageTransitionType.rightToLeft,
               duration: const Duration(milliseconds: 400),
-              child: RandevularMenu(
-                kullanicirolu: widget.kullanicirolu,
+              child: Takvim(
+                kullanici: widget.kullanici,
+                selectedTab: 1,
                 isletmebilgi: widget.isletmebilgi,
-                personelid: _randevuPersonelIdFiltre(),
-                cihazid: "",
-                personel_adi: "",
-                cihaz_adi: "",
+                kullanicirolu: kullanicirolu,
               ),
             ),
           );
