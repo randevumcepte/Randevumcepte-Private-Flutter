@@ -189,6 +189,57 @@ Future<Map<String, dynamic>> dersProgramiYayinla(String salonId, String baslangi
   return j;
 }
 
+// ── Tekrarli otomatik katilim (studyo modu, isletme tarafi) ──
+
+// Musterinin otomatik dagitima kaynak olabilecek aktif satislari (hizmet bazinda kalan seans).
+Future<List<Map<String, dynamic>>> dersTekrarliKaynaklar(String salonId, String userId) async {
+  final j = await _post('ders-tekrarli-kaynaklar', {'salon_id': salonId, 'user_id': userId});
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Yuklenemedi');
+  return (j['kaynaklar'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
+}
+
+// Musterinin tekrarli kayitlari (yerlesen/kalan ozetiyle).
+Future<List<Map<String, dynamic>>> dersTekrarliListe(String salonId, String userId) async {
+  final j = await _post('ders-tekrarli-liste', {'salon_id': salonId, 'user_id': userId});
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Yuklenemedi');
+  return (j['kayitlar'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
+}
+
+// Tekrarli kayit olustur + dagit. Donus: {'kayit_id':int,'sonuc':{olusan,oturum_olusturulan,dolu_atlanan,yerlesmeyen,hedef,gecmis}}
+Future<Map<String, dynamic>> dersTekrarliKaydet({
+  required String salonId,
+  required String userId,
+  required int hizmetId,
+  required int toplamSeans,
+  required List<int> gunler,
+  List<String> saatler = const [],
+  String? personelId,
+  String? baslangic,
+  int? adisyonPaketId,
+  int? adisyonHizmetId,
+}) async {
+  final j = await _post('ders-tekrarli-kaydet', {
+    'salon_id': salonId,
+    'user_id': userId,
+    'hizmet_id': hizmetId,
+    'toplam_seans': toplamSeans,
+    'gunler': jsonEncode(gunler),
+    'saatler': jsonEncode(saatler),
+    'personel_id': personelId,
+    'baslangic': baslangic,
+    'adisyon_paket_id': adisyonPaketId,
+    'adisyon_hizmet_id': adisyonHizmetId,
+  });
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Kaydedilemedi');
+  return j;
+}
+
+Future<int> dersTekrarliSil(String salonId, int kayitId) async {
+  final j = await _post('ders-tekrarli-sil', {'salon_id': salonId, 'kayit_id': kayitId});
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Silinemedi');
+  return int.tryParse(j['temizlenen'].toString()) ?? 0;
+}
+
 // ── Musteri (danisan) online rezervasyon ──
 // Salonun rezervasyona uygun (dolu olmayan, gelecek, hizmete bagli) dersleri.
 Future<List<Map<String, dynamic>>> grupDersleriUygun(String salonId) async {

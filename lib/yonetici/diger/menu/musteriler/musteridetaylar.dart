@@ -874,7 +874,12 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				if (widget.isletmebilgi is Map &&
 						widget.isletmebilgi['grup_dersi_aktif']?.toString() == '1' &&
 						(_salonId?.isNotEmpty ?? false)) ...[
-					MusteriGrupDersleri(userId: _md.id.toString(), salonId: _salonId!),
+					MusteriGrupDersleri(
+						userId: _md.id.toString(),
+						salonId: _salonId!,
+						tekrarliAktif: widget.isletmebilgi is Map &&
+								widget.isletmebilgi['studyo_modu']?.toString() == '1',
+					),
 					const SizedBox(height: 12),
 				],
 				_sectionCard(
