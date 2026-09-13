@@ -32,6 +32,11 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
 
   late SatisTuru _selectedTur = _turler[0];
 
+  // Studyo modu: urun satisi yok -> "Ürün" sekmesi gizlenir
+  bool get _studyo =>
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['studyo_modu']?.toString() == '1';
+
   SatisDataSource? _ds;
   bool _initialized = false;
 
@@ -41,6 +46,8 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
   @override
   void initState() {
     super.initState();
+    // Studyo modu: "Ürün" filtre sekmesini kaldir (urun satisi yok).
+    if (_studyo) _turler.removeWhere((e) => e.id == '3');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ds = SatisDataSource(
         musteriMi: true,
@@ -385,6 +392,20 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
     );
   }
 
+  // satis_turu backend'de bos gelebilir; o zaman icerikteki (H)/(P)/(Ü)
+  // isaretlerinden turu cikar ki "Tümü" sekmesinde tur belli olsun.
+  String _adisyonTur(Adisyon a) {
+    if (a.satis_turu.trim().isNotEmpty) return a.satis_turu;
+    final ic = a.icerik;
+    final p = ic.contains('(P)');
+    final h = ic.contains('(H)');
+    final u = ic.contains('(Ü)') || ic.contains('(U)');
+    if (p && !h && !u) return '2';
+    if (h && !p && !u) return '1';
+    if (u && !p && !h) return '3';
+    return '';
+  }
+
   ({IconData icon, String label}) _turBilgi(String turStr) {
     switch (turStr) {
       case '1':
@@ -404,7 +425,7 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
   Widget _satisCard(BuildContext context, Adisyon a) {
     final scheme = Theme.of(context).colorScheme;
     final dt = _parseTarih(a.acilis_tarihi, a.acilis_saati);
-    final turInfo = _turBilgi(a.satis_turu);
+    final turInfo = _turBilgi(_adisyonTur(a));
     final satirlar = _temizSatirlar(a.icerik);
     final salonAdi = _cokluSalon ? a.salonAdi.trim() : '';
 
@@ -677,7 +698,7 @@ class _MusteriPaneliAdiayonlariState extends State<MusteriPaneliAdiayonlari> {
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
         final dt = _parseTarih(a.acilis_tarihi, a.acilis_saati);
-        final turInfo = _turBilgi(a.satis_turu);
+        final turInfo = _turBilgi(_adisyonTur(a));
         final satirlar = _temizSatirlar(a.icerik);
 
         return Padding(
