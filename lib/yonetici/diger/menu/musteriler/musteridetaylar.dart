@@ -71,7 +71,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			final salon = _salonId;
 			final qp = (salon != null && salon.isNotEmpty) ? '?sube=$salon' : '';
 			final res = await http.get(
-				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-detay/${_md.id}$qp'),
+				Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteri-detay/${_md.id}$qp'),
 			);
 			if (res.statusCode == 200) {
 				final data = jsonDecode(res.body);
@@ -95,7 +95,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				: _md.profil_resim;
 		if (raw == null || raw.isEmpty || raw == 'null') return null;
 		if (raw.startsWith('http')) return raw;
-		return 'https://app.randevumcepte.com.tr/$raw';
+		return 'https://apptest.randevumcepte.com.tr/$raw';
 	}
 
 	// ── KARA LISTE ──────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		if (salon == null || salon.isEmpty) return;
 		try {
 			final res = await http.post(
-				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-karaliste-durum'),
+				Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteri-karaliste-durum'),
 				headers: {'Content-Type': 'application/json'},
 				body: jsonEncode({'user_id': _md.id, 'salon_id': salon}),
 			);
@@ -155,7 +155,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		setState(() => _karaListeIsleniyor = true);
 		try {
 			final res = await http.post(
-				Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteri-karaliste-ayari'),
+				Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musteri-karaliste-ayari'),
 				headers: {'Content-Type': 'application/json'},
 				body: jsonEncode({
 					'user_id': _md.id,
@@ -242,7 +242,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		String? kanal;
 		try {
 			final res = await http.post(
-				Uri.parse('https://app.randevumcepte.com.tr/api/v1/anket-hizli-gonder'),
+				Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/anket-hizli-gonder'),
 				headers: {'Content-Type': 'application/json'},
 				body: jsonEncode({'salon_id': salon, 'user_id': _md.id}),
 			).timeout(const Duration(seconds: 20));
@@ -301,7 +301,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		try {
 			final salon = _salonId;
 			final uri = Uri.parse(
-				'https://app.randevumcepte.com.tr/api/v1/musteri-randevulari/${_md.id}',
+				'https://apptest.randevumcepte.com.tr/api/v1/musteri-randevulari/${_md.id}',
 			).replace(queryParameters: (salon != null && salon.isNotEmpty)
 					? {'salon_id': salon}
 					: null);

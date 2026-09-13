@@ -470,7 +470,7 @@ class _KayitOlState extends State<KayitOl> {
       };
 
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/yenimusteridanisankaydi'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/yenimusteridanisankaydi'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       ).timeout(const Duration(seconds: 25));

@@ -601,7 +601,7 @@ class OnGorusmeDataSource2 extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmesatisyapildi'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/ongorusmesatisyapildi'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -651,7 +651,7 @@ class OnGorusmeDataSource2 extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmeekleguncelle'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/ongorusmeekleguncelle'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -1132,7 +1132,7 @@ class OnGorusmeDataSource extends DataGridSource {
 
     try {
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmesatisyapildi'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/ongorusmesatisyapildi'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );
@@ -1599,7 +1599,7 @@ class OnGorusmeDataSource extends DataGridSource {
 
     try {
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/ongorusmeekleguncelle'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/ongorusmeekleguncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );
@@ -1858,7 +1858,7 @@ class KampanyaDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/kampanyapasifet'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kampanyapasifet'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -1897,7 +1897,7 @@ class KampanyaDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/kampanyaekleduzenle/'+salonid.toString()),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kampanyaekleduzenle/'+salonid.toString()),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -2278,7 +2278,7 @@ class ArsivDataSource extends DataGridSource {
               {
                 String dosya = row.getCells()[0].value.uzanti;
                 String dosyaReplaced = dosya.replaceAll('public/formlar/', '');
-                dosyaIndir( 'https://app.randevumcepte.com.tr/'+dosya,dosyaReplaced ,context);
+                dosyaIndir( 'https://apptest.randevumcepte.com.tr/'+dosya,dosyaReplaced ,context);
 
 
               }
@@ -2324,7 +2324,7 @@ class ArsivDataSource extends DataGridSource {
 
     };
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/arsiviptal'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/arsiviptal'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -2355,7 +2355,7 @@ class ArsivDataSource extends DataGridSource {
 
     };
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/formgonder'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/formgonder'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -2392,7 +2392,7 @@ class ArsivDataSource extends DataGridSource {
 
     };
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/arsivonayla'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/arsivonayla'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -3887,7 +3887,7 @@ class AjandaDataSource extends DataGridSource {
 
     try {
       final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/notekleduzenle/' + salonid.toString() + '/' + user['id'].toString()),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/notekleduzenle/' + salonid.toString() + '/' + user['id'].toString()),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       ).timeout(Duration(seconds: 10));
@@ -4072,7 +4072,7 @@ class AjandaDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/ajanda_okunduisaretle'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/ajanda_okunduisaretle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -4096,7 +4096,7 @@ class AjandaDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/ajandasil'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/ajandasil'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -4216,7 +4216,7 @@ class UrunDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunekleduzenle/'+salonid),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/urunekleduzenle/'+salonid),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -4286,7 +4286,7 @@ class UrunDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/urunpasifet'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/urunpasifet'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -4991,7 +4991,7 @@ class PaketDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paket_sil'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/paket_sil'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -5641,7 +5641,7 @@ class ArsivDataSource2 extends DataGridSource {
 
               String dosya = row.getCells()[0].value.uzanti;
               String dosyaReplaced = dosya.replaceAll('public/formlar/', '');
-              dosyaIndir( 'https://app.randevumcepte.com.tr/'+dosya,dosyaReplaced ,context);
+              dosyaIndir( 'https://apptest.randevumcepte.com.tr/'+dosya,dosyaReplaced ,context);
             }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -5743,7 +5743,7 @@ class ArsivDataSource2 extends DataGridSource {
 
                               try {
                                 final filePath = await fileDownloader.downloadFile(
-                                  'https://app.randevumcepte.com.tr/${arsiv.uzanti}',
+                                  'https://apptest.randevumcepte.com.tr/${arsiv.uzanti}',
                                   fileName,
                                 );
                                 log('File downloaded to: $filePath');
@@ -6540,7 +6540,7 @@ class GiderDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/masrafekleduzenle/'+salonid),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/masrafekleduzenle/'+salonid),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -6581,7 +6581,7 @@ class GiderDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/bilgiguncelle/'+salonid),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/bilgiguncelle/'+salonid),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -6924,7 +6924,7 @@ class MusteriDanisanDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musterisil'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/musterisil'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -7321,7 +7321,7 @@ class EtkinlikDataSource extends DataGridSource{
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/etkinlikpasifet'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/etkinlikpasifet'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -7360,7 +7360,7 @@ class EtkinlikDataSource extends DataGridSource{
     };
     log('formdata '+formData.toString());
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/etkinlikekleduzenle/'+salonid.toString()),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/etkinlikekleduzenle/'+salonid.toString()),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -7618,7 +7618,7 @@ class CihazDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/cihaz_sil'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/cihaz_sil'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -7644,7 +7644,7 @@ class CihazDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/cihazmusaitisaretle'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/cihazmusaitisaretle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -7670,7 +7670,7 @@ class CihazDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/cihazmusaitdegilisaretle'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/cihazmusaitdegilisaretle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -7748,7 +7748,7 @@ class CihazDataSource extends DataGridSource {
 
     final response = await http.get(
       Uri.parse(
-          'https://app.randevumcepte.com.tr/api/v1/cihazekle/$salonId?$queryParameters'),
+          'https://apptest.randevumcepte.com.tr/api/v1/cihazekle/$salonId?$queryParameters'),
 
       headers: {'Content-Type': 'application/json'},
 
@@ -8179,7 +8179,7 @@ class OdaDataSource extends DataGridSource {
 
     final response = await http.post(
       Uri.parse(
-          'https://app.randevumcepte.com.tr/api/v1/odaekleduzenle/$salonId'),
+          'https://apptest.randevumcepte.com.tr/api/v1/odaekleduzenle/$salonId'),
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: formData.map((k, v) => MapEntry(k, v.toString())),
     );
@@ -8210,7 +8210,7 @@ class OdaDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/oda_sil'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/oda_sil'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -8237,7 +8237,7 @@ class OdaDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/odamusaitisaretle'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/odamusaitisaretle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -8263,7 +8263,7 @@ class OdaDataSource extends DataGridSource {
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/odamusaitdegilisaretle'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/odamusaitdegilisaretle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -8966,7 +8966,7 @@ class PersonelDataSource extends DataGridSource{
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelsifregonder'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelsifregonder'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -8996,7 +8996,7 @@ class PersonelDataSource extends DataGridSource{
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelaktifyap'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelaktifyap'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -9021,7 +9021,7 @@ class PersonelDataSource extends DataGridSource{
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/personelpasifyap'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/personelpasifyap'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -9440,7 +9440,7 @@ class PersonelDataSource extends DataGridSource{
 
     final response = await http.post(
       Uri.parse(
-          'https://app.randevumcepte.com.tr/api/v1/personelekleduzenle'),
+          'https://apptest.randevumcepte.com.tr/api/v1/personelekleduzenle'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -9576,7 +9576,7 @@ class HizmetlerDataSource extends DataGridSource{
     };
 
     final response = await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetekleduzenle'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/hizmetekleduzenle'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );
@@ -9601,7 +9601,7 @@ class HizmetlerDataSource extends DataGridSource{
     };
 
     final response = await http.post(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetsil'),
+      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/hizmetsil'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
     );

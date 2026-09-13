@@ -9,7 +9,7 @@ import '../../../../Backend/yetki.dart';
 /// .whatsapp-mesaj-ac ve .anket-hizli-gonder-btn butonlarinin mobil karsiligi.
 /// Ortak helper — 3 yerden ayni akis cagrilir: takvim, musteri detay, musteri listesi.
 class IletisimHelper {
-  static const String _api = 'https://app.randevumcepte.com.tr/api/v1';
+  static const String _api = 'https://apptest.randevumcepte.com.tr/api/v1';
 
   static String _sadeTelefon(String? raw) {
     if (raw == null) return '';

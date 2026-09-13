@@ -175,7 +175,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       print("Step 4: HTTP isteği atılıyor...");
       final response = await http.post(
-        Uri.parse("https://app.randevumcepte.com.tr/api/v1/versiyonAppKontrol"),
+        Uri.parse("https://apptest.randevumcepte.com.tr/api/v1/versiyonAppKontrol"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );

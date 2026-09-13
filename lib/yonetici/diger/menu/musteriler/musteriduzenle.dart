@@ -278,7 +278,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
     final pr = hasImage
         ? (prRaw!.startsWith('http')
             ? prRaw
-            : 'https://app.randevumcepte.com.tr/$prRaw')
+            : 'https://apptest.randevumcepte.com.tr/$prRaw')
         : '';
 
     return Center(
@@ -804,7 +804,7 @@ class _MusteriDuzenleState extends State<MusteriDuzenle> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/' +
+            'https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/' +
                 salonid.toString()),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),

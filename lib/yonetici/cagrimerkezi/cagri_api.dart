@@ -13,7 +13,7 @@ import 'cagri_models.dart';
 
 class CagriApi {
   static const String _base =
-      'https://app.randevumcepte.com.tr/api/v1/cagri-merkezi';
+      'https://apptest.randevumcepte.com.tr/api/v1/cagri-merkezi';
 
   /// Login akisi token'i json.encode ile saklar: setString('token', json.encode(...)).
   /// yetki.dart ile ayni saglam cozme.

@@ -119,7 +119,7 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
       var request = http.MultipartRequest(
         'POST',
         Uri.parse(
-            'https://app.randevumcepte.com.tr//api/v1/profilresimyukle'),
+            'https://apptest.randevumcepte.com.tr//api/v1/profilresimyukle'),
       );
 
       request.fields['yetkili_id'] = user["id"].toString();
@@ -188,7 +188,7 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
     if (_currentUser?.profil_resim != null &&
         _currentUser!.profil_resim.isNotEmpty) {
       return NetworkImage(
-          'https://app.randevumcepte.com.tr/${_currentUser!.profil_resim}');
+          'https://apptest.randevumcepte.com.tr/${_currentUser!.profil_resim}');
     }
     return null;
   }
@@ -817,7 +817,7 @@ Future<void> submitForm(
   };
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr//api/v1/bilgiguncelle'),
+    Uri.parse('https://apptest.randevumcepte.com.tr//api/v1/bilgiguncelle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );

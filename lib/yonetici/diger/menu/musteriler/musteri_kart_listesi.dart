@@ -235,7 +235,7 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
     final pr = hasImage
         ? (prRaw!.startsWith('http')
             ? prRaw
-            : 'https://app.randevumcepte.com.tr/$prRaw')
+            : 'https://apptest.randevumcepte.com.tr/$prRaw')
         : '';
 
     return Material(

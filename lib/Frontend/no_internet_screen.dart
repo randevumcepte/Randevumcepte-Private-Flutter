@@ -326,7 +326,7 @@ Future<bool> _probeInternet() async {
   const targets = <String>[
     'https://clients3.google.com/generate_204',
     'https://www.gstatic.com/generate_204',
-    'https://app.randevumcepte.com.tr/',
+    'https://apptest.randevumcepte.com.tr/',
     'https://1.1.1.1/',
   ];
 

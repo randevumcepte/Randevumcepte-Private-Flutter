@@ -858,7 +858,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
   Future<void> _goreviIptalEt(String randevuid) async {
     try {
       await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/gorev-iptal-et'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/gorev-iptal-et'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'randevu_id': randevuid}),
       );
@@ -880,7 +880,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
   Future<void> _iptalEtSilent(String randevuid, String durum) async {
     try {
       await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuiptalet'),
+        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/randevuiptalet'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'randevuid': randevuid, 'durum': durum}),
       );

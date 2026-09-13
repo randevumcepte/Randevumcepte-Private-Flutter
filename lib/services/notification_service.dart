@@ -21,7 +21,7 @@ import 'package:randevu_sistem/services/notification_router.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
 
 /// Backend host'u sabit. Build'e göre değişiyorsa burayı tek noktadan değiştir.
-const _apiBase = 'https://app.randevumcepte.com.tr/api/v1';
+const _apiBase = 'https://apptest.randevumcepte.com.tr/api/v1';
 
 /// Custom bildirim sesi. res/raw/ring.mp3 (Android) — uzantısız 'ring' verilir.
 const _ringSound = RawResourceAndroidNotificationSound('ring');

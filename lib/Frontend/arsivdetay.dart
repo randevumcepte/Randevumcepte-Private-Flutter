@@ -21,10 +21,10 @@ import 'package:randevu_sistem/Frontend/form_pdf_goster.dart';
 // bu yuzden mobil session'siz API ucunu kullanir (salon arsivden alinir).
 // Harici belgeler de bu uclarin else-dalindan dosyayi doner.
 String _formGosterUrl(Arsiv arsiv) =>
-    'https://app.randevumcepte.com.tr/api/v1/formgoster?arsivid=${arsiv.id}';
+    'https://apptest.randevumcepte.com.tr/api/v1/formgoster?arsivid=${arsiv.id}';
 
 String _formIndirUrl(Arsiv arsiv) =>
-    'https://app.randevumcepte.com.tr/api/v1/formindir?arsivid=${arsiv.id}';
+    'https://apptest.randevumcepte.com.tr/api/v1/formindir?arsivid=${arsiv.id}';
 
 String _formBaslik(Arsiv arsiv) {
   final adi = arsiv.form["form_adi"];

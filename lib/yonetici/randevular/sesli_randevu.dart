@@ -397,7 +397,7 @@ class _SesliRandevuEkraniState extends State<SesliRandevuEkrani>
     try {
       final r = await http
           .post(
-            Uri.parse('https://app.randevumcepte.com.tr/api/v1/seslendir'),
+            Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/seslendir'),
             body: {'metin': metin},
           )
           .timeout(const Duration(seconds: 12));

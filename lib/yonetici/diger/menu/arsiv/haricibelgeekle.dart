@@ -249,7 +249,7 @@ class _HariciBelgeEkleState extends State<HariciBelgeEkle> {
       final request = http.MultipartRequest(
         'POST',
         Uri.parse(
-            'https://app.randevumcepte.com.tr/api/v1/haricibelgeekle'),
+            'https://apptest.randevumcepte.com.tr/api/v1/haricibelgeekle'),
       );
 
       request.files

@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:printing/printing.dart';
 
 class FormPdfGoster extends StatefulWidget {
-  /// Tam dosya URL'i, orn: https://app.randevumcepte.com.tr/api/v1/formgoster?arsivid=1
+  /// Tam dosya URL'i, orn: https://apptest.randevumcepte.com.tr/api/v1/formgoster?arsivid=1
   final String url;
   final String baslik;
   const FormPdfGoster({super.key, required this.url, required this.baslik});

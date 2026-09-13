@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show appBundleAl;
 import 'package:randevu_sistem/Models/grup_dersi.dart';
 
-const String _kBase = 'https://app.randevumcepte.com.tr/api/v1';
+// GEÇİCİ: canli deploy kesik oldugu icin grup dersi cagrilari TEST sunucusuna
+// (apptest) gider ki en guncel kod calissin. Canliya cikinca 'app.' yap.
+const String _kBase = 'https://apptest.randevumcepte.com.tr/api/v1';
 
 Future<int?> _callerUserId() async {
   final ls = await SharedPreferences.getInstance();
