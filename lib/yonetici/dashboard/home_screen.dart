@@ -73,6 +73,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   // Studyo modu: bugunku grup dersi + katilimci sayisi (Ozet grid tile'lari)
   int? _studyoDersSayisi;
   int? _studyoKatilimci;
+  List<Map<String, dynamic>>? _studyoBugunDersler; // studyo: bugunun ders oturumlari
   List<Map<String, dynamic>> randevuList = [];
   late Kullanici kullanici;
   int uyelikturu = 0; // yuklenene kadar 0 (< 3) -> Asistan FAB gizli kalir
@@ -491,11 +492,12 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                 _premiumSantralRow(context),
               ],
               // Bugunun Randevulari — rol 5 icin yetki bagimsiz goster.
+              // Studyo modu: randevu yerine "Bugunun Dersleri" (grup dersi oturumlari).
               if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
                 const SizedBox(height: 18),
-                _premiumSectionHeader(context, 'Bugünün Randevuları', null),
+                _premiumSectionHeader(context, _studyo ? 'Bugünün Dersleri' : 'Bugünün Randevuları', null),
                 const SizedBox(height: 10),
-                _premiumTodayAppointments(context),
+                if (_studyo) _studyoBugunDerslerWidget(context) else _premiumTodayAppointments(context),
               ],
               // Asistanim — sadece premium (uyelik_turu >= 3) icin gosterilir
               if (uyelikturu >= 3) ...[
@@ -1131,6 +1133,14 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         _studyoKatilimci = int.tryParse(((ozet is Map ? ozet['katilim'] : null) ?? 0).toString()) ?? 0;
       });
     } catch (_) {}
+    // Bugunun ders oturumlari (saat sirasiyla) — "Bugunun Dersleri" listesi
+    try {
+      final dersler = await dersGunListe(salon, tarih: bugun);
+      if (!mounted) return;
+      setState(() => _studyoBugunDersler = dersler);
+    } catch (_) {
+      if (mounted) setState(() => _studyoBugunDersler = []);
+    }
   }
 
   Widget _premiumDailyGrid(BuildContext context) {
@@ -4058,6 +4068,130 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       child: _glassEmpty(
         context,
         child: ListCardRandevular(randevular: randevuList),
+      ),
+    );
+  }
+
+  // Studyo modu: bugunun grup dersi oturumlari (saat sirasiyla + doluluk).
+  Widget _studyoBugunDerslerWidget(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (_studyoBugunDersler == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: _glassEmpty(context,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            )),
+      );
+    }
+    if (_studyoBugunDersler!.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: _glassEmpty(context,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: Text('Bugün için ders bulunmuyor',
+                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.55))),
+              ),
+            )),
+      );
+    }
+    void takvimAc() => Navigator.push(
+          context,
+          PageTransition(
+            type: PageTransitionType.rightToLeft,
+            duration: const Duration(milliseconds: 400),
+            child: Takvim(
+              kullanici: widget.kullanici,
+              selectedTab: 1,
+              isletmebilgi: widget.isletmebilgi,
+              kullanicirolu: kullanicirolu,
+            ),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: _glassEmpty(
+        context,
+        child: Column(
+          children: [
+            for (int i = 0; i < _studyoBugunDersler!.length; i++)
+              _studyoDersSatir(context, _studyoBugunDersler![i], takvimAc,
+                  sonuncu: i == _studyoBugunDersler!.length - 1),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _studyoDersSatir(BuildContext context, Map<String, dynamic> d, VoidCallback onTap, {bool sonuncu = false}) {
+    final scheme = Theme.of(context).colorScheme;
+    final ext = context.appTheme;
+    final saat = (d['saat'] ?? '').toString();
+    final bitis = (d['saat_bitis'] ?? '').toString();
+    final dersTipi = (d['ders_tipi'] ?? 'Grup Dersi').toString();
+    final personel = (d['personel'] ?? '').toString();
+    final kapasite = int.tryParse(d['kapasite'].toString()) ?? 0;
+    final doluluk = int.tryParse(d['doluluk'].toString()) ?? 0;
+    final dolu = kapasite > 0 && doluluk >= kapasite;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          border: sonuncu ? null : Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
+        ),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(saat, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: scheme.primary)),
+                if (bitis.isNotEmpty)
+                  Text(bitis, style: TextStyle(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.45))),
+              ],
+            ),
+            const SizedBox(width: 14),
+            Container(width: 1, height: 34, color: scheme.outlineVariant.withValues(alpha: 0.6)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(dersTipi, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+                  if (personel.isNotEmpty && personel != 'null') ...[
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      Icon(Icons.person_outline_rounded, size: 13, color: scheme.onSurface.withValues(alpha: 0.5)),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(personel, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12.5, color: scheme.onSurface.withValues(alpha: 0.6))),
+                      ),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: (dolu ? Colors.redAccent : ext.successColor).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(children: [
+                Icon(Icons.groups_rounded, size: 14, color: dolu ? Colors.redAccent : ext.successColor),
+                const SizedBox(width: 4),
+                Text('$doluluk${kapasite > 0 ? '/$kapasite' : ''}',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700,
+                        color: dolu ? Colors.redAccent : ext.successColor)),
+              ]),
+            ),
+          ],
+        ),
       ),
     );
   }

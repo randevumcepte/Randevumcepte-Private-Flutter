@@ -151,6 +151,16 @@ Future<void> dersSablonSil(String salonId, int sablonId) async {
   if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Silinemedi');
 }
 
+// Bir gunun (varsayilan bugun) ders oturumlari, saat sirasiyla + doluluk.
+// Her kayit: id, ders_tipi, saat, saat_bitis, kapasite, personel, doluluk
+Future<List<Map<String, dynamic>>> dersGunListe(String salonId, {String? tarih}) async {
+  final body = <String, dynamic>{'salon_id': salonId};
+  if (tarih != null) body['tarih'] = tarih;
+  final j = await _post('ders-gun-liste', body);
+  if (j['durum'] != 'ok') throw Exception(j['mesaj'] ?? 'Yuklenemedi');
+  return (j['dersler'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
+}
+
 // ---------- Rapor ----------
 
 // Donus: {'ozet':Map, 'egitmen':List, 'ders':List, 'tarih1':.., 'tarih2':..}
