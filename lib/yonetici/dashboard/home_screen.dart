@@ -1163,21 +1163,36 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ));
     }
-    // Studyo modu: Bugunku Grup Dersi + Katilimci sayisi.
+    // Studyo modu: Bugunku Grup Dersi + Katilimci sayisi. Tiklayinca takvim acilir.
     if (_studyo) {
+      void takvimAc() => Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 400),
+              child: RandevularMenu(
+                kullanicirolu: widget.kullanicirolu,
+                isletmebilgi: widget.isletmebilgi,
+                personelid: _randevuPersonelIdFiltre(),
+                cihazid: "",
+                personel_adi: "",
+                cihaz_adi: "",
+              ),
+            ),
+          );
       items.add(_DashItem(
         icon: Icons.fitness_center_rounded,
         title: 'Grup Dersi',
         value: (_studyoDersSayisi ?? 0).toString(),
         tint: scheme.primary,
-        onTap: () {},
+        onTap: takvimAc,
       ));
       items.add(_DashItem(
         icon: Icons.groups_rounded,
         title: 'Katılımcı',
         value: (_studyoKatilimci ?? 0).toString(),
         tint: ext.successColor,
-        onTap: () {},
+        onTap: takvimAc,
       ));
     }
     if (!_studyo && (kullanicirolu == 5 || Yetki.varMi('gorusme.liste_gor'))) {
