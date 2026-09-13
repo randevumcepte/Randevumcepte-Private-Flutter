@@ -78,7 +78,8 @@
       SatisTuru(id: "", satisturu: "Tümü"),
       SatisTuru(id: "1", satisturu: "Hizmet Satışları"),
       SatisTuru(id: "2", satisturu: "Paket Satışları"),
-      SatisTuru(id: "3", satisturu: "Ürün Satışları"),
+      // Studyo modu: urun satisi yok
+      if (!_studyo) SatisTuru(id: "3", satisturu: "Ürün Satışları"),
     ];
 
     late String? seciliisletme;
