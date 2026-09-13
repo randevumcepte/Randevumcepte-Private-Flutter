@@ -90,10 +90,51 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
     }
   }
 
+  bool get _rezervasyonAcik =>
+      widget.studyoModu &&
+      widget.salonId != null &&
+      widget.salonId!.isNotEmpty;
+
+  Future<void> _rezervasyonaGit() async {
+    final degisti = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GrupDersiRezervasyonEkran(
+            userId: widget.userId, salonId: widget.salonId!),
+      ),
+    );
+    if (degisti == true) _yukle();
+  }
+
+  // Ust CTA — tam genislik "Ders Rezervasyonu" butonu.
+  Widget _rezervasyonCta() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: SizedBox(
+        height: 48,
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _rezervasyonaGit,
+          icon: const Icon(Icons.event_available_rounded, size: 20),
+          label: const Text('Ders Rezervasyonu Yap',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _mor,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final salon = widget.salonId;
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F4FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: _mor,
@@ -101,39 +142,65 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
         iconTheme: const IconThemeData(color: _mor),
         title: const Text('Grup Derslerim', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w700)),
       ),
-      floatingActionButton: (salon == null || salon.isEmpty || !widget.studyoModu)
-          ? null
-          : FloatingActionButton.extended(
-              backgroundColor: _mor,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Rezervasyon Yap',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              onPressed: () async {
-                final degisti = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => GrupDersiRezervasyonEkran(
-                        userId: widget.userId, salonId: salon),
+      body: Column(
+        children: [
+          if (_rezervasyonAcik) ...[
+            _rezervasyonCta(),
+            const Divider(height: 1),
+          ],
+          Expanded(child: _govde()),
+        ],
+      ),
+    );
+  }
+
+  Widget _govde() {
+    if (_yukleniyor) return const Center(child: CircularProgressIndicator());
+    if (_hata != null) {
+      return Center(
+          child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Yüklenemedi:\n$_hata', textAlign: TextAlign.center)));
+    }
+    if (_dersler.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.groups_outlined, size: 56, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              const Text('Kayıtlı olduğunuz grup dersi bulunmuyor.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 15)),
+              if (_rezervasyonAcik) ...[
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _rezervasyonaGit,
+                  icon: const Icon(Icons.event_available_rounded, size: 20),
+                  label: const Text('Hemen Rezervasyon Yap'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _mor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                );
-                if (degisti == true) _yukle(); // yeni rezervasyon -> listemi yenile
-              },
-            ),
-      body: _yukleniyor
-          ? const Center(child: CircularProgressIndicator())
-          : _hata != null
-              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('Yüklenemedi:\n$_hata', textAlign: TextAlign.center)))
-              : _dersler.isEmpty
-                  ? const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Kayıtlı olduğunuz grup dersi bulunmuyor.', style: TextStyle(color: Colors.grey))))
-                  : RefreshIndicator(
-                      onRefresh: _yukle,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(14),
-                        itemCount: _dersler.length,
-                        itemBuilder: (_, i) => _kart(_dersler[i]),
-                      ),
-                    ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _yukle,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(14),
+        itemCount: _dersler.length,
+        itemBuilder: (_, i) => _kart(_dersler[i]),
+      ),
     );
   }
 
