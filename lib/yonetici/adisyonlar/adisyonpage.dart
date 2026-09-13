@@ -78,8 +78,7 @@
       SatisTuru(id: "", satisturu: "Tümü"),
       SatisTuru(id: "1", satisturu: "Hizmet Satışları"),
       SatisTuru(id: "2", satisturu: "Paket Satışları"),
-      // Studyo modu: urun satisi yok
-      if (!_studyo) SatisTuru(id: "3", satisturu: "Ürün Satışları"),
+      SatisTuru(id: "3", satisturu: "Ürün Satışları"),
     ];
 
     late String? seciliisletme;
@@ -138,6 +137,8 @@
     @override
     void initState() {
       super.initState();
+      // Studyo modu: satis turu filtresinden "Ürün Satışları" cikar (urun satisi yok).
+      if (_studyo) adisyonicerigi.removeWhere((e) => e.id == "3");
       WidgetsBinding.instance.addObserver(this);
       _tabController = TabController(length: 2, vsync: this);
       _tabController.addListener(_onTabChanged);
