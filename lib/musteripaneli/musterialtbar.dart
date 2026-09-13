@@ -79,6 +79,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
       GrupDerslerimEkran(
         userId: widget.musteriId.id.toString(),
         salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
+        studyoModu: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1',
       ),
     MenuPage(
       onLogout: _handleLogout,
@@ -164,6 +165,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
           builder: (_) => GrupDerslerimEkran(
             userId: widget.musteriId.id.toString(),
             salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
+            studyoModu: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1',
           ),
         ));
         break;
@@ -356,6 +358,7 @@ class _MusteriAltBarState  extends State<MusteriAltBar> {
           builder: (_) => GrupDerslerimEkran(
             userId: widget.musteriId.id.toString(),
             salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
+            studyoModu: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1',
           ),
         ));
         break;
