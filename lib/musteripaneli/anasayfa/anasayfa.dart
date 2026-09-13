@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
+import 'package:randevu_sistem/musteripaneli/randevularim/grup_dersi_rezervasyon_ekran.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -56,6 +57,12 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   bool get _studyo =>
       widget.isletmebilgi is Map &&
       widget.isletmebilgi['studyo_modu']?.toString() == '1';
+  // Grup dersi online rezervasyon kisayolu: studyo modu + grup dersi modulu acik
+  bool get _grupRezervasyonAktif =>
+      _studyo &&
+      widget.isletmebilgi is Map &&
+      widget.isletmebilgi['grup_dersi_aktif']?.toString() == '1' &&
+      (widget.isletmebilgi['id']?.toString().isNotEmpty ?? false);
   MusteriOzet? ozetsayfabilgi;
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
@@ -417,6 +424,11 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                         _heroRandevuCard(context),
                         const SizedBox(height: 16),
                       ],
+                      // Studyo modu + grup dersi: "Randevu Al"in altina rezervasyon kisayolu
+                      if (_grupRezervasyonAktif) ...[
+                        _grupRezervasyonKart(context),
+                        const SizedBox(height: 16),
+                      ],
                       _membershipCard(context),
                       const SizedBox(height: 22),
                       _sectionHeader(context, 'Sana Özel'),
@@ -636,6 +648,74 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   }
 
   // ── HERO RANDEVU CARD ────────────────────────────────────────────────────
+  // "Randevu Al"in altina: grup dersi rezervasyon kisayolu (studyo modu).
+  Widget _grupRezervasyonKart(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final salonId = widget.isletmebilgi is Map
+        ? (widget.isletmebilgi['id']?.toString() ?? '')
+        : '';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: () => Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeft,
+              duration: const Duration(milliseconds: 400),
+              child: GrupDersiRezervasyonEkran(
+                  userId: widget.md.id.toString(), salonId: salonId),
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.event_available_rounded,
+                      color: scheme.primary, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Grup Dersi Rezervasyonu',
+                          style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurface)),
+                      const SizedBox(height: 2),
+                      Text('Uygun günü seç, yerini ayır',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: scheme.onSurface.withValues(alpha: 0.6))),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    size: 16, color: scheme.primary),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _heroRandevuCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
