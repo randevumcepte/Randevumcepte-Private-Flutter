@@ -7,6 +7,8 @@ import 'package:randevu_sistem/Models/adisyonpaketler.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
+import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
+import 'package:randevu_sistem/Models/grup_dersi.dart';
 
 /// Yeni Satış ekranı için çoklu paket seçim ekranı.
 /// Birden fazla pakete tik atılır; tek satıcı, tek başlangıç tarihi/saati ile
@@ -46,6 +48,12 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
 
   final Set<String> _seciliPaketIdler = {};
   String _arama = '';
+
+  // Studyo modu: otomatik ders plani (tekrarli katilim) icin gun + egitmen secimi
+  static const List<String> _gunAdi = ['', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+  List<GrupDersSablon> _sablonlar = [];
+  final Set<int> _gunler = {};
+  String? _egitmenId; // null = farketmez
 
   final TextEditingController baslangic_tarihi =
       TextEditingController(text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
@@ -131,12 +139,69 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
           p.id, () => TextEditingController(text: fmt.format(_paketFiyat(p))));
     }
 
+    // Studyo modu: haftalik ders programi sablonlari (gun/saat/egitmen eslesme kaynagi)
+    List<GrupDersSablon> sablonlar = [];
+    if (_studyo) {
+      try {
+        final p = await dersProgramiListe(seciliisletme!);
+        sablonlar = (p['sablon'] as List).cast<GrupDersSablon>();
+      } catch (_) {}
+    }
+
     setState(() {
       personeller = temizPersoneller;
       paketler = paketliste;
       selectedSatici = secili;
+      _sablonlar = sablonlar;
       isloading = false;
     });
+  }
+
+  // Secili paketlerin hizmet id'leri (sablon eslesmesi icin)
+  Set<String> get _seciliHizmetIdler {
+    final set = <String>{};
+    for (final p in paketler) {
+      if (!_seciliPaketIdler.contains(p.id)) continue;
+      for (final h in p.hizmetler) {
+        final hid = (h['hizmet_id'] ?? h['id'])?.toString();
+        if (hid != null && hid.isNotEmpty) set.add(hid);
+      }
+    }
+    return set;
+  }
+
+  // Bir paketin (grup dersi icin) birincil hizmet id'si
+  String? _paketHizmetId(Paket p) {
+    for (final h in p.hizmetler) {
+      final hid = (h['hizmet_id'] ?? h['id'])?.toString();
+      if (hid != null && hid.isNotEmpty) return hid;
+    }
+    return null;
+  }
+
+  // Secili paketlerin hizmetine ait sablonlar
+  List<GrupDersSablon> get _uygunSablon {
+    final hids = _seciliHizmetIdler;
+    if (hids.isEmpty) return [];
+    return _sablonlar.where((s) => hids.contains((s.hizmetId ?? '').toString())).toList();
+  }
+
+  List<int> get _gunSecenek {
+    final set = <int>{};
+    for (final s in _uygunSablon) {
+      if (_egitmenId != null && (s.personelId ?? '') != _egitmenId) continue;
+      set.add(s.haftaGunu);
+    }
+    final l = set.toList()..sort();
+    return l;
+  }
+
+  List<MapEntry<String, String>> get _egitmenSecenek {
+    final m = <String, String>{};
+    for (final s in _uygunSablon) {
+      if (s.personelId != null && s.personelId!.isNotEmpty) m[s.personelId!] = s.personel;
+    }
+    return m.entries.toList();
   }
 
   double _paketFiyat(Paket p) {
@@ -237,12 +302,47 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
         );
         adisyonId = eklenen.adisyon_id; // zincirle
         eklenenler.add(eklenen);
+
+        // Studyo modu: gun secildiyse otomatik ders planini olustur + dagit
+        if (_studyo && _gunler.isNotEmpty) {
+          final hid = _paketHizmetId(p);
+          final apId = int.tryParse(eklenen.id);
+          if (hid != null && (int.tryParse(hid) ?? 0) > 0) {
+            try {
+              final r = await dersTekrarliKaydet(
+                salonId: seciliisletme!,
+                userId: widget.musteriid,
+                hizmetId: int.tryParse(hid) ?? 0,
+                toplamSeans: _paketSeans(p),
+                gunler: _gunler.toList()..sort(),
+                personelId: _egitmenId,
+                baslangic: baslangic_tarihi.text,
+                adisyonPaketId: apId,
+              );
+              final s = Map<String, dynamic>.from(r['sonuc'] ?? {});
+              _planOlusan += int.tryParse(s['olusan'].toString()) ?? 0;
+              _planYerlesmeyen += int.tryParse(s['yerlesmeyen'].toString()) ?? 0;
+            } catch (_) {/* satis basarili; plan hatasi satisi bozmasin */}
+          }
+        }
       }
-      if (mounted) Navigator.pop(context, eklenenler);
+      if (mounted) {
+        if (_studyo && _gunler.isNotEmpty && _planOlusan > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$_planOlusan ders otomatik planlandı'
+                '${_planYerlesmeyen > 0 ? ' • $_planYerlesmeyen seans yerleştirilemedi (uygun oturum yok)' : ''}.'),
+            backgroundColor: const Color(0xFF2E7D32),
+          ));
+        }
+        Navigator.pop(context, eklenenler);
+      }
     } catch (_) {
       if (mounted) Navigator.pop(context, eklenenler);
     }
   }
+
+  int _planOlusan = 0;
+  int _planYerlesmeyen = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -351,6 +451,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                           ),
                         ],
                       ),
+                      if (_studyo) _otomatikPlanBolum(),
                     ],
                   ),
                 ),
@@ -455,6 +556,111 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                 ),
               ],
             ),
+    );
+  }
+
+  // Studyo modu: paket seciminden sonra "hangi gunler + egitmen" -> otomatik ders plani
+  Widget _otomatikPlanBolum() {
+    final cs = Theme.of(context).colorScheme;
+    final gunSec = _gunSecenek;
+    final egitmenSec = _egitmenSecenek;
+    if (_seciliPaketIdler.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(children: [
+            Icon(Icons.event_repeat_rounded, size: 17, color: cs.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('Paket seçince katılım günü ve eğitmen seçip dersleri otomatik planlayabilirsiniz.',
+                  style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant)),
+            ),
+          ]),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.event_repeat_rounded, size: 17, color: cs.primary),
+            const SizedBox(width: 6),
+            const Text('Otomatik Ders Planı',
+                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
+            const SizedBox(width: 6),
+            Text('(opsiyonel)', style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant)),
+          ]),
+          const SizedBox(height: 8),
+          if (gunSec.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(9)),
+              child: const Text(
+                  'Bu paketin hizmeti için haftalık programda ders yok. Otomatik plan için önce Ders Programı ekleyin.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF9A3412))),
+            )
+          else ...[
+            Text('Katılım Günleri', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 7, runSpacing: 7, children: [
+              for (final g in gunSec)
+                _cip(_gunAdi[g], _gunler.contains(g), () {
+                  setState(() => _gunler.contains(g) ? _gunler.remove(g) : _gunler.add(g));
+                }),
+            ]),
+            if (egitmenSec.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Eğitmen', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 7, runSpacing: 7, children: [
+                _cip('Farketmez', _egitmenId == null, () => setState(() {
+                      _egitmenId = null;
+                      _gunler.removeWhere((g) => !_gunSecenek.contains(g));
+                    })),
+                for (final e in egitmenSec)
+                  _cip(e.value, _egitmenId == e.key, () => setState(() {
+                        _egitmenId = e.key;
+                        _gunler.removeWhere((g) => !_gunSecenek.contains(g));
+                      })),
+              ]),
+            ],
+            if (_gunler.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text('Seçilen günlere göre seanslar takvime otomatik dağıtılacak.',
+                    style: TextStyle(fontSize: 11.5, color: cs.primary, fontWeight: FontWeight.w600)),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _cip(String t, bool secili, VoidCallback onTap) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: secili ? cs.primary : Theme.of(context).cardColor,
+          border: Border.all(color: secili ? cs.primary : cs.outlineVariant),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(t,
+            style: TextStyle(
+                fontSize: 12.5, fontWeight: FontWeight.w600, color: secili ? Colors.white : cs.onSurface)),
+      ),
     );
   }
 }
