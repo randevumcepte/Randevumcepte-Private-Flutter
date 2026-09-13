@@ -93,7 +93,7 @@ class _MusteriIndirimleriState extends State<MusteriIndirimleri> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/musteriindirim_kaydet'),
+            'https://app.randevumcepte.com.tr/api/v1/musteriindirim_kaydet'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );

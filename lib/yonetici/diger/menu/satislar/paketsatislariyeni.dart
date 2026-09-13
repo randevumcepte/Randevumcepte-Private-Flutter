@@ -2351,7 +2351,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
 
       final response = await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/tahsilatekle'),
+            'https://app.randevumcepte.com.tr/api/v1/tahsilatekle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(tahsilatBody),
       );

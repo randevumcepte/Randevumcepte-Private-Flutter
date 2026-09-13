@@ -263,7 +263,7 @@ class _SenetOdemeState extends State<SenetOdeme> {
 
     };
     final response = await http.post(
-      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/senetvadeguncelle'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/senetvadeguncelle'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),
@@ -301,7 +301,7 @@ class _SenetOdemeState extends State<SenetOdeme> {
     };
 
     final response = await http.post(
-      Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/senetode'),
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/senetode'),
 
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(formData),

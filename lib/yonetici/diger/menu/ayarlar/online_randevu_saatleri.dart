@@ -55,7 +55,7 @@ class _OnlineRandevuSaatleriState extends State<OnlineRandevuSaatleri> {
       _salonId = await secilisalonid();
       final response = await http.get(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/online_randevu_saatleri/${_salonId ?? ''}'),
+            'https://app.randevumcepte.com.tr/api/v1/online_randevu_saatleri/${_salonId ?? ''}'),
         headers: {'Content-Type': 'application/json'},
       );
       if (!mounted) return;
@@ -136,7 +136,7 @@ class _OnlineRandevuSaatleriState extends State<OnlineRandevuSaatleri> {
       }).toList();
 
       final response = await http.post(
-        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/online_randevu_saatleri_guncelle'),
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/online_randevu_saatleri_guncelle'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'salon_id': _salonId,

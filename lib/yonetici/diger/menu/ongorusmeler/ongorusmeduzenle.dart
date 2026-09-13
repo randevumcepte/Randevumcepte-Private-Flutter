@@ -1435,7 +1435,7 @@ class _OnGorusmeDuzenleState extends State<OnGorusmeDuzenle> {
 		try {
 			final response = await http.post(
 				Uri.parse(
-					'https://apptest.randevumcepte.com.tr/api/v1/musteriekleguncelle/$seciliisletme',
+					'https://app.randevumcepte.com.tr/api/v1/musteriekleguncelle/$seciliisletme',
 				),
 				headers: {'Content-Type': 'application/json'},
 				body: jsonEncode({

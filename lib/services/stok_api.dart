@@ -15,7 +15,7 @@ import 'package:randevu_sistem/navigatorkey.dart';
 /// global SnackBar ile mesaj gösterir ve uygun fallback değer döndürür
 /// (boş liste, boş Map, null). Bu sayede UI'da kırmızı hata ekranı çıkmaz.
 class StokApi {
-  static const String _base = 'https://apptest.randevumcepte.com.tr/api/v1/stok';
+  static const String _base = 'https://app.randevumcepte.com.tr/api/v1/stok';
 
   static Map<String, String> _headers() => const {
         'Accept': 'application/json',
@@ -295,7 +295,7 @@ class StokApi {
 
   static Future<List<Map<String, dynamic>>> hizmetListesi(String salonId) => _guvenli(() async {
         final r = await http.get(
-          Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/hizmetler/$salonId'),
+          Uri.parse('https://app.randevumcepte.com.tr/api/v1/hizmetler/$salonId'),
           headers: _headers(),
         );
         if (r.statusCode < 200 || r.statusCode >= 300) return <Map<String, dynamic>>[];

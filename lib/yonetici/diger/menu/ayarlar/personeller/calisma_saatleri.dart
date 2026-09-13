@@ -1169,7 +1169,7 @@ Future<void> submitform(
 
   final response = await http.get(
     Uri.parse(
-        'https://apptest.randevumcepte.com.tr/api/v1/calisma_saati_guncelle_ekle/$salonId?$queryParameters'),
+        'https://app.randevumcepte.com.tr/api/v1/calisma_saati_guncelle_ekle/$salonId?$queryParameters'),
     headers: {'Content-Type': 'application/json'},
   );
 

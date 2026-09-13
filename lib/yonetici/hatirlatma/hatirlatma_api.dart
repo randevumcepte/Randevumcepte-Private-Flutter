@@ -9,7 +9,7 @@ import 'hatirlatma_model.dart';
 
 class HatirlatmaApi {
   static const String _url =
-      'https://apptest.randevumcepte.com.tr/api/v1/hatirlatma-feed';
+      'https://app.randevumcepte.com.tr/api/v1/hatirlatma-feed';
 
   static Future<String?> _token() async {
     final prefs = await SharedPreferences.getInstance();

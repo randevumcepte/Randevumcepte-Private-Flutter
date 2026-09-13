@@ -247,7 +247,7 @@ class _EtkinlikDetayState extends State<EtkinlikDetay> {
 		};
 
 		final response = await http.post(
-			Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/etkinliktekrarsmsgonder'),
+			Uri.parse('https://app.randevumcepte.com.tr/api/v1/etkinliktekrarsmsgonder'),
 
 			headers: {'Content-Type': 'application/json'},
 			body: jsonEncode(formData),

@@ -6,7 +6,7 @@ import 'package:randevu_sistem/Backend/backend.dart' show appBundleAl;
 
 // GEÇİCİ: studyo ikili odeme once TEST sunucusunda (apptest). Canliya cikinca
 // 'app.randevumcepte.com.tr' yap. DB ortak, veri ayni yere duser.
-const String _kBase = 'https://apptest.randevumcepte.com.tr/api/v1';
+const String _kBase = 'https://app.randevumcepte.com.tr/api/v1';
 
 Future<bool> adisyonOdemeIsaretle({
   required String salonId,

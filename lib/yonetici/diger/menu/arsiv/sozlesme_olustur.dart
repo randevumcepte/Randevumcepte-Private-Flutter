@@ -366,7 +366,7 @@ Müşteri, MERKEZ'de uygulanan işlemlerin birer "tıbbi tedavi" veya "hastalık
       };
       final resp = await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/sozlesme-olustur'),
+            'https://app.randevumcepte.com.tr/api/v1/sozlesme-olustur'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );

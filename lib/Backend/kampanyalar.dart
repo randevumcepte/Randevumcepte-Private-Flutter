@@ -16,7 +16,7 @@ class Services {
 
 
     final response = await http.get(
-        Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kampanyalar/114')
+        Uri.parse('https://app.randevumcepte.com.tr/api/v1/kampanyalar/114')
     );
 
     if (response.statusCode == 200) {

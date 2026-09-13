@@ -139,7 +139,7 @@ class HesabimVeri {
 }
 
 class HesabimApi {
-  static const String _base = 'https://apptest.randevumcepte.com.tr/api/v1';
+  static const String _base = 'https://app.randevumcepte.com.tr/api/v1';
 
   static Future<String?> _token() async {
     final prefs = await SharedPreferences.getInstance();

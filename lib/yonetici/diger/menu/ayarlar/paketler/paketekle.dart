@@ -678,7 +678,7 @@ class _PaketEkleState extends State<PaketEkle> {
 
       final response = await http.post(
         Uri.parse(
-            'https://apptest.randevumcepte.com.tr/api/v1/paket_ekle_guncelle/$seciliisletme'),
+            'https://app.randevumcepte.com.tr/api/v1/paket_ekle_guncelle/$seciliisletme'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );

@@ -65,7 +65,7 @@ Future<void> kampanyasil(BuildContext context, int id) async {
   };
 
   final response = await http.post(
-    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/kampanyapasifet'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/kampanyapasifet'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -89,7 +89,7 @@ Future<void> ajandasil(BuildContext context, String id) async {
   };
 
   final response = await http.post(
-    Uri.parse('https://apptest.randevumcepte.com.tr/api/v1/ajandasil'),
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/ajandasil'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
