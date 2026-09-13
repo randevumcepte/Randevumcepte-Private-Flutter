@@ -7,6 +7,9 @@ import 'package:randevu_sistem/Models/adisyonhizmetler.dart';
 import 'package:randevu_sistem/Models/isletmehizmetleri.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
+import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
+import 'package:randevu_sistem/Models/grup_dersi.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/satislar/ders_slot_secici.dart';
 
 /// Yeni Satış ekranı için kuaför-dostu çoklu hizmet seçim ekranı.
 /// Birden fazla hizmete tik atılır; tek personel ve tek tarih/saat ile hepsi
@@ -44,6 +47,10 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
 
   final Set<String> _seciliHizmetIdler = {};
   String _arama = '';
+
+  // Studyo modu: otomatik ders plani (slot bazli tekrarli katilim)
+  List<GrupDersSablon> _sablonlar = [];
+  final Set<int> _seciliSablon = {}; // secili SABIT ders slotlari (sablon id)
 
   // { personel_id: [hizmet_id...] } — personele atanmış hizmetler. Boşsa o personel
   // tüm hizmetleri verebilir demektir.
@@ -144,6 +151,15 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
       _seansCtrl.putIfAbsent(h.hizmet_id, () => TextEditingController());
     }
 
+    // Studyo modu: haftalik ders programi sablonlari (slot secimi kaynagi)
+    List<GrupDersSablon> sablonlar = [];
+    if (_studyo) {
+      try {
+        final pr = await dersProgramiListe(seciliisletme!);
+        sablonlar = (pr['sablon'] as List).cast<GrupDersSablon>();
+      } catch (_) {}
+    }
+
     setState(() {
       personeller = temizPersoneller;
       hizmetler = hizmetliste;
@@ -152,9 +168,63 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
       _personelHizmetMap = phMapRaw.map((k, v) =>
           MapEntry(k.toString(), (v as List).map((e) => e.toString()).toList()));
       selectedpersonel = secili;
+      _sablonlar = sablonlar;
       isloading = false;
     });
   }
+
+  String _sHHMM(String s) => s.length >= 5 ? s.substring(0, 5) : s;
+
+  // Secili hizmetlere ait SABIT ders slotlari (gun, sonra saat sirasiyla)
+  List<GrupDersSablon> get _uygunSablon {
+    if (_seciliHizmetIdler.isEmpty) return [];
+    final l = _sablonlar
+        .where((s) => _seciliHizmetIdler.contains((s.hizmetId ?? '').toString()))
+        .toList();
+    l.sort((a, b) => a.haftaGunu != b.haftaGunu
+        ? a.haftaGunu.compareTo(b.haftaGunu)
+        : _sHHMM(a.saat).compareTo(_sHHMM(b.saat)));
+    return l;
+  }
+
+  // Studyo: secili hizmetin grup dersi slotu varsa "planli/plansiz" secenegi sun
+  bool get _planYapilabilir => _studyo && _seciliHizmetIdler.isNotEmpty && _uygunSablon.isNotEmpty;
+
+  Future<void> _slotSeciciAc() async {
+    final sonuc = await showModalBottomSheet<Set<int>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DersSlotSecici(slotlar: _uygunSablon, secili: Set<int>.from(_seciliSablon)),
+    );
+    if (sonuc != null) {
+      setState(() {
+        _seciliSablon
+          ..clear()
+          ..addAll(sonuc);
+      });
+    }
+  }
+
+  Future<void> _plansizEkle() async {
+    _seciliSablon.clear();
+    await _kaydet();
+  }
+
+  Future<void> _dersPlaniIleEkle() async {
+    await _slotSeciciAc();
+    if (!mounted) return;
+    if (_seciliSablon.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ders planı için en az bir slot seçin (veya "Plansız Ekle").')),
+      );
+      return;
+    }
+    await _kaydet();
+  }
+
+  int _planOlusan = 0;
+  int _planYerlesmeyen = 0;
 
   double _fiyatDouble(IsletmeHizmet h) =>
       double.tryParse(h.fiyat.replaceAll(',', '.')) ?? 0;
@@ -258,8 +328,46 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
         final eklenen = await adisyonhizmetekle(ah, widget.musteriid, context, seciliisletme!);
         adisyonId = eklenen.adisyon_id; // zincirle: sonraki kalem aynı adisyona
         eklenenler.add(eklenen);
+
+        // Studyo modu: ders slotu secildiyse otomatik ders planini olustur + dagit
+        if (_studyo && _seciliSablon.isNotEmpty) {
+          final ahId = int.tryParse(eklenen.id);
+          // Bu hizmete ait secili slotlar
+          final hizmetSlotlari = _uygunSablon
+              .where((s) => _seciliSablon.contains(s.id) && (s.hizmetId ?? '').toString() == h.hizmet_id)
+              .map((s) => s.id)
+              .toList();
+          final hidInt = int.tryParse(h.hizmet_id) ?? 0;
+          if (hidInt > 0 && hizmetSlotlari.isNotEmpty) {
+            // Seans sayisi: bos/1 -> 1, degilse girilen
+            final toplam = (int.tryParse(_seansTrim) ?? 1) < 1 ? 1 : (int.tryParse(_seansTrim) ?? 1);
+            try {
+              final r = await dersTekrarliKaydet(
+                salonId: seciliisletme!,
+                userId: widget.musteriid,
+                hizmetId: hidInt,
+                toplamSeans: toplam,
+                sablonlar: hizmetSlotlari,
+                baslangic: islem_tarihi.text,
+                adisyonHizmetId: ahId,
+              );
+              final s = Map<String, dynamic>.from(r['sonuc'] ?? {});
+              _planOlusan += int.tryParse(s['olusan'].toString()) ?? 0;
+              _planYerlesmeyen += int.tryParse(s['yerlesmeyen'].toString()) ?? 0;
+            } catch (_) {/* satis basarili; plan hatasi satisi bozmasin */}
+          }
+        }
       }
-      if (mounted) Navigator.pop(context, eklenenler);
+      if (mounted) {
+        if (_studyo && _seciliSablon.isNotEmpty && _planOlusan > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$_planOlusan ders otomatik planlandı'
+                '${_planYerlesmeyen > 0 ? ' • $_planYerlesmeyen seans yerleştirilemedi (uygun oturum yok)' : ''}.'),
+            backgroundColor: const Color(0xFF2E7D32),
+          ));
+        }
+        Navigator.pop(context, eklenenler);
+      }
     } catch (_) {
       // adisyonhizmetekle hata snackbar'ını kendi gösteriyor; başarılı eklenenleri geri ver
       if (mounted) Navigator.pop(context, eklenenler);
@@ -284,34 +392,73 @@ class _CokluHizmetSecimState extends State<CokluHizmetSecim> {
                   color: Theme.of(context).cardColor,
                   border: Border(top: BorderSide(color: cs.outlineVariant)),
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${_seciliHizmetIdler.length} hizmet seçildi',
-                              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-                          if (!_studyo)
-                          Text(tryf.format(_secilenToplam),
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                        ],
+                    Row(children: [
+                      Expanded(
+                        child: Text('${_seciliHizmetIdler.length} hizmet seçildi',
+                            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                       ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: (_seciliHizmetIdler.isEmpty || _kaydediliyor) ? null : _kaydet,
-                      icon: _kaydediliyor
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.check_rounded),
-                      label: const Text('EKLE'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E7D32),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      if (!_studyo)
+                        Text(tryf.format(_secilenToplam),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                    ]),
+                    const SizedBox(height: 10),
+                    if (_planYapilabilir)
+                      Row(children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _kaydediliyor ? null : _plansizEkle,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: cs.onSurface,
+                              side: BorderSide(color: cs.outlineVariant),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: _kaydediliyor
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Text('Plansız Ekle', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 3,
+                          child: ElevatedButton.icon(
+                            onPressed: _kaydediliyor ? null : _dersPlaniIleEkle,
+                            icon: const Icon(Icons.event_repeat_rounded, size: 18),
+                            label: Text(_seciliSablon.isEmpty
+                                ? 'Ders Planı ile Ekle'
+                                : 'Ders Planı ile Ekle (${_seciliSablon.length})'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: cs.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                      ])
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: (_seciliHizmetIdler.isEmpty || _kaydediliyor) ? null : _kaydet,
+                          icon: _kaydediliyor
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.check_rounded),
+                          label: const Text('EKLE'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2E7D32),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
