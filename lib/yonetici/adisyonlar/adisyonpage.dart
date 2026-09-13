@@ -1392,17 +1392,23 @@
           if (isNowClosed) {
             // Yeni kapanan adisyon en yeni tarihli oldugu icin liste basina ekle
             _kapaliAdisyonlar.insert(0, updatedAdisyon);
-            if (acikSayi != null && acikSayi!.isNotEmpty) {
-              int currentAcik = int.tryParse(acikSayi!) ?? 0;
-              if (currentAcik > 0) {
-                acikSayi = (currentAcik - 1).toString();
-              }
+            // Sayac: yalnizca ACIK'tan kapandiysa guncelle (zaten kapaliysa degisme yok)
+            if (wasInOpenTab) {
+              int currentAcik = int.tryParse(acikSayi ?? '0') ?? 0;
+              if (currentAcik > 0) acikSayi = (currentAcik - 1).toString();
+              int currentKapali = int.tryParse(kapaliSayi ?? '0') ?? 0;
+              kapaliSayi = (currentKapali + 1).toString();
             }
-            int currentKapali = int.tryParse(kapaliSayi ?? '0') ?? 0;
-            kapaliSayi = (currentKapali + 1).toString();
           } else {
-            // Hala acik: degisen tutarlarla guncelle, en uste tasi
+            // Artik ACIK: en uste tasi
             _acikAdisyonlar.insert(0, updatedAdisyon);
+            // Sayac: KAPALI'dan acildiysa guncelle (Odeme Alinmadi / Geri Al)
+            if (!wasInOpenTab) {
+              int currentKapali = int.tryParse(kapaliSayi ?? '0') ?? 0;
+              if (currentKapali > 0) kapaliSayi = (currentKapali - 1).toString();
+              int currentAcik = int.tryParse(acikSayi ?? '0') ?? 0;
+              acikSayi = (currentAcik + 1).toString();
+            }
           }
         });
 
