@@ -58,11 +58,13 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   bool get _studyo =>
       widget.isletmebilgi is Map &&
       widget.isletmebilgi['studyo_modu']?.toString() == '1';
-  // Grup dersi online rezervasyon kisayolu: studyo modu + grup dersi modulu acik
+  // Grup dersi online rezervasyon kisayolu: studyo modu + grup dersi modulu +
+  // isletmenin online randevu ayari acik olmali.
   bool get _grupRezervasyonAktif =>
       _studyo &&
       widget.isletmebilgi is Map &&
       widget.isletmebilgi['grup_dersi_aktif']?.toString() == '1' &&
+      musteriOnlineRandevuAktifMi(widget.isletmebilgi) &&
       (widget.isletmebilgi['id']?.toString().isNotEmpty ?? false);
   MusteriOzet? ozetsayfabilgi;
   SalonYorumlarOzet? yorumOzeti;
@@ -1174,7 +1176,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
             child: GrupDerslerimEkran(
               userId: widget.md.id.toString(),
               salonId: salonId,
-              studyoModu: true,
+              rezervasyonAcik: _grupRezervasyonAktif,
             ),
           ),
         ),

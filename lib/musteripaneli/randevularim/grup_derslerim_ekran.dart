@@ -10,8 +10,8 @@ const List<String> _gunAd = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe'
 class GrupDerslerimEkran extends StatefulWidget {
   final String userId;   // musteri (danisan) id
   final String? salonId; // sadece bu isletmenin derslerini getir
-  final bool studyoModu; // online rezervasyon YALNIZCA studyo modunda acik
-  const GrupDerslerimEkran({Key? key, required this.userId, this.salonId, this.studyoModu = false}) : super(key: key);
+  final bool rezervasyonAcik; // rezervasyon: studyo modu + isletme online randevu ayari
+  const GrupDerslerimEkran({Key? key, required this.userId, this.salonId, this.rezervasyonAcik = false}) : super(key: key);
 
   @override
   State<GrupDerslerimEkran> createState() => _GrupDerslerimEkranState();
@@ -101,7 +101,7 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
         iconTheme: const IconThemeData(color: _mor),
         title: const Text('Grup Derslerim', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.w700)),
       ),
-      floatingActionButton: (salon == null || salon.isEmpty || !widget.studyoModu)
+      floatingActionButton: (salon == null || salon.isEmpty || !widget.rezervasyonAcik)
           ? null
           : FloatingActionButton.extended(
               backgroundColor: _mor,

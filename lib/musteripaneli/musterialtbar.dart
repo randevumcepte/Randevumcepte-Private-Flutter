@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/Backend/backend.dart' show musteriOnlineRandevuAktifMi;
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Frontend/lisans_uyari.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
@@ -79,7 +80,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
       GrupDerslerimEkran(
         userId: widget.musteriId.id.toString(),
         salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
-        studyoModu: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1',
+        rezervasyonAcik: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1' && musteriOnlineRandevuAktifMi(widget.isletmebilgi),
       ),
     MenuPage(
       onLogout: _handleLogout,
@@ -165,7 +166,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
           builder: (_) => GrupDerslerimEkran(
             userId: widget.musteriId.id.toString(),
             salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
-            studyoModu: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1',
+            rezervasyonAcik: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1' && musteriOnlineRandevuAktifMi(widget.isletmebilgi),
           ),
         ));
         break;
@@ -358,7 +359,7 @@ class _MusteriAltBarState  extends State<MusteriAltBar> {
           builder: (_) => GrupDerslerimEkran(
             userId: widget.musteriId.id.toString(),
             salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : null,
-            studyoModu: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1',
+            rezervasyonAcik: widget.isletmebilgi is Map && widget.isletmebilgi['studyo_modu']?.toString() == '1' && musteriOnlineRandevuAktifMi(widget.isletmebilgi),
           ),
         ));
         break;
