@@ -15,6 +15,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/musteripaneli/randevularim/grup_dersi_rezervasyon_ekran.dart';
+import 'package:randevu_sistem/musteripaneli/randevularim/grup_derslerim_ekran.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -1150,6 +1151,38 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
         ),
       ),
     ];
+
+    // Studyo modu: "Aldığım Ürünler" yerine "Derslerim"; sira:
+    // Derslerim → Randevularım → Aldığım Paketler → Seanslarım.
+    if (_studyo) {
+      final salonId = widget.isletmebilgi is Map
+          ? (widget.isletmebilgi['id']?.toString() ?? '')
+          : '';
+      final randevularim = items[0];
+      final seanslarim = items[1];
+      final paketler = items[2];
+      final derslerim = _QuickAccessItem(
+        icon: Icons.groups_rounded,
+        title: 'Derslerim',
+        subtitle: 'Grup derslerim',
+        tint: scheme.primary,
+        onTap: () => Navigator.push(
+          context,
+          PageTransition(
+            type: PageTransitionType.rightToLeft,
+            duration: const Duration(milliseconds: 400),
+            child: GrupDerslerimEkran(
+              userId: widget.md.id.toString(),
+              salonId: salonId,
+              studyoModu: true,
+            ),
+          ),
+        ),
+      );
+      items
+        ..clear()
+        ..addAll([derslerim, randevularim, paketler, seanslarim]);
+    }
 
     final width = MediaQuery.of(context).size.width;
     final bool isTabletLandscape = width >= 900 &&
