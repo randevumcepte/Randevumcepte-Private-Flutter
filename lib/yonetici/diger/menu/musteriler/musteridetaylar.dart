@@ -1257,7 +1257,8 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 								children: [
 									_buildTimeline(randevular, 'personel_notu'),
 									_buildTimeline(
-											randevular, 'randevu_sonrasi_not'),
+											randevular, 'randevu_sonrasi_not',
+											editable: Yetki.varMi('musteri.not_yaz')),
 								],
 							);
 						},
@@ -1268,7 +1269,8 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 	}
 
 	Widget _buildTimeline(
-			List<Map<String, dynamic>> randevular, String field) {
+			List<Map<String, dynamic>> randevular, String field,
+			{bool editable = false}) {
 		if (randevular.isEmpty) {
 			return ListView(
 				padding: const EdgeInsets.all(20),
@@ -1477,34 +1479,67 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 												],
 											],
 											const SizedBox(height: 10),
-											Container(
-												width: double.infinity,
-												padding:
-														const EdgeInsets.all(10),
-												decoration: BoxDecoration(
-													color: Colors.grey.shade50,
-													borderRadius:
-															BorderRadius.circular(
-																	8),
-												),
-												child: Text(
-													notText ??
-															'Not eklenmemiş.',
-													style: TextStyle(
-														fontSize: 13,
-														height: 1.4,
-														color: notText == null
-																? Colors.grey
-																: Colors
-																		.black87,
-														fontStyle: notText == null
-																? FontStyle
-																		.italic
-																: FontStyle
-																		.normal,
+											Builder(builder: (_) {
+												final noteBox = Container(
+													width: double.infinity,
+													padding: const EdgeInsets.all(10),
+													decoration: BoxDecoration(
+														color: Colors.grey.shade50,
+														borderRadius:
+																BorderRadius.circular(8),
+														border: editable
+																? Border.all(
+																		color: _primary
+																				.withValues(alpha: 0.20))
+																: null,
 													),
-												),
-											),
+													child: Row(
+														crossAxisAlignment:
+																CrossAxisAlignment.start,
+														children: [
+															Expanded(
+																child: Text(
+																	notText ??
+																			(editable
+																					? 'Not eklemek için dokunun'
+																					: 'Not eklenmemiş.'),
+																	style: TextStyle(
+																		fontSize: 13,
+																		height: 1.4,
+																		color: notText == null
+																				? Colors.grey
+																				: Colors.black87,
+																		fontStyle: notText == null
+																				? FontStyle.italic
+																				: FontStyle.normal,
+																	),
+																),
+															),
+															if (editable) ...[
+																const SizedBox(width: 8),
+																Icon(
+																	notText == null
+																			? Icons.add
+																			: Icons.edit,
+																	size: 16,
+																	color: _primary,
+																),
+															],
+														],
+													),
+												);
+												if (!editable) return noteBox;
+												return Material(
+													color: Colors.transparent,
+													child: InkWell(
+														borderRadius:
+																BorderRadius.circular(8),
+														onTap: () =>
+																_islemNotuDuzenle(r),
+														child: noteBox,
+													),
+												);
+											}),
 										],
 									),
 								),
@@ -1514,6 +1549,155 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				);
 			},
 		);
+	}
+
+	// Islem notu ekle/duzenle dialog (musteri detay -> Islem Notlari sekmesi).
+	Future<void> _islemNotuDuzenle(Map<String, dynamic> r) async {
+		final id = r['id']?.toString() ?? '';
+		if (id.isEmpty) return;
+		final raw = r['randevu_sonrasi_not']?.toString();
+		final mevcut = (raw == null || raw == 'null') ? '' : raw;
+		final controller = TextEditingController(text: mevcut);
+		final kaydet = await showDialog<bool>(
+			context: context,
+			barrierColor: Colors.black.withValues(alpha: 0.40),
+			builder: (ctx) => Dialog(
+				backgroundColor: Colors.transparent,
+				insetPadding:
+						const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+				child: Container(
+					padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+					decoration: BoxDecoration(
+						color: Colors.white,
+						borderRadius: BorderRadius.circular(22),
+					),
+					child: Column(
+						mainAxisSize: MainAxisSize.min,
+						crossAxisAlignment: CrossAxisAlignment.start,
+						children: [
+							Row(
+								children: [
+									Container(
+										width: 44,
+										height: 44,
+										decoration: BoxDecoration(
+											color: _primary.withValues(alpha: 0.12),
+											shape: BoxShape.circle,
+										),
+										child: Icon(Icons.note_add_outlined,
+												color: _primary, size: 22),
+									),
+									const SizedBox(width: 12),
+									Expanded(
+										child: Column(
+											crossAxisAlignment:
+													CrossAxisAlignment.start,
+											children: [
+												Text(
+													_md.name,
+													maxLines: 1,
+													overflow: TextOverflow.ellipsis,
+													style: const TextStyle(
+														fontSize: 16,
+														fontWeight: FontWeight.w800,
+													),
+												),
+												const SizedBox(height: 2),
+												Text(
+													'İşlem Notu',
+													style: TextStyle(
+														fontSize: 11.5,
+														fontWeight: FontWeight.w500,
+														color: Colors.grey.shade600,
+													),
+												),
+											],
+										),
+									),
+								],
+							),
+							const SizedBox(height: 16),
+							TextField(
+								controller: controller,
+								minLines: 3,
+								maxLines: 6,
+								textCapitalization:
+										TextCapitalization.sentences,
+								decoration: InputDecoration(
+									hintText: 'İşlem sonrası notu yazın…',
+									filled: true,
+									fillColor: Colors.grey.shade50,
+									border: OutlineInputBorder(
+										borderRadius: BorderRadius.circular(12),
+										borderSide:
+												BorderSide(color: Colors.grey.shade200),
+									),
+									enabledBorder: OutlineInputBorder(
+										borderRadius: BorderRadius.circular(12),
+										borderSide:
+												BorderSide(color: Colors.grey.shade200),
+									),
+									focusedBorder: OutlineInputBorder(
+										borderRadius: BorderRadius.circular(12),
+										borderSide: BorderSide(color: _primary),
+									),
+								),
+							),
+							const SizedBox(height: 14),
+							Row(
+								children: [
+									Expanded(
+										child: TextButton(
+											onPressed: () =>
+													Navigator.of(ctx).pop(false),
+											child: const Text('Vazgeç'),
+										),
+									),
+									const SizedBox(width: 10),
+									Expanded(
+										child: ElevatedButton(
+											style: ElevatedButton.styleFrom(
+												backgroundColor: _primary,
+												foregroundColor: Colors.white,
+												elevation: 0,
+												padding: const EdgeInsets.symmetric(
+														vertical: 12),
+												shape: RoundedRectangleBorder(
+													borderRadius:
+															BorderRadius.circular(12),
+												),
+											),
+											onPressed: () =>
+													Navigator.of(ctx).pop(true),
+											child: const Text('Kaydet',
+													style: TextStyle(
+															fontWeight: FontWeight.w800)),
+										),
+									),
+								],
+							),
+						],
+					),
+				),
+			),
+		);
+		if (kaydet != true) return;
+		final not = controller.text.trim();
+		final ok = await randevuSonrasiNotKaydet(id, not);
+		if (!mounted) return;
+		if (ok) {
+			r['randevu_sonrasi_not'] = not;
+			setState(() {
+				_randevularFuture = _fetchRandevular();
+			});
+			ScaffoldMessenger.of(context).showSnackBar(
+				const SnackBar(content: Text('İşlem notu kaydedildi')),
+			);
+		} else {
+			ScaffoldMessenger.of(context).showSnackBar(
+				const SnackBar(content: Text('Not kaydedilemedi')),
+			);
+		}
 	}
 
 }

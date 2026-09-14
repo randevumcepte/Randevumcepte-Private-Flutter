@@ -22,6 +22,7 @@
     required this.salonAdi,
     required this.gorevIptalEdilebilir,
     this.on_gorusme_id = '',
+    this.randevuSonrasiNot = '',
   });
   final String id;
   final String tarih;
@@ -48,6 +49,9 @@
 
   // Dolu ise randevu bir on gorusmeden uretilmistir (on_gorusme_id FK).
   final String on_gorusme_id;
+
+  // Randevu sonrasi islem notu (web: randevu_sonrasi_not). '' => not yok.
+  final String randevuSonrasiNot;
 
   // 1 / "1" / true -> true; null / 0 / "0" -> false
   static bool _isBir(dynamic v) => v == 1 || v == "1" || v == true;
@@ -81,6 +85,9 @@
       toplam: json["toplam"].toString(),
       musterinotu : json["musteri_notu"].toString(),
       personelnotu : json["personel_notu"].toString(),
+      randevuSonrasiNot: json["randevu_sonrasi_not"] == null
+          ? ''
+          : json["randevu_sonrasi_not"].toString(),
       tahsilat_eklendi: json["tahsilat_eklendi"].toString(),
       salonAdi: (json["salonlar"] is Map && json["salonlar"]["salon_adi"] != null)
           ? json["salonlar"]["salon_adi"].toString()

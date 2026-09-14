@@ -2428,6 +2428,36 @@ Future<void> randevuonayla(String randevuid, BuildContext context) async {
   }
 
 }
+/// Randevu sonrasi islem notunu kaydeder (mobil).
+/// Backend: POST /api/v1/randevu-sonrasi-not-kaydet (yetki: musteri.not_yaz).
+/// Basarili ise true doner; UI kendi optimistic guncellemesini/yenilemesini yapar.
+Future<bool> randevuSonrasiNotKaydet(String randevuId, String not) async {
+  String _callerUserId = '';
+  try {
+    final _prefs = await SharedPreferences.getInstance();
+    final _uraw = _prefs.getString('user');
+    if (_uraw != null && _uraw.isNotEmpty) {
+      final _u = jsonDecode(_uraw);
+      if (_u is Map) _callerUserId = _u['id']?.toString() ?? '';
+    }
+  } catch (_) {}
+
+  try {
+    final response = await http.post(
+      Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevu-sonrasi-not-kaydet'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'randevu_id': randevuId,
+        'not': not,
+        'user_id': _callerUserId,
+      }),
+    );
+    return response.statusCode == 200;
+  } catch (_) {
+    return false;
+  }
+}
+
 Future<void> randevugelmediisaretle(String randevuid, BuildContext context, [String seansDusumuYap = '']) async {
   showProgressLoading(context);
   SharedPreferences localStorage = await SharedPreferences.getInstance();

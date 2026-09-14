@@ -772,6 +772,16 @@ class _RandevularMenuState extends State<RandevularMenu> {
         tint: const Color(0xFFDC2626),
       ));
     }
+    // Islem notu: web ile ayni kosul (onayli + gelinmis randevu) + yetki.
+    if (r.durum == "1" && r.geldimi == "1" && Yetki.varMi('musteri.not_yaz')) {
+      items.add(_menuEntry(
+        'islemnotu',
+        (r.randevuSonrasiNot.isEmpty || r.randevuSonrasiNot == 'null')
+            ? 'İşlem Notu Ekle'
+            : 'İşlem Notunu Düzenle',
+        Icons.note_add_outlined,
+      ));
+    }
     return items;
   }
 
@@ -853,6 +863,149 @@ class _RandevularMenuState extends State<RandevularMenu> {
       if (!mounted) return;
       await _goreviIptalEt(r.id);
     }
+    if (value == 'islemnotu') {
+      await _islemNotuDialog(r);
+      return;
+    }
+  }
+
+  Future<void> _islemNotuDialog(Randevu r) async {
+    final scheme = Theme.of(context).colorScheme;
+    final mevcut =
+        (r.randevuSonrasiNot == 'null') ? '' : r.randevuSonrasiNot;
+    final controller = TextEditingController(text: mevcut);
+    final kaydet = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.40),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [scheme.primary, scheme.tertiary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.note_add_outlined,
+                        color: scheme.onPrimary, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.musteriname,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'İşlem Notu',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                minLines: 3,
+                maxLines: 6,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: 'İşlem sonrası notu yazın…',
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: scheme.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Vazgeç'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Kaydet',
+                          style: TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (kaydet != true) return;
+    final not = controller.text.trim();
+    final ok = await randevuSonrasiNotKaydet(r.id, not);
+    if (!mounted) return;
+    if (ok) {
+      _optimisticUpdate(r, not: not);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('İşlem notu kaydedildi')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not kaydedilemedi')),
+      );
+    }
   }
 
   Future<void> _goreviIptalEt(String randevuid) async {
@@ -889,7 +1042,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
     }
   }
 
-  void _optimisticUpdate(Randevu r, {String? durum, String? geldimi}) {
+  void _optimisticUpdate(Randevu r, {String? durum, String? geldimi, String? not}) {
     final idx = _randevuDataGridSource.randevu.indexWhere((x) => x.id == r.id);
     if (idx < 0) return;
     final old = _randevuDataGridSource.randevu[idx];
@@ -914,6 +1067,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
         salonAdi: old.salonAdi,
         gorevIptalEdilebilir: old.gorevIptalEdilebilir,
         on_gorusme_id: old.on_gorusme_id,
+        randevuSonrasiNot: not ?? old.randevuSonrasiNot,
       );
     });
   }
