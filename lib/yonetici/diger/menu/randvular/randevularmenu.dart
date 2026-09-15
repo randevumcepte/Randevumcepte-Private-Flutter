@@ -752,18 +752,6 @@ class _RandevularMenuState extends State<RandevularMenu> {
         tint: const Color(0xFFDC2626),
       ));
     }
-    // Hatirlatma (asistan arama) gorevi hala aktifse iptal secenegi (web ile ayni kosul)
-    if (r.gorevIptalEdilebilir &&
-        r.durum != "2" &&
-        r.durum != "3" &&
-        widget.kullanicirolu != 5) {
-      items.add(_menuEntry(
-        'goreviptalet',
-        'Görevi İptal Et',
-        Icons.notifications_off_outlined,
-        tint: const Color(0xFFD97706),
-      ));
-    }
     if (r.durum != "0" && widget.kullanicirolu != 5) {
       items.add(_menuEntry(
         'randevuyageldi',
@@ -862,12 +850,6 @@ class _RandevularMenuState extends State<RandevularMenu> {
       final yeniDurum = usertype == '0' ? '3' : '2';
       _optimisticUpdate(r, durum: yeniDurum);
       _iptalEtSilent(r.id, yeniDurum);
-    }
-    if (value == 'goreviptalet') {
-      final onay = await _gorevIptalOnayDialog();
-      if (onay != true) return;
-      if (!mounted) return;
-      await _goreviIptalEt(r.id);
     }
     if (value == 'islemnotu') {
       await _islemNotuDialog(r);
@@ -1010,28 +992,6 @@ class _RandevularMenuState extends State<RandevularMenu> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Not kaydedilemedi')),
-      );
-    }
-  }
-
-  Future<void> _goreviIptalEt(String randevuid) async {
-    try {
-      await http.post(
-        Uri.parse('https://app.randevumcepte.com.tr/api/v1/gorev-iptal-et'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'randevu_id': randevuid}),
-      );
-      if (!mounted) return;
-      // Gorev iptal edildi: ilgili listeyi tazele (buton bir sonraki acilista gizlenir)
-      await _applyFilters(page: _randevuDataGridSource.currentPage);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hatırlatma görevi iptal edildi')),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Görev iptal edilirken bir hata oluştu')),
       );
     }
   }
@@ -1407,139 +1367,6 @@ class _RandevularMenuState extends State<RandevularMenu> {
                           child: const Center(
                             child: Text(
                               'İptal Et',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<bool?> _gorevIptalOnayDialog() {
-    const amber = Color(0xFFD97706);
-    final scheme = Theme.of(context).colorScheme;
-    return showDialog<bool>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.40),
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding:
-            const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: amber.withValues(alpha: 0.20),
-                blurRadius: 28,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      amber.withValues(alpha: 0.20),
-                      amber.withValues(alpha: 0.08),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.notifications_off_outlined,
-                    color: amber, size: 30),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Hatırlatma görevini iptal et?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: scheme.onSurface,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Bu randevu için asistan hatırlatma araması yapılmayacak.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: scheme.onSurface.withValues(alpha: 0.70),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'Vazgeç',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onSurface.withValues(alpha: 0.65),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: Material(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        onTap: () => Navigator.of(ctx).pop(true),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 13),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                amber,
-                                amber.withValues(alpha: 0.85),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Görevi İptal Et',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
