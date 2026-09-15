@@ -5,6 +5,7 @@ import 'dart:developer';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -72,11 +73,16 @@ class _RandevularMenuState extends State<RandevularMenu> {
     'Önümüzdeki ay',
     'Bu yıl',
     'Önümüzdeki yıl',
+    'Özel Tarih',
   ];
 
   String selectedrandevuolusturma = 'Tümü';
   String selectedrandevudurum = 'Tümü';
   String selectedrandevutarih = 'Tümü';
+  // 'Özel Tarih' secildiginde kullanilan baslangic/bitis; backend'e 'Özel:bas:bit'
+  // olarak (yyyy-MM-dd) gonderilir.
+  DateTime? _ozelBaslangic;
+  DateTime? _ozelBitis;
 
   final TextEditingController _controller = TextEditingController();
 
@@ -1555,13 +1561,25 @@ class _RandevularMenuState extends State<RandevularMenu> {
     );
   }
 
+  // 'Özel Tarih' secildiyse backend'e 'Özel:yyyy-MM-dd:yyyy-MM-dd' gonder;
+  // aksi halde etiketin kendisi (Tümü/Bugün/...).
+  String _tarihFiltreArg() {
+    if (selectedrandevutarih == 'Özel Tarih' &&
+        _ozelBaslangic != null &&
+        _ozelBitis != null) {
+      final f = DateFormat('yyyy-MM-dd');
+      return 'Özel:${f.format(_ozelBaslangic!)}:${f.format(_ozelBitis!)}';
+    }
+    return selectedrandevutarih;
+  }
+
   Future<void> _applyFilters({required int page}) async {
     await _randevuDataGridSource.fetchData(
       page.toString(),
       _controller.text,
       selectedrandevuolusturma,
       selectedrandevudurum,
-      selectedrandevutarih,
+      _tarihFiltreArg(),
       _yetkiyeGorePersonelid,
       widget.cihazid,
     );
@@ -1660,6 +1678,8 @@ class _RandevularMenuState extends State<RandevularMenu> {
     String tarih = selectedrandevutarih;
     String durum = selectedrandevudurum;
     String olusturma = selectedrandevuolusturma;
+    DateTime? ozelBas = _ozelBaslangic;
+    DateTime? ozelBit = _ozelBitis;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1750,6 +1770,58 @@ class _RandevularMenuState extends State<RandevularMenu> {
                       items: randevutarih,
                       onChanged: (v) => setSheet(() => tarih = v ?? 'Tümü'),
                     ),
+                    if (tarih == 'Özel Tarih') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _sheetDateField(
+                              label: 'Başlangıç',
+                              value: ozelBas,
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: ctx,
+                                  initialDate: ozelBas ?? DateTime.now(),
+                                  firstDate: DateTime(2015),
+                                  lastDate: DateTime(2100),
+                                  locale: const Locale('tr'),
+                                );
+                                if (picked != null) {
+                                  setSheet(() {
+                                    ozelBas = picked;
+                                    // Baslangic bitisten sonraysa bitisi esitle
+                                    if (ozelBit != null &&
+                                        ozelBit!.isBefore(picked)) {
+                                      ozelBit = picked;
+                                    }
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _sheetDateField(
+                              label: 'Bitiş',
+                              value: ozelBit,
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: ctx,
+                                  initialDate:
+                                      ozelBit ?? ozelBas ?? DateTime.now(),
+                                  firstDate: ozelBas ?? DateTime(2015),
+                                  lastDate: DateTime(2100),
+                                  locale: const Locale('tr'),
+                                );
+                                if (picked != null) {
+                                  setSheet(() => ozelBit = picked);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     _sheetLabel('Randevu Durumu', Icons.flag_outlined),
                     const SizedBox(height: 6),
@@ -1798,11 +1870,23 @@ class _RandevularMenuState extends State<RandevularMenu> {
                             borderRadius: BorderRadius.circular(12),
                             child: InkWell(
                               onTap: () async {
+                                if (tarih == 'Özel Tarih' &&
+                                    (ozelBas == null || ozelBit == null)) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Lütfen başlangıç ve bitiş tarihini seçin'),
+                                    ),
+                                  );
+                                  return;
+                                }
                                 Navigator.of(ctx).pop();
                                 setState(() {
                                   selectedrandevutarih = tarih;
                                   selectedrandevudurum = durum;
                                   selectedrandevuolusturma = olusturma;
+                                  _ozelBaslangic = ozelBas;
+                                  _ozelBitis = ozelBit;
                                 });
                                 log("durum $durum");
                                 await _applyFilters(page: 1);
@@ -1872,6 +1956,58 @@ class _RandevularMenuState extends State<RandevularMenu> {
           ),
         ),
       ],
+    );
+  }
+
+  // Özel tarih araligi icin tarih secme alani (dropdown ile ayni gorunum).
+  Widget _sheetDateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = value == null
+        ? label
+        : DateFormat('dd.MM.yyyy').format(value);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 46,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: scheme.primary.withValues(alpha: 0.18),
+              width: 1.2,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              Icon(Icons.event_outlined,
+                  size: 16, color: scheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  text,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: value == null
+                        ? scheme.onSurface.withValues(alpha: 0.45)
+                        : scheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

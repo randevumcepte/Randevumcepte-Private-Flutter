@@ -1208,6 +1208,17 @@ Future <Map<String, dynamic>>   randevularigetir(String musteri_id,String Saloni
     tarih1 = '1970-01-01';
     tarih2 = '2050-01-01';
   }
+  // Özel tarih araligi: 'Özel:yyyy-MM-dd:yyyy-MM-dd'
+  if(tarih.startsWith('Özel:')) {
+    final parts = tarih.split(':');
+    if(parts.length == 3 && parts[1].isNotEmpty && parts[2].isNotEmpty) {
+      tarih1 = parts[1];
+      tarih2 = parts[2];
+    } else {
+      tarih1 = '1970-01-01';
+      tarih2 = '2050-01-01';
+    }
+  }
 
   if(durum == 'Tümü') {
     randevudurumu = '';
