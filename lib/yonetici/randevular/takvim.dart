@@ -2006,6 +2006,23 @@ List<Widget> _buildAppointmentsForResource(
                           randevutitle[0] + " Randevu Detayları",
                           style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
                         ),
+                        // TELAFI rozeti: seans telafi slotunda (geldi=2) ise (durum 6. segment).
+                        (randevudurum!.length > 5 && randevudurum![5] == "1")
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFE8D6),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Text(
+                                    'TELAFİ',
+                                    style: TextStyle(color: Color(0xFFC2410C), fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.3),
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                         Divider(color: cs.outlineVariant, height: 10,),
                         Row(
                           children: [

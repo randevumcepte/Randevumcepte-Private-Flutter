@@ -128,7 +128,11 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
     if (secili == null) return;
     try {
       final r = await dersKatilimciEkle(widget.salonId, widget.oturumId, int.parse(secili.id.toString()));
-      if (r['katilimci_durum'] == 'bekleme') _snack('Kapasite dolu — bekleme listesine eklendi.');
+      if (r['katilimci_durum'] == 'bekleme') {
+        _snack('Kapasite dolu — bekleme listesine eklendi.');
+      } else if (r['telafi_baglandi'] == true) {
+        _snack('Telafi seansı bu derse bağlandı — yeni seans düşülmedi.');
+      }
       await _yukle();
     } catch (e) {
       _snack('Hata: $e');
