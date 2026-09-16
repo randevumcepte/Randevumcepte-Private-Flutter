@@ -2517,6 +2517,50 @@ Future<void> randevugelmediisaretle(String randevuid, BuildContext context, [Str
   }
 }
 
+// Randevuyu TELAFI olarak isaretle (paket/seans randevusu). Seans telafi slotuna
+// (geldi=2) alinir; bir sonraki randevuda o telafiye baglanir (yeni seans dusmez).
+Future<void> randevutelafiisaretle(String randevuid, String hizmetid, BuildContext context) async {
+  showProgressLoading(context);
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  var user = jsonDecode(localStorage.getString('user')!);
+
+  Map<String, dynamic> formData = {
+    'randevuid': randevuid,
+    'hizmetid': hizmetid,
+    'user': user["id"],
+  };
+
+  final response = await http.post(
+    Uri.parse('https://app.randevumcepte.com.tr/api/v1/randevuTelafiIsaretle'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(formData),
+  );
+
+  if (response.statusCode == 200) {
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    dynamic result;
+    try {
+      result = json.decode(response.body);
+    } catch (_) {
+      result = null;
+    }
+    final mesaj = (result is Map && result['mesaj'] != null)
+        ? result['mesaj'].toString()
+        : 'Telafi olarak işaretlendi';
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mesaj)));
+    }
+  } else {
+    logyaz(response.statusCode, response.reasonPhrase);
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    throw Exception(response.reasonPhrase);
+  }
+}
+
 Future<String?> seansDusmeOnayPopup(String mesaj, BuildContext context) {
   return showDialog<String>(
     context: context,

@@ -45,13 +45,15 @@ class Takvim extends StatefulWidget {
   final dynamic isletmebilgi;
   final Kullanici kullanici;
   final int kullanicirolu;
+  final VoidCallback? onGeriDon;
 
   const Takvim({
     Key? key,
     required this.kullanici,
     required this.selectedTab,
     required this.isletmebilgi,
-    required this.kullanicirolu
+    required this.kullanicirolu,
+    this.onGeriDon,
   }) : super(key: key);
 
   @override
@@ -741,6 +743,12 @@ class TakvimState extends State<Takvim> with RouteAware {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        leading: widget.onGeriDon != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: widget.onGeriDon,
+              )
+            : null,
         title: const Text('Takvim'),
         actions: [
           if (widget.isletmebilgi["demo_hesabi"].toString() == "1")
@@ -2122,6 +2130,20 @@ List<Widget> _buildAppointmentsForResource(
                                 color: ext.successColor,
                                 onTap: () async {
                                   await randevuGeldiGelmediIsaretiKaldir(randevudetay.id.toString() , context );
+                                  Navigator.of(context).pop();
+                                  getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
+                                },
+                              ),
+                            // TELAFI — sadece PAKET randevusunda. Seansı telafi slotuna alır;
+                            // bir sonraki randevuda o telafiye bağlanır (yeni seans düşülmez).
+                            if (randevudurum![0] != "0" && randevutitle[0].contains("PAKET"))
+                              _detayBtn(
+                                label: 'Telafi',
+                                icon: Icons.event_repeat_rounded,
+                                color: const Color(0xFFFDA172),
+                                onTap: () async {
+                                  await randevutelafiisaretle(randevudetay.id.toString(), '', context);
+                                  if (!context.mounted) return;
                                   Navigator.of(context).pop();
                                   getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
                                 },
