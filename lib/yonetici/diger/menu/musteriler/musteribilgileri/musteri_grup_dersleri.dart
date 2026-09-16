@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
+import 'package:randevu_sistem/yonetici/adisyonlar/satislar/ders_slot_secici.dart';
 
 const Color _mor = Color(0xFF5C008E);
 
@@ -413,11 +414,11 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
   List<GrupDersSablon> _sablonlar = [];
   int? _kaynakIndex;
 
-  final Set<int> _gunler = {};
-  final Set<String> _saatler = {};
-  String? _personelId; // null = farketmez
+  final Set<int> _seciliSablon = {}; // secili sabit ders slotlari (sablon id) — her slot gun+saat+egitmen tasir
   int _toplamSeans = 0;
   DateTime _baslangic = DateTime.now();
+
+  String _hhmm(String s) => s.length >= 5 ? s.substring(0, 5) : s;
 
   @override
   void initState() {
@@ -456,41 +457,20 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
     return _sablonlar.where((s) => (s.hizmetId ?? '').toString() == hid).toList();
   }
 
-  List<int> get _gunSecenek {
-    final set = <int>{};
-    for (final s in _uygunSablon) {
-      if (_personelId != null && (s.personelId ?? '') != _personelId) continue;
-      set.add(s.haftaGunu);
-    }
-    final l = set.toList()..sort();
+  // Secili slotlar (gun + saat sirali) — ozet gosterim icin
+  List<GrupDersSablon> get _seciliSlotlar {
+    final l = _uygunSablon.where((s) => _seciliSablon.contains(s.id)).toList();
+    l.sort((a, b) {
+      final g = a.haftaGunu.compareTo(b.haftaGunu);
+      return g != 0 ? g : _hhmm(a.saat).compareTo(_hhmm(b.saat));
+    });
     return l;
-  }
-
-  List<String> get _saatSecenek {
-    final set = <String>{};
-    for (final s in _uygunSablon) {
-      if (_personelId != null && (s.personelId ?? '') != _personelId) continue;
-      if (_gunler.isNotEmpty && !_gunler.contains(s.haftaGunu)) continue;
-      set.add(s.saat.length >= 5 ? s.saat.substring(0, 5) : s.saat);
-    }
-    final l = set.toList()..sort();
-    return l;
-  }
-
-  List<MapEntry<String, String>> get _hocaSecenek {
-    final m = <String, String>{};
-    for (final s in _uygunSablon) {
-      if (s.personelId != null && s.personelId!.isNotEmpty) m[s.personelId!] = s.personel;
-    }
-    return m.entries.toList();
   }
 
   void _kaynakSec(int i) {
     setState(() {
       _kaynakIndex = i;
-      _gunler.clear();
-      _saatler.clear();
-      _personelId = null;
+      _seciliSablon.clear();
       _toplamSeans = int.tryParse(_kaynaklar[i]['kalan_seans'].toString()) ?? 0;
     });
   }
@@ -514,11 +494,22 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
     if (d != null) setState(() => _baslangic = d);
   }
 
+  // Satis ekranindaki ile ayni slot secici (gun+saat+egitmen) — her slot kendi saatini tasir
+  Future<void> _slotSeciciAc() async {
+    final r = await showModalBottomSheet<Set<int>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DersSlotSecici(slotlar: _uygunSablon, secili: Set<int>.from(_seciliSablon)),
+    );
+    if (r != null && mounted) setState(() => _seciliSablon..clear()..addAll(r));
+  }
+
   Future<void> _kaydet() async {
     final k = _kaynak;
     if (k == null) return;
-    if (_gunler.isEmpty) {
-      _snack('En az bir gün seçin.', hata: true);
+    if (_seciliSablon.isEmpty) {
+      _snack('En az bir ders slotu seçin.', hata: true);
       return;
     }
     if (_toplamSeans <= 0) {
@@ -532,9 +523,7 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
         userId: widget.userId,
         hizmetId: int.tryParse(k['hizmet_id'].toString()) ?? 0,
         toplamSeans: _toplamSeans,
-        gunler: _gunler.toList()..sort(),
-        saatler: _saatler.toList()..sort(),
-        personelId: _personelId,
+        sablonlar: _seciliSablon.toList(),
         baslangic:
             '${_baslangic.year}-${_baslangic.month.toString().padLeft(2, '0')}-${_baslangic.day.toString().padLeft(2, '0')}',
         adisyonPaketId: k['adisyon_paket_id'] == null ? null : int.tryParse(k['adisyon_paket_id'].toString()),
@@ -598,9 +587,6 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
       );
 
   Widget _form() {
-    final gunSec = _gunSecenek;
-    final saatSec = _saatSecenek;
-    final hocaSec = _hocaSecenek;
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -611,7 +597,7 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
           const Text('Otomatik Ders Planı',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2C3E50))),
           const SizedBox(height: 4),
-          Text('Seçtiğiniz paketin seanslarını, uygun gün/saat/eğitmene göre takvime otomatik dağıtır.',
+          Text('Seçtiğiniz ders slotlarına (gün + saat + eğitmen) paket seanslarını haftalık olarak otomatik dağıtır. Her slot kendi saatini taşır — farklı günlere farklı saat verebilirsiniz.',
               style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
           const SizedBox(height: 16),
 
@@ -653,49 +639,45 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
           ]),
           const SizedBox(height: 16),
 
-          _etiket('Uygun Günler'),
-          if (gunSec.isEmpty)
+          _etiket('Ders Slotları'),
+          if (_uygunSablon.isEmpty)
             _uyari('Bu hizmet için haftalık programda ders yok. Önce Ders Programı ekranından ekleyin.')
-          else
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final g in gunSec)
-                _secimCip(_gunAdi[g], _gunler.contains(g), () {
-                  setState(() {
-                    _gunler.contains(g) ? _gunler.remove(g) : _gunler.add(g);
-                    _saatler.removeWhere((s) => !_saatSecenek.contains(s));
-                  });
-                }),
-            ]),
+          else ...[
+            InkWell(
+              onTap: _slotSeciciAc,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE0D6EC)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.event_repeat_rounded, size: 17, color: _mor),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _seciliSablon.isEmpty
+                          ? 'Gün + saat + eğitmen slotu seçin'
+                          : '${_seciliSablon.length} slot seçildi',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _seciliSablon.isEmpty ? Colors.grey.shade500 : const Color(0xFF2C3E50)),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+                ]),
+              ),
+            ),
+            if (_seciliSablon.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final s in _seciliSlotlar) _slotOzetCip(s),
+              ]),
+            ],
+          ],
           const SizedBox(height: 16),
-
-          if (saatSec.isNotEmpty) ...[
-            _etiket('Saatler (opsiyonel — boş = tümü)'),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final s in saatSec)
-                _secimCip(s, _saatler.contains(s), () {
-                  setState(() => _saatler.contains(s) ? _saatler.remove(s) : _saatler.add(s));
-                }),
-            ]),
-            const SizedBox(height: 16),
-          ],
-
-          if (hocaSec.isNotEmpty) ...[
-            _etiket('Eğitmen (opsiyonel)'),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              _secimCip('Farketmez', _personelId == null, () => setState(() {
-                    _personelId = null;
-                    _gunler.removeWhere((g) => !_gunSecenek.contains(g));
-                    _saatler.removeWhere((s) => !_saatSecenek.contains(s));
-                  })),
-              for (final h in hocaSec)
-                _secimCip(h.value, _personelId == h.key, () => setState(() {
-                      _personelId = h.key;
-                      _gunler.removeWhere((g) => !_gunSecenek.contains(g));
-                      _saatler.removeWhere((s) => !_saatSecenek.contains(s));
-                    })),
-            ]),
-            const SizedBox(height: 16),
-          ],
 
           _etiket('Başlangıç'),
           InkWell(
@@ -721,7 +703,7 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: (_kaydediyor || gunSec.isEmpty) ? null : _kaydet,
+              onPressed: (_kaydediyor || _uygunSablon.isEmpty) ? null : _kaydet,
               icon: _kaydediyor
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.auto_awesome_rounded, size: 18),
@@ -763,19 +745,18 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
         ),
       );
 
-  Widget _secimCip(String t, bool secili, VoidCallback onTap) => InkWell(
-        onTap: onTap,
+  Widget _slotOzetCip(GrupDersSablon s) {
+    final gun = _gunAdi[s.haftaGunu.clamp(0, 7)];
+    final saat = _hhmm(s.saat);
+    final hoca = (s.personel.isNotEmpty && s.personel != 'null') ? s.personel : '';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3EEF9),
         borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: secili ? _mor : Colors.white,
-            border: Border.all(color: secili ? _mor : const Color(0xFFE0D6EC)),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(t,
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600, color: secili ? Colors.white : const Color(0xFF4B5563))),
-        ),
-      );
+      ),
+      child: Text('$gun $saat${hoca.isNotEmpty ? ' • $hoca' : ''}',
+          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: _mor)),
+    );
+  }
 }
