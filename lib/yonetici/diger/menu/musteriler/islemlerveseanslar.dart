@@ -566,6 +566,19 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
                                                   style: TextStyle(color: Colors.white,fontSize: 10),
                                                 ),
                                               )
+                                                  : item["geldi"]== 2 ?
+                                              ElevatedButton(
+                                                onPressed: () {},
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFFFDA172),
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                                                  minimumSize: Size(70, 20),
+                                                ),
+                                                child: Text("Telafi",
+                                                  style: TextStyle(color: Colors.white,fontSize: 10),
+                                                ),
+                                              )
                                                   :
                                               ElevatedButton(
                                                 onPressed: () {},

@@ -62,8 +62,9 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
   Future<void> _durumDegistir(GrupDersKatilimci k, String yeni) async {
     try {
       final dusum = await dersKatilimciDurum(widget.salonId, k.id, yeni);
-      if (dusum == 'dusuldu') _snack('Geldi işaretlendi, paketten 1 seans düşüldü.');
-      else if (dusum == 'hak_yok') _snack('Geldi işaretlendi (paket/seans hakkı bulunamadı).');
+      final etiket = yeni == 'telafi' ? 'Telafi' : 'Geldi';
+      if (dusum == 'dusuldu') _snack('$etiket işaretlendi, paketten 1 seans düşüldü.');
+      else if (dusum == 'hak_yok') _snack('$etiket işaretlendi (paket/seans hakkı bulunamadı).');
       else if (dusum == 'iade') _snack('Seans iade edildi.');
       await _yukle();
     } catch (e) {
@@ -273,6 +274,9 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
                 _durumBtn(k, 'rezerve', 'Rezerve', Colors.blue),
                 _durumBtn(k, 'geldi', 'Geldi', const Color(0xFF059669)),
                 _durumBtn(k, 'gelmedi', 'Gelmedi', const Color(0xFFEF4444)),
+                // Telafi: seans takibindeki geldi=2 karsiligi. Isaretlenince seans
+                // duser (idempotent); sonradan Geldi'ye alininca tekrar dusmez.
+                _durumBtn(k, 'telafi', 'Telafi', const Color(0xFFFDA172)),
               ],
             ),
         ],

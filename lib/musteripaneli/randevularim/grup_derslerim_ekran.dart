@@ -76,6 +76,7 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
     switch (d) {
       case 'geldi': return 'Katıldınız';
       case 'gelmedi': return 'Gelmediniz';
+      case 'telafi': return 'Telafi';
       case 'bekleme': return 'Bekleme listesi';
       default: return 'Rezerve';
     }
@@ -85,6 +86,7 @@ class _GrupDerslerimEkranState extends State<GrupDerslerimEkran> {
     switch (d) {
       case 'geldi': return const Color(0xFF059669);
       case 'gelmedi': return const Color(0xFFEF4444);
+      case 'telafi': return const Color(0xFFFDA172);
       case 'bekleme': return const Color(0xFFF59E0B);
       default: return _mor;
     }

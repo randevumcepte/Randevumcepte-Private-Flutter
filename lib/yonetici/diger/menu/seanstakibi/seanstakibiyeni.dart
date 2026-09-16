@@ -510,18 +510,22 @@ class _SeansTakibiState extends State<SeansTakibi> {
   Widget _buildHizmetKart(SeansTakip item, _HizmetGroup group) {
     int kullanildi = 0;
     int kullanilmadi = 0;
+    int telafi = 0;
     for (final s in group.seanslar) {
       final geldi = (s is Map) ? s['geldi'] : null;
       final iptal = (s is Map) ? s['iptal'] : null;
       if (geldi == 1) {
         kullanildi++;
+      } else if (geldi == 2) {
+        // Telafi de (gelmedi gibi) kapasiteyi tuketir.
+        telafi++;
       } else if (geldi == 0 || iptal == 1 || iptal == true) {
         kullanilmadi++;
       }
     }
     final mevcut = group.seanslar.length;
     final toplam = item.seansSayisi > mevcut ? item.seansSayisi : mevcut;
-    final kalan = toplam - kullanildi - kullanilmadi;
+    final kalan = toplam - kullanildi - kullanilmadi - telafi;
     final ekstra = toplam - mevcut;
 
     return Container(
@@ -581,6 +585,10 @@ class _SeansTakibiState extends State<SeansTakibi> {
                 if (geldi == 1) {
                   bg = const Color(0xFF2E7D32);
                   icon = Icons.check;
+                } else if (geldi == 2) {
+                  // Telafi — kavun ici turuncu + unlem
+                  bg = const Color(0xFFFDA172);
+                  icon = Icons.priority_high;
                 } else if (geldi == 0 || iptal == 1 || iptal == true) {
                   bg = const Color(0xFFD32F2F);
                   icon = Icons.close;
@@ -589,7 +597,11 @@ class _SeansTakibiState extends State<SeansTakibi> {
                   icon = null;
                 }
                 return GestureDetector(
-                  onTap: () => _seansDetayDialog(item, s),
+                  // Telafi (turuncu) daireye dokununca: "Telafi kullanilsin mi?"
+                  // onayi (Evet -> geldi=1/yesil). Diger seanslar normal dialog.
+                  onTap: () => (geldi == 2)
+                      ? _seansTelafiOnayDialog(item, s)
+                      : _seansDetayDialog(item, s),
                   child: Container(
                     width: 18,
                     height: 18,
@@ -642,6 +654,9 @@ class _SeansTakibiState extends State<SeansTakibi> {
                 _divider(),
                 _miniStat('Kullanılmadı', kullanilmadi.toString(),
                     const Color(0xFFD32F2F)),
+                _divider(),
+                _miniStat('Telafi', telafi.toString(),
+                    const Color(0xFFFDA172)),
               ],
             ),
           ),
@@ -1018,6 +1033,14 @@ class _SeansTakibiState extends State<SeansTakibi> {
                     onTap: () =>
                         _yeniSeansEkle(ctx, item, group, 0, secilenTarih),
                   ),
+                  const SizedBox(width: 6),
+                  _yuvarlakButon(
+                    label: 'Telafi',
+                    icon: Icons.priority_high,
+                    color: const Color(0xFFFDA172),
+                    onTap: () =>
+                        _yeniSeansEkle(ctx, item, group, 2, secilenTarih),
+                  ),
                 ],
               ),
             ],
@@ -1129,6 +1152,19 @@ class _SeansTakibiState extends State<SeansTakibi> {
                     onTap: () => _seansDurumGuncelle(ctx, seans, 0),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: _yuvarlakButon(
+                    label: 'Telafi',
+                    icon: Icons.priority_high,
+                    color: const Color(0xFFFDA172),
+                    onTap: () => _seansDurumGuncelle(ctx, seans, 2),
+                  ),
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: _yuvarlakButon(
@@ -1136,6 +1172,84 @@ class _SeansTakibiState extends State<SeansTakibi> {
                     icon: Icons.access_time,
                     color: const Color(0xFFFFA000),
                     onTap: () => _seansDurumGuncelle(ctx, seans, ''),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('KAPAT'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Telafi (turuncu) seansa dokununca: musteri telafi dersine geldi mi?
+  // Evet -> geldi=1 (yesile doner). Hayir -> telafi olarak kalir.
+  void _seansTelafiOnayDialog(SeansTakip item, dynamic seans) {
+    if (seans is! Map) return;
+    final musteriAdi = (item.musteri is Map && item.musteri['name'] != null)
+        ? item.musteri['name'].toString()
+        : '';
+    final hizmet = seans['hizmet'];
+    final hizmetAdi = (hizmet is Map && hizmet['hizmet_adi'] != null)
+        ? hizmet['hizmet_adi'].toString()
+        : item.paket;
+    final tarih = (seans['seans_tarih'] ?? '').toString();
+    final saat = (seans['seans_saat'] ?? '').toString();
+    final tarihStr = tarih.isEmpty
+        ? '--.--.----'
+        : (tarih.split('-').length == 3
+            ? '${tarih.split('-')[2].substring(0, 2)}.${tarih.split('-')[1]}.${tarih.split('-')[0]}'
+            : tarih);
+    final saatStr = saat.isEmpty ? '--:--' : saat;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+        title: const Text(
+          'Telafi Kullanılsın mı?',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _seansDetayRow(Icons.person, musteriAdi),
+            const SizedBox(height: 8),
+            _seansDetayRow(Icons.local_offer, hizmetAdi),
+            const SizedBox(height: 8),
+            _seansDetayRow(
+                Icons.calendar_today_rounded, '$tarihStr | $saatStr'),
+            const SizedBox(height: 12),
+            const Text(
+              'Müşteri telafi dersine katıldı mı? "Evet" derseniz seans Geldi (yeşil) olarak işaretlenir.',
+              style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7280)),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _yuvarlakButon(
+                    label: 'Evet',
+                    icon: Icons.check,
+                    color: const Color(0xFF2E7D32),
+                    onTap: () => _seansDurumGuncelle(ctx, seans, 1),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _yuvarlakButon(
+                    label: 'Hayır',
+                    icon: Icons.close,
+                    color: const Color(0xFF9CA3AF),
+                    onTap: () => Navigator.of(ctx).pop(),
                   ),
                 ),
               ],

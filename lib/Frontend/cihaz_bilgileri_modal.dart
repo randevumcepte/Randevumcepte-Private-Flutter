@@ -414,7 +414,7 @@ class _CihazBilgileriSheetState extends State<_CihazBilgileriSheet> {
             final no = s['no']?.toString() ?? '';
             final tarih = (s['tarih'] ?? '').toString();
             final geldi = s['geldi'];
-            final durum = geldi == 1 ? '✓' : (geldi == 0 ? '✗' : '•');
+            final durum = geldi == 1 ? '✓' : (geldi == 0 ? '✗' : (geldi == 2 ? '!' : '•'));
             final tStr = tarih.isEmpty ? '' : ' — ${_formatTarih(tarih)}';
             return DropdownMenuItem(
               value: id,

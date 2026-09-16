@@ -1119,7 +1119,7 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
         ? (s['cihaz']['cihaz_adi']?.toString() ?? '')
         : '';
 
-    // Durum: geldi null = beklemede, 0 = gelmedi, 1 = geldi
+    // Durum: geldi null = beklemede, 0 = gelmedi, 1 = geldi, 2 = telafi
     Color statusColor;
     IconData statusIcon;
     String statusLabel;
@@ -1132,6 +1132,10 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
       statusColor = scheme.error;
       statusIcon = Icons.close_rounded;
       statusLabel = 'Gelmedi';
+    } else if (geldi == 2 || geldi == '2') {
+      statusColor = const Color(0xFFFDA172);
+      statusIcon = Icons.priority_high_rounded;
+      statusLabel = 'Telafi';
     } else {
       statusColor = ext.successColor;
       statusIcon = Icons.check_rounded;

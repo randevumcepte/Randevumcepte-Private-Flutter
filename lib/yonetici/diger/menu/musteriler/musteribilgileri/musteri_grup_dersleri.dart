@@ -78,7 +78,11 @@ class _MusteriGrupDersleriState extends State<MusteriGrupDersleri> {
     setState(() => _islemde.add(kid));
     try {
       await dersKatilimciDurum(widget.salonId, kid, durum);
-      _snack(durum == 'geldi' ? 'Katıldı olarak işaretlendi.' : 'Katılmadı olarak işaretlendi.');
+      _snack(durum == 'geldi'
+          ? 'Katıldı olarak işaretlendi.'
+          : (durum == 'telafi'
+              ? 'Telafi olarak işaretlendi.'
+              : 'Katılmadı olarak işaretlendi.'));
       await _yukle();
     } catch (_) {
       _snack('İşlem başarısız.', hata: true);
@@ -293,6 +297,7 @@ class _MusteriGrupDersleriState extends State<MusteriGrupDersleri> {
     switch (durum) {
       case 'geldi': c = const Color(0xFF059669); t = 'Katıldı'; break;
       case 'gelmedi': c = const Color(0xFFEF4444); t = 'Katılmadı'; break;
+      case 'telafi': c = const Color(0xFFFDA172); t = 'Telafi'; break;
       case 'bekleme': c = const Color(0xFFF59E0B); t = 'Beklemede'; break;
       default: c = _mor; t = 'Rezerve';
     }
@@ -367,6 +372,23 @@ class _MusteriGrupDersleriState extends State<MusteriGrupDersleri> {
                     backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
                     elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    minimumSize: const Size(0, 34),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: islemde ? null : () => _durum(d, 'telafi'),
+                  icon: const Icon(Icons.priority_high_rounded, size: 15),
+                  label: const Text('Telafi'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFFDA172),
+                    side: const BorderSide(color: Color(0xFFFCD3BE)),
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     minimumSize: const Size(0, 34),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,

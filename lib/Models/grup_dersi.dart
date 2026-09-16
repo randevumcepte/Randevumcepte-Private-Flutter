@@ -45,7 +45,7 @@ class GrupDersKatilimci {
   final String userId;
   final String ad;
   final String tel;
-  final String durum; // rezerve | geldi | gelmedi | bekleme | iptal
+  final String durum; // rezerve | geldi | gelmedi | telafi | bekleme | iptal
 
   GrupDersKatilimci({
     required this.id,
