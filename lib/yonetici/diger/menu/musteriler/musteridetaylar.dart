@@ -997,7 +997,10 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 				},
 			));
 		}
-		if (Yetki.varMi('satis.tahsilat_al')) {
+		// Harici Tahsilat — studyo modunda GIZLENIR (adisyona bagli olmayan tahsilat yok).
+		final bool _studyoModu = widget.isletmebilgi is Map &&
+				widget.isletmebilgi['studyo_modu']?.toString() == '1';
+		if (Yetki.varMi('satis.tahsilat_al') && !_studyoModu) {
 			items.add(_ActionItem(
 				'Harici Tahsilat',
 				Icons.receipt_long_outlined,
