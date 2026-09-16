@@ -46,6 +46,7 @@ class GrupDersKatilimci {
   final String ad;
   final String tel;
   final String durum; // rezerve | geldi | gelmedi | telafi | bekleme | iptal
+  final bool paketVar; // telafi butonu sadece paketi olana gosterilir (seans takibi akisi)
 
   GrupDersKatilimci({
     required this.id,
@@ -53,6 +54,7 @@ class GrupDersKatilimci {
     required this.ad,
     required this.tel,
     required this.durum,
+    this.paketVar = false,
   });
 
   factory GrupDersKatilimci.fromJson(Map<String, dynamic> j) => GrupDersKatilimci(
@@ -61,6 +63,7 @@ class GrupDersKatilimci {
         ad: (j['ad'] ?? '').toString(),
         tel: (j['tel'] ?? '').toString(),
         durum: (j['durum'] ?? 'rezerve').toString(),
+        paketVar: j['paket_var'].toString() == '1',
       );
 }
 

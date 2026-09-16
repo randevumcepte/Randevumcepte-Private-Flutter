@@ -278,9 +278,10 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
                 _durumBtn(k, 'rezerve', 'Rezerve', Colors.blue),
                 _durumBtn(k, 'geldi', 'Geldi', const Color(0xFF059669)),
                 _durumBtn(k, 'gelmedi', 'Gelmedi', const Color(0xFFEF4444)),
-                // Telafi: seans takibindeki geldi=2 karsiligi. Isaretlenince seans
-                // duser (idempotent); sonradan Geldi'ye alininca tekrar dusmez.
-                _durumBtn(k, 'telafi', 'Telafi', const Color(0xFFFDA172)),
+                // Telafi: seans takibindeki geldi=2 karsiligi. SADECE paketi olana
+                // (veya zaten telafi olana) gosterilir — seans takibi akisi.
+                if (k.paketVar || k.durum == 'telafi')
+                  _durumBtn(k, 'telafi', 'Telafi', const Color(0xFFFDA172)),
               ],
             ),
         ],
