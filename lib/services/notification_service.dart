@@ -183,6 +183,13 @@ class NotificationService {
     // 8) Token al ve local'e yaz
     await _refreshLocalToken();
 
+    // 8b) OTURUM ACIKSA HER ACILISTA BACKEND'E YENIDEN KAYDET.
+    // Token degismedigi icin onTokenRefresh tetiklenmeyebilir; ama onceki
+    // surumde (or. FirebaseApp.configure eksikken) token backend'e hic
+    // ulasmamis olabilir. Boylece kullaniciya cikis-giris yaptirmadan,
+    // uygulama acilir acilmaz gecerli token sisteme yazilir (idempotent upsert).
+    await _reRegisterIfLoggedIn();
+
     // 9) Token refresh listener
     _tokenRefreshSub?.cancel();
     _tokenRefreshSub = _fcm.onTokenRefresh.listen((token) async {
@@ -327,16 +334,63 @@ class NotificationService {
   }
 
   /// App lifecycle: foreground'a gelince hemen bir kez dene (timer'i beklemeden).
+  /// Token zaten alinmis olsa bile (status.ok) backend kaydini yenile: iOS'ta
+  /// token cihaz basina sabittir, degismedigi icin onTokenRefresh HIC tetiklenmez
+  /// ve backend guncellenmez. Bu yuzden her resume'da idempotent olarak yeniden
+  /// kaydediyoruz — kullaniciya cikis-giris yaptirmadan token sisteme yazilir.
   Future<void> onAppResumed() async {
-    if (status.value == NotificationStatus.ok) return;
-    log('▶️ App resumed → FCM token retry');
-    await _refreshLocalToken();
-    if (_currentToken != null) {
-      final prefs = await SharedPreferences.getInstance();
-      final tip = prefs.getString('notif_kullanici_tipi');
-      if (tip != null) {
-        await _sendRegisterRequest(prefs, _currentToken!, tip);
+    log('▶️ App resumed → FCM token kontrol + yeniden kayit');
+    if (status.value != NotificationStatus.ok) {
+      await _refreshLocalToken();
+    }
+    await _reRegisterIfLoggedIn();
+  }
+
+  /// Oturum aciksa mevcut FCM token'i backend'e (yeniden) kaydeder.
+  /// Token degismese bile calisir — iOS'ta onTokenRefresh tetiklenmedigi ve
+  /// eski surumde (FirebaseApp.configure eksikken) token backend'e hic
+  /// ulasmamis olabilecegi icin kritik. Backend cihaz-kaydet upsert oldugundan
+  /// tekrar gonderim zararsizdir.
+  ///
+  /// Iki senaryoyu da toparlar:
+  ///  1) notif_kullanici_tipi zaten yazili → dogrudan gonder.
+  ///  2) tip yazili degil ama oturum acik (login olmus, ama token gelmedigi
+  ///     icin registerForUser tip'i yazamadan donmus) → oturumdan (user_type +
+  ///     user json + sube) kimligi turet ve registerForUser ile hem prefs'e
+  ///     yaz hem gonder.
+  Future<void> _reRegisterIfLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = _currentToken ?? prefs.getString('fcm_token');
+    if (token == null || token.isEmpty) return; // token yoksa retry timer halleder
+
+    final tip = prefs.getString('notif_kullanici_tipi');
+    if (tip != null && tip.isNotEmpty) {
+      await _sendRegisterRequest(prefs, token, tip);
+      return;
+    }
+
+    // Tip yok — oturumdan turet. Oturum yoksa (login degil) hicbir sey yapma.
+    final userTypeRaw = prefs.getString('user_type');
+    final userJson = prefs.getString('user');
+    if (userTypeRaw == null || userJson == null || userJson.isEmpty) return;
+    try {
+      final u = jsonDecode(userJson);
+      final id = u['id']?.toString();
+      if (id == null || id.isEmpty) return;
+      // login_page user_type'i json.encode ile yaziyor ('"1"' gibi). '1' = yetkili.
+      if (userTypeRaw.contains('1')) {
+        final salonId = prefs.getString('sube');
+        await registerForUser(
+          kullaniciTipi: 'yetkili',
+          yetkiliId: id,
+          salonId: (salonId != null && salonId.isNotEmpty) ? salonId : null,
+        );
+      } else {
+        await registerForUser(kullaniciTipi: 'musteri', userId: id);
       }
+      log('🔁 Oturumdan turetilerek bildirim cihazi yeniden kaydedildi');
+    } catch (e) {
+      log('_reRegisterIfLoggedIn turetme hatasi: $e');
     }
   }
 
@@ -350,21 +404,27 @@ class NotificationService {
     String? salonId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Kimlik bilgilerini token'dan BAGIMSIZ olarak once yaz. Boylece token
+    // gecikse/gelmese bile (iOS ilk acilis, APNS gecikmesi) tip prefs'e yazilir
+    // ve token sonradan geldiginde retry timer / onAppResumed / onTokenRefresh
+    // otomatik gonderir. (Eski kodda token bossa bu blok atlaniyordu → tip hic
+    // yazilmiyor → sonraki hicbir yol register edemiyordu.)
+    await prefs.setString('notif_kullanici_tipi', kullaniciTipi);
+    if (userId != null)     await prefs.setString('notif_user_id', userId);
+    if (personelId != null) await prefs.setString('notif_personel_id', personelId);
+    if (yetkiliId != null)  await prefs.setString('notif_yetkili_id', yetkiliId);
+    if (salonId != null)    await prefs.setString('notif_salon_id', salonId);
+
     final token = _currentToken ?? prefs.getString('fcm_token');
     if (token == null || token.isEmpty) {
       await _refreshLocalToken();
     }
     final t = _currentToken ?? prefs.getString('fcm_token');
     if (t == null || t.isEmpty) {
-      log('⚠️ Token yok, kayıt atlandı');
+      log('⚠️ Token yok, kimlik prefs\'e yazildi; token gelince otomatik kaydedilecek');
       return;
     }
-
-    await prefs.setString('notif_kullanici_tipi', kullaniciTipi);
-    if (userId != null)     await prefs.setString('notif_user_id', userId);
-    if (personelId != null) await prefs.setString('notif_personel_id', personelId);
-    if (yetkiliId != null)  await prefs.setString('notif_yetkili_id', yetkiliId);
-    if (salonId != null)    await prefs.setString('notif_salon_id', salonId);
 
     await _sendRegisterRequest(prefs, t, kullaniciTipi);
   }
