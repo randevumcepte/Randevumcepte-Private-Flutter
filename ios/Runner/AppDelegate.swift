@@ -1,5 +1,6 @@
 import UIKit
 import Flutter
+import FirebaseCore
 import FirebaseMessaging
 
 // SIP/softphone (VoIP push + CallKit) tamamen kaldirildi. Yalnizca Firebase
@@ -10,6 +11,11 @@ import FirebaseMessaging
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Proxy (swizzling) kapali oldugundan Firebase'i native tarafta erken
+    // configure etmezsek, didRegisterForRemote... icinde apnsToken atadigimiz
+    // anda FirebaseApp henuz hazir olmaz ve APNS->FCM baglanmaz. eczella'da
+    // bu satir var ve iOS bildirimleri bu sayede calisiyor.
+    FirebaseApp.configure()
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
