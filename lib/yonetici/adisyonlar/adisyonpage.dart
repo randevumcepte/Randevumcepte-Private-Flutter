@@ -31,6 +31,7 @@
     // Baslangic filtreleri (home_screen kisayollari): belirli musteri / satis turu
     final String? ilkMusteriId;
     final String? ilkSatisTuruId;
+    final VoidCallback? onGeriDon;
 
     AdisyonlarPage({
       Key? key,
@@ -40,6 +41,7 @@
       required this.geriGitBtn,
       this.ilkMusteriId,
       this.ilkSatisTuruId,
+      this.onGeriDon,
     }) : super(key: key);
 
     @override
@@ -632,7 +634,9 @@
       final double toplam = double.tryParse(adisyon.toplam_numeric) ?? 0;
       final double odenen = double.tryParse(adisyon.odenen_numeric) ?? 0;
       final double kalan = double.tryParse(adisyon.kalan_tutar_numeric) ?? 0;
-      final bool isFullPaid = kalan <= 0;
+      // Studyo modu: fiyat 0 tutulur -> kalan hep 0; odenmis/odenmemis SADECE
+      // odendi bayragiyla belirlenir (kalan<=0 kullanilirsa hepsi 'Odendi' gorunurdu).
+      final bool isFullPaid = _studyo ? (adisyon.odendi == 1) : (kalan <= 0);
       final double progress = toplam > 0 ? (odenen / toplam).clamp(0.0, 1.0) : 0.0;
       final Color statusColor =
           isFullPaid ? Colors.green.shade600 : Colors.orange.shade600;
@@ -1879,12 +1883,17 @@
               ),
             ],
           ),
-          leading: widget.geriGitBtn
+          leading: widget.onGeriDon != null
               ? IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey.shade700),
-            onPressed: () => Navigator.of(context).pop(),
-          )
-              : null,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: widget.onGeriDon,
+                )
+              : widget.geriGitBtn
+                  ? IconButton(
+                      icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.grey.shade700),
+                      onPressed: () => Navigator.of(context).pop(),
+                    )
+                  : null,
           toolbarHeight: 70,
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(80),
