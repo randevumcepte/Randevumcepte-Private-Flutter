@@ -138,6 +138,13 @@ class _SatisEkraniState extends State<SatisEkrani> {
   bool _carkKuponApplied = false;
   bool _carkKuponLoading = false;
 
+  // Kampanya indirim kodu (SMS/WhatsApp ile giden). Cark kuponuyla ayni desen.
+  final TextEditingController _kampanyaKodCtrl = TextEditingController();
+  Map<String, dynamic>? _kampanyaInfo;
+  bool _kampanyaApplied = false;
+  bool _kampanyaLoading = false;
+  bool _kampanyaKoduVar = false; // musteride kullanilmamis kod varsa alan gorunur
+
   // Modern Renk Palette — tema'dan
   Color get _primaryColor => context.colors.primary;
   Color get _secondaryColor => context.colors.primaryContainer;
@@ -225,6 +232,12 @@ class _SatisEkraniState extends State<SatisEkrani> {
       aktifsadikpasif.text = aktifpasif;
       musteridanisanadi.text = (secilimusteridanisan?.name)!;
 
+      // Kampanya indirim kodu: yeni musteri -> state sifirla (kod kontrolu loadbar sonunda)
+      _kampanyaApplied = false;
+      _kampanyaInfo = null;
+      _kampanyaKodCtrl.clear();
+      _kampanyaKoduVar = false;
+
       // Alacakları getirme kısmını kaldır
       // alacaklarigetir(); // BU SATIRI KALDIRIN
 
@@ -233,6 +246,181 @@ class _SatisEkraniState extends State<SatisEkrani> {
         tutar_hesapla(false);
       });
     });
+
+    // Musteride bu salona ait kullanilmamis kampanya indirim kodu var mi? Varsa alan gorunur.
+    _kampanyaKoduKontrol(value.id.toString());
+  }
+
+  /// Musteride kullanilmamis kampanya indirim kodu var mi? Varsa alani gorunur yap.
+  Future<void> _kampanyaKoduKontrol(String userId) async {
+    if (userId.isEmpty) {
+      if (mounted) setState(() => _kampanyaKoduVar = false);
+      return;
+    }
+    final res = await kullaniciKampanyaKodlari(seciliisletme, userId);
+    final list = (res?['kodlar'] as List?) ?? [];
+    if (mounted) setState(() => _kampanyaKoduVar = list.isNotEmpty);
+  }
+
+  /// Kampanya indirim kodunu uygula: dogrula + kullanildi isaretle + % indirimi harici
+  /// indirime ekle (ara toplamdan). _applyCarkKupon ile ayni desen.
+  Future<void> _applyKampanyaKodu() async {
+    final kod = _kampanyaKodCtrl.text.trim();
+    if (kod.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('İndirim kodu giriniz'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    if (secilimusteridanisan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Önce müşteri seçiniz'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    setState(() => _kampanyaLoading = true);
+    try {
+      final res = await kampanyaIndirimKoduKullan(
+          seciliisletme, kod, secilimusteridanisan?.id.toString() ?? "");
+      if (res == null || res['basarili'] != true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: _errorColor,
+            behavior: SnackBarBehavior.floating,
+            content: Text((res?['mesaj'] ?? 'Kod uygulanamadı').toString(),
+                style: const TextStyle(color: Colors.white)),
+          ),
+        );
+        return;
+      }
+      final tip = (res['tip'] ?? '').toString();
+      final yuzde = (res['yuzde'] as num?)?.toDouble() ?? 0;
+      if (tip == 'yuzde' && yuzde > 0) {
+        // Ara toplam = birim_tutar (tutar_hesapla fiyattoplam'i buraya yaziyor).
+        final araToplam = tlyirakamacevir(birim_tutar.text);
+        final indirimTutar = araToplam * (yuzde / 100.0);
+        final mevcut = tlyirakamacevir(harici_indirim.text);
+        final yeni = mevcut + indirimTutar;
+        setState(() {
+          harici_indirim.text = tryformat.format(yeni).toString();
+          _kampanyaInfo = {'kod': kod, 'yuzde': yuzde.toInt(), 'metin': res['metin']};
+          _kampanyaApplied = true;
+        });
+        tutar_hesapla(false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: _successColor,
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              '🎟️ Kampanya indirimi uygulandı: %${yuzde.toInt()} (${tryformat.format(indirimTutar)} ₺)',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+      } else {
+        // X Al Y Ode / tanimsiz -> otomatik uygulama yok, bilgi ver.
+        setState(() {
+          _kampanyaInfo = {'kod': kod, 'metin': res['metin']};
+          _kampanyaApplied = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text((res['mesaj'] ?? 'Kod uygulandı').toString()),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _kampanyaLoading = false);
+    }
+  }
+
+  Widget _buildKampanyaKoduBanner() {
+    if (_kampanyaApplied && _kampanyaInfo != null) {
+      final kod = (_kampanyaInfo!['kod'] ?? '').toString();
+      final yuzde = _kampanyaInfo!['yuzde'];
+      final ozet = yuzde != null ? '%$yuzde indirim' : (_kampanyaInfo!['metin'] ?? '').toString();
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFFDCFCE7), Color(0xFFBBF7D0)]),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF86EFAC), width: 1),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.local_offer_rounded, size: 20, color: Color(0xFF166534)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Kampanya indirim kodu uygulandı: $kod — $ozet',
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF14532D)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBBF7D0), width: 1),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.local_offer_rounded, size: 18, color: Color(0xFF166534)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _kampanyaKodCtrl,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'SMS/WhatsApp ile gelen indirim kodu',
+                hintStyle: TextStyle(fontSize: 12.5, color: _textColor.withValues(alpha: 0.45)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFBBF7D0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFBBF7D0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF22C55E), width: 1.5),
+                ),
+              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: _kampanyaLoading ? null : _applyKampanyaKodu,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF22C55E),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: _kampanyaLoading
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Text('Uygula', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
   }
   Future<void> initialize() async {
     seciliisletme = (await secilisalonid())!;
@@ -2836,6 +3024,16 @@ class _SatisEkraniState extends State<SatisEkrani> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: _buildCarkKuponBanner(),
+              ),
+
+            // Kampanya indirim kodu: musteride kullanilmamis kod varsa + sepette kalem varsa
+            if (!_studyo &&
+                secilimusteridanisan != null &&
+                _kampanyaKoduVar &&
+                adisyonkalemleri.any((e) => e is AdisyonHizmet || e is AdisyonUrun || e is AdisyonPaket))
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _buildKampanyaKoduBanner(),
               ),
 
             SizedBox(height: 32),

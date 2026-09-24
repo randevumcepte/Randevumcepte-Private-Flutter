@@ -6416,6 +6416,41 @@ Future<Map<String, dynamic>?> carkAdminKuponKullan(String salonId, int odulId, {
   return null;
 }
 
+/// KAMPANYA INDIRIM KODU — musterinin bu salona ait KULLANILMAMIS kampanya indirim
+/// kodlari (tahsilat ekraninda musteri secilince alani gostermek icin). {basarili, kodlar:[{kod,indirim}]}
+Future<Map<String, dynamic>?> kullaniciKampanyaKodlari(String salonId, String userId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/kampanyaAdmin/kodlar/$salonId?user_id=$userId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('kullaniciKampanyaKodlari: $e');
+  }
+  return null;
+}
+
+/// KAMPANYA INDIRIM KODU KULLAN — dogrula + kullanildi isaretle + indirim bilgisi.
+/// Cevap: {basarili, tip:'yuzde'|'xalyode', yuzde, metin, mesaj}. 404/409/422'de de govde doner.
+Future<Map<String, dynamic>?> kampanyaIndirimKoduKullan(String salonId, String kod, String musteriId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyaAdmin/kod-kullan/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'kod': kod, 'musteri_id': musteriId}),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200 || res.statusCode == 404 || res.statusCode == 409 || res.statusCode == 422) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('kampanyaIndirimKoduKullan: $e');
+  }
+  return null;
+}
+
 Future<Map<String, dynamic>?> carkAdminHatirlatmaGetir(String salonId) async {
   try {
     final res = await http.get(
