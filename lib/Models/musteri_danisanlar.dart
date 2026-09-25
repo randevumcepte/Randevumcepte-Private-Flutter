@@ -4,6 +4,7 @@
     required this.name,
     required this.cep_telefon,
     required this.randevu_sayisi,
+    this.odeme_sayisi = 0,
     required this.son_randevu_tarihi,
     required this.cinsiyet,
     required this.eposta,
@@ -53,6 +54,7 @@
   final String name;
   final String cep_telefon;
   final String randevu_sayisi;
+  final int odeme_sayisi; // Pasif/Aktif/Sadik: studyo=odendi=1 adisyon, normal=tahsilat sayisi
   final String son_randevu_tarihi;
   final String cinsiyet;
   final String eposta;
@@ -113,6 +115,7 @@
       name: json["name"].toString(),
       cep_telefon: json["cep_telefon"].toString(),
       randevu_sayisi: json["randevu_sayisi"].toString(),
+      odeme_sayisi: int.tryParse(json["odeme_sayisi"]?.toString() ?? '0') ?? 0,
       son_randevu_tarihi : json["son_randevu_tarihi"].toString(),
       cinsiyet:json["cinsiyet"].toString(),
       ozel_notlar: json["ozel_notlar"].toString(),

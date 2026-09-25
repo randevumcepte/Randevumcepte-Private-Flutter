@@ -352,9 +352,12 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 
 	int get _randevuCount => int.tryParse(_md.randevu_sayisi) ?? 0;
 
+	// Pasif/Aktif/Sadik ODEME SAYISINA gore (dashboard ile ayni): 0->Pasif, 1-2->Aktif,
+	// 3+->Sadik. Studyo modunda odeme = odendi=1 adisyon, normalde tahsilat (backend belirler).
 	String _statusLabel() {
-		if (_randevuCount == 0) return 'Pasif';
-		if (_randevuCount >= 4) return 'Sadık';
+		final odeme = _md.odeme_sayisi;
+		if (odeme == 0) return 'Pasif';
+		if (odeme >= 3) return 'Sadık';
 		return 'Aktif';
 	}
 
