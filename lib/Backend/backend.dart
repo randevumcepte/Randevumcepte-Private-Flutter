@@ -6451,6 +6451,116 @@ Future<Map<String, dynamic>?> kampanyaIndirimKoduKullan(String salonId, String k
   return null;
 }
 
+// ============================================================
+// REKLAM YONETIMI (kampanya) — web paritesi API metodlari
+// ============================================================
+
+// Sihirbaz form verileri: hizmet/urun/paket, sablon, grup listeleri.
+Future<Map<String, dynamic>?> kampanyaFormVerileri(String salonId) async {
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/kampanyaFormVerileri/$salonId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('kampanyaFormVerileri: $e');
+  }
+  return null;
+}
+
+// Kampanya kaydet/guncelle (kampanya_id doluysa UPDATE). body = web alan adlari.
+Future<Map<String, dynamic>?> kampanyaKaydet(String salonId, Map<String, dynamic> body) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyaekleduzenle/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 30));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+    log('kampanyaKaydet HTTP ${res.statusCode}: ${res.body}');
+  } catch (e) {
+    log('kampanyaKaydet: $e');
+  }
+  return null;
+}
+
+// Duzenleme icin mevcut degerler (sihirbazi dolu acar).
+Future<Map<String, dynamic>?> kampanyaDuzenleGetir(String salonId, dynamic kampanyaId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyaDuzenleGetir/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'kampanya_id': kampanyaId}),
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('kampanyaDuzenleGetir: $e');
+  }
+  return null;
+}
+
+// Rapor: katilimci listesi + ozet. katilimDurumu: 1=Tumu,2=Indirim Kullanan,3=Kullanmayan,4=Beklenen.
+Future<Map<String, dynamic>?> kampanyaDetayGetir(String salonId, dynamic kampanyaId,
+    {int katilimDurumu = 1, int page = 1, String arama = ''}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyaDetay/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({
+        'kampanya_id': kampanyaId,
+        'katilimDurumu': katilimDurumu,
+        'page': page,
+        'search': arama,
+      }),
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('kampanyaDetayGetir: $e');
+  }
+  return null;
+}
+
+// Kampanya listesi (paginate 10).
+Future<Map<String, dynamic>?> kampanyaListesi(String salonId, {int page = 1, String arama = ''}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyalar/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'page': page, 'arama': arama}),
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('kampanyaListesi: $e');
+  }
+  return null;
+}
+
+// Kampanya pasif yap (sil).
+Future<bool> kampanyaPasifYap(dynamic kampanyaId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyapasifet'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'kampanya_id': kampanyaId}),
+    ).timeout(const Duration(seconds: 15));
+    return res.statusCode == 200;
+  } catch (e) {
+    log('kampanyaPasifYap: $e');
+    return false;
+  }
+}
+
 Future<Map<String, dynamic>?> carkAdminHatirlatmaGetir(String salonId) async {
   try {
     final res = await http.get(

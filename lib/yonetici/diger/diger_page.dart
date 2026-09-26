@@ -32,6 +32,7 @@ import 'menu/ayarlar/personeller/hakedislerim.dart';
 import 'menu/ayarlar/personeller/personeller.dart';
 import 'menu/etkinlik/etkinikler.dart';
 import 'menu/kampanya/kampanyalar.dart';
+import 'menu/kampanya/reklam_yonetimi.dart';
 import 'menu/bildirimreklamlari/bildirimreklamlari.dart';
 import 'menu/kasa/alacaklar.dart';
 import 'menu/kasa/kasaraporu.dart';
@@ -66,6 +67,7 @@ class DigerPage extends StatefulWidget {
   final dynamic isletmebilgi;
   final DialPadManager dialpadManager;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
+  final VoidCallback? onGeriDon;
 
 
   DigerPage({
@@ -76,6 +78,7 @@ class DigerPage extends StatefulWidget {
     required this.isletmebilgi,
     required this.dialpadManager,
     required this.scaffoldMessengerKey,
+    this.onGeriDon,
   }) : super(key: key);
 
   @override
@@ -107,6 +110,7 @@ class _DigerPageState extends State<DigerPage> {
         onLogout: widget.onLogout,
         dialpadManager: widget.dialpadManager,
         scaffoldMessengerKey: widget.scaffoldMessengerKey,
+        onGeriDon: widget.onGeriDon,
       ),
     );
   }
@@ -119,6 +123,7 @@ class Menu extends StatefulWidget {
   final VoidCallback onLogout;
   final DialPadManager dialpadManager;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
+  final VoidCallback? onGeriDon;
 
   Menu({
     Key? key,
@@ -127,7 +132,8 @@ class Menu extends StatefulWidget {
     required this.onLogout,
     required this.isletmebilgi,
     required this.dialpadManager,
-    required this.scaffoldMessengerKey
+    required this.scaffoldMessengerKey,
+    this.onGeriDon,
   }) : super(key: key);
 
   @override
@@ -420,6 +426,12 @@ class _MenuState extends State<Menu> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        leading: widget.onGeriDon != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: widget.onGeriDon,
+              )
+            : null,
         title: Text(
           'Menü',
           style: TextStyle(
@@ -627,6 +639,22 @@ class _MenuState extends State<Menu> {
                     );
                   },
                 ),
+
+                if (kullanicirolu >= 1 && kullanicirolu <= 3)
+                  _buildMenuButton(
+                    icon: Icons.ads_click_rounded,
+                    label: 'Reklam Yönetimi',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: ReklamYonetimi(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
 
                 if (widget.uyelikturu > 2 && Yetki.varMi('gorusme.liste_gor') && widget.isletmebilgi["studyo_modu"].toString() != "1")
                   _buildMenuButton(
