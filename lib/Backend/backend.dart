@@ -6475,6 +6475,41 @@ Future<Map<String, dynamic>?> kampanyaFormVerileri(String salonId) async {
   return null;
 }
 
+// Sihirbaz canli kitle sayisi (secili hedef filtresine gore).
+Future<int> kampanyaKitleSayisi(String salonId, {String filtre = '', String cinsiyet = '', String grup = ''}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyaKitleSayisi/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'filtre': filtre, 'cinsiyet': cinsiyet, 'grup': grup}),
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      final m = Map<String, dynamic>.from(json.decode(res.body) as Map);
+      return (m['toplam'] as num?)?.toInt() ?? 0;
+    }
+  } catch (e) {
+    log('kampanyaKitleSayisi: $e');
+  }
+  return 0;
+}
+
+// Bu adisyona kampanya indirim kodu uygulanmis mi? (tahsilatta disabled kutu icin.)
+Future<Map<String, dynamic>?> kampanyaKoduAdisyonDurum(String salonId, String adisyonId) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyaKoduAdisyonDurum/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'adisyon_id': adisyonId}),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('kampanyaKoduAdisyonDurum: $e');
+  }
+  return null;
+}
+
 // Kampanya kaydet/guncelle (kampanya_id doluysa UPDATE). body = web alan adlari.
 Future<Map<String, dynamic>?> kampanyaKaydet(String salonId, Map<String, dynamic> body) async {
   try {

@@ -57,6 +57,9 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
 
   bool _hedefDegisti = false; // duzenlemede hedef kitle degistiyse true
 
+  int? _kitleSayisi; // secili hedef kitle tahmini kisi sayisi
+  bool _kitleSayiliyor = false;
+
   static const Map<int, String> _kanallar = {
     1: 'Santral Arama',
     2: 'SMS',
@@ -105,6 +108,7 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
       }
     }
     if (mounted) setState(() => _yukleniyor = false);
+    _kitleGuncelle();
   }
 
   List<Map<String, dynamic>> _liste(dynamic v) {
@@ -161,11 +165,33 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
 
   String get _hizmetUrunPaket => _hizmetDeger ?? _urunDeger ?? _paketDeger ?? '';
 
+  // Secili hedef kitle degisince tahmini kisi sayisini yenile.
+  Future<void> _kitleGuncelle() async {
+    if (_salonId == null) return;
+    setState(() => _kitleSayiliyor = true);
+    final sayi = await kampanyaKitleSayisi(
+      _salonId!,
+      filtre: _preset == 'grup' ? '' : _presetFiltre(),
+      cinsiyet: _cinsiyet,
+      grup: _preset == 'grup' ? (_grupDeger ?? '') : '',
+    );
+    if (mounted) {
+      setState(() {
+        _kitleSayisi = sayi;
+        _kitleSayiliyor = false;
+      });
+    }
+  }
+
   Future<void> _kaydet() async {
     if (_salonId == null) return;
     // Basit dogrulama
     if (_mesajCtrl.text.trim().isEmpty) {
       _uyari('Kampanya mesajı boş olamaz. Bir şablon seçin veya metin yazın.');
+      return;
+    }
+    if (_kitleSayisi != null && _kitleSayisi == 0) {
+      _uyari('Seçili hedef kitlede müşteri yok. Farklı bir kitle seçin.');
       return;
     }
     setState(() => _kaydediyor = true);
@@ -298,6 +324,22 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(color: _mor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.groups, size: 16, color: _mor),
+              const SizedBox(width: 6),
+              _kitleSayiliyor
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text('Tahmini kitle: ${_kitleSayisi ?? '-'} kişi',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _mor)),
+            ],
+          ),
+        ),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -308,10 +350,13 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
               selected: secili,
               selectedColor: _mor.withOpacity(0.15),
               labelStyle: TextStyle(color: secili ? _mor : Colors.black87, fontWeight: secili ? FontWeight.w600 : FontWeight.normal),
-              onSelected: (_) => setState(() {
-                _preset = e.key;
-                _hedefDegisti = true;
-              }),
+              onSelected: (_) {
+                setState(() {
+                  _preset = e.key;
+                  _hedefDegisti = true;
+                });
+                _kitleGuncelle();
+              },
             );
           }).toList(),
         ),
@@ -324,10 +369,13 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
             items: _gruplar
                 .map((g) => DropdownMenuItem<String>(value: g['value'].toString(), child: Text(g['label'].toString(), overflow: TextOverflow.ellipsis)))
                 .toList(),
-            onChanged: (v) => setState(() {
-              _grupDeger = v;
-              _hedefDegisti = true;
-            }),
+            onChanged: (v) {
+              setState(() {
+                _grupDeger = v;
+                _hedefDegisti = true;
+              });
+              _kitleGuncelle();
+            },
           ),
         ],
         const SizedBox(height: 12),
@@ -352,10 +400,13 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
       selected: secili,
       selectedColor: _mor.withOpacity(0.15),
       labelStyle: TextStyle(color: secili ? _mor : Colors.black87),
-      onSelected: (_) => setState(() {
-        _cinsiyet = val;
-        _hedefDegisti = true;
-      }),
+      onSelected: (_) {
+        setState(() {
+          _cinsiyet = val;
+          _hedefDegisti = true;
+        });
+        _kitleGuncelle();
+      },
     );
   }
 

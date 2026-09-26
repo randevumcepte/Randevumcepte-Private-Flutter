@@ -279,6 +279,23 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
     // Aktif gap kampanyasi var mi? — su anki saat ile kontrol et
     _loadGapKampanya();
+    // Bu adisyona daha once kampanya indirim kodu uygulandi mi? (disabled kutu)
+    _kampanyaKuponDurumKontrol();
+  }
+
+  Future<void> _kampanyaKuponDurumKontrol() async {
+    if (seciliisletme == null) return;
+    final res = await kampanyaKoduAdisyonDurum(seciliisletme!, widget.adisyonId);
+    if (!mounted) return;
+    if (res != null && res['uygulanmis'] == true) {
+      setState(() {
+        _kampanyaKodApplied = true;
+        _kampanyaKodInfo = {
+          'metin': res['metin'],
+          'mesaj': 'Kod: ${res['kod'] ?? ''}',
+        };
+      });
+    }
   }
 
   Future<void> _loadGapKampanya() async {
