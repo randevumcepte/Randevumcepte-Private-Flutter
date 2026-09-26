@@ -6435,12 +6435,16 @@ Future<Map<String, dynamic>?> kullaniciKampanyaKodlari(String salonId, String us
 
 /// KAMPANYA INDIRIM KODU KULLAN — dogrula + kullanildi isaretle + indirim bilgisi.
 /// Cevap: {basarili, tip:'yuzde'|'xalyode', yuzde, metin, mesaj}. 404/409/422'de de govde doner.
-Future<Map<String, dynamic>?> kampanyaIndirimKoduKullan(String salonId, String kod, String musteriId) async {
+Future<Map<String, dynamic>?> kampanyaIndirimKoduKullan(String salonId, String kod, String musteriId, {String? adisyonId}) async {
   try {
     final res = await http.post(
       Uri.parse('$_apiBase/kampanyaAdmin/kod-kullan/$salonId'),
       headers: _jsonHeaders(),
-      body: jsonEncode({'kod': kod, 'musteri_id': musteriId}),
+      body: jsonEncode({
+        'kod': kod,
+        'musteri_id': musteriId,
+        if (adisyonId != null) 'adisyon_id': adisyonId,
+      }),
     ).timeout(const Duration(seconds: 10));
     if (res.statusCode == 200 || res.statusCode == 404 || res.statusCode == 409 || res.statusCode == 422) {
       return Map<String, dynamic>.from(json.decode(res.body) as Map);
