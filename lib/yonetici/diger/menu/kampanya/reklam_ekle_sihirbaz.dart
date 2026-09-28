@@ -385,21 +385,13 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
         ),
         if (_preset == 'grup') ...[
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _grupDeger,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Grup seçin', border: OutlineInputBorder()),
-            items: _gruplar
-                .map((g) => DropdownMenuItem<String>(value: g['value'].toString(), child: Text(g['label'].toString(), overflow: TextOverflow.ellipsis)))
-                .toList(),
-            onChanged: (v) {
-              setState(() {
-                _grupDeger = v;
-                _hedefDegisti = true;
-              });
-              _kitleGuncelle();
-            },
-          ),
+          _hupDropdown('Grup seçin', _gruplar, _grupDeger, (v) {
+            setState(() {
+              _grupDeger = v;
+              _hedefDegisti = true;
+            });
+            _kitleGuncelle();
+          }),
         ],
         const SizedBox(height: 12),
         const Text('Cinsiyet', style: TextStyle(fontSize: 13, color: Colors.black54)),
@@ -466,15 +458,110 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
     );
   }
 
+  // Aranabilir secim alani: tiklaninca arama kutulu alt sayfa acar (uzun listeler icin).
   Widget _hupDropdown(String etiket, List<Map<String, dynamic>> liste, String? deger, ValueChanged<String?> onChanged) {
-    return DropdownButtonFormField<String>(
-      value: deger,
-      isExpanded: true,
-      decoration: InputDecoration(labelText: etiket, border: const OutlineInputBorder()),
-      items: liste
-          .map((e) => DropdownMenuItem<String>(value: e['value'].toString(), child: Text(e['label'].toString(), overflow: TextOverflow.ellipsis)))
-          .toList(),
-      onChanged: onChanged,
+    final secili = deger == null
+        ? <String, dynamic>{}
+        : liste.firstWhere((e) => e['value'].toString() == deger, orElse: () => <String, dynamic>{});
+    final seciliLabel = secili.isNotEmpty ? secili['label'].toString() : '';
+    return InkWell(
+      onTap: () async {
+        final secim = await _araliSeciciAc(etiket, liste, deger);
+        if (secim != null) onChanged(secim.isEmpty ? null : secim);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(labelText: etiket, border: const OutlineInputBorder()),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                seciliLabel.isEmpty ? 'Seçin...' : seciliLabel,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: seciliLabel.isEmpty ? Colors.black45 : Colors.black87),
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, color: Colors.black54),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Turkce duyarli normalize (arama icin: İ/ı/ş/ğ/ü/ö/ç -> ascii + kucuk harf).
+  String _norm(String s) => s
+      .replaceAll('İ', 'i').replaceAll('I', 'i').replaceAll('ı', 'i')
+      .replaceAll('Ş', 's').replaceAll('ş', 's')
+      .replaceAll('Ğ', 'g').replaceAll('ğ', 'g')
+      .replaceAll('Ü', 'u').replaceAll('ü', 'u')
+      .replaceAll('Ö', 'o').replaceAll('ö', 'o')
+      .replaceAll('Ç', 'c').replaceAll('ç', 'c')
+      .toLowerCase();
+
+  // Aranabilir alt sayfa: value doner; '' = temizle; null = vazgec.
+  Future<String?> _araliSeciciAc(String baslik, List<Map<String, dynamic>> liste, String? mevcut) {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        String q = '';
+        return StatefulBuilder(builder: (ctx, setModal) {
+          final filtreli = q.isEmpty
+              ? liste
+              : liste.where((e) => _norm(e['label'].toString()).contains(_norm(q))).toList();
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.75,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 8, 4),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(baslik, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                        TextButton(onPressed: () => Navigator.pop(ctx, ''), child: const Text('Temizle')),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: 'Ara...',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (v) => setModal(() => q = v),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: filtreli.isEmpty
+                        ? const Center(child: Text('Sonuç yok', style: TextStyle(color: Colors.black45)))
+                        : ListView.builder(
+                            itemCount: filtreli.length,
+                            itemBuilder: (_, i) {
+                              final e = filtreli[i];
+                              final val = e['value'].toString();
+                              final secili = val == mevcut;
+                              return ListTile(
+                                title: Text(e['label'].toString()),
+                                trailing: secili ? const Icon(Icons.check, color: _mor) : null,
+                                onTap: () => Navigator.pop(ctx, val),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
     );
   }
 
