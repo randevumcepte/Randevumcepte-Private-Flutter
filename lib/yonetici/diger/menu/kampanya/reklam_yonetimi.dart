@@ -106,7 +106,12 @@ class _ReklamYonetimiState extends State<ReklamYonetimi> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(backgroundColor: _mor, title: const Text('Reklam Yönetimi')),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+        title: const Text('Reklam Yönetimi', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _mor,
         onPressed: () => _sihirbazAc(),

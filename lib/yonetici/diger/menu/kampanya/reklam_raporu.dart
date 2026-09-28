@@ -51,13 +51,15 @@ class _ReklamRaporuState extends State<ReklamRaporu> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
         appBar: AppBar(
-          backgroundColor: _mor,
-          title: const Text('Reklam Raporu'),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 1,
+          title: const Text('Reklam Raporu', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
           bottom: TabBar(
             isScrollable: true,
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
+            indicatorColor: _mor,
+            labelColor: _mor,
+            unselectedLabelColor: Colors.black54,
             tabs: _sekmeler.map((s) => Tab(text: s['ad'].toString())).toList(),
           ),
         ),

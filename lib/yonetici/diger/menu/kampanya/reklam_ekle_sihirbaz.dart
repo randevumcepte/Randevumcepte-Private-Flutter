@@ -244,8 +244,11 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor: _mor,
-        title: Text(duzenleme ? 'Reklam Düzenle' : 'Yeni Reklam Oluştur'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+        title: Text(duzenleme ? 'Reklam Düzenle' : 'Yeni Reklam Oluştur',
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
       ),
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())
