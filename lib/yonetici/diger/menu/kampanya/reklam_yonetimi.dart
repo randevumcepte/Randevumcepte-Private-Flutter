@@ -114,9 +114,10 @@ class _ReklamYonetimiState extends State<ReklamYonetimi> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _mor,
+        foregroundColor: Colors.white,
         onPressed: () => _sihirbazAc(),
-        icon: const Icon(Icons.add),
-        label: const Text('Yeni Reklam'),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Yeni Reklam', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())

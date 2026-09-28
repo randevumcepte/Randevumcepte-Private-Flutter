@@ -138,6 +138,26 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
     if (bt != null) _baslangic = bt;
     final et = DateTime.tryParse('${d['bitis_tarihi']}');
     if (et != null) _bitis = et;
+
+    // Hedef kitle: kayitli filtre/grup/cinsiyet -> preset + grup + cinsiyet secili gelsin.
+    final hf = (d['hedef_filtre'] ?? '').toString();
+    final hg = (d['hedef_grup'] ?? '').toString();
+    _cinsiyet = (d['hedef_cinsiyet'] ?? '').toString();
+    if (hg.isNotEmpty) {
+      _preset = 'grup';
+      if (_varMi(_gruplar, hg)) _grupDeger = hg;
+    } else if (hf == '6') {
+      _preset = 'sadik';
+    } else if (hf == '7') {
+      _preset = 'aktif';
+    } else if (hf == '8') {
+      _preset = 'pasif';
+    } else if (hf == '1') {
+      _preset = 'son1yil';
+    } else {
+      _preset = 'all';
+    }
+
     _hedefDegisti = false; // duzenleme acilisinda kitle degismedi say
   }
 

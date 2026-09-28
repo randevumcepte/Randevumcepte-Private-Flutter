@@ -640,7 +640,7 @@ class _MenuState extends State<Menu> {
                   },
                 ),
 
-                if (kullanicirolu >= 1 && kullanicirolu <= 3)
+                if (widget.uyelikturu >= 2)
                   _buildMenuButton(
                     icon: Icons.ads_click_rounded,
                     label: 'Reklam Yönetimi',
