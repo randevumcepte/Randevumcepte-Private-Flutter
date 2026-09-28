@@ -6510,6 +6510,48 @@ Future<Map<String, dynamic>?> kampanyaKoduAdisyonDurum(String salonId, String ad
   return null;
 }
 
+// Secili sablon/senaryo + hizmet/urun/paket + indirim -> cozulmus kampanya mesaji (salt-okunur).
+Future<String> kampanyaMesajOnizle(String salonId, {String sablonId = '', String hizmetUrunPaket = '', String kampanyaIndirim = ''}) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/kampanyaMesajOnizle/$salonId'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({
+        'seciliSablonId': sablonId,
+        'hizmetUrunPaket': hizmetUrunPaket,
+        'kampanyaIndirim': kampanyaIndirim,
+      }),
+    ).timeout(const Duration(seconds: 15));
+    if (res.statusCode == 200) {
+      final m = Map<String, dynamic>.from(json.decode(res.body) as Map);
+      return (m['mesaj'] ?? '').toString();
+    }
+  } catch (e) {
+    log('kampanyaMesajOnizle: $e');
+  }
+  return '';
+}
+
+// Metni sese cevir (Google TTS erkek) -> calinacak mp3 URL. Sesli onizleme icin.
+Future<String?> seslendirMetin(String metin) async {
+  try {
+    final res = await http.post(
+      Uri.parse('$_apiBase/seslendir'),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'metin': metin}),
+    ).timeout(const Duration(seconds: 20));
+    if (res.statusCode == 200) {
+      final m = Map<String, dynamic>.from(json.decode(res.body) as Map);
+      if (m['basarili'] == true && (m['url'] ?? '').toString().isNotEmpty) {
+        return m['url'].toString();
+      }
+    }
+  } catch (e) {
+    log('seslendirMetin: $e');
+  }
+  return null;
+}
+
 // Kampanya kaydet/guncelle (kampanya_id doluysa UPDATE). body = web alan adlari.
 Future<Map<String, dynamic>?> kampanyaKaydet(String salonId, Map<String, dynamic> body) async {
   try {

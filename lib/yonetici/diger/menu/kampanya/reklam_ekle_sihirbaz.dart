@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// Reklam (Kampanya) Ekle/Duzenle sihirbazi — web reklam-ekle-modal paritesi.
@@ -60,6 +61,12 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
   int? _kitleSayisi; // secili hedef kitle tahmini kisi sayisi
   bool _kitleSayiliyor = false;
 
+  // Sesli onizleme
+  final AudioPlayer _player = AudioPlayer();
+  bool _sesLoading = false;
+  bool _sesCaliyor = false;
+  bool _mesajYukleniyor = false;
+
   static const Map<int, String> _kanallar = {
     1: 'Santral Arama',
     2: 'SMS',
@@ -79,6 +86,9 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
   @override
   void initState() {
     super.initState();
+    _player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _sesCaliyor = false);
+    });
     _baslat();
   }
 
@@ -89,7 +99,58 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
     _xalCtrl.dispose();
     _yodeCtrl.dispose();
     _kodCtrl.dispose();
+    _player.dispose();
     super.dispose();
+  }
+
+  // Secili sablon/senaryo + hizmet/urun/paket + indirim -> cozulmus mesaj (salt-okunur).
+  Future<void> _mesajOnizle() async {
+    if (_salonId == null) return;
+    if (_seciliSablonId.isEmpty) {
+      setState(() => _mesajCtrl.text = '');
+      return;
+    }
+    setState(() => _mesajYukleniyor = true);
+    final mesaj = await kampanyaMesajOnizle(
+      _salonId!,
+      sablonId: _seciliSablonId,
+      hizmetUrunPaket: _hizmetUrunPaket,
+      kampanyaIndirim: _yuzdeIndirim ? _yuzdeCtrl.text.trim() : '',
+    );
+    if (mounted) {
+      setState(() {
+        _mesajCtrl.text = mesaj;
+        _mesajYukleniyor = false;
+      });
+    }
+  }
+
+  // Sesli onizleme: mesaj metnini Google TTS ile seslendirip calar.
+  Future<void> _sesliOnizle() async {
+    if (_sesCaliyor) {
+      await _player.stop();
+      if (mounted) setState(() => _sesCaliyor = false);
+      return;
+    }
+    final metin = _mesajCtrl.text.trim();
+    if (metin.isEmpty) {
+      _uyari('Önce bir şablon seçin (mesaj boş).');
+      return;
+    }
+    setState(() => _sesLoading = true);
+    final url = await seslendirMetin(metin);
+    if (!mounted) return;
+    setState(() => _sesLoading = false);
+    if (url == null) {
+      _uyari('Ses oluşturulamadı.');
+      return;
+    }
+    try {
+      await _player.play(UrlSource(url));
+      if (mounted) setState(() => _sesCaliyor = true);
+    } catch (e) {
+      _uyari('Ses çalınamadı.');
+    }
   }
 
   Future<void> _baslat() async {
@@ -570,25 +631,44 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _hupDropdown('Şablon seçin (opsiyonel)', _sablonlar, _seciliSablonId.isEmpty ? null : _seciliSablonId, (v) {
-          setState(() {
-            _seciliSablonId = v ?? '';
-            final sablon = _sablonlar.firstWhere((s) => s['value'].toString() == v, orElse: () => <String, dynamic>{});
-            if (sablon.isNotEmpty) _mesajCtrl.text = (sablon['icerik'] ?? '').toString();
-          });
+          setState(() => _seciliSablonId = v ?? '');
+          _mesajOnizle();
         }),
         const SizedBox(height: 10),
+        // Kampanya mesaji SALT-OKUNUR (web'deki gibi): secili sablon/senaryodan gelir.
         TextField(
           controller: _mesajCtrl,
           maxLines: 5,
-          decoration: const InputDecoration(
+          readOnly: true,
+          decoration: InputDecoration(
             labelText: 'Kampanya Mesajı',
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
             helperText: '{müşteri} ve {gün} yer tutucuları gönderimde kişiye özel çözülür.',
+            suffixIcon: _mesajYukleniyor
+                ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)))
+                : null,
           ),
-          // Mesaj elle degistirilince serbest metin moduna gec (sablon override kalksin)
-          onChanged: (_) {
-            if (_seciliSablonId.isNotEmpty) setState(() => _seciliSablonId = '');
-          },
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: _sesLoading ? null : _sesliOnizle,
+              icon: _sesLoading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Icon(_sesCaliyor ? Icons.stop : Icons.play_arrow),
+              label: Text(_sesCaliyor ? 'Durdur' : 'Sesli Önizle'),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Google · Türkçe Erkek', style: TextStyle(fontSize: 12, color: Colors.black45)),
+            ),
+          ],
         ),
       ],
     );
