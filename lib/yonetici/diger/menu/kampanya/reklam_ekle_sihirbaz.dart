@@ -569,21 +569,13 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DropdownButtonFormField<String>(
-          value: _seciliSablonId.isEmpty ? null : _seciliSablonId,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Şablon seçin (opsiyonel)', border: OutlineInputBorder()),
-          items: _sablonlar
-              .map((s) => DropdownMenuItem<String>(value: s['value'].toString(), child: Text(s['label'].toString(), overflow: TextOverflow.ellipsis)))
-              .toList(),
-          onChanged: (v) {
-            setState(() {
-              _seciliSablonId = v ?? '';
-              final sablon = _sablonlar.firstWhere((s) => s['value'].toString() == v, orElse: () => <String, dynamic>{});
-              if (sablon.isNotEmpty) _mesajCtrl.text = (sablon['icerik'] ?? '').toString();
-            });
-          },
-        ),
+        _hupDropdown('Şablon seçin (opsiyonel)', _sablonlar, _seciliSablonId.isEmpty ? null : _seciliSablonId, (v) {
+          setState(() {
+            _seciliSablonId = v ?? '';
+            final sablon = _sablonlar.firstWhere((s) => s['value'].toString() == v, orElse: () => <String, dynamic>{});
+            if (sablon.isNotEmpty) _mesajCtrl.text = (sablon['icerik'] ?? '').toString();
+          });
+        }),
         const SizedBox(height: 10),
         TextField(
           controller: _mesajCtrl,
