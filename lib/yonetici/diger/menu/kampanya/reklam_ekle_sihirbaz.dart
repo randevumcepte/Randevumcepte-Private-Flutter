@@ -358,7 +358,7 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
               const SizedBox(width: 6),
               _kitleSayiliyor
                   ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text('Tahmini kitle: ${_kitleSayisi ?? '-'} kişi',
+                  : Text('${_kitleSayisi ?? '-'} kişi eşleşiyor',
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _mor)),
             ],
           ),
