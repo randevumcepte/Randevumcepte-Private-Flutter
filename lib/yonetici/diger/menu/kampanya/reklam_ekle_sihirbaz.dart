@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
@@ -764,14 +765,81 @@ class _ReklamEkleSihirbazState extends State<ReklamEkleSihirbaz> {
 
   Widget _saatSecici() {
     return InkWell(
-      onTap: () async {
-        final secilen = await showTimePicker(context: context, initialTime: _saat);
-        if (secilen != null) setState(() => _saat = secilen);
-      },
+      onTap: _saatSeciciAc,
       child: InputDecorator(
         decoration: const InputDecoration(labelText: 'Saat', border: OutlineInputBorder()),
-        child: Text(_saatStr(_saat)),
+        child: Row(
+          children: [
+            Expanded(child: Text(_saatStr(_saat))),
+            const Icon(Icons.access_time, size: 18, color: Colors.black54),
+          ],
+        ),
       ),
+    );
+  }
+
+  // Kaydirilabilir saat + dakika secici (cark/wheel).
+  Future<void> _saatSeciciAc() async {
+    int saat = _saat.hour;
+    int dakika = _saat.minute;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        return SizedBox(
+          height: 300,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
+                    const Text('Saat seçin', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    TextButton(
+                      onPressed: () {
+                        setState(() => _saat = TimeOfDay(hour: saat, minute: dakika));
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Tamam', style: TextStyle(color: _mor, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController: FixedExtentScrollController(initialItem: saat),
+                        itemExtent: 42,
+                        onSelectedItemChanged: (i) => saat = i,
+                        children: List.generate(24, (i) => Center(
+                          child: Text(i.toString().padLeft(2, '0'), style: const TextStyle(fontSize: 22)),
+                        )),
+                      ),
+                    ),
+                    const Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController: FixedExtentScrollController(initialItem: dakika),
+                        itemExtent: 42,
+                        onSelectedItemChanged: (i) => dakika = i,
+                        children: List.generate(60, (i) => Center(
+                          child: Text(i.toString().padLeft(2, '0'), style: const TextStyle(fontSize: 22)),
+                        )),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
