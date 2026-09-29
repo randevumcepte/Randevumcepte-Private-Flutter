@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -429,17 +431,40 @@ class NotificationService {
     await _sendRegisterRequest(prefs, t, kullaniciTipi);
   }
 
+  /// iOS Keychain / Android encrypted storage'da saklanan KALICI cihaz kimligi.
+  /// identifierForVendor (iOS) uygulama silinip kurulunca degisir; Keychain ise
+  /// reinstall'da korunur. Boylece ayni telefon ayni kimlikle taninir ve
+  /// cihazKaydet eski token'i silip TEK token birakir (cift bildirim onlenir).
+  /// first_unlock: cihaz bir kez acildiktan sonra arka planda da erisilebilir.
+  static const FlutterSecureStorage _secure = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+
+  Future<String?> _kaliciCihazId() async {
+    try {
+      var id = await _secure.read(key: 'rmc_device_uuid');
+      if (id == null || id.isEmpty) {
+        id = const Uuid().v4();
+        await _secure.write(key: 'rmc_device_uuid', value: id);
+        log('🆔 Yeni kalici cihaz kimligi uretildi');
+      }
+      return id;
+    } catch (e) {
+      // Secure storage erisilemezse eski yonteme dus (en azindan kurulum boyu sabit).
+      log('secure storage cihaz id hatasi, device_info fallback: $e');
+      try {
+        final info = DeviceInfoPlugin();
+        if (Platform.isAndroid) return (await info.androidInfo).id;
+        if (Platform.isIOS) return (await info.iosInfo).identifierForVendor;
+      } catch (_) {}
+      return null;
+    }
+  }
+
   Future<void> _sendRegisterRequest(
       SharedPreferences prefs, String token, String tip) async {
-    String? cihazId;
-    try {
-      final info = DeviceInfoPlugin();
-      if (Platform.isAndroid) {
-        cihazId = (await info.androidInfo).id;
-      } else if (Platform.isIOS) {
-        cihazId = (await info.iosInfo).identifierForVendor;
-      }
-    } catch (_) {}
+    final cihazId = await _kaliciCihazId();
 
     String appBundle = '';
     try {
