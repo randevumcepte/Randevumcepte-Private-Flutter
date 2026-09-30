@@ -295,11 +295,16 @@ class _PersonelDuzenleState extends State<PersonelDuzenle> {
   int _getIndexFromMinute(int m) => [0, 15, 30, 45].indexOf(m).clamp(0, 3);
 
   void _kaydet() {
+    // Telefon alani bos ya da yalnizca '0' ise sunucuya bos gonder;
+    // '0' gonderilirse sunucuda format sonucu bos kalir ve eski bug'da
+    // yanlis yetkiliye (bos gsm1) baglaniyordu. Bos gonderince numara korunur.
+    final telDigits = telefon.text.replaceAll(RegExp(r'\D'), '');
+    final telToSend = (telDigits.isEmpty || telDigits == '0') ? '' : telefon.text;
     widget.personeldata.personelekleguncelle(
       personelid.text,
       personeladi.text,
       unvan.text,
-      telefon.text,
+      telToSend,
       selectedhesapturu?.id ?? "",
       selectedcinsiyet,
       sabitmaas.text,
