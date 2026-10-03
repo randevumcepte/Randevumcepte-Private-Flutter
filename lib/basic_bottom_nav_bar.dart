@@ -126,9 +126,9 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       DashBoard(kullanicirolu: kullanicirolu, kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi),
       _buildTakvim(),
       //YeniTakvim(),
-      AjandaNotlar(isletmebilgi: widget.isletmebilgi), // CDRRaporlari kaldirildi (santral SIP)
-      (widget.uyelikturu > 1 ) ? AdisyonlarPage(kullanicirolu:kullanicirolu,kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi,geriGitBtn: false,) : OnGorusmeler(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi),
-      DigerPage(scaffoldMessengerKey: widget.scaffoldMessengerKey, kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi,dialpadManager: dialPadManager,),
+      AjandaNotlar(isletmebilgi: widget.isletmebilgi, onGeriDon: () => _selectScreen(0)), // CDRRaporlari kaldirildi (santral SIP)
+      (widget.uyelikturu > 1 ) ? AdisyonlarPage(kullanicirolu:kullanicirolu,kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi,geriGitBtn: false, onGeriDon: () => _selectScreen(0),) : OnGorusmeler(kullanicirolu: kullanicirolu, isletmebilgi: widget.isletmebilgi, onGeriDon: () => _selectScreen(0)),
+      DigerPage(scaffoldMessengerKey: widget.scaffoldMessengerKey, kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi,dialpadManager: dialPadManager, onGeriDon: () => _selectScreen(0),),
 
     ];
     // SIP/softphone kaldirildi; FCM/VoIP token kaydi (bildirimler icin) korunur.
@@ -141,6 +141,25 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       NotificationNavigationBus.current.addListener(_handleNotificationIntent);
       WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationIntent());
     }
+  }
+
+  // Lisans bitti modunda initState'teki yan-kurulumlar (FCM/VoIP token +
+  // bildirim yonlendirme dinleyicisi) atlaniyordu. Uyelik uzatilip Hesabim
+  // ekrani taze veriyle "lisans gecerli" dedikce bir kez kurup panele donelim.
+  bool _lisansYenilendiKuruldu = false;
+  void _lisansYenilendi() {
+    if (!mounted) return;
+    if (!_lisansYenilendiKuruldu) {
+      _lisansYenilendiKuruldu = true;
+      if (dahili != null && dahili != "null" && dahili.isNotEmpty) {
+        setupVoipAndFcmTokenListener();
+      }
+      NotificationNavigationBus.current.addListener(_handleNotificationIntent);
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _handleNotificationIntent());
+    }
+    // build() artik guncel (gecerli) tarihe bakacagi icin paneli gosterir.
+    setState(() {});
   }
 
   void _handleNotificationIntent() {
@@ -281,6 +300,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         isletmebilgi: widget.isletmebilgi,
         kullanici: widget.kullanici,
         kullanicirolu: kullanicirolu,
+        onGeriDon: () => _selectScreen(0),
       );
 
   void _selectScreen(int index) {
@@ -808,6 +828,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
                 kullanici: widget.kullanici,
                 isletmebilgi: widget.isletmebilgi,
                 geriGitBtn: false,
+                onGeriDon: () => _selectScreen(0),
               );
             });
           } else {
@@ -951,7 +972,11 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     // ekranina erisim ver; uyari banner'i orada gosterilir.
     if (lisansBittiMi(
         widget.isletmebilgi is Map ? widget.isletmebilgi['uyelik_bitis_tarihi'] : null)) {
-      return HesabimEkrani(isletmebilgi: widget.isletmebilgi, lisansBitti: true);
+      return HesabimEkrani(
+        isletmebilgi: widget.isletmebilgi,
+        lisansBitti: true,
+        onLisansYenilendi: _lisansYenilendi,
+      );
     }
     return WillPopScope(
       onWillPop: () async {

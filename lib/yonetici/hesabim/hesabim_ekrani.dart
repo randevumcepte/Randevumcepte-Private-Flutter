@@ -14,10 +14,16 @@ class HesabimEkrani extends StatefulWidget {
   /// banner'i + cikis butonu eklenir (kullanici baska ekrana gecemez).
   final bool lisansBitti;
 
+  /// Lisans bitti modunda acildiysa ve sunucudan gelen taze tarih artik
+  /// gecerliyse (uyelik uzatilmis) cagrilir. Ust navigasyon bunu alinca
+  /// panele geri doner (cikis/giris gerekmeden).
+  final VoidCallback? onLisansYenilendi;
+
   const HesabimEkrani({
     super.key,
     required this.isletmebilgi,
     this.lisansBitti = false,
+    this.onLisansYenilendi,
   });
 
   @override
@@ -44,7 +50,17 @@ class _HesabimEkraniState extends State<HesabimEkrani> {
     });
     try {
       final v = await HesabimApi.getir(_sube);
-      if (mounted) setState(() { _veri = v; _yukleniyor = false; });
+      if (!mounted) return;
+      setState(() { _veri = v; _yukleniyor = false; });
+      // Lisans bitti modunda acildiysa ve sunucudaki taze bitis tarihi artik
+      // gecerliyse (uyelik uzatilmis), bayat haritayi tazele + ust navigasyonu
+      // haberdar et → panele otomatik don (cikis/giris gerekmez).
+      if (widget.lisansBitti &&
+          widget.isletmebilgi is Map &&
+          !lisansBittiMi(v.isletme.uyelikBitisTarihi)) {
+        widget.isletmebilgi['uyelik_bitis_tarihi'] = v.isletme.uyelikBitisTarihi;
+        widget.onLisansYenilendi?.call();
+      }
     } catch (e) {
       if (mounted) setState(() { _hata = '$e'; _yukleniyor = false; });
     }
