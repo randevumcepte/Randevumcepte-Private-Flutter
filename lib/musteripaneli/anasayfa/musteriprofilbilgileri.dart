@@ -164,6 +164,20 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
       );
 
       request.fields['yetkili_id'] = user["id"].toString();
+      // GUVENLIK: self-update dogrulamasi icin token'i gonder (eski app'lerde bos gecer).
+      final rawToken = localStorage.getString('token');
+      if (rawToken != null && rawToken.isNotEmpty) {
+        String? token;
+        try {
+          final d = jsonDecode(rawToken);
+          token = d is String ? d : d?.toString();
+        } catch (_) {
+          token = rawToken;
+        }
+        if (token != null && token.isNotEmpty) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+      }
       request.files
           .add(await http.MultipartFile.fromPath('folderPath', image.path));
 
@@ -241,10 +255,26 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
         'cinsiyet': int.parse(cinsiyet),
       };
 
+      // GUVENLIK: backend self-update dogrulamasi icin Passport token'i gonder.
+      // Token login akisinda json.encode ile 'token' key'ine yazilir.
+      String? token;
+      final rawToken = localStorage.getString('token');
+      if (rawToken != null && rawToken.isNotEmpty) {
+        try {
+          final d = jsonDecode(rawToken);
+          token = d is String ? d : d?.toString();
+        } catch (_) {
+          token = rawToken;
+        }
+      }
+
       final response = await http.post(
         Uri.parse(
             'https://app.randevumcepte.com.tr//api/v1/musteribilgiguncelle'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode(formData),
       );
 
