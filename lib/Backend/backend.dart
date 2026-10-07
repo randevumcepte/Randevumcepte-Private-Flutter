@@ -14,6 +14,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
+import 'package:randevu_sistem/network_utils/api_client.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/tanitim.dart';
 import 'package:randevu_sistem/Models/masrafkategorileri.dart';
 import 'package:randevu_sistem/Models/ongorusmenedeni.dart';
@@ -229,9 +230,8 @@ Future<Map<String, dynamic>> odaDetayGetir(String odaId, {String? salonId}) asyn
 }
 
 Future<List<MusteriDanisan>> musterilistegetir(String salonid) async {
-  final response = await http.get(
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/musteriler/'+salonid.toString())
-  );
+  // G1 Faz B: token'li merkezi istemci (salon.sahiplik gate icin).
+  final response = await ApiClient.get('/musteriler/${salonid.toString()}');
 
   if (response.statusCode == 200) {
     var rateLimit = response.headers['x-ratelimit-limit'];
@@ -292,8 +292,9 @@ Future<MusteriDanisan> musterilistegetirTahsilat(String userId) async {
 Future<List<MusteriDanisan>> musterilistegetirSayfali(String seciliMusteri,
     String salonid, String filter, String limit, String offset) async {
 
-  final response = await http.get(Uri.parse(
-      'https://app.randevumcepte.com.tr/api/v1/musteriler/$salonid?search=$filter&limit=$limit&offset=$offset&seciliMusteri?$seciliMusteri'));
+  // G1 Faz B: token'li merkezi istemci (salon.sahiplik gate icin).
+  final response = await ApiClient.get(
+      '/musteriler/$salonid?search=$filter&limit=$limit&offset=$offset&seciliMusteri?$seciliMusteri');
 
   if (response.statusCode == 200) {
     final jsonResponse = json.decode(response.body);
@@ -1832,12 +1833,8 @@ Future <Map<String, dynamic>> tahsilatraporu(String Salonid , String currpage,St
   };
 
   log('odeme id'+ odeme);
-  final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/tahsilatraporu/'+Salonid+'?page='+currpage.toString()),
-
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(formData),
-  );
+  // G1 Faz B: token'li merkezi istemci (salon.sahiplik gate icin).
+  final response = await ApiClient.postJson('/tahsilatraporu/$Salonid?page=${currpage.toString()}', formData);
 
   if (response.statusCode == 200) {
     var rateLimit = response.headers['x-ratelimit-limit'];
@@ -2013,12 +2010,8 @@ Future <Map<String, dynamic>> kasaraporu(String Salonid , String tarih,String od
   };
 
 
-  final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/kasaraporu/'+Salonid),
-
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(formData),
-  );
+  // G1 Faz B: token'li merkezi istemci (salon.sahiplik gate icin).
+  final response = await ApiClient.postJson('/kasaraporu/$Salonid', formData);
 
   if (response.statusCode == 200) {
     var rateLimit = response.headers['x-ratelimit-limit'];
