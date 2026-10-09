@@ -3458,13 +3458,15 @@ Future<AdisyonUrun> adisyonurunekle(AdisyonUrun urun,String musteriid,BuildConte
   }
 }
 
-Future<dynamic> adisyonhizmetsil(AdisyonHizmet hizmet,BuildContext context) async{
+Future<dynamic> adisyonhizmetsil(AdisyonHizmet hizmet,BuildContext context,{String dogrulamaKodu = ''}) async{
   showProgressLoading(context);
 
-
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  var user = jsonDecode(localStorage.getString('user')!);
   Map<String, dynamic> formData = {
     'hizmet_id':hizmet.id,
-
+    'olusturan': user['id'],
+    'dogrulama_kodu': dogrulamaKodu,
 
   };
   log(json.encode(formData));
@@ -3494,10 +3496,14 @@ Future<dynamic> adisyonhizmetsil(AdisyonHizmet hizmet,BuildContext context) asyn
   }
 }
 
-Future<dynamic> adisyonurunsil(AdisyonUrun urun,BuildContext context) async{
+Future<dynamic> adisyonurunsil(AdisyonUrun urun,BuildContext context,{String dogrulamaKodu = ''}) async{
   showProgressLoading(context);
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  var user = jsonDecode(localStorage.getString('user')!);
   Map<String, dynamic> formData = {
     'adisyonurunid':urun.id,
+    'olusturan': user['id'],
+    'dogrulama_kodu': dogrulamaKodu,
   };
   log(json.encode(formData));
   final response = await http.post(
@@ -3521,10 +3527,14 @@ Future<dynamic> adisyonurunsil(AdisyonUrun urun,BuildContext context) async{
     throw Exception('Failed to load resources');
   }
 }
-Future<dynamic> adisyonpaketsil(AdisyonPaket paket,BuildContext context) async{
+Future<dynamic> adisyonpaketsil(AdisyonPaket paket,BuildContext context,{String dogrulamaKodu = ''}) async{
   showProgressLoading(context);
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  var user = jsonDecode(localStorage.getString('user')!);
   Map<String, dynamic> formData = {
     'adisyonpaketid':paket.id,
+    'olusturan': user['id'],
+    'dogrulama_kodu': dogrulamaKodu,
   };
   log(json.encode(formData));
   final response = await http.post(
@@ -5700,15 +5710,20 @@ Future<Map<String, dynamic>> paketVarmiKontrolu(String userId, String salonId) a
   }
 }
 
-Future<Map<String, dynamic>> adisyonSil(String adisyonId) async {
+Future<Map<String, dynamic>> adisyonSil(String adisyonId, {String salonId = '', String dogrulamaKodu = ''}) async {
   try {
+    SharedPreferences localStorage = await SharedPreferences.getInstance();
+    var user = jsonDecode(localStorage.getString('user')!);
     final response = await http.post(
       Uri.parse('https://app.randevumcepte.com.tr/api/v1/adisyonSil'),
       headers: {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        'adisyon_id': adisyonId
+        'adisyon_id': adisyonId,
+        'sube': salonId,
+        'olusturan': user['id'],
+        'dogrulama_kodu': dogrulamaKodu,
       }),
     );
 
@@ -5721,6 +5736,50 @@ Future<Map<String, dynamic>> adisyonSil(String adisyonId) async {
     throw Exception('Silme hatası: $e');
   }
 }
+/// Hesap sahibi onay kodu diyalogu (personel silme işlemlerinde).
+/// Kullanıcı 4 haneli kodu girip "Onayla" ile döndürür; "Vazgeç" -> null.
+/// [mesaj] sunucudan gelen bilgi/hata metni (ör. "Doğrulama kodu hatalı...").
+Future<String?> silmeOnayKoduDialog(BuildContext context, {String mesaj = ''}) async {
+  final TextEditingController kodController = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Onay Kodu'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(mesaj.isEmpty
+              ? 'Bu işlem için hesap sahibine gönderilen onay kodunu giriniz.'
+              : mesaj),
+          const SizedBox(height: 12),
+          TextField(
+            controller: kodController,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Onay kodu',
+              border: OutlineInputBorder(),
+              counterText: '',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(null),
+          child: const Text('Vazgeç'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(ctx).pop(kodController.text.trim()),
+          child: const Text('Onayla'),
+        ),
+      ],
+    ),
+  );
+}
+
 Future<void> aramaYap(String phoneNumber, BuildContext context) async {
   // Telefon numarasını temizle (gerekiyorsa)
   final String cleanNumber = phoneNumber.replaceAll(RegExp(r'\s+'), '');

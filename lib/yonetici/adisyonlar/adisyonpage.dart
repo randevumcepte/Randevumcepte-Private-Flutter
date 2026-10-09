@@ -548,7 +548,18 @@
                   });
 
                   try {
-                    final response = await adisyonSil(adisyon.id);
+                    var response = await adisyonSil(adisyon.id, salonId: seciliisletme ?? '');
+
+                    // Personel + ayar acik ise: hesap sahibine onay kodu gider; kod dogru
+                    // girilene kadar diyalog gosterilir. Vazgecilirse silme yapilmaz.
+                    while (response['dogrulamaGerekli'] == true) {
+                      final kod = await silmeOnayKoduDialog(context, mesaj: response['mesaj'] ?? '');
+                      if (kod == null || kod.isEmpty) {
+                        Navigator.of(context).pop(false);
+                        return;
+                      }
+                      response = await adisyonSil(adisyon.id, salonId: seciliisletme ?? '', dogrulamaKodu: kod);
+                    }
 
                     if (response['success'] == true) {
                       // Önce dialog'u kapat

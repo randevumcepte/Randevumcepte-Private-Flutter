@@ -1621,22 +1621,39 @@ class _SatisEkraniState extends State<SatisEkrani> {
                               ),
                               ElevatedButton(
                                 onPressed: () async {
-                                  Navigator.of(context2).pop(true);
+                                  // Kodlu silme yardimcisi: sunucu dogrulamaGerekli donerse
+                                  // hesap sahibine giden onay kodunu ister, dogru girilene
+                                  // kadar tekrar dener. null = vazgecildi.
+                                  Future<dynamic> _silKodlu(Future<dynamic> Function(String kod) cagir) async {
+                                    var r = await cagir('');
+                                    while (r is Map && r['dogrulamaGerekli'] == true) {
+                                      final kod = await silmeOnayKoduDialog(context, mesaj: r['mesaj']?.toString() ?? '');
+                                      if (kod == null || kod.isEmpty) return null;
+                                      r = await cagir(kod);
+                                    }
+                                    return r;
+                                  }
                                   dynamic kalemsilme = {};
                                   bool senetveyataksitkalemi = false;
 
                                   if (item is AdisyonHizmet) {
-                                    kalemsilme = await adisyonhizmetsil(item, context);
+                                    kalemsilme = await _silKodlu((kod) => adisyonhizmetsil(item, context, dogrulamaKodu: kod));
                                   } else if (item is AdisyonUrun) {
-                                    kalemsilme = await adisyonurunsil(item, context);
+                                    kalemsilme = await _silKodlu((kod) => adisyonurunsil(item, context, dogrulamaKodu: kod));
                                   } else if (item is AdisyonPaket) {
-                                    kalemsilme = await adisyonpaketsil(item, context);
+                                    kalemsilme = await _silKodlu((kod) => adisyonpaketsil(item, context, dogrulamaKodu: kod));
                                   } else {
                                     senetveyataksitkalemi = true;
                                     kalemsilme = {"basarili": "1"};
                                   }
 
+                                  // Onay kodu vazgecildi -> silme yapma, kalemi listede birak
+                                  if (kalemsilme == null) {
+                                    Navigator.of(context2).pop(false);
+                                    return;
+                                  }
                                   if (kalemsilme["basarili"] == "1" || senetveyataksitkalemi) {
+                                    Navigator.of(context2).pop(true);
                                     setState(() {
                                       if (item is SenetVade) {
                                         senetvadeleri.add(item);
@@ -1650,6 +1667,7 @@ class _SatisEkraniState extends State<SatisEkrani> {
                                       tutar_hesapla(false);
                                     });
                                   } else {
+                                    Navigator.of(context2).pop(false);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(kalemsilme["mesaj"]),
