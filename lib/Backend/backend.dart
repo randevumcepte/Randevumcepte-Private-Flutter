@@ -3755,11 +3755,7 @@ Future<void> randevuEkleGuncelle(
     'appBundle': await appBundleAl(),
   };
 
-  // GEÇİCİ: müşteri uygulama akışı (paket randevusu testi) apptest'e gider;
-  // işletme/salon tarafı prod'da kalır. Yayın öncesi app'e geri alınacak.
-  final String randevuHost = kaynak == 'uygulama'
-      ? 'app.randevumcepte.com.tr'
-      : 'app.randevumcepte.com.tr';
+  final String randevuHost = 'app.randevumcepte.com.tr';
 
   http.Response response;
   try {

@@ -224,7 +224,7 @@ class _IslemlerveSeanslarState extends State<IslemlerveSeanslar> {
                           Text('Paket Adı'),
                           SizedBox(width: 56,),
                           Text(': '),
-                          Expanded(child: Text('İmplant tedavisi'))
+                          Expanded(child: Text('Örnek Paket'))
                         ],
 
                       ),

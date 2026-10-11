@@ -19,9 +19,9 @@ class Alacaklar extends StatefulWidget {
 
 class _AlacaklarState extends State<Alacaklar> {
   List<Map<String, dynamic>> data = [
-    {'Müşteri': 'Cevriye Güleç', 'icerik': 'İmplant İmplant tedavisi Ağız bakım suyu', 'ptarih': '14.10.22023','icon': Icons.chevron_right},
-    {'Müşteri': 'Anıl Orbey', 'icerik': 'İmplant İmplant tedavisi Ağız bakım suyu', 'ptarih': '14.10.22023','icon': Icons.chevron_right},
-    {'Müşteri': 'Çağlar Filiz', 'icerik': 'İmplant İmplant tedavisi Ağız bakım suyu', 'ptarih': '14.10.22023','icon': Icons.chevron_right},
+    {'Müşteri': 'Cevriye Güleç', 'icerik': 'Örnek Hizmet', 'ptarih': '14.10.22023','icon': Icons.chevron_right},
+    {'Müşteri': 'Anıl Orbey', 'icerik': 'Örnek Hizmet', 'ptarih': '14.10.22023','icon': Icons.chevron_right},
+    {'Müşteri': 'Çağlar Filiz', 'icerik': 'Örnek Hizmet', 'ptarih': '14.10.22023','icon': Icons.chevron_right},
 
 
   ];
@@ -185,7 +185,7 @@ class _AlacaklarState extends State<Alacaklar> {
                           Text('Hizmet&Ürün&Paket'),
                           SizedBox(width: 2,),
                           Text(': '),
-                          Expanded(child: Text('İmplant İmplant tedavisi Ağız bakım suyu'))
+                          Expanded(child: Text('Örnek Hizmet'))
                         ],
 
                       ),

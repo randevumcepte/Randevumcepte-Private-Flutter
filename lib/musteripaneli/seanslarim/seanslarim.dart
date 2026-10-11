@@ -13,7 +13,7 @@ class MusteriSeanslari extends StatefulWidget {
 class _MusteriSeanslariState extends State<MusteriSeanslari> {
   List<Map<String, dynamic>> data = [
     {'paketadi': 'Dermapen Tedavisi','toplam':'5', 'beklenen': '4', 'gelen': '1','Kalan':'0','icon': Icons.chevron_right},
-    {'paketadi': 'İmplant Tedavisi', 'toplam':'5', 'beklenen': '3', 'gelen': '2','Kalan':'1','icon': Icons.chevron_right},
+    {'paketadi': 'Örnek Paket', 'toplam':'5', 'beklenen': '3', 'gelen': '2','Kalan':'1','icon': Icons.chevron_right},
     {'paketadi': 'Dermapen Tedvisi','toplam':'5',  'beklenen': '5', 'gelen': '0','Kalan':'5','icon': Icons.chevron_right},
 
 
@@ -208,7 +208,7 @@ class _MusteriSeanslariState extends State<MusteriSeanslari> {
                           Text('Paket Adı'),
                           SizedBox(width: 56,),
                           Text(': '),
-                          Expanded(child: Text('İmplant tedavisi'))
+                          Expanded(child: Text('Örnek Paket'))
                         ],
 
                       ),
