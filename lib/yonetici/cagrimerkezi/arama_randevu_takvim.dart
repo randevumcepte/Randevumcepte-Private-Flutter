@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 import 'cagri_api.dart';
 import 'cagri_models.dart';
+import 'widgets/sonuc_formu.dart';
 
 class AramaRandevuTakvimi extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -533,6 +534,20 @@ class _IslemSheetState extends State<_IslemSheet> {
     );
   }
 
+  // Tam gorusme sonucu formu (web paneldeki ile AYNI): Gorusuldu/Cevapsiz/Mesgul/
+  // Ulasilamadi + On Gorusme + Telefonda Satis + not + "Arama Randevusu Ver" (tekrar arama).
+  Future<void> _sonucIsle() async {
+    final ok = await sonucFormuGoster(
+      context,
+      aramaDetayId: widget.event.aramaId,
+      aranacakMusteriId: widget.event.id,
+      musteriAd: widget.event.musteri,
+      sube: widget.sube,
+      mevcutNot: widget.event.not,
+    );
+    if (ok == true) widget.onDegisti(); // sheet'i kapat + takvimi tazele
+  }
+
   void _basari(String m) => ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(m), backgroundColor: const Color(0xFF16A34A)));
 
@@ -593,6 +608,21 @@ class _IslemSheetState extends State<_IslemSheet> {
                 label: const Text('Ara (Bria)',
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 onPressed: _ara,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // TAM gorusme sonucu formu (web ile ayni) — Gorusuldu/Cevapsiz/Mesgul/
+            // Ulasilamadi + On Gorusme + Telefonda Satis + not + tekrar arama.
+            SizedBox(
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6D28D9),
+                    foregroundColor: Colors.white),
+                icon: const Icon(Icons.edit_note),
+                label: const Text('Görüşme Sonucu İşle',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                onPressed: _sonucIsle,
               ),
             ),
             const SizedBox(height: 8),
