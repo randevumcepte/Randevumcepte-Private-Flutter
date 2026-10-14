@@ -53,6 +53,7 @@ import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
 import 'menu/musteri_yorumlari/musteri_yorumlari_yonetim.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_dashboard.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_merkezi_sayfa.dart';
 import 'package:randevu_sistem/yonetici/hesabim/hesabim_ekrani.dart';
 import 'package:http/http.dart' as http;
 
@@ -640,7 +641,9 @@ class _MenuState extends State<Menu> {
                   },
                 ),
 
-                if (widget.uyelikturu == 3)
+                // Reklam Yonetimi gecici olarak gizli — ekran bitmedi; derleme atmak icin kapali.
+                // Yeniden acmak icin 'false &&' kismini sil.
+                if (false && widget.uyelikturu == 3)
                   _buildMenuButton(
                     icon: Icons.ads_click_rounded,
                     label: 'Reklam Yönetimi',
@@ -1012,28 +1015,12 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                // Cagri Merkezi — Arama Ekrani (dialer): personel + yonetici
-                if (widget.uyelikturu > 2)
-                  _buildMenuButton(
-                    icon: Icons.dialpad_rounded,
-                    label: 'Arama Ekranı',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: Duration(milliseconds: 300),
-                          child: AramaEkrani(
-                            isletmebilgi: widget.isletmebilgi,
-                            kullanicirolu: kullanicirolu,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                // Cagri Merkezi — Dashboard (performans paneli): SADECE hesap sahibi (rol == 1)
-                if (widget.uyelikturu > 2 && kullanicirolu == 1)
+                // Cagri Merkezi (SEKMELI tek sayfa): Performans(sahip) + Randevu Takvimi +
+                // Arama Ekrani + Kayitlar(Santral). SADECE uyelik_turu == 3.
+                // Personel (rol 5) atanmis dahilisi varsa gorur; Kayitlar'da sadece kendi dahilisi.
+                if (widget.uyelikturu == 3 &&
+                    ((kullanicirolu >= 1 && kullanicirolu <= 4) ||
+                        (kullanicirolu == 5 && _mevcutDahili().isNotEmpty)))
                   _buildMenuButton(
                     icon: Icons.headset_mic_rounded,
                     label: 'Çağrı Merkezi',
@@ -1043,9 +1030,14 @@ class _MenuState extends State<Menu> {
                         PageTransition(
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
-                          child: CagriDashboard(
+                          child: CagriMerkeziSayfa(
                             isletmebilgi: widget.isletmebilgi,
                             kullanicirolu: kullanicirolu,
+                            kullanici: widget.kullanici,
+                            dialPadManager: widget.dialpadManager,
+                            scaffoldMessengerKey: widget.scaffoldMessengerKey,
+                            sadeceDahili:
+                                kullanicirolu == 5 ? _mevcutDahili() : '',
                           ),
                         ),
                       );

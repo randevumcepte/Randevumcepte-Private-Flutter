@@ -12,11 +12,14 @@ import 'arama_liste_detay_ekrani.dart';
 class AramaEkrani extends StatefulWidget {
   final dynamic isletmebilgi;
   final int kullanicirolu;
+  // gomulu=true ise sekmeli Cagri Merkezi sayfasi icinde -> kendi AppBar'ini gizler.
+  final bool gomulu;
 
   const AramaEkrani({
     super.key,
     required this.isletmebilgi,
     required this.kullanicirolu,
+    this.gomulu = false,
   });
 
   @override
@@ -146,16 +149,18 @@ class _AramaEkraniState extends State<AramaEkrani> {
     final ext = context.appTheme;
     return Scaffold(
       backgroundColor: cs.surface,
-      appBar: AppBar(
-        backgroundColor: cs.surface,
-        elevation: 0,
-        foregroundColor: cs.onSurface,
-        title: const Text('Arama Ekranı',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh)),
-        ],
-      ),
+      appBar: widget.gomulu
+          ? null
+          : AppBar(
+              backgroundColor: cs.surface,
+              elevation: 0,
+              foregroundColor: cs.onSurface,
+              title: const Text('Arama Ekranı',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              actions: [
+                IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh)),
+              ],
+            ),
       body: Column(
         children: [
           // Geri arama hatirlatma bandi

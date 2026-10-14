@@ -12,11 +12,14 @@ import 'cagri_models.dart';
 class CagriDashboard extends StatefulWidget {
   final dynamic isletmebilgi;
   final int kullanicirolu;
+  // gomulu=true ise sekmeli Cagri Merkezi sayfasi icinde -> kendi AppBar'ini gizler.
+  final bool gomulu;
 
   const CagriDashboard({
     super.key,
     required this.isletmebilgi,
     required this.kullanicirolu,
+    this.gomulu = false,
   });
 
   @override
@@ -88,16 +91,18 @@ class _CagriDashboardState extends State<CagriDashboard> {
     final ext = context.appTheme;
     return Scaffold(
       backgroundColor: cs.surface,
-      appBar: AppBar(
-        backgroundColor: cs.surface,
-        elevation: 0,
-        foregroundColor: cs.onSurface,
-        title: const Text('Çağrı Merkezi',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh)),
-        ],
-      ),
+      appBar: widget.gomulu
+          ? null
+          : AppBar(
+              backgroundColor: cs.surface,
+              elevation: 0,
+              foregroundColor: cs.onSurface,
+              title: const Text('Çağrı Merkezi',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              actions: [
+                IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh)),
+              ],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _aramaListesiOlustur,
         backgroundColor: cs.primary,

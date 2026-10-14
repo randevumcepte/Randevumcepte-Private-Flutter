@@ -359,6 +359,81 @@ class CagriApi {
         .map((e) => CagriKategori.fromJson(Map<String, dynamic>.from(e)))
         .toList();
   }
+
+  // ───────── Arama Randevu Takvimi ─────────
+
+  /// Secili gune ait arama randevulari (bare JSON array). start/end 'yyyy-MM-dd'.
+  static Future<List<TakvimEvent>> takvimVerileri(String sube,
+      {String? start, String? end}) async {
+    final j = await _get('arama-randevu-takvim-verileri', {
+      'sube': sube,
+      if (start != null) 'start': start,
+      if (end != null) 'end': end,
+    });
+    final list = (j is List) ? j : (j is Map ? (j['data'] as List? ?? []) : []);
+    return list
+        .map((e) => TakvimEvent.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  /// Arama randevusunu 'Randevu Oluşturuldu' (durum=8) isaretle.
+  static Future<bool> randevuOlusturulduIsaretle(
+      int aranacakMusteriId, String sube) async {
+    final j = await _post('randevu-olusturuldu-isaretle', {
+      'aranacak_musteri_id': aranacakMusteriId,
+      'sube': sube,
+    });
+    return j is Map && j['success'] == true;
+  }
+
+  /// Arama randevusunu iptal et (durum=9).
+  static Future<bool> aramaRandevuIptal(
+      int aranacakMusteriId, String sube) async {
+    final j = await _post('arama-randevu-iptal', {
+      'aranacak_musteri_id': aranacakMusteriId,
+      'sube': sube,
+    });
+    return j is Map && j['success'] == true;
+  }
+
+  /// Manuel arama randevusu ekle. Donen: {success, message}.
+  static Future<AramaBaslatSonuc> aramaRandevuEkle({
+    required String sube,
+    required int musteriId,
+    required int personelId,
+    required String tarih, // yyyy-MM-dd
+    required String saat,  // HH:mm
+    String? not,
+  }) async {
+    final j = await _post('arama-randevu-ekle', {
+      'sube': sube,
+      'musteri_id': musteriId,
+      'personel_id': personelId,
+      'tarih': tarih,
+      'saat': saat,
+      if (not != null) 'not': not,
+    });
+    return AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j as Map));
+  }
+
+  /// Musteri secici (ad/telefon arama). Donen: {results:[{id,text}]}.
+  static Future<List<MusteriSecenek>> musteriSelect(
+      String sube, String q) async {
+    final j = await _get('musteri-select', {'sube': sube, 'q': q});
+    return ((j['results'] as List?) ?? [])
+        .map((e) => MusteriSecenek.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  /// Musterinin randevu gecmisi + ozet (geldi/gelmedi/onayli).
+  static Future<MusteriRandevuGecmisi> musteriRandevuGecmisi(
+      String sube, int userId) async {
+    final j = await _get('musteri-randevu-gecmisi', {
+      'sube': sube,
+      'user_id': userId.toString(),
+    });
+    return MusteriRandevuGecmisi.fromJson(Map<String, dynamic>.from(j as Map));
+  }
 }
 
 class CagriApiException implements Exception {

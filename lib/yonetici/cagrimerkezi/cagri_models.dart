@@ -468,3 +468,133 @@ class CagriDurum {
     }
   }
 }
+
+// ───────── Arama Randevu Takvimi ─────────
+
+/// Arama Randevu Takvimi event'i (bare array elemani).
+/// Web: arama_randevu_takvim_verileri — alan adlari birebir ayni.
+class TakvimEvent {
+  final int id;            // aranacak_musteri_id
+  final int aramaId;       // liste id (not/islem icin)
+  final String title;      // "Personel · Musteri"
+  final String start;      // "YYYY-MM-DDTHH:ii:ss"
+  final String color;      // "#2563eb"
+  final int personelId;
+  final String personel;
+  final String musteri;
+  final int userId;
+  final String not;
+  final String telefon;    // "" ise maskeli (rol 5)
+  final String durumMetin; // Aranacak|Gecikti|On Gorusme|Satis|Randevu Olusturuldu|Iptal|...
+
+  TakvimEvent({
+    required this.id,
+    required this.aramaId,
+    required this.title,
+    required this.start,
+    required this.color,
+    required this.personelId,
+    required this.personel,
+    required this.musteri,
+    required this.userId,
+    required this.not,
+    required this.telefon,
+    required this.durumMetin,
+  });
+
+  factory TakvimEvent.fromJson(Map<String, dynamic> j) => TakvimEvent(
+        id: _toInt(j['id']),
+        aramaId: _toInt(j['arama_id']),
+        title: _toStr(j['title']),
+        start: _toStr(j['start']),
+        color: _toStr(j['color']),
+        personelId: _toInt(j['personel_id']),
+        personel: _toStr(j['personel']),
+        musteri: _toStr(j['musteri']),
+        userId: _toInt(j['user_id']),
+        not: _toStr(j['not']),
+        telefon: _toStr(j['telefon']),
+        durumMetin: _toStr(j['durum_metin']),
+      );
+
+  /// "HH:ii" — start ISO'dan saat.
+  String get saat => start.length >= 16 ? start.substring(11, 16) : '';
+
+  /// Islenmis/kapali randevu mu? (tekrar islem modali acilmaz)
+  bool get islenmis =>
+      durumMetin == 'Randevu Oluşturuldu' ||
+      durumMetin == 'Satış' ||
+      durumMetin == 'Ön Görüşme' ||
+      durumMetin == 'İptal';
+}
+
+/// Musteri secici (arama randevusu ekle) sonucu: {id, text}.
+class MusteriSecenek {
+  final int id;
+  final String text;
+  MusteriSecenek({required this.id, required this.text});
+  factory MusteriSecenek.fromJson(Map<String, dynamic> j) =>
+      MusteriSecenek(id: _toInt(j['id']), text: _toStr(j['text']));
+}
+
+/// Musteri randevu gecmisi — tek randevu satiri.
+class RandevuGecmisKayit {
+  final String tarih;
+  final String saat;
+  final String personel;
+  final String hizmet;
+  final String not;
+  final String durumMetin;
+  final String renk;
+
+  RandevuGecmisKayit({
+    required this.tarih,
+    required this.saat,
+    required this.personel,
+    required this.hizmet,
+    required this.not,
+    required this.durumMetin,
+    required this.renk,
+  });
+
+  factory RandevuGecmisKayit.fromJson(Map<String, dynamic> j) =>
+      RandevuGecmisKayit(
+        tarih: _toStr(j['tarih']),
+        saat: _toStr(j['saat']),
+        personel: _toStr(j['personel']),
+        hizmet: _toStr(j['hizmet']),
+        not: _toStr(j['not']),
+        durumMetin: _toStr(j['durum_metin']),
+        renk: _toStr(j['renk']),
+      );
+}
+
+/// Musteri randevu gecmisi + ozet kutular.
+class MusteriRandevuGecmisi {
+  final List<RandevuGecmisKayit> randevular;
+  final int geldi;
+  final int gelmedi;
+  final int onayli;
+  final int? sonGelisGun;
+
+  MusteriRandevuGecmisi({
+    required this.randevular,
+    required this.geldi,
+    required this.gelmedi,
+    required this.onayli,
+    this.sonGelisGun,
+  });
+
+  factory MusteriRandevuGecmisi.fromJson(Map<String, dynamic> j) {
+    final oz = (j['ozet'] is Map) ? Map<String, dynamic>.from(j['ozet']) : {};
+    return MusteriRandevuGecmisi(
+      randevular: ((j['randevular'] as List?) ?? [])
+          .map((e) => RandevuGecmisKayit.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      geldi: _toInt(oz['geldi']),
+      gelmedi: _toInt(oz['gelmedi']),
+      onayli: _toInt(oz['onayli']),
+      sonGelisGun: _toIntN(oz['son_gelis_gun']),
+    );
+  }
+}
