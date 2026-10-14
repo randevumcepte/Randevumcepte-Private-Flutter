@@ -40,10 +40,10 @@ class CagriMerkeziSayfa extends StatelessWidget {
     final bool sahip = kullanicirolu == 1; // Performans sekmesi sadece hesap sahibinde
 
     final tabs = <Tab>[
-      if (sahip) const Tab(icon: Icon(Icons.bar_chart_rounded), text: 'Performans'),
-      const Tab(icon: Icon(Icons.event_note_rounded), text: 'Randevu Takvimi'),
-      const Tab(icon: Icon(Icons.dialpad_rounded), text: 'Arama Ekranı'),
-      const Tab(icon: Icon(Icons.phone_in_talk_rounded), text: 'Kayıtlar'),
+      if (sahip) const Tab(text: 'Performans'),
+      const Tab(text: 'Takvim'),
+      const Tab(text: 'Atanan\nAramalar'),
+      const Tab(text: 'Kayıtlar'),
     ];
 
     final views = <Widget>[
@@ -62,6 +62,8 @@ class CagriMerkeziSayfa extends StatelessWidget {
         kullanicirolu: kullanicirolu,
         gomulu: true,
       ),
+      // Cagri Kayitlari = Santral CDR icerigi, kendi basligi OLMADAN (gomulu)
+      // dogrudan bu sekmenin icinde. Filtre butonu gomulu modda FAB olarak gelir.
       CDRRaporlari(
         isletmebilgi: isletmebilgi,
         kullanicirolu: kullanicirolu,
@@ -70,9 +72,11 @@ class CagriMerkeziSayfa extends StatelessWidget {
         scaffoldMessengerKey: scaffoldMessengerKey,
         // Personel rolunde ise SADECE kendi dahilisine ait CDR gorunur.
         sadeceDahili: sadeceDahili,
+        gomulu: true,
       ),
     ];
 
+    const mor = Color(0xFF6D28D9);
     return DefaultTabController(
       length: tabs.length,
       child: Scaffold(
@@ -81,13 +85,43 @@ class CagriMerkeziSayfa extends StatelessWidget {
             'Çağrı Merkezi',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          bottom: TabBar(
-            isScrollable: true,
-            labelColor: const Color(0xFF6D28D9),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF6D28D9),
-            indicatorWeight: 3,
-            tabs: tabs,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(60),
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1ECFA),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: TabBar(
+                  isScrollable: false, // tam genislik — sekmeler ekrani kaplar
+                  labelColor: Colors.white,
+                  unselectedLabelColor: mor,
+                  labelStyle: const TextStyle(
+                      fontSize: 11.5, fontWeight: FontWeight.w800, height: 1.1),
+                  unselectedLabelStyle: const TextStyle(
+                      fontSize: 11.5, fontWeight: FontWeight.w600, height: 1.1),
+                  indicator: BoxDecoration(
+                    color: mor,
+                    borderRadius: BorderRadius.circular(11),
+                    boxShadow: [
+                      BoxShadow(
+                          color: mor.withOpacity(.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3)),
+                    ],
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  padding: EdgeInsets.zero,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+                  tabs: tabs,
+                ),
+              ),
+            ),
           ),
         ),
         body: TabBarView(children: views),

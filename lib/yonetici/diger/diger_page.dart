@@ -598,32 +598,8 @@ class _MenuState extends State<Menu> {
                       );
                     },
                   ),
-                if (widget.uyelikturu > 2 && (
-                      (kullanicirolu >= 1 && kullanicirolu <= 4) ||
-                      (kullanicirolu == 5 && _mevcutDahili().isNotEmpty)
-                    ))
-                  _buildMenuButton(
-                    icon: Icons.phone,
-                    label: 'Santral',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          duration: Duration(milliseconds: 300),
-                          child: CDRRaporlari(
-                            scaffoldMessengerKey: widget.scaffoldMessengerKey,
-                            kullanici: widget.kullanici,
-                            isletmebilgi: widget.isletmebilgi,
-                            kullanicirolu: kullanicirolu,
-                            dialPadManager: widget.dialpadManager,
-                            // Personel rolunde ise sadece kendi dahilisine ait CDR gorunur
-                            sadeceDahili: kullanicirolu == 5 ? _mevcutDahili() : '',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                // "Santral" menusu KALDIRILDI — icerigi artik Cagri Merkezi > Kayitlar
+                // sekmesinde (gomulu CDRRaporlari) acilir.
 
                 if (kullanicirolu >= 1 && kullanicirolu <= 3)
                   _buildMenuButton(

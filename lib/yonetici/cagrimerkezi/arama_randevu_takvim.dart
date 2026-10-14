@@ -67,7 +67,9 @@ class _AramaRandevuTakvimiState extends State<AramaRandevuTakvimi> {
       if (mounted) setState(() { _olaylar = list; _yukleniyor = false; });
     } catch (e) {
       if (mounted) setState(() {
-        _hata = e is CagriApiException ? e.message : 'Yüklenirken hata oluştu.';
+        _hata = e is CagriApiException
+            ? '(${e.statusCode}) ${e.message}'
+            : 'Yüklenirken hata oluştu: $e';
         _yukleniyor = false;
       });
     }
@@ -241,7 +243,18 @@ class _AramaRandevuTakvimiState extends State<AramaRandevuTakvimi> {
             child: _yukleniyor
                 ? const Center(child: CircularProgressIndicator())
                 : _hata != null
-                    ? _mesajView(_hata!, Icons.error_outline, Colors.red)
+                    ? ListView(children: [
+                        const SizedBox(height: 50),
+                        _mesajView(_hata!, Icons.error_outline, Colors.red),
+                        const SizedBox(height: 10),
+                        Center(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Tekrar Dene'),
+                            onPressed: _yukle,
+                          ),
+                        ),
+                      ])
                     : filtreli.isEmpty
                         ? ListView(children: [
                             const SizedBox(height: 60),

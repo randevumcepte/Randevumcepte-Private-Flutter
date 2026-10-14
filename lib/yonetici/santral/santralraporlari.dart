@@ -53,6 +53,10 @@ class CDRRaporlari extends StatefulWidget {
   /// kayitlari gosterilir. Bos ise filtre uygulanmaz (yonetici gorunumu).
   final String sadeceDahili;
 
+  /// gomulu=true ise Cagri Merkezi sekmeli sayfasi icinde -> kendi AppBar'ini
+  /// gizler, filtre butonu FAB olarak gelir (icerik dogrudan sekmede acilir).
+  final bool gomulu;
+
   const CDRRaporlari({
     Key? key,
     required this.isletmebilgi,
@@ -61,6 +65,7 @@ class CDRRaporlari extends StatefulWidget {
     required this.kullanici,
     required this.kullanicirolu,
     this.sadeceDahili = '',
+    this.gomulu = false,
   }) : super(key: key);
 
   @override
@@ -308,7 +313,18 @@ class _CDRState extends State<CDRRaporlari> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
+      // Gomulu (Cagri Merkezi sekmesi) modunda filtreye AppBar yerine FAB'tan erisilir.
+      floatingActionButton: widget.gomulu
+          ? FloatingActionButton(
+              onPressed: _showFilterBottomSheet,
+              backgroundColor: const Color(0xFF6D28D9),
+              tooltip: 'Filtrele',
+              child: const Icon(Icons.filter_list_alt, color: Colors.white),
+            )
+          : null,
+      appBar: widget.gomulu
+          ? null
+          : AppBar(
         title: Text(
           'Santral Raporları',
           style: TextStyle(
