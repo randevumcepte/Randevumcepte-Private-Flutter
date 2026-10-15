@@ -235,59 +235,37 @@ class _SonucFormuState extends State<_SonucFormu> {
                   controller: scroll,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   children: [
-                    // Sonuc secenekleri
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _secenekler.map((s) {
-                        final secili = _sonuc == s.kod;
-                        return InkWell(
-                          onTap: () => setState(() {
-                            _sonuc = s.kod;
-                            if (s.kod != CagriDurum.onGorusme) {
-                              // on gorusme disindaki sonuclar geri aramayi otomatik tetiklemez
-                            }
-                          }),
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: secili ? cs.primary.withValues(alpha: 0.12) : cs.surface,
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                              border: Border.all(
-                                color: secili ? cs.primary : ext.borderSubtle,
-                                width: secili ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(s.icon,
-                                    size: 18,
-                                    color: secili ? cs.primary : cs.onSurfaceVariant),
-                                const SizedBox(width: 6),
-                                Text(s.ad,
-                                    style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
-                                        color: secili ? cs.primary : cs.onSurface)),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                    // ── GÖRÜŞME SONUCU (web ile AYNI bolum) ──
+                    _bolumBaslik('GÖRÜŞME SONUCU'),
+                    const SizedBox(height: 8),
+                    _secenekGrid(const [
+                      CagriDurum.gorusuldu,
+                      CagriDurum.cevapsiz,
+                      CagriDurum.mesgul,
+                      CagriDurum.ulasilamadi,
+                    ]),
+                    const SizedBox(height: 16),
+
+                    // ── SONUÇ (HEDEF) ──
+                    _bolumBaslik('SONUÇ (HEDEF)'),
+                    const SizedBox(height: 8),
+                    _secenekGrid(const [
+                      CagriDurum.onGorusme,
+                      CagriDurum.telefondaSatis,
+                    ]),
                     const SizedBox(height: 14),
 
-                    // Tekrar aranacak (durum 3)
+                    // ARAMA RANDEVUSU VER (web ile AYNI etiket) — satista gizli
                     if (!_satisMi)
                       CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         controlAffinity: ListTileControlAffinity.leading,
                         value: _tekrarAra,
                         onChanged: (v) => setState(() => _tekrarAra = v ?? false),
-                        title: const Text('Daha sonra tekrar aranacak'),
-                        subtitle: const Text('Belirtilen tarih/saatte hatırlatma çıkar'),
+                        title: const Text('ARAMA RANDEVUSU VER',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        subtitle: const Text(
+                            'Müşteri sonra aranmak istedi (Tekrar Aranacak)'),
                       ),
 
                     // Geri arama tarih/saat
@@ -420,6 +398,69 @@ class _SonucFormuState extends State<_SonucFormu> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // Web paneldeki gibi bolum basligi (kucuk, mor, caps).
+  Widget _bolumBaslik(String t) => Align(
+        alignment: Alignment.centerLeft,
+        child: Text(t,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .4,
+                color: context.colors.primary)),
+      );
+
+  // Verilen durum kodlari icin 2 sutunlu secenek izgarasi (web karti gibi).
+  Widget _secenekGrid(List<int> kodlar) {
+    final list = _secenekler.where((s) => kodlar.contains(s.kod)).toList();
+    return LayoutBuilder(builder: (ctx, c) {
+      final w = (c.maxWidth - 8) / 2; // 2 sutun
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children:
+            list.map((s) => SizedBox(width: w, child: _secChip(s))).toList(),
+      );
+    });
+  }
+
+  Widget _secChip(_SonucSecenek s) {
+    final cs = context.colors;
+    final ext = context.appTheme;
+    final secili = _sonuc == s.kod;
+    return InkWell(
+      onTap: () => setState(() => _sonuc = s.kod),
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        decoration: BoxDecoration(
+          color: secili ? cs.primary.withValues(alpha: 0.12) : cs.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+              color: secili ? cs.primary : ext.borderSubtle,
+              width: secili ? 1.5 : 1),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(s.icon,
+                size: 18, color: secili ? cs.primary : cs.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(s.ad,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
+                      color: secili ? cs.primary : cs.onSurface)),
+            ),
+          ],
         ),
       ),
     );
