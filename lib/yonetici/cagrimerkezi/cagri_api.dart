@@ -87,12 +87,14 @@ class CagriApi {
   }
 
   static Future<ListeDetay> listeDetay(int aramaDetayId, String sube,
-      {int page = 1, int perPage = 50}) async {
+      {int page = 1, int perPage = 50, String? arama}) async {
     final j = await _post('arama-liste-detay', {
       'arama_detay_id': aramaDetayId,
       'page': page,
       'perPage': perPage,
       'sube': sube,
+      // Sunucu-tarafli arama (TUM liste icinde ad + yetkiliyse telefon).
+      if (arama != null && arama.trim().isNotEmpty) 'arama': arama.trim(),
     });
     return ListeDetay.fromJson(Map<String, dynamic>.from(j));
   }

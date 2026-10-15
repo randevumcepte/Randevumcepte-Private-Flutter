@@ -1,6 +1,8 @@
 // Arama listesi detay — secili listenin musteri kuyrugu.
 // Her musteri: durum, not, ARA (click-to-call), Sonuc kaydet, Cagri gecmisi.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
@@ -8,6 +10,7 @@ import 'cagri_api.dart';
 import 'cagri_models.dart';
 import 'widgets/sonuc_formu.dart';
 import 'widgets/cagri_gecmisi.dart';
+import 'widgets/randevu_gecmisi.dart';
 
 class AramaListeDetayEkrani extends StatefulWidget {
   final int aramaId;
@@ -34,6 +37,8 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
   int _total = 0;
   bool _yukleniyor = false;
   bool _ilkYukleme = true;
+  String _ara = ''; // sunucu-tarafli arama terimi (ad/telefon)
+  Timer? _aramaTimer;
   bool get _dahaVar => _musteriler.length < _total;
 
   @override
@@ -56,7 +61,7 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
         _musteriler.clear();
       }
       final res = await CagriApi.listeDetay(widget.aramaId, widget.sube,
-          page: _page, perPage: 50);
+          page: _page, perPage: 50, arama: _ara);
       if (!mounted) return;
       setState(() {
         _total = res.total;
@@ -113,8 +118,20 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
     );
   }
 
+  // Debounce'li sunucu-tarafli arama (TUM liste icinde ad/telefon).
+  void _aramaDegisti(String v) {
+    _aramaTimer?.cancel();
+    _aramaTimer = Timer(const Duration(milliseconds: 350), () {
+      final yeni = v.trim();
+      if (yeni == _ara) return;
+      _ara = yeni;
+      _yukle(ilk: true);
+    });
+  }
+
   @override
   void dispose() {
+    _aramaTimer?.cancel();
     _scroll.dispose();
     super.dispose();
   }
@@ -145,7 +162,23 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
           IconButton(onPressed: _yenile, icon: const Icon(Icons.refresh)),
         ],
       ),
-      body: _ilkYukleme
+      body: Column(children: [
+        // Sunucu-tarafli musteri arama (ad/telefon — TUM liste icinde)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Müşteri ara (ad / telefon)...',
+              prefixIcon: const Icon(Icons.search),
+              isDense: true,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onChanged: _aramaDegisti,
+          ),
+        ),
+        Expanded(
+          child: _ilkYukleme
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _yenile,
@@ -232,6 +265,8 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
                       },
                     ),
             ),
+        ),
+      ]),
     );
   }
 }
@@ -491,6 +526,25 @@ class _MusteriDetaySheet extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            // Randevu Gecmisi (web musteri-detay ile ayni): geldi/gelmedi/onayli + liste
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: cs.primary,
+                    side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
+                  ),
+                  onPressed: musteri.userId > 0
+                      ? () => randevuGecmisiGoster(context,
+                          sube: sube, userId: musteri.userId, ad: musteri.ad)
+                      : null,
+                  icon: const Icon(Icons.history, size: 19),
+                  label: const Text('Randevu Geçmişi'),
+                ),
               ),
             ),
             const Divider(height: 24),

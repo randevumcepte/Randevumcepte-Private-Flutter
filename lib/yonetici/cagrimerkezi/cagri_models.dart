@@ -68,6 +68,7 @@ class AramaKart {
 /// Kuyruktaki aranacak musteri (KVKK: personel icin maskeli gelir).
 class AranacakMusteri {
   final int aranacakMusteriId;
+  final int userId; // musteri user_id (Randevu Gecmisi / Musteri Detayi icin)
   final String ad;
   final String? telefon; // sadece yoneticiye gelir, personele null
   final String telefonGizlenmis;
@@ -80,6 +81,7 @@ class AranacakMusteri {
 
   AranacakMusteri({
     required this.aranacakMusteriId,
+    this.userId = 0,
     required this.ad,
     this.telefon,
     required this.telefonGizlenmis,
@@ -93,6 +95,7 @@ class AranacakMusteri {
 
   factory AranacakMusteri.fromJson(Map<String, dynamic> j) => AranacakMusteri(
         aranacakMusteriId: _toInt(j['aranacak_musteri_id']),
+        userId: _toInt(j['user_id']),
         ad: _toStr(j['ad']),
         telefon: _toStrN(j['telefon']),
         telefonGizlenmis: _toStr(j['telefonGizlenmis']),

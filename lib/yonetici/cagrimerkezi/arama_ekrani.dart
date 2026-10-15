@@ -163,31 +163,7 @@ class _AramaEkraniState extends State<AramaEkrani> {
             ),
       body: Column(
         children: [
-          // Geri arama hatirlatma bandi
-          if (_yaklasan.isNotEmpty)
-            Material(
-              color: Colors.orange.withValues(alpha: 0.14),
-              child: InkWell(
-                onTap: _hatirlatmalariGoster,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.notifications_active, color: Colors.orange),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          '${_yaklasan.length} geri arama zamanı geldi',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700, color: Colors.deepOrange),
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right, color: Colors.deepOrange),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // NOT: "geri arama zamani geldi" bandi KALDIRILDI (web ile ayni — webde de kaldirildi).
           Expanded(
             child: _yukleniyor
                 ? const Center(child: CircularProgressIndicator())
