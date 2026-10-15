@@ -240,41 +240,75 @@ class _AramaRandevuTakvimiState extends State<AramaRandevuTakvimi> {
         const SizedBox(height: 4),
         // Govde
         Expanded(
-          child: RefreshIndicator(
-            onRefresh: _yukle,
-            child: _yukleniyor
-                ? const Center(child: CircularProgressIndicator())
-                : _hata != null
-                    ? ListView(children: [
-                        const SizedBox(height: 50),
-                        _mesajView(_hata!, Icons.error_outline, Colors.red),
-                        const SizedBox(height: 10),
-                        Center(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Tekrar Dene'),
-                            onPressed: _yukle,
-                          ),
+          child: _yukleniyor
+              ? const Center(child: CircularProgressIndicator())
+              : _hata != null
+                  ? ListView(children: [
+                      const SizedBox(height: 50),
+                      _mesajView(_hata!, Icons.error_outline, Colors.red),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Tekrar Dene'),
+                          onPressed: _yukle,
                         ),
-                      ])
-                    : filtreli.isEmpty
-                        ? ListView(children: [
-                            const SizedBox(height: 60),
-                            _mesajView('Bu güne ait arama randevusu yok.',
-                                Icons.event_busy, Colors.grey),
-                          ])
-                        : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(10, 2, 10, 20),
-                            itemCount: pidler.length,
-                            itemBuilder: (_, i) {
-                              final pid = pidler[i];
-                              final items = grup[pid]!
-                                ..sort((a, b) => a.start.compareTo(b.start));
-                              return _personelGrubu(
-                                  items.first.personel, items);
-                            },
+                      ),
+                    ])
+                  : filtreli.isEmpty
+                      ? RefreshIndicator(
+                          onRefresh: _yukle,
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 60),
+                              _mesajView('Bu güne ait arama randevusu yok.',
+                                  Icons.event_busy, Colors.grey),
+                            ],
                           ),
-          ),
+                        )
+                      : LayoutBuilder(builder: (ctx, c) {
+                          // Personel sutunlari web'deki gibi YAN YANA.
+                          // Tek sutun -> tam ekran; coklu -> yatay kaydirmali (~1.6 sutun gorunur).
+                          List<TakvimEvent> items0(int pid) =>
+                              grup[pid]!..sort((a, b) => a.start.compareTo(b.start));
+                          if (pidler.length <= 1) {
+                            final items = items0(pidler.first);
+                            return RefreshIndicator(
+                              onRefresh: _yukle,
+                              child: ListView(
+                                padding:
+                                    const EdgeInsets.fromLTRB(10, 2, 10, 20),
+                                children: [
+                                  _personelGrubu(items.first.personel, items),
+                                ],
+                              ),
+                            );
+                          }
+                          final genislik = c.maxWidth * 0.62; // ~1.6 sutun
+                          return RefreshIndicator(
+                            onRefresh: _yukle,
+                            child: ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height: c.maxHeight,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    padding: const EdgeInsets.fromLTRB(
+                                        10, 2, 4, 20),
+                                    itemCount: pidler.length,
+                                    itemBuilder: (_, i) {
+                                      final items = items0(pidler[i]);
+                                      return _personelSutun(
+                                          items.first.personel, items, genislik);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
         ),
       ],
     );
@@ -313,6 +347,35 @@ class _AramaRandevuTakvimiState extends State<AramaRandevuTakvimi> {
         ),
       );
 
+  // Sutun basligi (mor seritte personel adi + adet).
+  Widget _sutunBaslik(String personel, int adet) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: const BoxDecoration(
+          color: Color(0xFF6D28D9),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: Text(personel,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+              decoration: BoxDecoration(
+                  color: Colors.white24, borderRadius: BorderRadius.circular(20)),
+              child: Text('$adet',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+
+  // Tek sutun (tam ekran) — dikey kartlar icerige gore uzar.
   Widget _personelGrubu(String personel, List<TakvimEvent> items) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -324,35 +387,33 @@ class _AramaRandevuTakvimiState extends State<AramaRandevuTakvimi> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: const BoxDecoration(
-              color: Color(0xFF6D28D9),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(personel,
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w700),
-                      overflow: TextOverflow.ellipsis),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                  decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Text('${items.length}',
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w700)),
-                ),
-              ],
+          _sutunBaslik(personel, items.length),
+          for (final e in items) _olayKart(e),
+        ],
+      ),
+    );
+  }
+
+  // Coklu sutun (yan yana) — sabit genislik, kendi icinde dikey kaydirmali.
+  Widget _personelSutun(
+      String personel, List<TakvimEvent> items, double genislik) {
+    return Container(
+      width: genislik,
+      margin: const EdgeInsets.only(right: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEDE7F6)),
+      ),
+      child: Column(
+        children: [
+          _sutunBaslik(personel, items.length),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [for (final e in items) _olayKart(e)],
             ),
           ),
-          for (final e in items) _olayKart(e),
         ],
       ),
     );
@@ -373,28 +434,36 @@ class _AramaRandevuTakvimiState extends State<AramaRandevuTakvimi> {
                 decoration: BoxDecoration(
                     color: c, borderRadius: BorderRadius.circular(3))),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Icon(Icons.access_time, size: 13, color: c),
-                  const SizedBox(width: 4),
-                  Text(e.saat,
-                      style: TextStyle(
-                          color: c, fontWeight: FontWeight.w700, fontSize: 13)),
-                ]),
-                const SizedBox(height: 2),
-                Text(e.musteri.isEmpty ? 'Müşteri' : e.musteri,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Icon(Icons.access_time, size: 13, color: c),
+                    const SizedBox(width: 4),
+                    Text(e.saat,
+                        style: TextStyle(
+                            color: c,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
+                  ]),
+                  const SizedBox(height: 2),
+                  Text(e.musteri.isEmpty ? 'Müşteri' : e.musteri,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                   color: c.withOpacity(.12),
                   borderRadius: BorderRadius.circular(20)),
               child: Text(e.durumMetin,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: c, fontSize: 11, fontWeight: FontWeight.w700)),
             ),
