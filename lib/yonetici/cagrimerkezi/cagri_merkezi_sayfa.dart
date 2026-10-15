@@ -39,29 +39,33 @@ class CagriMerkeziSayfa extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool sahip = kullanicirolu == 1; // Performans sekmesi sadece hesap sahibinde
 
+    // Sira: Atanan Aramalar -> Arama Randevulari -> (Performans: sadece sahip) -> Cagri Kayitlari
     final tabs = <Tab>[
-      if (sahip) const Tab(text: 'Performans'),
-      const Tab(text: 'Takvim'),
       const Tab(text: 'Atanan\nAramalar'),
-      const Tab(text: 'Kayıtlar'),
+      const Tab(text: 'Arama\nRandevuları'),
+      if (sahip) const Tab(text: 'Performans'),
+      const Tab(text: 'Çağrı\nKayıtları'),
     ];
 
     final views = <Widget>[
+      // Atanan Aramalar (calisma ekrani) — 'Arama Listesi Olustur' FAB burada.
+      AramaEkrani(
+        isletmebilgi: isletmebilgi,
+        kullanicirolu: kullanicirolu,
+        gomulu: true,
+      ),
+      // Arama Randevulari (takvim)
+      AramaRandevuTakvimi(
+        isletmebilgi: isletmebilgi,
+        kullanicirolu: kullanicirolu,
+      ),
+      // Performans (dashboard) — sadece hesap sahibi
       if (sahip)
         CagriDashboard(
           isletmebilgi: isletmebilgi,
           kullanicirolu: kullanicirolu,
           gomulu: true,
         ),
-      AramaRandevuTakvimi(
-        isletmebilgi: isletmebilgi,
-        kullanicirolu: kullanicirolu,
-      ),
-      AramaEkrani(
-        isletmebilgi: isletmebilgi,
-        kullanicirolu: kullanicirolu,
-        gomulu: true,
-      ),
       // Cagri Kayitlari = Santral CDR icerigi, kendi basligi OLMADAN (gomulu)
       // dogrudan bu sekmenin icinde. Filtre butonu gomulu modda FAB olarak gelir.
       CDRRaporlari(

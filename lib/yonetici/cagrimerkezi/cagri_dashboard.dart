@@ -5,7 +5,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
-import 'arama_listesi_olustur_ekrani.dart';
 import 'cagri_api.dart';
 import 'cagri_models.dart';
 
@@ -62,15 +61,6 @@ class _CagriDashboardState extends State<CagriDashboard> {
     }
   }
 
-  Future<void> _aramaListesiOlustur() async {
-    final sonuc = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AramaListesiOlusturEkrani(sube: _sube),
-      ),
-    );
-    if (sonuc == true) _yukle(); // yeni liste eklendiyse kartlari tazele
-  }
 
   void _personelDetay(PersonelKart p) {
     Navigator.push(
@@ -103,14 +93,7 @@ class _CagriDashboardState extends State<CagriDashboard> {
                 IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh)),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _aramaListesiOlustur,
-        backgroundColor: cs.primary,
-        foregroundColor: cs.onPrimary,
-        icon: const Icon(Icons.add),
-        label: const Text('Arama Listesi Oluştur',
-            style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
+      // 'Arama Listesi Olustur' butonu ATANAN ARAMALAR (AramaEkrani) tabina tasindi.
       body: _yukleniyor
           ? const Center(child: CircularProgressIndicator())
           : _hata != null

@@ -8,6 +8,7 @@ import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'cagri_api.dart';
 import 'cagri_models.dart';
 import 'arama_liste_detay_ekrani.dart';
+import 'arama_listesi_olustur_ekrani.dart';
 
 class AramaEkrani extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -143,12 +144,32 @@ class _AramaEkraniState extends State<AramaEkrani> {
     );
   }
 
+  // Yeni arama listesi olustur ekranini ac; eklenirse kartlari tazele.
+  Future<void> _aramaListesiOlustur() async {
+    final sonuc = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AramaListesiOlusturEkrani(sube: _sube),
+      ),
+    );
+    if (sonuc == true) _yukle();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = context.colors;
     final ext = context.appTheme;
     return Scaffold(
       backgroundColor: cs.surface,
+      // Arama Listesi Olustur (Performans'tan buraya tasindi).
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _aramaListesiOlustur,
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
+        icon: const Icon(Icons.add),
+        label: const Text('Arama Listesi Oluştur',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
       appBar: widget.gomulu
           ? null
           : AppBar(
