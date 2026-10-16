@@ -14,6 +14,7 @@ import 'dart:developer';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
+import 'package:randevu_sistem/yonetici/diger/kurulum/takvim_renk_ayari_ekrani.dart';
 import 'package:randevu_sistem/Frontend/backroutes.dart';
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
@@ -616,6 +617,22 @@ class _MenuState extends State<Menu> {
                     );
                   },
                 ),
+
+                if (kullanicirolu >= 1 && kullanicirolu <= 3)
+                  _buildMenuButton(
+                    icon: Icons.palette_rounded,
+                    label: 'Takvim Renk Ayarı',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: TakvimRenkAyariEkrani(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
 
                 // Reklam Yonetimi gecici olarak gizli — ekran bitmedi; derleme atmak icin kapali.
                 // Yeniden acmak icin 'false &&' kismini sil.
