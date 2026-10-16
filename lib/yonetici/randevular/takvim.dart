@@ -63,6 +63,19 @@ class Takvim extends StatefulWidget {
 
 class TakvimState extends State<Takvim> with RouteAware {
 
+  // Sunucudan gelen takvim YAZI rengi (appointment id -> renk). Bos ise
+  // zemin parlakligina gore otomatik kontrast kullanilir.
+  final Map<String, Color> _aptTextColor = {};
+  Color? _parseTakvimTextColor(dynamic v) {
+    final s = v?.toString() ?? '';
+    if (s.isEmpty) return null;
+    try {
+      return Color(int.parse(s.replaceFirst('0x', ''), radix: 16));
+    } catch (_) {
+      return null;
+    }
+  }
+
   double _savedVerticalScrollPosition = 0.0;
   double _savedHorizontalScrollPosition = 0.0;
 
@@ -596,7 +609,10 @@ class TakvimState extends State<Takvim> with RouteAware {
       bitisSaati = randevudata["bitis"];
     });
 
+    _aptTextColor.clear();
     updatedAppointments = randevular.map<Appointment>((item) {
+      final _tc = _parseTakvimTextColor(item['textColor']);
+      if (_tc != null && item['id'] != null) _aptTextColor[item['id'].toString()] = _tc;
       return Appointment(
         startTime: DateTime.parse(item['start']),
         endTime: DateTime.parse(item['end']),
@@ -1454,6 +1470,7 @@ List<Widget> _buildAppointmentsForResource(
               key: ValueKey('appt_${appointment.id}_${appointment.startTime.millisecondsSinceEpoch}'),
               appointment: appointment,
               color: appointmentColor,
+              textColor: _aptTextColor[appointment.id?.toString()],
               height: height,
               width: cardWidth,
               slotHeight: slotHeight,
@@ -3169,6 +3186,7 @@ class _GridLinesPainter extends CustomPainter {
 class _AppointmentCard extends StatefulWidget {
   final Appointment appointment;
   final Color color;
+  final Color? textColor; // sunucudan gelen yazi rengi (null => otomatik kontrast)
   final double height;
   final double width;
   final double slotHeight; // 15 dk
@@ -3181,6 +3199,7 @@ class _AppointmentCard extends StatefulWidget {
     Key? key,
     required this.appointment,
     required this.color,
+    this.textColor,
     required this.height,
     required this.width,
     required this.slotHeight,
@@ -3332,10 +3351,9 @@ class _AppointmentCardState extends State<_AppointmentCard> {
           child: Text(
             contentText,
             style: TextStyle(
-              // Zemin parlakligina gore kontrast: acik zemin -> koyu yazi,
-              // koyu zemin -> beyaz. (Ders bloklari personel renginde oldugu icin
-              // sabit beyaz yazi acik renklerde okunmuyordu.)
-              color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+              // Sunucudan yazi rengi geldiyse onu kullan; yoksa zemin parlakligina
+              // gore otomatik kontrast (acik zemin -> koyu, koyu zemin -> beyaz).
+              color: widget.textColor ?? (color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white),
               fontSize: fontSize,
               fontWeight: FontWeight.w500,
               height: 1.1,
