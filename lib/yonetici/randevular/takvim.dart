@@ -18,6 +18,7 @@ import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevuduzenle.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeduzenle.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/iletisim_helper.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/arsiv/form_olustur.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
@@ -2412,8 +2413,11 @@ List<Widget> _buildAppointmentsForResource(
     final hasWa = tel.isNotEmpty;
     // Anket yetkisi backend: pazarlama.anket_yonet
     final hasAnket = Yetki.varMi('pazarlama.anket_yonet') && userId.isNotEmpty;
+    // Form Gönder — müşteriye onam/anket formu (Form Yönetimi'ndeki akış).
+    final hasForm = (Yetki.varMi('form.olustur') || Yetki.varMi('form.gonder')) &&
+        userId.isNotEmpty;
 
-    if (!hasWa && !hasAnket) return const SizedBox.shrink();
+    if (!hasWa && !hasAnket && !hasForm) return const SizedBox.shrink();
 
     // Salon id (isletmebilgi'den)
     final String salonIdStr = widget.isletmebilgi["id"]?.toString() ?? '';
@@ -2444,6 +2448,28 @@ List<Widget> _buildAppointmentsForResource(
           userId: userId,
           musteriAdi: rnd!.musteriname,
         ),
+      ));
+    }
+    // Form Gönder — müşteri bu randevudan sabitlenir.
+    if (hasForm) {
+      buttons.add(_detayBtn(
+        label: 'Form Gönder',
+        icon: Icons.description_outlined,
+        color: const Color(0xFF00897B),
+        onTap: () {
+          Navigator.of(context, rootNavigator: true).pop();
+          Navigator.push(
+            this.context,
+            MaterialPageRoute(
+              builder: (_) => FormOlustur(
+                isletmebilgi: widget.isletmebilgi,
+                sabitMusteriId: userId,
+                sabitMusteriAd: rnd!.musteriname,
+                sabitMusteriTel: tel,
+              ),
+            ),
+          );
+        },
       ));
     }
 

@@ -18,6 +18,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteribilgileri/m
 import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/seanstakibiyeni.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/arsiv/arsivyonetimipage.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/arsiv/form_olustur.dart';
 import 'package:randevu_sistem/musteripaneli/menu/musteriresimleri.dart';
 import 'harici_tahsilat.dart';
 import 'musteribilgileri/musterisaglikbilgileri.dart';
@@ -967,6 +968,24 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 						builder: (_) => ArsivYonetimiPage(
 							isletmebilgi: widget.isletmebilgi,
 							musteriId: _md.id.toString(),
+						),
+					),
+				),
+			));
+		}
+		if (Yetki.varMi('form.olustur') || Yetki.varMi('form.gonder')) {
+			items.add(_ActionItem(
+				'Form Gönder',
+				Icons.send_outlined,
+				const Color(0xFF00897B),
+				() => Navigator.push(
+					context,
+					MaterialPageRoute(
+						builder: (_) => FormOlustur(
+							isletmebilgi: widget.isletmebilgi,
+							sabitMusteriId: _md.id.toString(),
+							sabitMusteriAd: _md.name,
+							sabitMusteriTel: _md.cep_telefon,
 						),
 					),
 				),

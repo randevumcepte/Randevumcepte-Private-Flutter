@@ -11,9 +11,22 @@ import 'package:randevu_sistem/theme/premium_components.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Web'deki "Form Gönder" akışı: form şablonu seç + müşteri seç + gönder.
+///
+/// [sabitMusteriId] verilirse (müşteri detayı / randevu detay modalından açılış)
+/// müşteri önceden seçilidir; müşteri seçim alanı kilitlenir ve kullanıcı sadece
+/// form seçip gönderir. Bu modda müşteri listesi çekilmez (yalnızca form şablonları).
 class FormOlustur extends StatefulWidget {
   final dynamic isletmebilgi;
-  const FormOlustur({super.key, required this.isletmebilgi});
+  final String? sabitMusteriId;
+  final String? sabitMusteriAd;
+  final String? sabitMusteriTel;
+  const FormOlustur({
+    super.key,
+    required this.isletmebilgi,
+    this.sabitMusteriId,
+    this.sabitMusteriAd,
+    this.sabitMusteriTel,
+  });
 
   @override
   State<FormOlustur> createState() => _FormOlusturState();
@@ -31,6 +44,15 @@ class _FormOlusturState extends State<FormOlustur> {
   Sozlesme? _form;
   MusteriDanisan? _musteri;
 
+  // Müşteri önceden sabit mi (müşteri detayı / randevu modalından açılış)?
+  bool get _musteriKilitli =>
+      (widget.sabitMusteriId != null && widget.sabitMusteriId!.isNotEmpty);
+
+  // Gönderimde kullanılacak müşteri alanları (sabit ya da seçilen).
+  String get _gonderUserId => widget.sabitMusteriId ?? _musteri?.id ?? '';
+  String get _gonderTel => widget.sabitMusteriTel ?? _musteri?.cep_telefon ?? '';
+  bool get _musteriHazir => _musteriKilitli || _musteri != null;
+
   @override
   void initState() {
     super.initState();
@@ -41,19 +63,17 @@ class _FormOlusturState extends State<FormOlustur> {
     try {
       _seciliSube = (await secilisalonid()) ?? '';
 
-      // Müşterileri ve dinamik form sablonlarini paralel cek
-      final results = await Future.wait([
-        isletmeVerileriGetir(_seciliSube, false, '', '', '', 0, 0),
+      // Form şablonlarını çek. Müşteri kilitli değilse müşteri listesini de çek.
+      final istekler = <Future>[
         http.get(Uri.parse(
             'https://app.randevumcepte.com.tr/api/v1/form-sablonlari-liste?sube=$_seciliSube')),
-      ]);
+      ];
+      if (!_musteriKilitli) {
+        istekler.add(isletmeVerileriGetir(_seciliSube, false, '', '', '', 0, 0));
+      }
+      final results = await Future.wait(istekler);
 
-      final veri = results[0] as Map<String, dynamic>;
-      _musteriler = ((veri['musteriler'] ?? []) as List)
-          .whereType<MusteriDanisan>()
-          .toList();
-
-      final resp = results[1] as http.Response;
+      final resp = results[0] as http.Response;
       if (resp.statusCode == 200) {
         final j = jsonDecode(resp.body);
         final liste = (j is Map && j['formlar'] != null)
@@ -61,6 +81,13 @@ class _FormOlusturState extends State<FormOlustur> {
             : (j is List ? j : []);
         _formlar = liste
             .map<Sozlesme>((e) => Sozlesme.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+
+      if (!_musteriKilitli) {
+        final veri = results[1] as Map<String, dynamic>;
+        _musteriler = ((veri['musteriler'] ?? []) as List)
+            .whereType<MusteriDanisan>()
             .toList();
       }
     } catch (e) {
@@ -140,7 +167,7 @@ class _FormOlusturState extends State<FormOlustur> {
           message: 'Lütfen form/sözleşme türü seçin.');
       return;
     }
-    if (_musteri == null) {
+    if (!_musteriHazir) {
       showPremiumWarning(context,
           title: 'Müşteri Seçilmedi',
           message: 'Lütfen müşteri seçin.');
@@ -157,12 +184,12 @@ class _FormOlusturState extends State<FormOlustur> {
       final sadeceKaydet = !Yetki.varMi('form.gonder');
 
       final body = {
-        'user_id': _musteri!.id,
+        'user_id': _gonderUserId,
         'form_id': _form!.id,
         'personel_id': '',
         'cinsiyet': '',
         'dogumtarihi': '',
-        'cep_telefon': _musteri!.cep_telefon,
+        'cep_telefon': _gonderTel,
         'personel_cep': '',
         'tc_kimlik_no': '',
         'salon_id': _seciliSube,
@@ -307,11 +334,17 @@ class _FormOlusturState extends State<FormOlustur> {
             children: [
               const _Etiket('Müşteri *'),
               _SecimAlani(
-                etiket: _musteri?.name ?? 'Müşteri seçin',
-                altYazi: Yetki.telefonGoster(_musteri?.cep_telefon),
+                etiket: _musteriKilitli
+                    ? (widget.sabitMusteriAd ?? 'Müşteri')
+                    : (_musteri?.name ?? 'Müşteri seçin'),
+                altYazi: _musteriKilitli
+                    ? Yetki.telefonGoster(widget.sabitMusteriTel)
+                    : Yetki.telefonGoster(_musteri?.cep_telefon),
                 ikon: Icons.person_outline_rounded,
-                bos: _musteri == null,
-                onTap: _musteriSec,
+                bos: !_musteriHazir,
+                // Kilitliyse (belirli müşteriye gönderim) seçim kapalı.
+                kilitli: _musteriKilitli,
+                onTap: _musteriKilitli ? null : _musteriSec,
               ),
             ],
           ),
@@ -411,13 +444,15 @@ class _SecimAlani extends StatelessWidget {
   final String? altYazi;
   final IconData ikon;
   final bool bos;
-  final VoidCallback onTap;
+  final bool kilitli;
+  final VoidCallback? onTap;
   const _SecimAlani({
     required this.etiket,
     required this.ikon,
     required this.bos,
     required this.onTap,
     this.altYazi,
+    this.kilitli = false,
   });
 
   @override
@@ -473,7 +508,7 @@ class _SecimAlani extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.unfold_more_rounded,
+              Icon(kilitli ? Icons.lock_outline_rounded : Icons.unfold_more_rounded,
                   size: 18, color: scheme.primary.withValues(alpha: 0.6)),
             ],
           ),
