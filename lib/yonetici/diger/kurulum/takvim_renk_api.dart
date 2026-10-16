@@ -16,12 +16,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TakvimRenkAyari {
   final bool aktif;
   final String renk; // #RRGGBB
-  const TakvimRenkAyari({required this.aktif, required this.renk});
+  final List<String> palet; // 10'lu renk skalasi (renk_duzenleri)
+  const TakvimRenkAyari({required this.aktif, required this.renk, this.palet = const []});
 
-  factory TakvimRenkAyari.fromJson(Map<String, dynamic> j) => TakvimRenkAyari(
-        aktif: (j['aktif']?.toString() == '1'),
-        renk: (j['renk']?.toString().isNotEmpty ?? false) ? j['renk'].toString() : '#5C008E',
-      );
+  factory TakvimRenkAyari.fromJson(Map<String, dynamic> j) {
+    final p = <String>[];
+    if (j['palet'] is List) {
+      for (final e in (j['palet'] as List)) {
+        final s = e?.toString() ?? '';
+        if (RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(s)) p.add(s.toUpperCase());
+      }
+    }
+    return TakvimRenkAyari(
+      aktif: (j['aktif']?.toString() == '1'),
+      renk: (j['renk']?.toString().isNotEmpty ?? false) ? j['renk'].toString() : '#5C008E',
+      palet: p,
+    );
+  }
 }
 
 class TakvimRenkApi {

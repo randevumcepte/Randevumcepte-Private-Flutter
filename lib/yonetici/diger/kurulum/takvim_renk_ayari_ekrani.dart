@@ -15,17 +15,18 @@ class TakvimRenkAyariEkrani extends StatefulWidget {
 }
 
 class _TakvimRenkAyariEkraniState extends State<TakvimRenkAyariEkrani> {
-  // Secilebilecek renk paleti (hex). Kayitli deger ayri bir renk olsa da gosterilir.
-  static const List<String> _palet = [
+  // Varsayilan palet (API'den 10'lu skala gelmezse kullanilir).
+  static const List<String> _varsayilanPalet = [
     '#5C008E', '#7E57C2', '#3F51B5', '#2196F3', '#0097A7', '#009688',
     '#2E7D32', '#689F38', '#F9A825', '#EF6C00', '#E64A19', '#C62828',
-    '#AD1457', '#6D4C41', '#455A64', '#263238',
   ];
 
+  List<String> _palet = _varsayilanPalet;
   bool _aktif = false;
   String _renk = '#5C008E';
   bool _yukleniyor = true;
   bool _kaydediliyor = false;
+  final TextEditingController _hexCtrl = TextEditingController();
 
   String get _salonId => widget.isletmebilgi['id'].toString();
 
@@ -35,14 +36,37 @@ class _TakvimRenkAyariEkraniState extends State<TakvimRenkAyariEkrani> {
     _getir();
   }
 
+  @override
+  void dispose() {
+    _hexCtrl.dispose();
+    super.dispose();
+  }
+
+  String _normHex(String v) {
+    v = v.trim();
+    if (v.isNotEmpty && !v.startsWith('#')) v = '#$v';
+    return v.toUpperCase();
+  }
+
+  bool _gecerli(String v) => RegExp(r'^#[0-9A-F]{6}$').hasMatch(v);
+
+  void _renkAyarla(String v) {
+    v = _normHex(v);
+    if (!_gecerli(v)) return;
+    setState(() => _renk = v);
+    if (_hexCtrl.text.toUpperCase() != v) _hexCtrl.text = v;
+  }
+
   Future<void> _getir() async {
     final ayar = await TakvimRenkApi.fetch(_salonId);
     if (!mounted) return;
     setState(() {
       if (ayar != null) {
         _aktif = ayar.aktif;
-        _renk = ayar.renk;
+        _renk = ayar.renk.toUpperCase();
+        if (ayar.palet.isNotEmpty) _palet = ayar.palet;
       }
+      _hexCtrl.text = _renk;
       _yukleniyor = false;
     });
   }
@@ -109,8 +133,8 @@ class _TakvimRenkAyariEkraniState extends State<TakvimRenkAyariEkrani> {
                           Row(
                             children: [
                               Container(
-                                width: 40,
-                                height: 40,
+                                width: 44,
+                                height: 44,
                                 decoration: BoxDecoration(
                                   color: _c(_renk),
                                   borderRadius: BorderRadius.circular(8),
@@ -118,12 +142,30 @@ class _TakvimRenkAyariEkraniState extends State<TakvimRenkAyariEkrani> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              Text('Seçili renk: $_renk',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                              Expanded(
+                                child: TextField(
+                                  controller: _hexCtrl,
+                                  maxLength: 7,
+                                  textCapitalization: TextCapitalization.characters,
+                                  style: const TextStyle(fontFamily: 'monospace', fontSize: 16),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Renk kodu (hex)',
+                                    hintText: '#5C008E',
+                                    counterText: '',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                  ),
+                                  onChanged: (v) {
+                                    final n = _normHex(v);
+                                    if (_gecerli(n)) _renkAyarla(n);
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          const Text('Renk seçin', style: TextStyle(color: Colors.black54)),
+                          const Text('10 renk skalanızdan seçin', style: TextStyle(color: Colors.black54)),
                           const SizedBox(height: 10),
                           Wrap(
                             spacing: 12,
@@ -131,7 +173,7 @@ class _TakvimRenkAyariEkraniState extends State<TakvimRenkAyariEkrani> {
                             children: _palet.map((hex) {
                               final secili = hex.toUpperCase() == _renk.toUpperCase();
                               return GestureDetector(
-                                onTap: () => setState(() => _renk = hex),
+                                onTap: () => _renkAyarla(hex),
                                 child: Container(
                                   width: 48,
                                   height: 48,
