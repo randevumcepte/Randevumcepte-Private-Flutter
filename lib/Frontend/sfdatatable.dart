@@ -1548,7 +1548,7 @@ class OnGorusmeDataSource extends DataGridSource {
       String personelid,
       String cakisanrandevuekle,
       String hizmet_id,
-      {String oda_id = ""}) async {
+      {String oda_id = "", void Function()? onBasarili}) async {
 
     SharedPreferences localStorage = await SharedPreferences.getInstance();
     var user = jsonDecode(localStorage.getString('user')!);
@@ -1616,7 +1616,7 @@ class OnGorusmeDataSource extends DataGridSource {
                 ongorusmeid, musteri_id, ad_soyad, telefon, email, cinsiyet,
                 context, salonid, sehir, referans, meslek, urun_id, paket_id,
                 randevu_tarihi, randevu_saati, aciklama, personelid, "1", hizmet_id,
-                oda_id: oda_id);
+                oda_id: oda_id, onBasarili: onBasarili);
           } else {
             // Zaten bypass modundayız ama yine de çakışma döndü: hatayı bildir.
             Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
@@ -1630,6 +1630,8 @@ class OnGorusmeDataSource extends DataGridSource {
           }
         } else {
           // Başarılı kayıt
+          // Cagiran (ornegin Cagri Merkezi) bilgilendir -> durum=6 isaretleme vb.
+          if (onBasarili != null) onBasarili();
           Navigator.of(context, rootNavigator: true).pop(); // Loading kapat
 
           // Başarı mesajı göster
@@ -1641,7 +1643,7 @@ class OnGorusmeDataSource extends DataGridSource {
             ),
           );
 
-          // Sayfayı kapat ve öngörüşmeler listesine dön
+          // Sayfayı kapat -> cagiran widget'a (Cagri Merkezi sheet'i) geri doner.
           Navigator.of(context).pop();
 
           // Verileri güncelle
@@ -2731,7 +2733,7 @@ class RandevuDataSource extends DataGridSource {
                   child: Text('Detaylı Bilgi'),
                 ),
               );
-              if(row.getCells()[4].value.toString() == "0" && !musteriMi && kullanicirolu != 5)
+              if(row.getCells()[4].value.toString() == "0" && !musteriMi && Yetki.varMi('randevu.onayla'))
                 menuItems.add(
                   PopupMenuItem<String>(
                     value: 'randevuonayla',
@@ -3382,7 +3384,7 @@ class RandevuDataSource3 extends DataGridSource {
             },
             itemBuilder: (BuildContext context) {
               List<PopupMenuEntry<String>> menuItems = [];
-              if(row.getCells()[4].value.toString() == "0")
+              if(row.getCells()[4].value.toString() == "0" && Yetki.varMi('randevu.onayla'))
                 menuItems.add(
                   PopupMenuItem<String>(
                     value: 'randevuonayla',

@@ -2049,7 +2049,7 @@ List<Widget> _buildAppointmentsForResource(
                           ],
                         ),
 
-                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Divider(color: cs.outlineVariant,
+                        ((randevudurum![0] == "0" && (Yetki.varMi('randevu.duzenle_iptal') || Yetki.varMi('randevu.onayla'))) || (randevudurum![0] == "1" && Yetki.varMi('randevu.duzenle_iptal'))) ? Divider(color: cs.outlineVariant,
                           height: 30,): SizedBox.shrink(),
                         (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') && !(randevutitle[0].contains("ÖN GÖRÜŞME") && (randevudetay.notes ?? "").contains("Satış Yapılmadı")) ? _detayBtn(
                           label: 'Düzenle',
@@ -2075,8 +2075,8 @@ List<Widget> _buildAppointmentsForResource(
                         // On gorusme haric randevularda gosterilir; telefon varsa WA,
                         // pazarlama.anket_yonet yetkisi varsa Anket butonu.
                         _iletisimButonlariRow(context, randevudetay, randevutitle, randevudurum!),
-                        (randevudurum![0] == "0" || randevudurum![0] == "1") && Yetki.varMi('randevu.duzenle_iptal') ? Padding(padding: const EdgeInsets.only(top: 10), child: _detayGrid([
-                            if (randevudurum![0] == "0")
+                        ((randevudurum![0] == "0" && (Yetki.varMi('randevu.duzenle_iptal') || Yetki.varMi('randevu.onayla'))) || (randevudurum![0] == "1" && Yetki.varMi('randevu.duzenle_iptal'))) ? Padding(padding: const EdgeInsets.only(top: 10), child: _detayGrid([
+                            if (randevudurum![0] == "0" && Yetki.varMi('randevu.onayla'))
                               _detayBtn(
                                 label: 'Onayla',
                                 icon: Icons.check_circle_outline,
@@ -2087,7 +2087,7 @@ List<Widget> _buildAppointmentsForResource(
                                   getUpdatedAppointments(DateFormat('yyyy-MM-dd').format(seciliTarih), DateFormat('yyyy-MM-dd').format(seciliTarih),false);
                                 },
                               ),
-                            if (randevudurum![0] == '0')
+                            if (randevudurum![0] == '0' && Yetki.varMi('randevu.duzenle_iptal'))
                               _detayBtn(
                                 label: 'İptal Et',
                                 icon: Icons.cancel_outlined,
