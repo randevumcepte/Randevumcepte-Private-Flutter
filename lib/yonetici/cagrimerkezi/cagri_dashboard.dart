@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'cagri_api.dart';
 import 'cagri_models.dart';
+import 'widgets/liste_yonetimi.dart';
 
 class CagriDashboard extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -30,6 +31,7 @@ class _CagriDashboardState extends State<CagriDashboard> {
   List<PersonelKart> _kartlar = [];
   bool _yukleniyor = true;
   String? _hata;
+  int _altSekme = 0; // 0=Performans, 1=Liste Yonetimi (web paritesi)
 
   @override
   void initState() {
@@ -94,41 +96,76 @@ class _CagriDashboardState extends State<CagriDashboard> {
               ],
             ),
       // 'Arama Listesi Olustur' butonu ATANAN ARAMALAR (AramaEkrani) tabina tasindi.
-      body: _yukleniyor
-          ? const Center(child: CircularProgressIndicator())
-          : _hata != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.error_outline, size: 48, color: ext.warningColor),
-                      const SizedBox(height: 12),
-                      Text('Yüklenemedi', style: TextStyle(color: cs.onSurfaceVariant)),
-                      const SizedBox(height: 8),
-                      ElevatedButton(onPressed: _yukle, child: const Text('Tekrar dene')),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _yukle,
-                  child: _kartlar.isEmpty
-                      ? ListView(
-                          children: [
-                            const SizedBox(height: 120),
-                            Icon(Icons.bar_chart, size: 56, color: ext.borderStrong),
-                            const SizedBox(height: 12),
-                            Center(
-                              child: Text('Henüz arama verisi yok',
-                                  style: TextStyle(color: cs.onSurfaceVariant)),
+      body: Column(
+        children: [
+          // Alt sekme: Performans / Liste Yonetimi (web paritesi)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(
+                    value: 0,
+                    icon: Icon(Icons.bar_chart, size: 18),
+                    label: Text('Performans')),
+                ButtonSegment(
+                    value: 1,
+                    icon: Icon(Icons.tune, size: 18),
+                    label: Text('Liste Yönetimi')),
+              ],
+              selected: {_altSekme},
+              onSelectionChanged: (s) => setState(() => _altSekme = s.first),
+              showSelectedIcon: false,
+            ),
+          ),
+          Expanded(
+            child: _altSekme == 1
+                ? ListeYonetimi(sube: _sube)
+                : _yukleniyor
+                    ? const Center(child: CircularProgressIndicator())
+                    : _hata != null
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.error_outline,
+                                    size: 48, color: ext.warningColor),
+                                const SizedBox(height: 12),
+                                Text('Yüklenemedi',
+                                    style: TextStyle(color: cs.onSurfaceVariant)),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                    onPressed: _yukle,
+                                    child: const Text('Tekrar dene')),
+                              ],
                             ),
-                          ],
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
-                          itemCount: _kartlar.length,
-                          itemBuilder: (context, i) => _personelKarti(_kartlar[i]),
-                        ),
-                ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _yukle,
+                            child: _kartlar.isEmpty
+                                ? ListView(
+                                    children: [
+                                      const SizedBox(height: 120),
+                                      Icon(Icons.bar_chart,
+                                          size: 56, color: ext.borderStrong),
+                                      const SizedBox(height: 12),
+                                      Center(
+                                        child: Text('Henüz arama verisi yok',
+                                            style: TextStyle(
+                                                color: cs.onSurfaceVariant)),
+                                      ),
+                                    ],
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        12, 10, 12, 24),
+                                    itemCount: _kartlar.length,
+                                    itemBuilder: (context, i) =>
+                                        _personelKarti(_kartlar[i]),
+                                  ),
+                          ),
+          ),
+        ],
+      ),
     );
   }
 

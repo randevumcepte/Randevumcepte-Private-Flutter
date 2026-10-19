@@ -319,12 +319,14 @@ class SegmentSonuc {
   final String baslik;
   final int? personelId;
   final String personelAd;
+  final int durum; // 1=aktif, 2=arsiv, 3=pasif
   final List<CagriSegment> segmentler;
 
   SegmentSonuc({
     required this.baslik,
     this.personelId,
     required this.personelAd,
+    this.durum = 1,
     required this.segmentler,
   });
 
@@ -332,6 +334,7 @@ class SegmentSonuc {
         baslik: _toStr(j['baslik']),
         personelId: _toIntN(j['personel_id']),
         personelAd: _toStr(j['personel_ad']),
+        durum: _toInt(j['durum']),
         segmentler: ((j['segmentler'] as List?) ?? [])
             .map((e) => CagriSegment.fromJson(Map<String, dynamic>.from(e)))
             .toList(),

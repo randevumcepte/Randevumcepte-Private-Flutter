@@ -69,6 +69,15 @@ class CagriApi {
     throw CagriApiException(res.statusCode, _mesaj(res.body));
   }
 
+  /// JSON degil HAM govde doner (ornek: CSV indirme).
+  static Future<String> _postRaw(String path, Map<String, dynamic> body) async {
+    final res = await http
+        .post(_uri(path), headers: await _headers(), body: jsonEncode(body))
+        .timeout(const Duration(seconds: 60));
+    if (res.statusCode == 200) return res.body;
+    throw CagriApiException(res.statusCode, _mesaj(res.body));
+  }
+
   static String _mesaj(String body) {
     try {
       final j = jsonDecode(body);
@@ -79,8 +88,9 @@ class CagriApi {
 
   // ───────── Dialer ─────────
 
-  static Future<List<AramaKart>> kartlar(String sube) async {
-    final j = await _get('arama-kartlarim', {'sube': sube});
+  static Future<List<AramaKart>> kartlar(String sube, {bool arsiv = false}) async {
+    final j = await _get(
+        'arama-kartlarim', {'sube': sube, if (arsiv) 'arsiv': '1'});
     return ((j['kartlar'] as List?) ?? [])
         .map((e) => AramaKart.fromJson(Map<String, dynamic>.from(e)))
         .toList();
@@ -298,6 +308,41 @@ class CagriApi {
   static Future<Map<String, dynamic>> listeSil(int aramaId, String sube) async {
     final j = await _post('liste-sil', {'arama_id': aramaId, 'sube': sube});
     return Map<String, dynamic>.from(j as Map);
+  }
+
+  /// Liste durumu degistir: 1=aktif, 2=arsiv, 3=pasif.
+  static Future<Map<String, dynamic>> listeDurum(
+      int aramaId, int durum, String sube) async {
+    final j = await _post('liste-durum',
+        {'arama_id': aramaId, 'durum': durum, 'sube': sube});
+    return Map<String, dynamic>.from(j as Map);
+  }
+
+  /// Sonuc alinamayanlari (veya verilen kodlari) toplu baska personele aktar (yeni liste).
+  /// kodlar: virgulle ayrik (ornek 'bekleyen,0,2,5'); bos verilirse backend varsayilani.
+  static Future<Map<String, dynamic>> topluAktar({
+    required int aramaId,
+    required int personelId,
+    required String kodlar,
+    required String sube,
+  }) async {
+    final j = await _post('toplu-aktar', {
+      'arama_id': aramaId,
+      'personel_id': personelId,
+      'kodlar': kodlar,
+      'sube': sube,
+    });
+    return Map<String, dynamic>.from(j as Map);
+  }
+
+  /// Segmenti CSV olarak indir — ham CSV metni doner (mobilde dosyaya yazilip paylasilir).
+  static Future<String> segmentIndirCsv({
+    required int aramaId,
+    required String kod,
+    required String sube,
+  }) async {
+    return _postRaw('segment-indir',
+        {'arama_id': aramaId, 'kod': kod, 'sube': sube});
   }
 
   static Future<List<CagriPersonel>> personeller(String sube) async {
