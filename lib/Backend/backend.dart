@@ -3727,7 +3727,7 @@ Future<void> randevuEkleGuncelle(
     String kaynak,
     String durum,
     dynamic isletmebilgi,
-    ) async {
+    [void Function()? onBasarili]) async {
   showProgressLoading(context);
   SharedPreferences localStorage = await SharedPreferences.getInstance();
   log('randevu hizmet data ' + jsonEncode(randevuhizmetleri));
@@ -3865,6 +3865,7 @@ Future<void> randevuEkleGuncelle(
                       kaynak,
                       durum,
                       isletmebilgi,
+                      onBasarili,
                     );
                   },
                 ),
@@ -3874,7 +3875,8 @@ Future<void> randevuEkleGuncelle(
         );
       }
     } else {
-      // Başarılı
+      // Başarılı — cagiran (ornegin Cagri Merkezi) bilgilendir (durum=8 isaretleme vb.).
+      if (onBasarili != null) onBasarili();
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.of(context).pop();
 

@@ -78,6 +78,7 @@ class AranacakMusteri {
   final String notTarih;
   final String notSaat;
   final String ses;
+  final bool randevuOlusturuldu; // NORMAL randevu verildi -> "Randevu Verildi" rozeti
 
   AranacakMusteri({
     required this.aranacakMusteriId,
@@ -91,6 +92,7 @@ class AranacakMusteri {
     required this.notTarih,
     required this.notSaat,
     required this.ses,
+    this.randevuOlusturuldu = false,
   });
 
   factory AranacakMusteri.fromJson(Map<String, dynamic> j) => AranacakMusteri(
@@ -101,6 +103,7 @@ class AranacakMusteri {
         telefonGizlenmis: _toStr(j['telefonGizlenmis']),
         durum: _toStr(j['durum']),
         durumKod: _toIntN(j['durum_kod']),
+        randevuOlusturuldu: _toInt(j['randevu_olusturuldu']) == 1,
         not: _toStr(j['not']),
         notTarih: _toStr(j['not_tarih']),
         notSaat: _toStr(j['not_saat']),

@@ -5,9 +5,11 @@ import 'package:flutter/cupertino.dart';
 
 const Color _mor = Color(0xFF5C008E);
 
-Future<TimeOfDay?> saatSecici(BuildContext context, TimeOfDay initial) async {
+Future<TimeOfDay?> saatSecici(BuildContext context, TimeOfDay initial,
+    {int minuteInterval = 5}) async {
   // Cupertino minuteInterval assertion: baslangic dakikasi araliga uymali
-  final int dk = (initial.minute ~/ 5) * 5;
+  final int adim = minuteInterval < 1 ? 1 : minuteInterval;
+  final int dk = (initial.minute ~/ adim) * adim;
   DateTime secili = DateTime(2020, 1, 1, initial.hour, dk);
 
   return showModalBottomSheet<TimeOfDay>(
@@ -46,7 +48,7 @@ Future<TimeOfDay?> saatSecici(BuildContext context, TimeOfDay initial) async {
               child: CupertinoDatePicker(
                 mode: CupertinoDatePickerMode.time,
                 use24hFormat: true,
-                minuteInterval: 5,
+                minuteInterval: adim,
                 initialDateTime: secili,
                 onDateTimeChanged: (d) => secili = d,
               ),

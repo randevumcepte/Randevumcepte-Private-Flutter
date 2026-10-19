@@ -11,7 +11,13 @@
 // Bria dahilisi calar -> acinca musteriye baglanir (numara cihaza gitmez, KVKK).
 
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
+import 'package:randevu_sistem/yonetici/randevular/appointment-editor.dart';
+import 'package:randevu_sistem/yonetici/randevular/saat_secici.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeekle.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'cagri_api.dart';
+import 'widgets/hizli_satis_sheet.dart';
 import 'cagri_models.dart';
 import 'widgets/sonuc_formu.dart';
 import 'widgets/randevu_gecmisi.dart';
@@ -490,6 +496,8 @@ class _AramaRandevuTakvimiState extends State<AramaRandevuTakvimi> {
       builder: (_) => _IslemSheet(
         event: e,
         sube: _sube,
+        isletmebilgi: widget.isletmebilgi,
+        kullanicirolu: widget.kullanicirolu,
         onDegisti: () {
           Navigator.pop(context);
           _yukle();
@@ -523,9 +531,15 @@ class _Segment {
 class _IslemSheet extends StatefulWidget {
   final TakvimEvent event;
   final String sube;
+  final dynamic isletmebilgi;
+  final int kullanicirolu;
   final VoidCallback onDegisti;
   const _IslemSheet(
-      {required this.event, required this.sube, required this.onDegisti});
+      {required this.event,
+      required this.sube,
+      required this.isletmebilgi,
+      required this.kullanicirolu,
+      required this.onDegisti});
   @override
   State<_IslemSheet> createState() => _IslemSheetState();
 }
@@ -599,18 +613,101 @@ class _IslemSheetState extends State<_IslemSheet> {
         ad: widget.event.musteri);
   }
 
-  // Tam gorusme sonucu formu (web paneldeki ile AYNI): Gorusuldu/Cevapsiz/Mesgul/
-  // Ulasilamadi + On Gorusme + Telefonda Satis + not + "Arama Randevusu Ver" (tekrar arama).
-  Future<void> _sonucIsle() async {
-    final ok = await sonucFormuGoster(
+  // Normal salon randevusu olustur (web "Yeni Randevu Olustur" ile ayni amac):
+  // AppointmentEditor'u musteri prefill'li acar; donunce isteyene durum=8 isaretler.
+  Future<void> _yeniRandevu() async {
+    bool kaydedildi = false;
+    await Navigator.push(
       context,
-      aramaDetayId: widget.event.aramaId,
-      aranacakMusteriId: widget.event.id,
-      musteriAd: widget.event.musteri,
-      sube: widget.sube,
-      mevcutNot: widget.event.not,
+      MaterialPageRoute(
+        builder: (_) => AppointmentEditor(
+          isletmebilgi: widget.isletmebilgi,
+          tarihsaat: '',
+          personel_id: '',
+          kullanicirolu: widget.kullanicirolu,
+          prefillMusteriId:
+              widget.event.userId > 0 ? widget.event.userId.toString() : null,
+          prefillMusteriAdi: widget.event.musteri,
+          onRandevuKaydedildi: () => kaydedildi = true,
+        ),
+      ),
     );
-    if (ok == true) widget.onDegisti(); // sheet'i kapat + takvimi tazele
+    if (!mounted || !kaydedildi) return;
+    // NORMAL randevu -> "Randevu Verildi" bayragi (durum=8 DEGIL, listeden cikarmaz).
+    // Takvimdeki "Randevu Olusturuldu" butonu callback'i durum=8 ile tamamlamaya devam eder.
+    try {
+      await CagriApi.randevuVerildiIsaretle(widget.event.id, widget.sube);
+      _basari('Randevu oluşturuldu.');
+      widget.onDegisti();
+    } catch (e) {
+      _hataGoster(e);
+    }
+  }
+
+  // Ön Görüşme Randevusu (web gibi GERCEK olusturma): YeniOnGorusme ekranini musteri
+  // prefill'li acar; kayitta aranacak durum=6 isaretlenir + sheet kapanir/tazelenir.
+  Future<void> _onGorusmeAc() async {
+    final ds = OnGorusmeDataSource(
+      isletmebilgi: widget.isletmebilgi,
+      rowsPerPage: 10,
+      salonid: widget.sube,
+      context: context,
+      arama: '',
+    );
+    bool kaydedildi = false;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => YeniOnGorusme(
+          ongorusmedatasource: ds,
+          isletmebilgi: widget.isletmebilgi,
+          kullanicirolu: widget.kullanicirolu,
+          prefillMusteriId:
+              widget.event.userId > 0 ? widget.event.userId.toString() : null,
+          prefillMusteriAdi: widget.event.musteri,
+          onKaydedildi: () => kaydedildi = true,
+        ),
+      ),
+    );
+    if (!mounted || !kaydedildi) return;
+    try {
+      await CagriApi.notEkle(
+        aramaDetayId: widget.event.aramaId,
+        aranacakMusteriId: widget.event.id,
+        sonuc: CagriDurum.onGorusme, // 6
+        sube: widget.sube,
+      );
+      widget.onDegisti(); // sheet kapat + takvim tazele
+    } catch (e) {
+      _hataGoster(e);
+    }
+  }
+
+  // Telefonda Satis (web gibi GERCEK satis): Hizli Satis sheet -> adisyon/tahsilat;
+  // basarili ise aranacak durum=7 isaretlenir + sheet kapanir/tazelenir.
+  Future<void> _telefondaSatisAc() async {
+    if (widget.event.userId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Bu kayıtta müşteri bağlantısı yok, satış yapılamıyor.')));
+      return;
+    }
+    final tutar = await hizliSatisGoster(context,
+        sube: widget.sube,
+        musteriId: widget.event.userId,
+        musteriAd: widget.event.musteri);
+    if (!mounted || tutar == null) return;
+    try {
+      await CagriApi.notEkle(
+        aramaDetayId: widget.event.aramaId,
+        aranacakMusteriId: widget.event.id,
+        sonuc: CagriDurum.telefondaSatis, // 7
+        satisTutari: tutar.toStringAsFixed(2),
+        sube: widget.sube,
+      );
+      widget.onDegisti();
+    } catch (e) {
+      _hataGoster(e);
+    }
   }
 
   void _basari(String m) => ScaffoldMessenger.of(context).showSnackBar(
@@ -625,100 +722,127 @@ class _IslemSheetState extends State<_IslemSheet> {
   Widget build(BuildContext context) {
     final e = widget.event;
     return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16, right: 16, top: 14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(3))),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scroll) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
           ),
-          const SizedBox(height: 12),
-          Text(e.musteri.isEmpty ? 'Müşteri' : e.musteri,
-              style: const TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text('${e.personel} · ${e.saat}'
-              '${e.telefon.isNotEmpty ? ' · ${e.telefon}' : ''}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-          if (e.not.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                  color: const Color(0xFFF7F3FC),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Text(e.not, style: const TextStyle(fontSize: 13)),
-            ),
-          ],
-          const SizedBox(height: 16),
-          if (_islemde)
-            const Padding(
-              padding: EdgeInsets.all(14),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else ...[
-            SizedBox(
-              height: 50,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
-                    foregroundColor: Colors.white),
-                icon: const Icon(Icons.phone),
-                label: const Text('Ara (Bria)',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                onPressed: _ara,
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(width: 40, height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(3))),
               ),
-            ),
-            const SizedBox(height: 8),
-            // TAM gorusme sonucu formu (web ile ayni) — Gorusuldu/Cevapsiz/Mesgul/
-            // Ulasilamadi + On Gorusme + Telefonda Satis + not + tekrar arama.
-            SizedBox(
-              height: 50,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6D28D9),
-                    foregroundColor: Colors.white),
-                icon: const Icon(Icons.edit_note),
-                label: const Text('Görüşme Sonucu İşle',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                onPressed: _sonucIsle,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.event_available, size: 18),
-                  label: const Text('Randevu Oluşturuldu'),
-                  onPressed: _randevuOlusturuldu,
+                child: ListView(
+                  controller: scroll,
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  children: [
+                    Text(e.musteri.isEmpty ? 'Müşteri' : e.musteri,
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text('${e.personel} · ${e.saat}'
+                        '${e.telefon.isNotEmpty ? ' · ${e.telefon}' : ''}',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                    const SizedBox(height: 12),
+                    // Ust aksiyonlar: Ara (Bria) + Randevu Gecmisi (web header gibi)
+                    Row(children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 46,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF16A34A),
+                                foregroundColor: Colors.white),
+                            icon: const Icon(Icons.phone, size: 18),
+                            label: const Text('Ara (Bria)',
+                                style: TextStyle(fontWeight: FontWeight.w700)),
+                            onPressed: _islemde ? null : _ara,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SizedBox(
+                          height: 46,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.history, size: 18),
+                            label: const Text('Randevu Geçmişi'),
+                            onPressed: e.userId > 0 ? _randevuGecmisi : null,
+                          ),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 8),
+                    // Normal salon randevusu olustur (web "Yeni Randevu Olustur")
+                    SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF1D4ED8),
+                          backgroundColor: const Color(0xFFEFF6FF),
+                          side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        ),
+                        icon: const Icon(Icons.calendar_month, size: 18),
+                        label: const Text('Yeni Randevu Oluştur',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        onPressed: _islemde ? null : _yeniRandevu,
+                      ),
+                    ),
+                    const Divider(height: 24),
+                    // TAM gorusme sonucu formu GOMULU (web gibi tek sheet) —
+                    // Gorusuldu/Cevapsiz/Mesgul/Ulasilamadi + On Gorusme + Satis +
+                    // Arama Randevusu Ver + not + Sonucu Kaydet.
+                    SonucFormuGovde(
+                      aramaDetayId: e.aramaId,
+                      aranacakMusteriId: e.id,
+                      sube: widget.sube,
+                      mevcutNot: e.not,
+                      onKaydedildi: widget.onDegisti, // sheet'i kapat + takvimi tazele
+                      onOnGorusmeTap: _onGorusmeAc,
+                      onTelefondaSatisTap: _telefondaSatisAc,
+                    ),
+                    const SizedBox(height: 10),
+                    // Takvim'e ozel randevu durum aksiyonlari (web: İptal Et / Randevu Olusturuldu)
+                    Row(children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.event_available, size: 18),
+                          label: const Text('Randevu Oluşturuldu'),
+                          onPressed: _islemde ? null : _randevuOlusturuldu,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                          icon: const Icon(Icons.cancel, size: 18),
+                          label: const Text('İptal Et'),
+                          onPressed: _islemde ? null : _iptal,
+                        ),
+                      ),
+                    ]),
+                    if (_islemde) ...[
+                      const SizedBox(height: 12),
+                      const Center(child: CircularProgressIndicator()),
+                    ],
+                    const SizedBox(height: 10),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red),
-                  icon: const Icon(Icons.cancel, size: 18),
-                  label: const Text('İptal Et'),
-                  onPressed: _iptal,
-                ),
-              ),
-            ]),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              icon: const Icon(Icons.history, size: 18),
-              label: const Text('Randevu Geçmişi'),
-              onPressed: widget.event.userId > 0 ? _randevuGecmisi : null,
-            ),
-          ],
-          const SizedBox(height: 10),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -893,7 +1017,7 @@ class _RandevuEkleSheetState extends State<_RandevuEkleSheet> {
             ],
             const SizedBox(height: 12),
             // Personel
-            DropdownButtonFormField<CagriPersonel>(
+            AramaliDropdownFormField<CagriPersonel>(
               value: _personel,
               isExpanded: true,
               decoration: InputDecoration(
@@ -906,6 +1030,7 @@ class _RandevuEkleSheetState extends State<_RandevuEkleSheet> {
                   .map((p) => DropdownMenuItem(value: p, child: Text(p.ad)))
                   .toList(),
               onChanged: (v) => setState(() => _personel = v),
+              searchText: (p) => p.ad, // arama personel adi uzerinden
             ),
             const SizedBox(height: 12),
             // Tarih + saat
@@ -936,9 +1061,9 @@ class _RandevuEkleSheetState extends State<_RandevuEkleSheet> {
                       ? 'Saat'
                       : '${_iki(_saat!.hour)}:${_iki(_saat!.minute)}'),
                   onPressed: () async {
-                    final t = await showTimePicker(
-                        context: context,
-                        initialTime: const TimeOfDay(hour: 10, minute: 0));
+                    final t = await saatSecici(
+                        context, _saat ?? const TimeOfDay(hour: 10, minute: 0),
+                        minuteInterval: 1);
                     if (t != null) setState(() => _saat = t);
                   },
                 ),

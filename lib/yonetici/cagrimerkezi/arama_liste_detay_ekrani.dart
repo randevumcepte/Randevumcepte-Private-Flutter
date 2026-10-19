@@ -6,7 +6,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
+import 'package:randevu_sistem/yonetici/randevular/appointment-editor.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeekle.dart';
+import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'cagri_api.dart';
+import 'widgets/hizli_satis_sheet.dart';
 import 'cagri_models.dart';
 import 'widgets/sonuc_formu.dart';
 import 'widgets/cagri_gecmisi.dart';
@@ -17,6 +21,7 @@ class AramaListeDetayEkrani extends StatefulWidget {
   final String baslik;
   final String sube;
   final int kullanicirolu;
+  final dynamic isletmebilgi; // Yeni Randevu (AppointmentEditor) icin gerekli
 
   const AramaListeDetayEkrani({
     super.key,
@@ -24,6 +29,7 @@ class AramaListeDetayEkrani extends StatefulWidget {
     required this.baslik,
     required this.sube,
     required this.kullanicirolu,
+    this.isletmebilgi,
   });
 
   @override
@@ -113,6 +119,8 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
         musteri: m,
         aramaId: widget.aramaId,
         sube: widget.sube,
+        isletmebilgi: widget.isletmebilgi,
+        kullanicirolu: widget.kullanicirolu,
         onDegisti: _yenile,
       ),
     );
@@ -225,7 +233,10 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 4),
-                                Row(
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(
@@ -240,7 +251,28 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
                                               fontWeight: FontWeight.w700,
                                               color: renk)),
                                     ),
-                                    const SizedBox(width: 8),
+                                    if (m.randevuOlusturuldu)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0x1A1D4ED8),
+                                          borderRadius: BorderRadius.circular(99),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.event_available,
+                                                size: 12, color: Color(0xFF1D4ED8)),
+                                            SizedBox(width: 3),
+                                            Text('Randevu Verildi',
+                                                style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF1D4ED8))),
+                                          ],
+                                        ),
+                                      ),
                                     Text(m.telefonGizlenmis,
                                         style: TextStyle(
                                             fontSize: 12, color: cs.onSurfaceVariant)),
@@ -336,14 +368,138 @@ class _MusteriDetaySheet extends StatelessWidget {
   final AranacakMusteri musteri;
   final int aramaId;
   final String sube;
+  final dynamic isletmebilgi;
+  final int kullanicirolu;
   final Future<void> Function() onDegisti;
 
   const _MusteriDetaySheet({
     required this.musteri,
     required this.aramaId,
     required this.sube,
+    required this.isletmebilgi,
+    required this.kullanicirolu,
     required this.onDegisti,
   });
+
+  // Normal salon randevusu olustur (web "Yeni Randevu Olustur"): AppointmentEditor'u
+  // musteri prefill'li acar; donunce isteyene durum=8 isaretler.
+  Future<void> _yeniRandevu(BuildContext context) async {
+    if (isletmebilgi == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('İşletme bilgisi yüklenemedi, randevu açılamadı.')));
+      return;
+    }
+    bool kaydedildi = false;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AppointmentEditor(
+          isletmebilgi: isletmebilgi,
+          tarihsaat: '',
+          personel_id: '',
+          kullanicirolu: kullanicirolu,
+          prefillMusteriId:
+              musteri.userId > 0 ? musteri.userId.toString() : null,
+          prefillMusteriAdi: musteri.ad,
+          onRandevuKaydedildi: () => kaydedildi = true,
+        ),
+      ),
+    );
+    if (!context.mounted || !kaydedildi) return;
+    // NORMAL randevu -> musteri LISTEDE KALIR + "Randevu Verildi" bayragi (durum=8 DEGIL).
+    // Sadece arama randevusu (durum=3) listeden cikarir.
+    try {
+      await CagriApi.randevuVerildiIsaretle(musteri.aranacakMusteriId, sube);
+      await onDegisti();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Randevu oluşturuldu (müşteri listede kaldı).')));
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('İşaretlenemedi: $e')));
+      }
+    }
+  }
+
+  // Ön Görüşme Randevusu (web gibi GERCEK olusturma): YeniOnGorusme ekranini musteri
+  // prefill'li acar; kayitta aranacak durum=6 isaretlenir + sheet kapanir.
+  Future<void> _onGorusmeAc(BuildContext context) async {
+    if (isletmebilgi == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('İşletme bilgisi yüklenemedi, ön görüşme açılamadı.')));
+      return;
+    }
+    final ds = OnGorusmeDataSource(
+      isletmebilgi: isletmebilgi,
+      rowsPerPage: 10,
+      salonid: sube,
+      context: context,
+      arama: '',
+    );
+    bool kaydedildi = false;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => YeniOnGorusme(
+          ongorusmedatasource: ds,
+          isletmebilgi: isletmebilgi,
+          kullanicirolu: kullanicirolu,
+          prefillMusteriId:
+              musteri.userId > 0 ? musteri.userId.toString() : null,
+          prefillMusteriAdi: musteri.ad,
+          onKaydedildi: () => kaydedildi = true,
+        ),
+      ),
+    );
+    if (!context.mounted || !kaydedildi) return;
+    try {
+      await CagriApi.notEkle(
+        aramaDetayId: aramaId,
+        aranacakMusteriId: musteri.aranacakMusteriId,
+        sonuc: CagriDurum.onGorusme, // 6
+        sube: sube,
+      );
+      await onDegisti();
+      if (context.mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('İşaretlenemedi: $e')));
+      }
+    }
+  }
+
+  // Telefonda Satis (web gibi GERCEK satis): Hizli Satis sheet -> adisyon/tahsilat olusur;
+  // basarili ise aranacak durum=7 isaretlenir + sheet kapanir.
+  Future<void> _telefondaSatisAc(BuildContext context) async {
+    if (musteri.userId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Bu kayıtta müşteri bağlantısı yok, satış yapılamıyor.')));
+      return;
+    }
+    final tutar = await hizliSatisGoster(context,
+        sube: sube, musteriId: musteri.userId, musteriAd: musteri.ad);
+    if (!context.mounted || tutar == null) return;
+    try {
+      await CagriApi.notEkle(
+        aramaDetayId: aramaId,
+        aranacakMusteriId: musteri.aranacakMusteriId,
+        sonuc: CagriDurum.telefondaSatis, // 7
+        satisTutari: tutar.toStringAsFixed(2),
+        sube: sube,
+      );
+      await onDegisti();
+      if (context.mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('İşaretlenemedi: $e')));
+      }
+    }
+  }
 
   /// Memnuniyet anketi (tek tik). Web musteri-detay "Anket Gonder" ile ayni:
   /// onay -> varsayilan sablon WA-first/SMS ile gonderilir, sablon secimi yok.
@@ -406,8 +562,8 @@ class _MusteriDetaySheet extends StatelessWidget {
     final ext = context.appTheme;
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.7,
-      minChildSize: 0.4,
+      initialChildSize: 0.85,
+      minChildSize: 0.45,
       maxChildSize: 0.95,
       builder: (context, scroll) => Container(
         decoration: BoxDecoration(
@@ -423,150 +579,150 @@ class _MusteriDetaySheet extends StatelessWidget {
               decoration: BoxDecoration(
                   color: ext.borderStrong, borderRadius: BorderRadius.circular(99)),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: cs.primary.withValues(alpha: 0.12),
-                    child: Icon(Icons.person, color: cs.primary),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(musteri.ad,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
-                        Text(musteri.telefonGizlenmis,
-                            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final kayit = await CagriApi.aramaBaslat(
-                            musteri.aranacakMusteriId, sube);
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(kayit.message.isNotEmpty
-                                ? kayit.message
-                                : 'Arama başlatıldı'),
-                            duration: const Duration(seconds: 5),
-                          ),
-                        );
-                      },
-                      icon: Icon(Icons.call, color: ext.successColor),
-                      label: const Text('Ara (Bria)'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        foregroundColor: cs.onPrimary,
-                      ),
-                      onPressed: () async {
-                        final ok = await sonucFormuGoster(
-                          context,
-                          aramaDetayId: aramaId,
-                          aranacakMusteriId: musteri.aranacakMusteriId,
-                          musteriAd: musteri.ad,
-                          sube: sube,
-                          mevcutNot: musteri.not,
-                        );
-                        if (ok == true) {
-                          await onDegisti();
-                          if (context.mounted) Navigator.of(context).pop();
-                        }
-                      },
-                      icon: const Icon(Icons.edit_note),
-                      label: const Text('Sonuç'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF128C7E),
-                        side: const BorderSide(color: Color(0xFF25D366)),
-                      ),
-                      onPressed: () => _whatsappAc(context),
-                      icon: const Icon(Icons.chat, size: 19),
-                      label: const Text('WhatsApp'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: cs.primary,
-                        side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
-                      ),
-                      onPressed: () => _anketGonder(context),
-                      icon: const Icon(Icons.assignment_turned_in_outlined, size: 19),
-                      label: const Text('Anket'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Randevu Gecmisi (web musteri-detay ile ayni): geldi/gelmedi/onayli + liste
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: cs.primary,
-                    side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
-                  ),
-                  onPressed: musteri.userId > 0
-                      ? () => randevuGecmisiGoster(context,
-                          sube: sube, userId: musteri.userId, ad: musteri.ad)
-                      : null,
-                  icon: const Icon(Icons.history, size: 19),
-                  label: const Text('Randevu Geçmişi'),
-                ),
-              ),
-            ),
-            const Divider(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Çağrı Geçmişi',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurface)),
-              ),
-            ),
+            // Web gibi TEK sheet: header + aksiyonlar + sonuc formu + cagri gecmisi
+            // hepsi ayni scroll icinde.
             Expanded(
-              child: SingleChildScrollView(
+              child: ListView(
                 controller: scroll,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: CagriGecmisiWidget(
-                  aranacakMusteriId: musteri.aranacakMusteriId,
-                  sube: sube,
-                ),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                children: [
+                  // Header: avatar + ad + telefon
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: cs.primary.withValues(alpha: 0.12),
+                        child: Icon(Icons.person, color: cs.primary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(musteri.ad,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w700)),
+                            Text(musteri.telefonGizlenmis,
+                                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Ust aksiyonlar: Ara (Bria) + WhatsApp
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final kayit = await CagriApi.aramaBaslat(
+                                musteri.aranacakMusteriId, sube);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(kayit.message.isNotEmpty
+                                    ? kayit.message
+                                    : 'Arama başlatıldı'),
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          },
+                          icon: Icon(Icons.call, color: ext.successColor),
+                          label: const Text('Ara (Bria)'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF128C7E),
+                            side: const BorderSide(color: Color(0xFF25D366)),
+                          ),
+                          onPressed: () => _whatsappAc(context),
+                          icon: const Icon(Icons.chat, size: 19),
+                          label: const Text('WhatsApp'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Anket + Randevu Gecmisi
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: cs.primary,
+                            side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
+                          ),
+                          onPressed: () => _anketGonder(context),
+                          icon: const Icon(Icons.assignment_turned_in_outlined, size: 19),
+                          label: const Text('Anket'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: cs.primary,
+                            side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
+                          ),
+                          onPressed: musteri.userId > 0
+                              ? () => randevuGecmisiGoster(context,
+                                  sube: sube, userId: musteri.userId, ad: musteri.ad)
+                              : null,
+                          icon: const Icon(Icons.history, size: 19),
+                          label: const Text('Randevu Geçmişi'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Normal salon randevusu olustur (web "Yeni Randevu Olustur")
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1D4ED8),
+                        backgroundColor: const Color(0xFFEFF6FF),
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                      ),
+                      onPressed: () => _yeniRandevu(context),
+                      icon: const Icon(Icons.calendar_month, size: 19),
+                      label: const Text('Yeni Randevu Oluştur',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  const Divider(height: 24),
+                  // TAM gorusme sonucu formu GOMULU (web gibi tek sheet)
+                  SonucFormuGovde(
+                    aramaDetayId: aramaId,
+                    aranacakMusteriId: musteri.aranacakMusteriId,
+                    sube: sube,
+                    mevcutNot: musteri.not,
+                    onKaydedildi: () {
+                      Navigator.of(context).pop();
+                      onDegisti();
+                    },
+                    onOnGorusmeTap: () => _onGorusmeAc(context),
+                    onTelefondaSatisTap: () => _telefondaSatisAc(context),
+                  ),
+                  const Divider(height: 28),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Çağrı Geçmişi',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface)),
+                  ),
+                  const SizedBox(height: 8),
+                  CagriGecmisiWidget(
+                    aranacakMusteriId: musteri.aranacakMusteriId,
+                    sube: sube,
+                  ),
+                ],
               ),
             ),
           ],

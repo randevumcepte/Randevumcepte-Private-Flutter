@@ -41,6 +41,11 @@ class AppointmentEditor extends StatefulWidget {
   final String? resourceId;
   final String? resourceType;
   final int kullanicirolu;
+  // Cagri Merkezi'nden acildiginda musteriyi onceden secer (opsiyonel; digerleri etkilenmez).
+  final String? prefillMusteriId;
+  final String? prefillMusteriAdi;
+  // Randevu BASARIYLA kaydedilince cagrilir (Cagri Merkezi -> durum=8 isaretleme).
+  final void Function()? onRandevuKaydedildi;
 
   const AppointmentEditor({
     super.key,
@@ -49,7 +54,10 @@ class AppointmentEditor extends StatefulWidget {
     required this.personel_id,
     this.resourceId,
     this.resourceType,
-    required this.kullanicirolu
+    required this.kullanicirolu,
+    this.prefillMusteriId,
+    this.prefillMusteriAdi,
+    this.onRandevuKaydedildi,
   });
 
   @override
@@ -217,6 +225,22 @@ class AppointmentEditorState extends State<AppointmentEditor> {
     super.dispose();
   }
 
+  // Cagri Merkezi'nden gelen musteriyi lazy-dropdown'da secer (web prefill paritesi).
+  // Lazy-fetch ile musteri objesini cekip addItemAndSelect ile secer; bu onChanged'i
+  // tetikledigi icin web'deki gibi aktif paket/hizmet (randevu icerigi) akisi da calisir.
+  Future<void> _prefillMusteriSec() async {
+    final pid = widget.prefillMusteriId ?? '';
+    if (pid.isEmpty || !mounted) return;
+    // Lazy-fetch'e GUVENME (backend seciliMusteri param'i her zaman dondurmez) ->
+    // elimizdeki id+ad ile MusteriDanisan kurup DOGRUDAN sec. fromJson null-guvenli;
+    // addItemAndSelect onChanged'i tetikler (web gibi paket/hizmet akisi).
+    final sec = MusteriDanisan.fromJson({
+      'id': pid,
+      'name': widget.prefillMusteriAdi ?? '',
+    });
+    dropdownKey.currentState?.addItemAndSelect(sec);
+  }
+
   Future<void> initialize() async {
     if (!mounted) return;
     setState(() {
@@ -287,6 +311,13 @@ class AppointmentEditorState extends State<AppointmentEditor> {
         secilicihaz.add(null);
 
         musteridanisanlar = musteridanisanliste;
+        // Cagri Merkezi prefill: ilk frame'den sonra lazy-fetch ile musteriyi sec.
+        // LazyDropdown.addItemAndSelect -> onChanged tetikler -> web gibi aktif
+        // paket/hizmet (randevu icerigi) akisi da calisir.
+        if ((widget.prefillMusteriId ?? '').isNotEmpty) {
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _prefillMusteriSec());
+        }
         isletmehizmetliste = isletmehizmetleriliste;
         personelliste = isletmepersonellerliste;
         odaliste = isletmeodaliste;
@@ -604,6 +635,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
           'salon',
           '1',
           widget.isletmebilgi,
+          widget.onRandevuKaydedildi,
         );
         return;
       }
@@ -2407,7 +2439,8 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                           context,
                           'salon',
                           '1',
-                          widget.isletmebilgi);
+                          widget.isletmebilgi,
+                          widget.onRandevuKaydedildi);
                     }
                   });
                 },

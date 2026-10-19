@@ -234,6 +234,13 @@ class CagriApi {
     return Map<String, dynamic>.from(j as Map);
   }
 
+  /// Hizli Satis kalem listeleri: {hizmetler, urunler, paketler, odeme_yontemleri}.
+  /// Her kalem {id, ad, fiyat}; odeme {id, ad}.
+  static Future<Map<String, dynamic>> satisKalemler(String sube) async {
+    final j = await _post('satis-kalemler', {'sube': sube});
+    return Map<String, dynamic>.from(j as Map);
+  }
+
   // ───────── Dashboard (yonetici) ─────────
 
   static Future<List<PersonelKart>> dashboardVerileri(String sube) async {
@@ -378,10 +385,22 @@ class CagriApi {
         .toList();
   }
 
-  /// Arama randevusunu 'Randevu Oluşturuldu' (durum=8) isaretle.
+  /// Arama randevusunu 'Randevu Oluşturuldu' (durum=8) isaretle — LISTEDEN CIKARIR.
+  /// (Takvim 'Randevu Olusturuldu' butonu = callback tamamlama.)
   static Future<bool> randevuOlusturulduIsaretle(
       int aranacakMusteriId, String sube) async {
     final j = await _post('randevu-olusturuldu-isaretle', {
+      'aranacak_musteri_id': aranacakMusteriId,
+      'sube': sube,
+    });
+    return j is Map && j['success'] == true;
+  }
+
+  /// NORMAL randevu verildi -> 'Randevu Verildi' bayragi. durum DEGISMEZ,
+  /// musteri LISTEDE KALIR (sadece arama randevusu=durum 3 listeden cikarir).
+  static Future<bool> randevuVerildiIsaretle(
+      int aranacakMusteriId, String sube) async {
+    final j = await _post('randevu-verildi-isaretle', {
       'aranacak_musteri_id': aranacakMusteriId,
       'sube': sube,
     });

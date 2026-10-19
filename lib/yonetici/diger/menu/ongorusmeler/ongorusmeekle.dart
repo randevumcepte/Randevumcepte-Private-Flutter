@@ -19,16 +19,24 @@ import 'package:randevu_sistem/Models/odalar.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/sehirler.dart';
 import 'package:randevu_sistem/Frontend/lazyload.dart';
+import 'package:randevu_sistem/Frontend/MusteriDanisanSecimLazyLoad.dart';
 
 class YeniOnGorusme extends StatefulWidget {
 	final OnGorusmeDataSource ongorusmedatasource;
 	final dynamic isletmebilgi;
 	final int kullanicirolu;
+	// Cagri Merkezi'nden acildiginda musteriyi onceden secer + kayitta geri bildirim.
+	final String? prefillMusteriId;
+	final String? prefillMusteriAdi;
+	final void Function()? onKaydedildi;
 	const YeniOnGorusme({
 		Key? key,
 		required this.ongorusmedatasource,
 		required this.isletmebilgi,
 		required this.kullanicirolu,
+		this.prefillMusteriId,
+		this.prefillMusteriAdi,
+		this.onKaydedildi,
 	}) : super(key: key);
 
 	@override
@@ -114,6 +122,22 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 			ongorusmesaati.text =
 					'${_selectedTime.hour.toString().padLeft(2, '0')}:${_getNearestQuarterMinute(_selectedTime.minute).toString().padLeft(2, '0')}';
 		});
+		// Cagri Merkezi prefill: ilk frame'den sonra musteriyi lazy-fetch + sec.
+		if ((widget.prefillMusteriId ?? '').isNotEmpty) {
+			WidgetsBinding.instance.addPostFrameCallback((_) => _prefillMusteriSec());
+		}
+	}
+
+	// Cagri Merkezi'nden gelen musteriyi lazy-dropdown'da secer (onChanged alanlari doldurur).
+	Future<void> _prefillMusteriSec() async {
+		final pid = widget.prefillMusteriId ?? '';
+		if (pid.isEmpty || !mounted) return;
+		// Fetch'e guvenme -> elimizdeki id+ad ile kurup dogrudan sec (onChanged alanlari doldurur).
+		final sec = MusteriDanisan.fromJson({
+			'id': pid,
+			'name': widget.prefillMusteriAdi ?? '',
+		});
+		_lazyDropdownKey.currentState?.addItemAndSelect(sec);
 	}
 
 	@override
@@ -903,6 +927,7 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 			"",
 			hizmetid,
 			oda_id: selectedongorusmeoda?.id ?? "",
+			onBasarili: widget.onKaydedildi, // Cagri Merkezi -> durum=6 isaretleme
 		);
 	}
 
