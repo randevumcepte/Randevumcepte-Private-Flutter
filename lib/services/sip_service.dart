@@ -24,6 +24,13 @@ const bool kSoftphoneEnabled = false;
 // "Asistan" FAB gizlenir, MIC/Speech permission istenmez.
 const bool kAsistanEnabled = false;
 
+// Cagri Merkezi menusu (Diger > Cagri Merkezi). Menuye normalde
+// uyelik_turu==3 ile girilebiliyor; reviewer demo hesabi uyelikturu=3
+// olabildiginden ek guvenlik olarak flag ile de gate'lendi. Markada
+// cagri merkezi aktif kullanilacaksa (dahili atanmis, santral var)
+// burayi true yap.
+const bool kCagriMerkeziEnabled = false;
+
 const String kSipDomain = 'santral.randevumcepte.com.tr';
 const String kSipWssUrl = 'wss://santral.randevumcepte.com.tr:8089/ws';
 

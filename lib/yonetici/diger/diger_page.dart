@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
+import 'package:randevu_sistem/services/sip_service.dart' show kCagriMerkeziEnabled;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/network_utils/api.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/checklogin.dart';
@@ -21,7 +22,6 @@ import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/basic_bottom_nav_bar.dart';
 import '../dashboard/profilbilgileri.dart';
-import '../santral/santralraporlari.dart';
 import '../subesecimi.dart';
 import 'menu/anket/anket_yonetimi.dart';
 import 'menu/cark/cark_yonetimi.dart';
@@ -1011,7 +1011,9 @@ class _MenuState extends State<Menu> {
                 // Cagri Merkezi (SEKMELI tek sayfa): Performans(sahip) + Randevu Takvimi +
                 // Arama Ekrani + Kayitlar(Santral). SADECE uyelik_turu == 3.
                 // Personel (rol 5) atanmis dahilisi varsa gorur; Kayitlar'da sadece kendi dahilisi.
-                if (widget.uyelikturu == 3 &&
+                // Ek guvenlik: kCagriMerkeziEnabled flag (sip_service.dart). Store
+                // incelemesi icin false; dahili/santral aktif markada true yap.
+                if (kCagriMerkeziEnabled && widget.uyelikturu == 3 &&
                     ((kullanicirolu >= 1 && kullanicirolu <= 4) ||
                         (kullanicirolu == 5 && _mevcutDahili().isNotEmpty)))
                   _buildMenuButton(

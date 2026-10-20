@@ -36,7 +36,6 @@ import '../adisyonlar/adisyonpage.dart';
 import '../adisyonlar/yeniadisyon.dart';
 import '../diger/menu/ajanda/ajandaekle.dart';
 import '../diger/menu/musteriler/yeni_musteri.dart';
-import '../santral/santralraporlari.dart';
 import 'bildirimler/bildirimler.dart';
 import 'deneme.dart';
 import 'gunlukRaporlar/gunlukajandanotlari.dart';
