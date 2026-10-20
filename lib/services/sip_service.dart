@@ -19,6 +19,11 @@ import 'package:uuid/uuid.dart';
 // tekrar true yapilacak; sunucu tarafi hazir, degisiklik tek satir.
 const bool kSoftphoneEnabled = false;
 
+// Sesli Asistan (Patron Asistani + Sesli Randevu). Store incelemesi icin
+// kapali; test tamamlaninca true yap. Kapali iken home ekranindaki
+// "Asistan" FAB gizlenir, MIC/Speech permission istenmez.
+const bool kAsistanEnabled = false;
+
 const String kSipDomain = 'santral.randevumcepte.com.tr';
 const String kSipWssUrl = 'wss://santral.randevumcepte.com.tr:8089/ws';
 

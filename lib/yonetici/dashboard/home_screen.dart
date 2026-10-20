@@ -20,6 +20,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/yonetici/randevular/sesli_randevu.dart';
+import 'package:randevu_sistem/services/sip_service.dart' show kAsistanEnabled;
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/dogum_gunu_popup.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
@@ -379,11 +380,9 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
-      // ASISTAN — herkese gorunur. Sahip/Yonetici: isletme + randevu (Patron
-      // Asistan); Personel: sadece randevu (Sesli Randevu). Yetki backend'de de var.
-      // >>> ARCHIVE-GECICI: Bu marka icin sesli asistan KAPATILDI. Archive alindiktan
-      // sonra `false &&` ifadesini kaldirip eski hale don. <<<
-      floatingActionButton: (false && seciliisletme != null)
+      // ASISTAN — kAsistanEnabled (sip_service.dart) ile toggle. Store incelemesi
+      // icin kapali; test tamamlaninca sabiti true yap.
+      floatingActionButton: (kAsistanEnabled && seciliisletme != null)
           ? FloatingActionButton.extended(
               heroTag: 'patronAsistanFab',
               backgroundColor: const Color(0xFF5C008E),
