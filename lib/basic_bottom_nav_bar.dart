@@ -131,7 +131,8 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       DigerPage(scaffoldMessengerKey: widget.scaffoldMessengerKey, kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi,dialpadManager: dialPadManager, onGeriDon: () => _selectScreen(0),),
 
     ];
-    // SIP/softphone kaldirildi; FCM/VoIP token kaydi (bildirimler icin) korunur.
+    // FCM/VoIP token kaydi (push bildirimleri icin). SIP softphone
+    // uygulamadan tamamen cikarildi; dis arama Bria Mobile ile.
     if(!lisansBitti && dahili != null && dahili != "null" && dahili.isNotEmpty){
       setupVoipAndFcmTokenListener();
     }
@@ -329,7 +330,6 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userToken');
     await Yetki.temizle();
-
     setState(() {
       _selectedTab = 0;
       _isPageBuilt.setAll(0, [true, false, false, false, false]);
