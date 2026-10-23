@@ -108,6 +108,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
         'bonus':   _parseTrNumber(map['bonus']),
         'kesinti': _parseTrNumber(map['kesinti']),
         'masraf':  _parseTrNumber(map['masraf']), // personel gideri (hakedisten duser)
+        'telafi':  _parseTrNumber(map['telafi_devri']), // telafi randevusu prim devri (genelde negatif)
       };
     }
   }
@@ -122,10 +123,11 @@ class _PrimHakedisState extends State<PrimHakedis> {
     double bonus,
     double kesinti,
     double masraf,
+    double telafi,        // telafi randevusu prim devri (genelde negatif)
     bool borclu,
     double kalanMaas,
     double kalanPrim,
-    double netHakedis,    // maas + primHam + bonus - kesinti - masraf
+    double netHakedis,    // maas + primHam + bonus - kesinti - masraf + telafi
     double odenenToplam,  // maas + prim + diger
     double bekleyen,      // netHakedis - odenenToplam (0'in altina dusmez)
   }) _kalanlar(Personel p) {
@@ -142,9 +144,10 @@ class _PrimHakedisState extends State<PrimHakedis> {
     final bonus = o['bonus'] ?? 0.0;
     final kesinti = o['kesinti'] ?? 0.0;
     final masraf = o['masraf'] ?? 0.0; // personel gideri
+    final telafi = o['telafi'] ?? 0.0; // telafi devri (negatif) — net'e dahil
     final kalanMaas = (maasHam - odenenMaas).clamp(0.0, double.infinity);
     final kalanPrim = (primHam - odenenPrim).clamp(0.0, double.infinity);
-    final netHakedis = maasHam + primHam + bonus - kesinti - masraf;
+    final netHakedis = maasHam + primHam + bonus - kesinti - masraf + telafi;
     final odenenToplam = odenenMaas + odenenPrim + odenenDiger;
     final bekleyen = (netHakedis - odenenToplam).clamp(0.0, double.infinity);
     return (
@@ -156,6 +159,7 @@ class _PrimHakedisState extends State<PrimHakedis> {
       bonus: bonus,
       kesinti: kesinti,
       masraf: masraf,
+      telafi: telafi,
       borclu: netHakedis < 0,
       kalanMaas: kalanMaas,
       kalanPrim: kalanPrim,
@@ -369,6 +373,9 @@ class _PrimHakedisState extends State<PrimHakedis> {
       child: DropdownButtonHideUnderline(
         child: AramaliDropdown<T>(
           value: value,
+          // Row icinde Expanded yok; isExpanded=true (AramaliDropdown varsayilani)
+          // sonsuz genislik kisiti verip layout'u patlatiyor (ekran bombos kalir).
+          isExpanded: false,
           isDense: true,
           items: items,
           onChanged: onChanged,
@@ -624,6 +631,25 @@ class _PrimHakedisState extends State<PrimHakedis> {
                                   fontWeight: FontWeight.w700,
                                   color: cs.error)),
                         ),
+                    ],
+                  ),
+                ),
+              ],
+              // Telafi Devri (telafi randevusunda ödenen primin geri devri) — net hak
+              // edişe dahil (genelde negatif). Web prim_hakedis_panel "Telafi Devri" sütunu.
+              if (k.telafi != 0) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _ufakSatir(
+                          'Telafi Devri',
+                          Yetki.tutarGoster(_fmtTl(k.telafi), 'personel.maas_tutar_gor'),
+                          k.telafi < 0 ? cs.error : ext.successColor,
+                        ),
+                      ),
                     ],
                   ),
                 ),
