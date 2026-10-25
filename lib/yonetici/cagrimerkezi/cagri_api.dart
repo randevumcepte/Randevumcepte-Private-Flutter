@@ -138,6 +138,7 @@ class CagriApi {
     String? satisTutari,
     String? santralnottarih,
     String? santralnotsaat,
+    int? aramaPersonelId, // ARAMA RANDEVUSU VER -> baska personele ata (rol<5)
     required String sube,
   }) async {
     final j = await _post('not-ekle', {
@@ -150,6 +151,10 @@ class CagriApi {
       'satis_tutari': satisTutari ?? '',
       'santralnottarih': santralnottarih ?? '',
       'santralnotsaat': santralnotsaat ?? '',
+      // Backend (santral_not_ekle) yeni callback'te (durum 3) okur; bos/0 ise
+      // kayit mevcut listede kalir. Rol 5 ise zaten gonderilmez.
+      if (aramaPersonelId != null && aramaPersonelId > 0)
+        'arama_personel_id': aramaPersonelId,
       'sube': sube,
     });
     return j is Map && j['success'] == true;

@@ -22,6 +22,7 @@ Future<bool?> sonucFormuGoster(
   required String musteriAd,
   required String sube,
   String? mevcutNot,
+  int kullanicirolu = 99, // >=5 ise personel atama kapisi gizli
 }) {
   return showModalBottomSheet<bool>(
     context: context,
@@ -33,6 +34,7 @@ Future<bool?> sonucFormuGoster(
       musteriAd: musteriAd,
       sube: sube,
       mevcutNot: mevcutNot,
+      kullanicirolu: kullanicirolu,
     ),
   );
 }
@@ -44,6 +46,7 @@ class _SonucFormuSheet extends StatelessWidget {
   final String musteriAd;
   final String sube;
   final String? mevcutNot;
+  final int kullanicirolu;
 
   const _SonucFormuSheet({
     required this.aramaDetayId,
@@ -51,6 +54,7 @@ class _SonucFormuSheet extends StatelessWidget {
     required this.musteriAd,
     required this.sube,
     this.mevcutNot,
+    this.kullanicirolu = 99,
   });
 
   @override
@@ -104,6 +108,7 @@ class _SonucFormuSheet extends StatelessWidget {
                       aranacakMusteriId: aranacakMusteriId,
                       sube: sube,
                       mevcutNot: mevcutNot,
+                      kullanicirolu: kullanicirolu,
                       onKaydedildi: () => Navigator.of(context).pop(true),
                     ),
                   ],
@@ -145,6 +150,10 @@ class SonucFormuGovde extends StatefulWidget {
   // gercek olusturma akisini acar (verilirse). Null ise eski davranis (chip secimi).
   final VoidCallback? onOnGorusmeTap;
   final VoidCallback? onTelefondaSatisTap;
+  // Giris yapan kullanicinin rolu. <5 (sahip/yonetici) ise "ARAMA RANDEVUSU VER"
+  // secilince callback'i BASKA personele atama secici gorunur. >=5 (personel)
+  // kendi listesine birakir (backend de rol 5'i sadece kendine kisitlar).
+  final int kullanicirolu;
 
   const SonucFormuGovde({
     super.key,
@@ -155,6 +164,7 @@ class SonucFormuGovde extends StatefulWidget {
     this.mevcutNot,
     this.onOnGorusmeTap,
     this.onTelefondaSatisTap,
+    this.kullanicirolu = 99,
   });
 
   @override
@@ -173,19 +183,33 @@ class _SonucFormuGovdeState extends State<SonucFormuGovde> {
   int? _kategoriId;
   int? _altKategoriId;
 
+  // ARAMA RANDEVUSU VER -> baska personele ata (sadece rol<5)
+  List<CagriPersonel> _personeller = [];
+  int? _aramaPersonelId;
+
   bool _kaydediyor = false;
+
+  bool get _personelAtamaAcik => widget.kullanicirolu < 5;
 
   @override
   void initState() {
     super.initState();
     if ((widget.mevcutNot ?? '').isNotEmpty) _not.text = widget.mevcutNot!;
     _kategorileriYukle();
+    if (_personelAtamaAcik) _personelleriYukle();
   }
 
   Future<void> _kategorileriYukle() async {
     try {
       final k = await CagriApi.kategoriler(widget.sube);
       if (mounted) setState(() => _kategoriler = k);
+    } catch (_) {}
+  }
+
+  Future<void> _personelleriYukle() async {
+    try {
+      final p = await CagriApi.personeller(widget.sube);
+      if (mounted) setState(() => _personeller = p);
     } catch (_) {}
   }
 
@@ -248,6 +272,10 @@ class _SonucFormuGovdeState extends State<SonucFormuGovde> {
         satisTutari: _satisMi ? _satis.text.trim() : null,
         santralnottarih: tarihStr,
         santralnotsaat: saatStr,
+        // Sadece "Tekrar Aranacak" (durum 3) callback'inde ve rol<5 iken anlamli;
+        // backend yeniCallback disinda yok sayar.
+        aramaPersonelId:
+            (_personelAtamaAcik && _tekrarAra) ? _aramaPersonelId : null,
         sube: widget.sube,
       );
       if (!mounted) return;
@@ -339,6 +367,29 @@ class _SonucFormuGovdeState extends State<SonucFormuGovde> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // Arayacak personel (sadece rol<5 + "ARAMA RANDEVUSU VER" secili).
+        // Bos = kaydi mevcut listesinde birak; secilirse o personele tasi.
+        if (_tekrarAra && _personelAtamaAcik && _personeller.isNotEmpty) ...[
+          AramaliDropdownFormField<int?>(
+            value: _aramaPersonelId,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: 'Arayacak Personel (opsiyonel)',
+              prefixIcon: const Icon(Icons.badge_outlined),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+            ),
+            items: [
+              const DropdownMenuItem<int?>(
+                  value: null, child: Text('Mevcut listede kalsın')),
+              ..._personeller
+                  .map((p) => DropdownMenuItem<int?>(value: p.id, child: Text(p.ad))),
+            ],
+            onChanged: (v) => setState(() => _aramaPersonelId = v),
           ),
           const SizedBox(height: 12),
         ],

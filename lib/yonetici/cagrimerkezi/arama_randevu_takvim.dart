@@ -808,6 +808,7 @@ class _IslemSheetState extends State<_IslemSheet> {
                       aranacakMusteriId: e.id,
                       sube: widget.sube,
                       mevcutNot: e.not,
+                      kullanicirolu: widget.kullanicirolu,
                       onKaydedildi: widget.onDegisti, // sheet'i kapat + takvimi tazele
                       onOnGorusmeTap: _onGorusmeAc,
                       onTelefondaSatisTap: _telefondaSatisAc,

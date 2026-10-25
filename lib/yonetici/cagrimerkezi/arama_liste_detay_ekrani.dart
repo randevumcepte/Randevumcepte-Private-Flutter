@@ -701,6 +701,7 @@ class _MusteriDetaySheet extends StatelessWidget {
                     aranacakMusteriId: musteri.aranacakMusteriId,
                     sube: sube,
                     mevcutNot: musteri.not,
+                    kullanicirolu: kullanicirolu,
                     onKaydedildi: () {
                       Navigator.of(context).pop();
                       onDegisti();
