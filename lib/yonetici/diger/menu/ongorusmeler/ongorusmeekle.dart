@@ -28,6 +28,7 @@ class YeniOnGorusme extends StatefulWidget {
 	// Cagri Merkezi'nden acildiginda musteriyi onceden secer + kayitta geri bildirim.
 	final String? prefillMusteriId;
 	final String? prefillMusteriAdi;
+	final String? prefillMusteriTel;
 	final void Function()? onKaydedildi;
 	const YeniOnGorusme({
 		Key? key,
@@ -36,6 +37,7 @@ class YeniOnGorusme extends StatefulWidget {
 		required this.kullanicirolu,
 		this.prefillMusteriId,
 		this.prefillMusteriAdi,
+		this.prefillMusteriTel,
 		this.onKaydedildi,
 	}) : super(key: key);
 
@@ -133,9 +135,11 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 		final pid = widget.prefillMusteriId ?? '';
 		if (pid.isEmpty || !mounted) return;
 		// Fetch'e guvenme -> elimizdeki id+ad ile kurup dogrudan sec (onChanged alanlari doldurur).
+		final tel = widget.prefillMusteriTel ?? '';
 		final sec = MusteriDanisan.fromJson({
 			'id': pid,
 			'name': widget.prefillMusteriAdi ?? '',
+			'cep_telefon': (tel == 'null') ? '' : tel,
 		});
 		_lazyDropdownKey.currentState?.addItemAndSelect(sec);
 	}
@@ -527,8 +531,13 @@ class _YeniOnGorusmeState extends State<YeniOnGorusme> {
 					setState(() {
 						selectedMusteri = value;
 						adsoyad.text = value.name;
-						_telOrijinal = value.cep_telefon;
-						telefon.text = _telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal);
+						// 'null'/bos gelirse telefon alaninda "null" yazmasin.
+						_telOrijinal = (value.cep_telefon == 'null' || value.cep_telefon.isEmpty)
+								? ''
+								: value.cep_telefon;
+						telefon.text = _telOrijinal.isEmpty
+								? ''
+								: (_telGor ? _telOrijinal : Yetki.telefonGoster(_telOrijinal));
 						if (value.cinsiyet == "0") _selectedGender = "kadin";
 						if (value.cinsiyet == "1") _selectedGender = "erkek";
 						if (value.il_id != "null") {

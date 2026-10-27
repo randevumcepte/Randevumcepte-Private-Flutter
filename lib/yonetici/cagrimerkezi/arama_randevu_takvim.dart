@@ -665,6 +665,7 @@ class _IslemSheetState extends State<_IslemSheet> {
           prefillMusteriId:
               widget.event.userId > 0 ? widget.event.userId.toString() : null,
           prefillMusteriAdi: widget.event.musteri,
+          prefillMusteriTel: widget.event.telefon,
           onKaydedildi: () => kaydedildi = true,
         ),
       ),
@@ -870,6 +871,7 @@ class _RandevuEkleSheetState extends State<_RandevuEkleSheet> {
   TimeOfDay? _saat;
   bool _araniyor = false;
   bool _kaydediyor = false;
+  String? _hata; // eksik alan uyarisi (sheet icinde gorunur; SnackBar sheet arkasinda kaliyordu)
 
   @override
   void initState() {
@@ -908,12 +910,19 @@ class _RandevuEkleSheetState extends State<_RandevuEkleSheet> {
   String _iki(int n) => n < 10 ? '0$n' : '$n';
 
   Future<void> _kaydet() async {
-    if (_musteri == null || _personel == null || _tarih == null || _saat == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Müşteri, personel, tarih ve saat seçin.')));
+    final eksik = <String>[];
+    if (_musteri == null) eksik.add('Müşteri');
+    if (_personel == null) eksik.add('Personel');
+    if (_tarih == null) eksik.add('Tarih');
+    if (_saat == null) eksik.add('Saat');
+    if (eksik.isNotEmpty) {
+      setState(() => _hata = 'Zorunlu alan(lar) eksik: ${eksik.join(', ')}.');
       return;
     }
-    setState(() => _kaydediyor = true);
+    setState(() {
+      _hata = null;
+      _kaydediyor = true;
+    });
     try {
       final r = await CagriApi.aramaRandevuEkle(
         sube: widget.sube,
@@ -1080,6 +1089,32 @@ class _RandevuEkleSheetState extends State<_RandevuEkleSheet> {
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
+            if (_hata != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0x14D32F2F),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0x33D32F2F)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 18, color: Color(0xFFD32F2F)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(_hata!,
+                          style: const TextStyle(
+                              color: Color(0xFFD32F2F),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               height: 50,

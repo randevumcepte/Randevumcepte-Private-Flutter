@@ -450,6 +450,7 @@ class _MusteriDetaySheet extends StatelessWidget {
           prefillMusteriId:
               musteri.userId > 0 ? musteri.userId.toString() : null,
           prefillMusteriAdi: musteri.ad,
+          prefillMusteriTel: musteri.telefon ?? musteri.telefonGizlenmis,
           onKaydedildi: () => kaydedildi = true,
         ),
       ),
