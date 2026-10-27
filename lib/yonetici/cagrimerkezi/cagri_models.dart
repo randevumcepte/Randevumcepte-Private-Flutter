@@ -267,6 +267,8 @@ class YaklasanRandevu {
   final String ad;
   final String tarih;
   final String saat;
+  final String faz; // 'on5' (yaklasan 5dk) | 'zaman' (zamani geldi) | 'gecikti'
+  final String not;
 
   YaklasanRandevu({
     required this.id,
@@ -274,6 +276,8 @@ class YaklasanRandevu {
     required this.ad,
     required this.tarih,
     required this.saat,
+    this.faz = 'zaman',
+    this.not = '',
   });
 
   factory YaklasanRandevu.fromJson(Map<String, dynamic> j) => YaklasanRandevu(
@@ -282,6 +286,8 @@ class YaklasanRandevu {
         ad: _toStr(j['ad']),
         tarih: _toStr(j['tarih']),
         saat: _toStr(j['saat']),
+        faz: _toStr(j['faz']).isEmpty ? 'zaman' : _toStr(j['faz']),
+        not: _toStr(j['not']),
       );
 }
 

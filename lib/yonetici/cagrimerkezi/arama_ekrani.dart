@@ -91,26 +91,78 @@ class _AramaEkraniState extends State<AramaEkrani> {
           baslik: kart.baslik,
           sube: _sube,
           kullanicirolu: widget.kullanicirolu,
+          isletmebilgi: widget.isletmebilgi,
         ),
       ),
     ).then((_) => _yukle());
   }
 
+  // faz -> (emoji, etiket, renk) — web ile ayni (Geciken / Yaklasan 5dk / Zamani Geldi).
+  (String, String, Color) _fazStil(String faz) {
+    switch (faz) {
+      case 'gecikti':
+        return ('⚠️', 'Geciken Arama', const Color(0xFFD32F2F));
+      case 'on5':
+        return ('⏰', 'Yaklaşan Arama (5 dk)', const Color(0xFFEA580C));
+      default:
+        return ('📞', 'Arama Zamanı Geldi', const Color(0xFF6D28D9));
+    }
+  }
+
+  // Ust banner: en acil faz'a gore renk/emoji; tiklayinca hatirlatma kartlari acilir.
+  Widget _hatirlatmaBanner() {
+    final gecikti = _yaklasan.any((y) => y.faz == 'gecikti');
+    final zaman = _yaklasan.any((y) => y.faz == 'zaman');
+    final renk = gecikti
+        ? const Color(0xFFD32F2F)
+        : (zaman ? const Color(0xFF6D28D9) : const Color(0xFFEA580C));
+    final emoji = gecikti ? '⚠️' : (zaman ? '📞' : '⏰');
+    final metin = gecikti
+        ? 'geciken arama'
+        : (zaman ? 'arama zamanı geldi' : 'yaklaşan arama');
+    return Material(
+      color: renk.withValues(alpha: 0.10),
+      child: InkWell(
+        onTap: _hatirlatmalariGoster,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          child: Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('${_yaklasan.length} $metin — görüntüle',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: renk,
+                        fontSize: 13.5)),
+              ),
+              Icon(Icons.chevron_right, color: renk, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _hatirlatmalariGoster() {
     final cs = context.colors;
+    // Tab controller'i sheet ACILMADAN yakala: modal sheet DefaultTabController altinda DEGIL.
+    final tabController = DefaultTabController.maybeOf(context);
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
+      isScrollControlled: true,
+      builder: (sheetCtx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
               child: Row(
                 children: [
                   const Icon(Icons.notifications_active, color: Colors.orange),
                   const SizedBox(width: 8),
-                  Text('Zamanı Gelen Geri Aramalar',
+                  Text('Arama Hatırlatmaları (${_yaklasan.length})',
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -118,26 +170,78 @@ class _AramaEkraniState extends State<AramaEkrani> {
                 ],
               ),
             ),
-            ..._yaklasan.map((y) => ListTile(
-                  leading: const Icon(Icons.phone_callback),
-                  title: Text(y.ad),
-                  subtitle: Text('${y.tarih} ${y.saat}'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    final kart = _kartlar.firstWhere(
-                      (k) => k.id == y.aramaId,
-                      orElse: () => AramaKart(
-                        id: y.aramaId,
-                        baslik: 'Liste',
-                        toplam: 0,
-                        arandi: 0,
-                        kalan: 0,
-                        ilerleme: 0,
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: 12),
+                children: _yaklasan.map((y) {
+                  final f = _fazStil(y.faz);
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pop(sheetCtx);
+                        tabController?.animateTo(1); // Arama Randevuları (takvim)
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: f.$3.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: f.$3.withValues(alpha: 0.35)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(f.$1, style: const TextStyle(fontSize: 14)),
+                                const SizedBox(width: 6),
+                                Text(f.$2,
+                                    style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: f.$3)),
+                                const Spacer(),
+                                Text('${y.tarih} ${y.saat}',
+                                    style: TextStyle(
+                                        fontSize: 12, color: cs.onSurfaceVariant)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(y.ad,
+                                style: const TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.w700)),
+                            if (y.not.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(y.not,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 12.5, color: cs.onSurfaceVariant)),
+                            ],
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.event, size: 14, color: f.$3),
+                                const SizedBox(width: 4),
+                                Text('Arama Randevularına git',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: f.$3)),
+                                Icon(Icons.chevron_right, size: 16, color: f.$3),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                    _listeyiAc(kart);
-                  },
-                )),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -184,7 +288,9 @@ class _AramaEkraniState extends State<AramaEkrani> {
             ),
       body: Column(
         children: [
-          // NOT: "geri arama zamani geldi" bandi KALDIRILDI (web ile ayni — webde de kaldirildi).
+          // Arama hatirlatma banner'i (web popup paritesi): yaklasan/zamani gelen/geciken
+          // arama randevusu varsa gorunur; tiklayinca kartlar + Arama Randevulari takvimine gider.
+          if (_yaklasan.isNotEmpty) _hatirlatmaBanner(),
           Expanded(
             child: _yukleniyor
                 ? const Center(child: CircularProgressIndicator())
