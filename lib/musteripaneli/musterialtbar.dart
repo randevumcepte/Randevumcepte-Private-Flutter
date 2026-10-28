@@ -17,7 +17,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 import 'package:randevu_sistem/Backend/yetki.dart';
-import 'package:randevu_sistem/Backend/backend.dart' show musteriOnlineRandevuAktifMi;
+import 'package:randevu_sistem/Backend/backend.dart'
+    show musteriOnlineRandevuAktifMi, salonAyarlariByBundle, appBundleAl;
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Frontend/lisans_uyari.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
@@ -59,6 +60,12 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
   int _selectedTab = 0;
   bool _isKeyboardVisible = false;
 
+  // Lisans "bitti" gorunumu oturum basi yuklenen bayat isletmebilgi'ye bakar;
+  // isletme uyeligini uzatmissa cikis/giris yapmadan bu ekran acilip kalir.
+  // Cache "bitti" diyorsa sunucudan (bundle) taze durum cekilir; devam ederken
+  // kisa spinner gosterilir, sonuc gecerliyse haritayi tazeleyip panele gecilir.
+  bool _lisansTazeKontrolDevam = false;
+
   // Bu isletmede grup dersi modulu acik mi (salonlar.grup_dersi_aktif)
   bool get _grupAktif =>
       widget.isletmebilgi is Map && widget.isletmebilgi['grup_dersi_aktif'].toString() == '1';
@@ -97,6 +104,30 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
     // Cold-start: bus'ta onceden konmus intent varsa altbar mount olduktan
     // sonra tuket.
     WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationIntent());
+
+    // Cache "lisans bitti" diyorsa sunucudan taze dogrula (uyelik uzatilmis
+    // olabilir). Gecerliyse haritayi tazeleyip panele gecer.
+    if (lisansBittiMi(
+        widget.isletmebilgi is Map ? widget.isletmebilgi['uyelik_bitis_tarihi'] : null)) {
+      _lisansTazeKontrolDevam = true;
+      _lisansTazeKontrol();
+    }
+  }
+
+  Future<void> _lisansTazeKontrol() async {
+    try {
+      final ayar = await salonAyarlariByBundle(await appBundleAl());
+      final tazeTarih = ayar['uyelik_bitis_tarihi'];
+      if (mounted &&
+          widget.isletmebilgi is Map &&
+          !lisansBittiMi(tazeTarih)) {
+        widget.isletmebilgi['uyelik_bitis_tarihi'] = tazeTarih;
+      }
+    } catch (_) {
+      // Ag hatasinda cache'teki duruma guven; blok ekrani gosterilir.
+    } finally {
+      if (mounted) setState(() => _lisansTazeKontrolDevam = false);
+    }
   }
 
   @override
@@ -178,6 +209,13 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
     // Secili isletmenin lisansi bittiyse musteriye iletisim/adres ekrani goster.
     if (lisansBittiMi(
         widget.isletmebilgi is Map ? widget.isletmebilgi['uyelik_bitis_tarihi'] : null)) {
+      // Sunucudan taze lisans dogrulamasi suruyorsa kisa spinner goster;
+      // sonuc gecerli cikarsa blok ekrani hic gorunmeden panele gecilir.
+      if (_lisansTazeKontrolDevam) {
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
       return LisansBittiEkrani(isletmebilgi: widget.isletmebilgi, isMusteri: true);
     }
     return WillPopScope(
