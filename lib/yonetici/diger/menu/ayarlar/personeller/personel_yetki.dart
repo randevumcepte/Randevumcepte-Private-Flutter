@@ -105,14 +105,24 @@ class _PersonelYetkiState extends State<PersonelYetki> {
 
       if (ayar != null && ayar['basarili'] == true) {
         _personelRolunde = ayar['personel_rolunde'] == true;
-        _seciliSablon = (ayar['sablon'] ?? 'personel_sade').toString();
+        // Bu personel icin GERCEK kayitli yetki satiri var mi? Backend 'kayit_var'
+        // doner. Yoksa butonlar yine default (personel sablonu) ile gelir AMA
+        // hicbir sablon karti "secili" gosterilmez (_seciliSablon = '').
+        // Eski backend 'kayit_var' gondermiyorsa null olur -> geriye donuk uyum
+        // icin kayit var kabul edilir (onceki davranis: sablon neyse secili).
+        final kayitVar = ayar.containsKey('kayit_var')
+            ? ayar['kayit_var'] == true
+            : true;
+        _seciliSablon =
+            kayitVar ? (ayar['sablon'] ?? 'personel_sade').toString() : '';
         final ayarMap = (ayar['ayarlar'] as Map?) ?? const {};
         _ayarlar = {};
         ayarMap.forEach((k, v) {
           _ayarlar[k.toString()] = v == true || v == 1 || v == '1';
         });
       } else {
-        _seciliSablon = 'personel_sade';
+        // Kayit cekilemedi -> hicbir sablon secili degil, butonlar false default.
+        _seciliSablon = '';
         _ayarlar = {};
       }
 
