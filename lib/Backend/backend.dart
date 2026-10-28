@@ -899,6 +899,28 @@ Future<Map<String, dynamic>?> aktifGapKampanyalari(String salonId) async {
   return null;
 }
 
+/// Musteri dashboard "Kampanya ve Duyurular" bolumu — salonun aktif (onayli,
+/// suresi dolmamis) tum kampanyalari (gap bosluk + genel panel kampanyalari).
+/// Donus: {count: int, kampanyalar: [{id, baslik, aciklama, indirim, tip,
+///          fiyat, normalFiyat, bitisTarihi, kalanGun}]}
+Future<Map<String, dynamic>?> musteriKampanyalari(String salonId) async {
+  if (salonId.isEmpty) return null;
+  try {
+    final response = await http
+        .get(
+          Uri.parse(
+              'https://app.randevumcepte.com.tr/api/v1/musteriKampanyalari/$salonId'),
+          headers: {'Content-Type': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 10));
+    final body = json.decode(response.body);
+    if (body is Map<String, dynamic>) return body;
+  } catch (e) {
+    log('musteriKampanyalari hata: $e');
+  }
+  return null;
+}
+
 /// Belirli bir saat icin aktif gap kampanyasi var mi kontrol eder.
 /// Tahsilat ekraninda "bu randevu indirim aralginda mi?" sorusu icin.
 /// [saat] format: "HH:MM" (opsiyonel, yoksa server now kullanir)
@@ -2551,6 +2573,71 @@ Future<void> randevutelafiisaretle(String randevuid, String hizmetid, BuildConte
       Navigator.of(context, rootNavigator: true).pop();
     }
     throw Exception(response.reasonPhrase);
+  }
+}
+
+/// TELAFI RANDEVUSU (A tipi) — modal icin dropdown verisi (aktif personel/oda/cihaz).
+/// Backend: GET /api/v1/telafi-dropdown-verisi. Salon izolasyonu salonid|appBundle.
+/// Donus: {'personeller':[{id,ad}], 'odalar':[...], 'cihazlar':[...]} veya null (hata).
+Future<Map<String, dynamic>?> telafiDropdownVerisi() async {
+  try {
+    final response = await ApiClient.get('/telafi-dropdown-verisi', query: {
+      'salonid': await secilisalonid(),
+      'appBundle': await appBundleAl(),
+    });
+    if (response.statusCode == 200) {
+      final d = jsonDecode(response.body);
+      if (d is Map && d['hata'] == null) return Map<String, dynamic>.from(d);
+    }
+  } catch (e) {
+    logyaz(0, 'telafiDropdownVerisi: $e');
+  }
+  return null;
+}
+
+/// TELAFI RANDEVUSU (A tipi) olustur + prim devri.
+/// Backend: POST /api/v1/telafi-randevu-olustur (App\Services\TelafiRandevuServisi).
+/// [orijinalRhId] = takvim durum string'inin 5. segmenti (randevu_hizmetler.id).
+/// Donus: basarili {'ok':true,'randevu_id':..,'prim':{ah,aps,hareket,adisyon_degisti,uyari}}
+///        hata     {'hata':'...'} (HTTP 400/403).
+Future<Map<String, dynamic>> telafiRandevuOlustur({
+  required String orijinalRhId,
+  required String tarih,
+  required String saat,
+  required String personelId,
+  String? odaId,
+  String? cihazId,
+  int sureDk = 0,
+  String not = '',
+}) async {
+  SharedPreferences localStorage = await SharedPreferences.getInstance();
+  var user = jsonDecode(localStorage.getString('user')!);
+  final Map<String, dynamic> formData = {
+    'orijinal_rh_id': orijinalRhId,
+    'tarih': tarih,
+    'saat': saat,
+    'personel_id': personelId,
+    'oda_id': odaId ?? '',
+    'cihaz_id': cihazId ?? '',
+    'sure_dk': sureDk,
+    'not': not,
+    'user_id': user['id'],
+    'salonid': await secilisalonid(),
+    'appBundle': await appBundleAl(),
+  };
+  try {
+    final response = await ApiClient.postJson('/telafi-randevu-olustur', formData);
+    final d = jsonDecode(response.body);
+    if (response.statusCode == 200 && d is Map && d['ok'] == true) {
+      return Map<String, dynamic>.from(d);
+    }
+    final hata = (d is Map && d['hata'] != null)
+        ? d['hata'].toString()
+        : 'Telafi randevusu oluşturulamadı.';
+    return {'hata': hata};
+  } catch (e) {
+    logyaz(0, 'telafiRandevuOlustur: $e');
+    return {'hata': 'Bağlantı hatası: $e'};
   }
 }
 
@@ -6499,6 +6586,47 @@ Future<Map<String, dynamic>?> kampanyaKoduAdisyonDurum(String salonId, String ad
     log('kampanyaKoduAdisyonDurum: $e');
   }
   return null;
+}
+
+// App tahsilat: musterinin bu salonda (sube grubunda) GECERLI, kullanilmamis cark
+// kuponu var mi? Varsa tahsilat formunda 'Cark kupon kodu' alani gosterilir; yoksa
+// gizli kalir (kupon kazanildigi isletme disinda cikmasin). Hata/bos -> false.
+Future<bool> carkKuponlariVarMi(String salonId, String userId) async {
+  if (userId.isEmpty || userId == 'null') return false;
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/carkAdmin/kuponlar/$salonId?user_id=$userId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final data = Map<String, dynamic>.from(json.decode(res.body) as Map);
+      final list = (data['kuponlar'] as List?) ?? const [];
+      return list.isNotEmpty;
+    }
+  } catch (e) {
+    log('carkKuponlariVarMi: $e');
+  }
+  return false;
+}
+
+// App tahsilat: musterinin bu salona ait KULLANILMAMIS kampanya indirim kodu var mi?
+// Varsa 'Kampanya indirim kodu' alani gosterilir; yoksa gizli kalir. Hata/bos -> false.
+Future<bool> kampanyaKodlariVarMi(String salonId, String userId) async {
+  if (userId.isEmpty || userId == 'null') return false;
+  try {
+    final res = await http.get(
+      Uri.parse('$_apiBase/kampanyaAdmin/kodlar/$salonId?user_id=$userId'),
+      headers: _jsonHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final data = Map<String, dynamic>.from(json.decode(res.body) as Map);
+      final list = (data['kodlar'] as List?) ?? const [];
+      return list.isNotEmpty;
+    }
+  } catch (e) {
+    log('kampanyaKodlariVarMi: $e');
+  }
+  return false;
 }
 
 // Secili sablon/senaryo + hizmet/urun/paket + indirim -> cozulmus kampanya mesaji (salt-okunur).

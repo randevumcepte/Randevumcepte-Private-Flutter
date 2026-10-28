@@ -70,6 +70,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   SalonYorumlarOzet? yorumOzeti;
   bool isloading = true;
   List<Map<String, dynamic>> _reklamlar = [];
+  // "Kampanya ve Duyurular" bolumu — salonun aktif kampanyalari (gap + genel).
+  List<Map<String, dynamic>> _kampanyalar = [];
 
   // Çoklu şubeli markada üst başlıkta salon adı yerine gösterilecek marka başlığı.
   String? _bundleBaslik;
@@ -115,7 +117,26 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     super.initState();
     initialize();
     _reklamlariYukle();
+    _kampanyalariYukle();
     _bundleBasligiYukle();
+  }
+
+  /// Salonun aktif kampanyalarini (gap bosluk + genel) ceker; "Kampanya ve
+  /// Duyurular" bolumunde listelenir. Hata olursa sessizce gecer, kart
+  /// placeholder'a duser.
+  Future<void> _kampanyalariYukle() async {
+    try {
+      final salonId = widget.isletmebilgi?['id']?.toString() ?? '';
+      if (salonId.isEmpty) return;
+      final res = await musteriKampanyalari(salonId);
+      if (!mounted || res == null) return;
+      final list = (res['kampanyalar'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      setState(() => _kampanyalar = list);
+    } catch (_) {
+      // kampanya yuklenemezse ana sayfa normal calismaya devam eder
+    }
   }
 
   /// Çoklu şubeli markada üst başlıkta gösterilecek marka başlığını çeker.
@@ -2020,7 +2041,178 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   }
 
   // ── DUYURULAR CARD ───────────────────────────────────────────────────────
+  // Aktif kampanya varsa "Kampanya ve Duyurular" basligi + kampanya listesi;
+  // yoksa bilgilendirici placeholder kart gosterilir.
   Widget _duyurularCard(BuildContext context) {
+    if (_kampanyalar.isEmpty) return _duyurularPlaceholder(context);
+
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.campaign_rounded, size: 18, color: scheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Kampanya ve Duyurular',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: scheme.onSurface,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ..._kampanyalar.map((k) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _kampanyaTile(context, k),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _kampanyaTile(BuildContext context, Map<String, dynamic> k) {
+    final scheme = Theme.of(context).colorScheme;
+    final baslik = k['baslik']?.toString() ?? '';
+    final aciklama = k['aciklama']?.toString() ?? '';
+    final indirim = (k['indirim'] as num?)?.toInt() ?? 0;
+    final kalanGun = (k['kalanGun'] as num?)?.toInt();
+    final fiyat = (k['fiyat'] as num?)?.toDouble();
+    final isGap = k['tip']?.toString() == 'gap';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  scheme.primary.withValues(alpha: 0.18),
+                  scheme.tertiary.withValues(alpha: 0.18),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isGap ? Icons.schedule_rounded : Icons.local_offer_rounded,
+              size: 22,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  baslik,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.1,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (aciklama.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    aciklama,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurface.withValues(alpha: 0.62),
+                      height: 1.3,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (indirim > 0)
+                      _kampanyaRozet(
+                        '%$indirim indirim',
+                        const Color(0xFF16A34A),
+                        Icons.local_offer_rounded,
+                      ),
+                    if (fiyat != null && fiyat > 0)
+                      _kampanyaRozet(
+                        '${fiyat.toStringAsFixed(0)} ₺',
+                        scheme.primary,
+                        Icons.sell_rounded,
+                      ),
+                    if (kalanGun != null)
+                      _kampanyaRozet(
+                        kalanGun > 0 ? '$kalanGun gün kaldı' : 'Bugün son gün',
+                        const Color(0xFFF59E0B),
+                        Icons.timer_outlined,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _kampanyaRozet(String metin, Color renk, IconData ikon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: renk.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(ikon, size: 12, color: renk),
+          const SizedBox(width: 4),
+          Text(
+            metin,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: renk,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _duyurularPlaceholder(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
