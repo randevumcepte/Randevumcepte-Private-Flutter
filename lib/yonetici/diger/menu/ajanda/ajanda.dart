@@ -12,7 +12,9 @@ import 'ajandaekle.dart';
 
 class AjandaNotlar extends StatefulWidget {
   final dynamic isletmebilgi;
-  AjandaNotlar({Key? key, required this.isletmebilgi}) : super(key: key);
+  // Alt navigasyondan acildiginda Dashboard'a (tab 0) donus icin geri butonu.
+  final VoidCallback? onGeriDon;
+  AjandaNotlar({Key? key, required this.isletmebilgi, this.onGeriDon}) : super(key: key);
 
   @override
   _AjandaNotlarState createState() => _AjandaNotlarState();
@@ -137,6 +139,12 @@ class _AjandaNotlarState extends State<AjandaNotlar> {
         child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
+          leading: widget.onGeriDon != null
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: widget.onGeriDon,
+                )
+              : null,
           title: Text(
             'Ajanda',
             style: TextStyle(

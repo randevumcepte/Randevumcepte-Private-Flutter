@@ -15,8 +15,10 @@ import 'ongorusmeekle.dart';
 class OnGorusmeler extends StatefulWidget {
 	final dynamic isletmebilgi;
 	final int kullanicirolu;
+	// Alt navigasyondan acildiginda Dashboard'a (tab 0) donus geri cagrisi.
+	final VoidCallback? onGeriDon;
 
-	const OnGorusmeler({Key? key, required this.isletmebilgi, required this.kullanicirolu}) : super(key: key);
+	const OnGorusmeler({Key? key, required this.isletmebilgi, required this.kullanicirolu, this.onGeriDon}) : super(key: key);
 	@override
 	_OnGorusmelerState createState() => _OnGorusmelerState();
 }
