@@ -5330,6 +5330,39 @@ Future<String> appBundleAl() async {
   return _cachedAppBundle!;
 }
 
+/// Musterinin portfoyundeki (musteri_olunan_salonlar) subelerden, bu uygulamanin
+/// markasina (app_bundle) ait olan subenin `salonlar` objesini dondurur.
+///
+/// Onceden bu secim login_page / checklogin icinde SABIT salon_id ('432' / '20')
+/// ile yapiliyordu; marka switch'te stale kaliyor, iki akis farkli subeyi okuyor
+/// ve firstWhere orElse'siz oldugu icin eslesme yoksa patliyordu. Artik marka
+/// app_bundle'dan cozulur: tutarli, marka-bagimsiz, crash-guvenli.
+///
+/// Eslesme bulunamazsa ( or liste bos) portfoyun ilk subesine duser, o da yoksa
+/// null doner. Donen deger isletmebilgi olarak musteri paneline verilir.
+Future<Map<String, dynamic>?> musteriMarkaSalonBilgi(
+    List<dynamic>? portfoy) async {
+  if (portfoy == null || portfoy.isEmpty) return null;
+  final appBundle = await appBundleAl();
+  Map? secilen;
+  for (final e in portfoy) {
+    if (e is Map && e['salonlar'] is Map) {
+      final ab = e['salonlar']['app_bundle']?.toString() ?? '';
+      if (ab == appBundle) {
+        secilen = e;
+        break;
+      }
+    }
+  }
+  // Eslesme yoksa guvenli fallback: ilk gecerli sube.
+  secilen ??= portfoy.firstWhere(
+    (e) => e is Map && e['salonlar'] is Map,
+    orElse: () => null,
+  ) as Map?;
+  final salon = secilen?['salonlar'];
+  return salon is Map ? Map<String, dynamic>.from(salon) : null;
+}
+
 /// Seans dökümü / cihaz bilgileri PDF'ini (web ile birebir ayni) sunucudan
 /// byte olarak ceker. Paket icin [adisyonPaketId], tek hizmet icin
 /// [adisyonHizmetId] gonderilir.

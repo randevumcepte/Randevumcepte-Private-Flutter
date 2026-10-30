@@ -38,6 +38,11 @@ class _CheckAuthState extends State<CheckAuth> {
   /// direkt gitmek icin kritik.
   Map<String, dynamic>? _onceSeciliIsletmeBilgi;
 
+  /// Musteri tarafi: markanin (app_bundle) subesinin bilgisi. build() async
+  /// olmadigi icin _checkIfLoggedIn icinde cozulup burada tutulur. Eski sabit
+  /// salon_id ('20') yerine app_bundle'dan cozulur (bkz. musteriMarkaSalonBilgi).
+  Map<String, dynamic>? _musteriIsletmeBilgi;
+
   @override
   void initState() {
     super.initState();
@@ -75,8 +80,12 @@ class _CheckAuthState extends State<CheckAuth> {
           }
         }
       }
-      else
+      else {
         musteri = await kullanicibilgimusteri(user['id'].toString());
+        // Marka (app_bundle) subesini portfoyden coz (eski sabit salon_id yerine).
+        _musteriIsletmeBilgi =
+            await musteriMarkaSalonBilgi(musteri.musteri_olunan_salonlar);
+      }
       setState(() {
         isAuth = true;
         user_type = usertype;
@@ -124,7 +133,7 @@ class _CheckAuthState extends State<CheckAuth> {
         }
       } else {
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString()=='432')['salonlar'];
+        var isletmebilgi = _musteriIsletmeBilgi;
         child =!_isloading ? MusteriAltBar(scaffoldMessengerKey: scaffoldMessengerKey,musteriId: musteri,isletmebilgi: isletmebilgi,): Center(child: CircularProgressIndicator());
       }
     } else {

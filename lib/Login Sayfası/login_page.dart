@@ -511,7 +511,10 @@ class _HomeState extends State<LoginPage> {
       } else {
         MusteriDanisan musteri = MusteriDanisan.fromJson(userMap);
 
-        var isletmebilgi = musteri.musteri_olunan_salonlar?.firstWhere((element)=>element['salon_id'].toString() == '432')['salonlar'];
+        // Marka (app_bundle) subesini portfoyden coz; eski sabit salon_id ('432')
+        // marka switch'te stale kaliyordu, bkz. musteriMarkaSalonBilgi.
+        var isletmebilgi = await musteriMarkaSalonBilgi(musteri.musteri_olunan_salonlar);
+        if (!mounted) return;
 
         // FCM cihaz kaydı (müşteri)
         NotificationService.instance.registerForUser(
