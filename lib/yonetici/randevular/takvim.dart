@@ -606,7 +606,9 @@ class TakvimState extends State<Takvim> with RouteAware {
     List<dynamic> randevulisteleri = randevudata["randevular_liste"];
     setState(() {
       baslangicSaati = randevudata["baslangic"];
-      bitisSaati = randevudata["bitis"];
+      // Web ile ayni: takvim alt siniri daima gun sonu (son slot 23:45-24:00),
+      // calisma saati disindaki gec randevular da gorunur kalsin.
+      bitisSaati = '24:00:00';
     });
 
     _aptTextColor.clear();
