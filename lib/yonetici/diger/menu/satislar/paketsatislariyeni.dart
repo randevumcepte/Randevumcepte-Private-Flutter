@@ -16,6 +16,8 @@ import 'package:randevu_sistem/Frontend/tl_input_formatter.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/Models/paket_hizmetleri.dart';
+import 'package:randevu_sistem/yonetici/dashboard/paket_satis_hizmetleri.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/user.dart';
@@ -460,7 +462,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
         hizmetlerList.add({'ad': hizmetAdi, 'seans': seans});
       }
     }
-    if (totalSeans == 0) totalSeans = int.tryParse(paket.miktar) ?? 0;
+    totalSeans = paket.varsayilanSeans;
     if (totalFiyat == 0) totalFiyat = double.tryParse(paket.fiyat) ?? 0;
 
     final fiyatGosterim =
@@ -544,8 +546,8 @@ class _PaketSatislariState extends State<PaketSatislari> {
                             runSpacing: 6,
                             children: [
                               for (final h in hizmetlerList.take(4))
-                                _buildHizmetChip(
-                                    scheme, h['ad'] as String, h['seans'] as int),
+                                _buildHizmetChip(scheme, h['ad'] as String,
+                                    paket.sinirsiz ? 0 : h['seans'] as int),
                               if (hizmetlerList.length > 4)
                                 _buildMoreChip(scheme, hizmetlerList.length - 4),
                             ],
@@ -554,12 +556,15 @@ class _PaketSatislariState extends State<PaketSatislari> {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            _buildStatMini(
-                              scheme,
-                              icon: Icons.event_repeat_rounded,
-                              value: '$totalSeans',
-                              label: 'seans',
-                            ),
+                            if (paket.sinirsiz)
+                              SinirsizRozet(metin: paket.sinirsizEtiketi)
+                            else
+                              _buildStatMini(
+                                scheme,
+                                icon: Icons.event_repeat_rounded,
+                                value: '$totalSeans',
+                                label: 'seans',
+                              ),
                             const SizedBox(width: 10),
                             Container(
                               width: 1,
@@ -1116,7 +1121,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
       }
     }
     if (totalFiyat == 0) totalFiyat = double.tryParse(paket.fiyat) ?? 0;
-    if (totalSeans == 0) totalSeans = int.tryParse(paket.miktar) ?? 0;
+    totalSeans = paket.varsayilanSeans;
     final fiyatStr = totalFiyat == 0 ? '0' : backendToTl(totalFiyat.toString());
     final scheme = Theme.of(outerContext).colorScheme;
 
@@ -1205,8 +1210,10 @@ class _PaketSatislariState extends State<PaketSatislari> {
                             Expanded(
                               child: _heroStat(
                                 scheme,
-                                label: 'Seans',
-                                value: '$totalSeans',
+                                label: paket.sinirsiz
+                                    ? (paket.sureMetni.isEmpty ? 'Süre' : paket.sureMetni)
+                                    : 'Seans',
+                                value: paket.sinirsiz ? 'Sınırsız' : '$totalSeans',
                               ),
                             ),
                             Container(
@@ -1309,6 +1316,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                     ),
                                   ),
                                 ),
+                                if (!paket.sinirsiz)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 9, vertical: 4),
@@ -1487,6 +1495,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
     final List<Paket> selectedData = [];
     final List<TextEditingController> paketSeansController = [];
     final List<TextEditingController> paketFiyatController = [];
+    final List<List<PaketHizmetleri>> paketHizmetleri = [];
     String odemeYontemiId = '1';
     bool kaydediliyor = false;
 
@@ -1496,20 +1505,18 @@ class _PaketSatislariState extends State<PaketSatislari> {
       if (_paketDataGridSource.selectedRows.value[i]) {
         final secilenPaket = _paketDataGridSource.paket[i];
         selectedData.add(secilenPaket);
-        int defaultSeans = 0;
+        paketHizmetleri.add(paketSatisHizmetleri(secilenPaket));
+        // Sinirsizda adet sunucuda belirlenir, ekranda gorunmez.
+        final defaultSeans = secilenPaket.sinirsiz ? '' : secilenPaket.varsayilanSeans.toString();
         double defaultFiyat = 0;
         for (final h in secilenPaket.hizmetler) {
-          defaultSeans += int.tryParse(h['seans']?.toString() ?? '0') ?? 0;
           defaultFiyat += double.tryParse(h['fiyat']?.toString() ?? '0') ?? 0;
-        }
-        if (defaultSeans == 0) {
-          defaultSeans = int.tryParse(secilenPaket.miktar) ?? 0;
         }
         if (defaultFiyat == 0) {
           defaultFiyat = double.tryParse(secilenPaket.fiyat) ?? 0;
         }
         paketSeansController
-            .add(TextEditingController(text: defaultSeans.toString()));
+            .add(TextEditingController(text: defaultSeans));
         paketFiyatController.add(
           TextEditingController(
             text: defaultFiyat == 0 ? '' : backendToTl(defaultFiyat.toString()),
@@ -1796,8 +1803,20 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                         ],
                                       ),
                                       const SizedBox(height: 10),
+                                      PaketSatisHizmetSecimi(
+                                        hizmetler: paketHizmetleri[index],
+                                        isletmebilgi: widget.isletmebilgi,
+                                        onChanged: (v) => setStateSB(
+                                            () => paketHizmetleri[index] = v),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      if (item.sinirsiz) ...[
+                                        SinirsizRozet(metin: item.sinirsizEtiketi),
+                                        const SizedBox(height: 10),
+                                      ],
                                       Row(
                                         children: [
+                                          if (!item.sinirsiz) ...[
                                           Expanded(
                                             child: _satisInputField(
                                               scheme,
@@ -1809,6 +1828,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                             ),
                                           ),
                                           const SizedBox(width: 10),
+                                          ],
                                           Expanded(
                                             child: _satisInputField(
                                               scheme,
@@ -1922,6 +1942,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                                   selectedData,
                                                   paketSeansController,
                                                   paketFiyatController,
+                                                  paketHizmetleri,
                                                   odemeYontemiId,
                                                   (v) => kaydediliyor = v,
                                                 ),
@@ -1998,6 +2019,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
                                             selectedData,
                                             paketSeansController,
                                             paketFiyatController,
+                                            paketHizmetleri,
                                           ),
                                   child: Text(
                                     'Detaylı tahsilata git →',
@@ -2261,6 +2283,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
     List<Paket> selectedData,
     List<TextEditingController> paketSeansController,
     List<TextEditingController> paketFiyatController,
+    List<List<PaketHizmetleri>> paketHizmetleri,
     String odemeYontemiId,
     void Function(bool) setKaydediliyor,
   ) async {
@@ -2312,6 +2335,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
           false,
           '',
           seansSayisi: seansSayisi,
+          paketHizmetleri: paketSatisHizmetIdleri(paketHizmetleri[i]),
         );
         olusanAdisyonId = eklenen.adisyon_id;
         paketIdler.add(eklenen.id);
@@ -2429,6 +2453,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
     List<Paket> selectedData,
     List<TextEditingController> paketSeansController,
     List<TextEditingController> paketFiyatController,
+    List<List<PaketHizmetleri>> paketHizmetleri,
   ) async {
     bool isvalid = true;
     if (selectedmusteri == null) isvalid = false;
@@ -2490,6 +2515,7 @@ class _PaketSatislariState extends State<PaketSatislari> {
           false,
           '',
           seansSayisi: seansSayisi,
+          paketHizmetleri: paketSatisHizmetIdleri(paketHizmetleri[i]),
         );
         olusanAdisyonId = eklenen.adisyon_id;
       } catch (_) {

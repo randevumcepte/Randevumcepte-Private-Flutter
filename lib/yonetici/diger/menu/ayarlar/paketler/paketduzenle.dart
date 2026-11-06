@@ -16,6 +16,7 @@ import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import '../../satislar/paketsatislariyeni.dart';
 import 'birhizmetdaha.dart';
+import 'paket_gecerlilik_alanlari.dart';
 
 
 
@@ -41,6 +42,14 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
   TextEditingController paketSure = TextEditingController();
   List<PaketHizmetleri>pakethizmetleri = [];
   PaketHizmetleri? secilihizmet;
+  late final PaketGecerlilikDegeri _gecerlilik =
+      PaketGecerlilikDegeri(paket: widget.paket);
+
+  @override
+  void dispose() {
+    _gecerlilik.dispose();
+    super.dispose();
+  }
 
   void hizmetekle() async {
     FocusScope.of(context).unfocus();
@@ -75,7 +84,8 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
     seciliisletme = (await secilisalonid())!;
     setState(() {
       paketadi = TextEditingController(text: widget.paket.paket_adi);
-      paketSeans = TextEditingController(text: widget.paket.miktar);
+      // Sinirsizda miktar teknik deger: forma yazilmaz.
+      paketSeans = TextEditingController(text: widget.paket.sinirsiz ? '' : widget.paket.miktar);
       paketFiyat = TextEditingController(text: backendToTl(widget.paket.fiyat));
       paketSure = TextEditingController(text: widget.paket.sure);
       final List<dynamic> hizmetdata = widget.paket.hizmetler;
@@ -192,6 +202,7 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
                     ],
                   ),
                 ),
+                if (!_gecerlilik.sinirsiz) ...[
                 SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -213,6 +224,7 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
                     ],
                   ),
                 ),
+                ],
                 SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -236,6 +248,11 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
                   ),
                 ),
               ],
+            ),
+            SizedBox(height: 14),
+            PaketGecerlilikAlanlari(
+              deger: _gecerlilik,
+              onChanged: () => setState(() {}),
             ),
             Padding(
               padding: const EdgeInsets.all(10.0),
@@ -330,6 +347,7 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
                       paketSeans.text,
                       tlToBackend(paketFiyat.text),
                       context,
+                      gecerlilik: _gecerlilik.formVerisi(),
                     );
                   },
                   child: Text('Kaydet'),
@@ -377,7 +395,7 @@ class _PaketDuzenleState extends State<PaketDuzenle> {
 
 
 }
-Future<void> submitForm(String paket_id, String salonid, String paket_adi, List<PaketHizmetleri> pakethizmetleri, String paketsure, String seanslar, String fiyatlar, BuildContext context) async {
+Future<void> submitForm(String paket_id, String salonid, String paket_adi, List<PaketHizmetleri> pakethizmetleri, String paketsure, String seanslar, String fiyatlar, BuildContext context, {Map<String, dynamic> gecerlilik = const {}}) async {
   List<Map<String, dynamic>> hizmetler = pakethizmetleri.map((hizmet) => hizmet.toJson()).toList();
 
   Map<String, dynamic> formData = {
@@ -387,12 +405,13 @@ Future<void> submitForm(String paket_id, String salonid, String paket_adi, List<
     'paketsure': paketsure,
     'seanslar': seanslar,
     'fiyatlar': fiyatlar,
+    ...gecerlilik,
   };
 
   log('formdata ' + formData.toString());
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/paket_ekle_guncelle/' + salonid.toString()),
+    Uri.parse('$kPaketApiTaban/paket_ekle_guncelle/' + salonid.toString()),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );

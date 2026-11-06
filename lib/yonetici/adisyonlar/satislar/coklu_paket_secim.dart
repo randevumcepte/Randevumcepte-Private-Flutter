@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/secilipersonel.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
+import 'package:randevu_sistem/Models/paket_hizmetleri.dart';
+import 'package:randevu_sistem/yonetici/dashboard/paket_satis_hizmetleri.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
@@ -61,6 +63,12 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
 
   // Kalem bazında düzenlenebilir fiyat alanları: { paket_id: controller }
   final Map<String, TextEditingController> _fiyatCtrl = {};
+
+  // Bu satis icin secilen hizmetler: { paket_id: hizmetler }. Katalog paketi degismez.
+  final Map<String, List<PaketHizmetleri>> _satisHizmetleri = {};
+
+  List<PaketHizmetleri> _hizmetlerOf(Paket p) =>
+      _satisHizmetleri.putIfAbsent(p.id, () => paketSatisHizmetleri(p));
 
   @override
   void initState() {
@@ -156,14 +164,14 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
     });
   }
 
-  // Secili paketlerin hizmet id'leri (sablon eslesmesi icin)
+  // Secili paketlerin hizmet id'leri (sablon eslesmesi icin).
+  // Sinirsiz pakette adet olmadigi icin otomatik ders plani kurulmaz.
   Set<String> get _seciliHizmetIdler {
     final set = <String>{};
     for (final p in paketler) {
-      if (!_seciliPaketIdler.contains(p.id)) continue;
-      for (final h in p.hizmetler) {
-        final hid = (h['hizmet_id'] ?? h['id'])?.toString();
-        if (hid != null && hid.isNotEmpty) set.add(hid);
+      if (!_seciliPaketIdler.contains(p.id) || p.sinirsiz) continue;
+      for (final h in _hizmetlerOf(p)) {
+        if (h.hizmet_id.isNotEmpty) set.add(h.hizmet_id);
       }
     }
     return set;
@@ -171,9 +179,8 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
 
   // Bir paketin (grup dersi icin) birincil hizmet id'si
   String? _paketHizmetId(Paket p) {
-    for (final h in p.hizmetler) {
-      final hid = (h['hizmet_id'] ?? h['id'])?.toString();
-      if (hid != null && hid.isNotEmpty) return hid;
+    for (final h in _hizmetlerOf(p)) {
+      if (h.hizmet_id.isNotEmpty) return h.hizmet_id;
     }
     return null;
   }
@@ -201,13 +208,7 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
     return toplam;
   }
 
-  int _paketSeans(Paket p) {
-    double toplamSeans = 0;
-    for (final h in p.hizmetler) {
-      toplamSeans += double.tryParse(h["seans"]?.toString() ?? "0") ?? 0;
-    }
-    return toplamSeans > 0 ? toplamSeans.round() : (int.tryParse(p.miktar) ?? 0);
-  }
+  int _paketSeans(Paket p) => p.varsayilanSeans;
 
   List<Paket> get _filtreliPaketler {
     if (_arama.trim().isEmpty) return paketler;
@@ -286,13 +287,15 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
           seans_saati.text,
           true,
           "",
-          seansSayisi: _paketSeans(p).toString(),
+          // Sinirsizda adet sunucuda belirlenir.
+          seansSayisi: p.sinirsiz ? '' : _paketSeans(p).toString(),
+          paketHizmetleri: paketSatisHizmetIdleri(_hizmetlerOf(p)),
         );
         adisyonId = eklenen.adisyon_id; // zincirle
         eklenenler.add(eklenen);
 
         // Studyo modu: ders slotu secildiyse otomatik ders planini olustur + dagit
-        if (_studyo && _seciliSablon.isNotEmpty) {
+        if (_studyo && _seciliSablon.isNotEmpty && !p.sinirsiz) {
           final hid = _paketHizmetId(p);
           final apId = int.tryParse(eklenen.id);
           // Bu paketin hizmetine ait secili slotlar
@@ -548,7 +551,10 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                                     width: secili ? 1.6 : 1,
                                   ),
                                 ),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                Row(
                                   children: [
                                     Icon(
                                       secili ? Icons.check_circle_rounded : Icons.circle_outlined,
@@ -566,7 +572,12 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                                               fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
                                             ),
                                           ),
-                                          if (seans > 0)
+                                          if (p.sinirsiz)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 3),
+                                              child: SinirsizRozet(metin: p.sinirsizEtiketi),
+                                            )
+                                          else if (seans > 0)
                                             Text('$seans seans',
                                                 style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
                                         ],
@@ -598,6 +609,16 @@ class _CokluPaketSecimState extends State<CokluPaketSecim> {
                                         ),
                                       ),
                                     ),
+                                  ],
+                                ),
+                                if (secili) ...[
+                                  const SizedBox(height: 10),
+                                  PaketSatisHizmetSecimi(
+                                    hizmetler: _hizmetlerOf(p),
+                                    isletmebilgi: widget.isletmebilgi,
+                                    onChanged: (v) => setState(() => _satisHizmetleri[p.id] = v),
+                                  ),
+                                ],
                                   ],
                                 ),
                               ),

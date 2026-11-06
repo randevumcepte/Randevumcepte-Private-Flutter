@@ -7,6 +7,8 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/tlrakamacevir.dart';
 import 'package:randevu_sistem/Models/adisyonpaketler.dart';
+import 'package:randevu_sistem/Models/paket_hizmetleri.dart';
+import 'package:randevu_sistem/yonetici/dashboard/paket_satis_hizmetleri.dart';
 import 'package:randevu_sistem/Models/paketler.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 
@@ -37,6 +39,7 @@ class _PaketSatisiState extends State<PaketSatisi> {
   String? seciliisletme;
   late List<Paket> paket;
   Paket? selectedPaket;
+  List<PaketHizmetleri> _satisHizmetleri = [];
   TextEditingController paketler = TextEditingController();
   Personel? selectedPaketSatici;
   TextEditingController psatici = TextEditingController();
@@ -444,27 +447,24 @@ class _PaketSatisiState extends State<PaketSatisi> {
                     if (value != null) {
                       setState(() {
                         selectedPaket = value;
-                        // Fiyat + seans sayisi paket hizmetlerinden hesaplanir;
-                        // hizmet verisi yoksa paketin KENDI belirlenen degerine duser.
+                        _satisHizmetleri = paketSatisHizmetleri(value);
+                        // Fiyat paket hizmetlerinden hesaplanir; hizmet verisi yoksa
+                        // paketin KENDI belirlenen degerine duser.
                         double toplamFiyat = 0;
-                        double toplamSeans = 0;
                         value.hizmetler.forEach((element) {
                           toplamFiyat +=
                               double.tryParse(element["fiyat"]?.toString() ?? "0") ?? 0;
-                          toplamSeans +=
-                              double.tryParse(element["seans"]?.toString() ?? "0") ?? 0;
                         });
                         if (toplamFiyat <= 0) {
                           toplamFiyat =
                               double.tryParse(value.fiyat.replaceAll(',', '.')) ?? 0;
                         }
                         pfiyat.text = formatFiyat(toplamFiyat.toString());
-                        // Varsayilan seans sayisi (duzenlenebilir): hizmet seans toplami,
-                        // yoksa paketin miktari.
-                        final int seansVarsayilan = toplamSeans > 0
-                            ? toplamSeans.round()
-                            : (int.tryParse(value.miktar) ?? 0);
-                        pseans.text = seansVarsayilan > 0 ? seansVarsayilan.toString() : '';
+                        // Varsayilan seans sayisi (duzenlenebilir). Sinirsizda adet yok.
+                        final int seansVarsayilan = value.varsayilanSeans;
+                        pseans.text = !value.sinirsiz && seansVarsayilan > 0
+                            ? seansVarsayilan.toString()
+                            : '';
                       });
                     }
                   },
@@ -518,14 +518,36 @@ class _PaketSatisiState extends State<PaketSatisi> {
 
             SizedBox(height: 16),
 
+            // Senetli satista kayit sonra atildigi icin hizmet secimi burada gosterilmez.
+            if (selectedPaket != null && !widget.senetlisatis) ...[
+              _buildInputCard(
+                icon: Icons.spa_outlined,
+                title: 'Hizmetler',
+                child: PaketSatisHizmetSecimi(
+                  hizmetler: _satisHizmetleri,
+                  isletmebilgi: widget.isletmebilgi,
+                  onChanged: (v) => setState(() => _satisHizmetleri = v),
+                ),
+              ),
+              SizedBox(height: 16),
+            ],
+
             // Seans Sayısı ve Fiyat Satırı
             Row(
               children: [
                 Expanded(
                   child: _buildInputCard(
                     icon: Icons.format_list_numbered_rounded,
-                    title: 'Seans Sayısı',
-                    child: TextFormField(
+                    title: selectedPaket?.sinirsiz == true ? 'Paket Türü' : 'Seans Sayısı',
+                    child: selectedPaket?.sinirsiz == true
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: SinirsizRozet(metin: selectedPaket!.sinirsizEtiketi),
+                            ),
+                          )
+                        : TextFormField(
                       controller: pseans,
                       keyboardType: TextInputType.number,
                       style: TextStyle(
@@ -785,6 +807,7 @@ class _PaketSatisiState extends State<PaketSatisi> {
                       true,
                       "",
                       seansSayisi: seansSayisi,
+                      paketHizmetleri: paketSatisHizmetIdleri(_satisHizmetleri),
                     );
                     Navigator.pop(context, eklenepaket);
                   } else {

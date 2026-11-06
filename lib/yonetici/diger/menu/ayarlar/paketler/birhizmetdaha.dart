@@ -126,6 +126,12 @@ class _BirHizmetDahaState extends State<BirHizmetDaha> {
         hizmet_id: id,
       ));
     }
+    // Listede gorunmeyen (pasife alinmis) mevcut hizmet isaretli kaldiysa korunur.
+    for (final h in widget.secilihizmetler) {
+      if (selectedHizmetIds.contains(h.hizmet_id) && eklenenIdler.add(h.hizmet_id)) {
+        result.add(h);
+      }
+    }
     Navigator.pop(context, result);
   }
 

@@ -472,7 +472,7 @@ class _SeansDusumSheetState extends State<_SeansDusumSheet> {
                               ),
                               const SizedBox(width: 6),
                             ],
-                            if (toplam > 0)
+                            if (toplam > 0 && s['sinirsiz'] != true)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),

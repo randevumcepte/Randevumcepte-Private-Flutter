@@ -9,6 +9,7 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Frontend/cihaz_bilgileri_modal.dart';
 
 import 'package:randevu_sistem/Models/seanstakibi.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/sinirsiz_seans_karti.dart';
 
 class SeansTakibi extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -256,7 +257,11 @@ class _SeansTakibiState extends State<SeansTakibi> {
             item.musteri['name'] != null)
         ? item.musteri['name'].toString()
         : '';
-    final baslangicTarih = _ilkSeansTarihi(item.seanslar);
+    final baslangicTarih = item.sinirsiz
+        ? (item.baslangic == null
+            ? item.sinirsizEtiketi
+            : '${seansTarihi(item.baslangic)} – ${seansTarihi(item.bitis)}')
+        : _ilkSeansTarihi(item.seanslar);
     final toplam = item.bekleyenSeansSayisi +
         item.gelinenSeansSayisi +
         item.gelinmeyenSeansSayisi;
@@ -367,11 +372,13 @@ class _SeansTakibiState extends State<SeansTakibi> {
                     spacing: 4,
                     runSpacing: 4,
                     children: [
-                      _statChip(
-                          label: toplam.toString(),
-                          icon: Icons.add,
-                          bg: _primary,
-                          fg: Colors.white),
+                      // Sinirsizda toplam adet yoktur.
+                      if (!item.sinirsiz)
+                        _statChip(
+                            label: toplam.toString(),
+                            icon: Icons.add,
+                            bg: _primary,
+                            fg: Colors.white),
                       _statChip(
                           label: item.bekleyenSeansSayisi.toString(),
                           icon: Icons.calendar_month,
@@ -508,6 +515,25 @@ class _SeansTakibiState extends State<SeansTakibi> {
   }
 
   Widget _buildHizmetKart(SeansTakip item, _HizmetGroup group) {
+    if (item.sinirsiz) {
+      return SinirsizSeansKarti(
+        paket: item,
+        hizmetAdi: group.adi,
+        seanslar: group.seanslar,
+        onYeniKullanim: () => _yeniSeansEkleDialog(item, group),
+        onDokum: () => sinirsizSeansDokumuGoster(
+          context,
+          baslik: group.adi,
+          seanslar: group.seanslar,
+          onDuzenle: (s) => s['geldi'] == 2
+              ? _seansTelafiOnayDialog(item, s)
+              : _seansDetayDialog(item, s),
+        ),
+        altButon: (_isLazer(group.adi) || _isLazer(item.paket))
+            ? _cihazBilgileriButon(item, group)
+            : null,
+      );
+    }
     int kullanildi = 0;
     int kullanilmadi = 0;
     int telafi = 0;
@@ -962,8 +988,14 @@ class _SeansTakibiState extends State<SeansTakibi> {
         '${seansTarihi.month.toString().padLeft(2, '0')}-'
         '${seansTarihi.day.toString().padLeft(2, '0')}';
     try {
-      await seansEkleApi(paketId, group.hizmetId, paketMi, geldi, context,
+      final sonuc = await seansEkleApi(paketId, group.hizmetId, paketMi, geldi, context,
           seansTarihi: tarihStr);
+      // Sure dolmus / gunluk limit asilmis: sunucu seansi yazmaz.
+      if (sonuc['hatali']?.toString() == '1' && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text((sonuc['mesaj'] ?? 'Seans eklenemedi.').toString())),
+        );
+      }
     } catch (e, st) {
       log('seans ekle hatasi: $e\n$st');
       if (mounted) {

@@ -13,6 +13,7 @@ import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 
 import 'birhizmetdaha.dart';
+import 'paket_gecerlilik_alanlari.dart';
 
 class PaketEkle extends StatefulWidget {
   final Kullanici kullanici;
@@ -35,6 +36,7 @@ class _PaketEkleState extends State<PaketEkle> {
   final TextEditingController paketSeans = TextEditingController();
   final TextEditingController paketFiyat = TextEditingController();
   final TextEditingController paketSure = TextEditingController();
+  final PaketGecerlilikDegeri _gecerlilik = PaketGecerlilikDegeri();
   List<PaketHizmetleri> pakethizmetleri = [];
   bool _isloading = true;
   bool _kaydediliyor = false;
@@ -57,6 +59,7 @@ class _PaketEkleState extends State<PaketEkle> {
     paketSeans.dispose();
     paketFiyat.dispose();
     paketSure.dispose();
+    _gecerlilik.dispose();
     super.dispose();
   }
 
@@ -214,19 +217,21 @@ class _PaketEkleState extends State<PaketEkle> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _fieldWithLabel(
-                  scheme,
-                  label: 'Seans',
-                  child: _modernInput(
+              if (!_gecerlilik.sinirsiz) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _fieldWithLabel(
                     scheme,
-                    controller: paketSeans,
-                    hint: '8',
-                    keyboardType: TextInputType.number,
+                    label: 'Seans',
+                    child: _modernInput(
+                      scheme,
+                      controller: paketSeans,
+                      hint: '8',
+                      keyboardType: TextInputType.number,
+                    ),
                   ),
                 ),
-              ),
+              ],
               const SizedBox(width: 10),
               Expanded(
                 child: _fieldWithLabel(
@@ -242,6 +247,11 @@ class _PaketEkleState extends State<PaketEkle> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+          PaketGecerlilikAlanlari(
+            deger: _gecerlilik,
+            onChanged: () => setState(() {}),
           ),
         ],
       ),
@@ -672,13 +682,13 @@ class _PaketEkleState extends State<PaketEkle> {
         'paketsure': paketSure.text,
         'seanslar': paketSeans.text,
         'fiyatlar': tlToBackend(paketFiyat.text),
+        ..._gecerlilik.formVerisi(),
       };
 
       log('paketekle formdata: $formData');
 
       final response = await http.post(
-        Uri.parse(
-            'https://app.randevumcepte.com.tr/api/v1/paket_ekle_guncelle/$seciliisletme'),
+        Uri.parse('$kPaketApiTaban/paket_ekle_guncelle/$seciliisletme'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(formData),
       );

@@ -5,6 +5,7 @@ import 'package:randevu_sistem/Frontend/datetimeformatting.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/seanstakibi.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/sinirsiz_seans_karti.dart' show seansTarihi;
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 class SeanslarDashboard extends StatefulWidget {
@@ -83,7 +84,7 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
   int get _totalPages => _ds?.totalPages ?? 1;
 
   int get _totalToplam =>
-      _items.fold(0, (a, e) => a + e.seansSayisi);
+      _items.fold(0, (a, e) => a + (e.sinirsiz ? 0 : e.seansSayisi));
   int get _totalBekleyen =>
       _items.fold(0, (a, e) => a + e.bekleyenSeansSayisi);
   int get _totalGelinen =>
@@ -491,7 +492,7 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
     final total = e.seansSayisi;
     final tamamlanan = e.gelinenSeansSayisi;
     final progress = total == 0 ? 0.0 : (tamamlanan / total).clamp(0.0, 1.0);
-    final tamamlandi = total > 0 && tamamlanan >= total;
+    final tamamlandi = !e.sinirsiz && total > 0 && tamamlanan >= total;
 
     final paketAdi = e.paket.trim().isEmpty ? 'Paket' : e.paket;
     final hizmetSayisi = e.hizmetler.length;
@@ -611,6 +612,9 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
                 ),
                 const SizedBox(height: 14),
                 // PROGRESS
+                if (e.sinirsiz)
+                  _sinirsizBilgi(e, scheme)
+                else
                 Row(
                   children: [
                     Expanded(
@@ -680,6 +684,21 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // Sinirsiz pakette ilerleme cubugu yerine: sure ve tarihler (adet yok).
+  Widget _sinirsizBilgi(SeansTakip e, ColorScheme scheme) {
+    final tarih = e.baslangic == null
+        ? e.kalanSureMetni
+        : '${seansTarihi(e.baslangic)} – ${seansTarihi(e.bitis)}';
+    return Text(
+      '${e.sinirsizEtiketi}  •  $tarih',
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface.withValues(alpha: 0.75),
       ),
     );
   }
@@ -815,7 +834,7 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
         final total = e.seansSayisi;
         final tamamlanan = e.gelinenSeansSayisi;
         final progress = total == 0 ? 0.0 : (tamamlanan / total).clamp(0.0, 1.0);
-        final tamamlandi = total > 0 && tamamlanan >= total;
+        final tamamlandi = !e.sinirsiz && total > 0 && tamamlanan >= total;
 
         // Seansları hizmet adına göre grupla (orijinal sıralamayı koru)
         final groups = <String, List<dynamic>>{};
@@ -925,7 +944,7 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
                       Row(
                         children: [
                           Text(
-                            'Genel İlerleme',
+                            e.sinirsiz ? e.sinirsizEtiketi : 'Genel İlerleme',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -935,7 +954,7 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
                           ),
                           const Spacer(),
                           Text(
-                            '$tamamlanan / $total',
+                            e.sinirsiz ? e.kalanSureMetni : '$tamamlanan / $total',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
@@ -946,6 +965,9 @@ class _SeanslarDashboardState extends State<SeanslarDashboard> {
                         ],
                       ),
                       const SizedBox(height: 10),
+                      if (e.sinirsiz)
+                        _sinirsizBilgi(e, scheme)
+                      else
                       ClipRRect(
                         borderRadius: BorderRadius.circular(999),
                         child: LinearProgressIndicator(

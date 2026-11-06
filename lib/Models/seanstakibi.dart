@@ -20,6 +20,10 @@ class SeansTakip  {
     this.tip,
     this.paketHizmetId,
     this.hizmetler = const [],
+    this.sinirsiz = false,
+    this.sure = '',
+    this.baslangic,
+    this.bitis,
 
   });
   final String id;
@@ -34,6 +38,30 @@ class SeansTakip  {
   final String? tip;
   final String? paketHizmetId;
   final List<dynamic> hizmetler;
+  final bool sinirsiz;
+  final String sure;
+  final String? baslangic;
+  final String? bitis;
+
+  String get sinirsizEtiketi => sure.isEmpty ? 'Sınırsız' : 'Sınırsız · $sure';
+
+  /// Bitis gunu dahil gecerli; bitis yoksa (henuz gelinmedi) sure islemez.
+  bool get suresiDoldu => _kalanGun != null && _kalanGun! < 0;
+
+  int? get _kalanGun {
+    final son = DateTime.tryParse(bitis ?? '');
+    if (son == null) return null;
+    final simdi = DateTime.now();
+    return DateTime(son.year, son.month, son.day)
+        .difference(DateTime(simdi.year, simdi.month, simdi.day))
+        .inDays;
+  }
+
+  String get kalanSureMetni {
+    final gun = _kalanGun;
+    if (gun == null) return 'İlk gelişte başlar';
+    return gun < 0 ? 'Süresi doldu' : '$gun gün kaldı';
+  }
 
 
 
@@ -56,6 +84,10 @@ class SeansTakip  {
       hizmetler: (jsonvar["hizmetler"] is List)
           ? jsonvar["hizmetler"] as List<dynamic>
           : const [],
+      sinirsiz: jsonvar["sinirsiz"].toString() == '1',
+      sure: (jsonvar["sure"] ?? '').toString(),
+      baslangic: jsonvar["baslangic"]?.toString(),
+      bitis: jsonvar["bitis"]?.toString(),
 
     );
   }

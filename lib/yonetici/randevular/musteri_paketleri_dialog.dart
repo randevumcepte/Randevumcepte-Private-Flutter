@@ -352,6 +352,8 @@ class _PaketItemRow extends StatelessWidget {
     final isPaket = item['type'] == 'paket';
     final adi = item['adi']?.toString() ?? '';
     final seans = item['seans']?.toString() ?? '0';
+    final sinirsiz = item['sinirsiz']?.toString() == '1';
+    final gecerlilik = item['gecerlilik']?.toString() ?? '';
     final sure = item['sure']?.toString() ?? '0';
     final icerik = (item['icerik'] as List?) ?? [];
     final ozellestirilebilir = isPaket && icerik.length > 1;
@@ -430,7 +432,9 @@ class _PaketItemRow extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 4,
                       children: [
-                        _infoChip('Kalan', '$seans seans'),
+                        sinirsiz
+                            ? _infoChip('Paket', gecerlilik.isEmpty ? 'Sınırsız' : 'Sınırsız · $gecerlilik')
+                            : _infoChip('Kalan', '$seans seans'),
                         if (sure != '0' && sure.isNotEmpty)
                           _infoChip('Süre', '$sure dk'),
                         _infoChip('Tür', isPaket ? 'Paket' : 'Tek Hizmet'),
@@ -443,7 +447,7 @@ class _PaketItemRow extends StatelessWidget {
                         child: Text(
                           icerik
                               .map((h) =>
-                                  '• ${h['text']} (${h['seans']} seans)')
+                                  sinirsiz ? '• ${h['text']}' : '• ${h['text']} (${h['seans']} seans)')
                               .join('\n'),
                           style: TextStyle(
                               fontSize: 11, color: Colors.grey[700]),
@@ -487,7 +491,7 @@ class _PaketItemRow extends StatelessWidget {
                           ),
                           Expanded(
                             child: Text(
-                              '${h['text']}  ·  ${h['seans']} seans',
+                              sinirsiz ? '${h['text']}' : '${h['text']}  ·  ${h['seans']} seans',
                               style: const TextStyle(fontSize: 13),
                             ),
                           ),

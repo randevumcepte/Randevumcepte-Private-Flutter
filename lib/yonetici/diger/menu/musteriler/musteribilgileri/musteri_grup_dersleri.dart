@@ -493,7 +493,10 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
     setState(() {
       _kaynakIndex = i;
       _seciliSablon.clear();
-      _toplamSeans = int.tryParse(_kaynaklar[i]['kalan_seans'].toString()) ?? 0;
+      // Sinirsizda kalan teknik degerdir; plan adedi kullanicidan alinir.
+      _toplamSeans = _kaynaklar[i]['sinirsiz'] == true
+          ? 12
+          : int.tryParse(_kaynaklar[i]['kalan_seans'].toString()) ?? 0;
     });
   }
 
@@ -638,7 +641,7 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
                   for (int i = 0; i < _kaynaklar.length; i++)
                     DropdownMenuItem(
                       value: i,
-                      child: Text('${_kaynaklar[i]['etiket']} • ${_kaynaklar[i]['kalan_seans']} seans',
+                      child: Text('${_kaynaklar[i]['etiket']} • ${_kaynaklar[i]['sinirsiz'] == true ? 'Sınırsız' : '${_kaynaklar[i]['kalan_seans']} seans'}',
                           overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5)),
                     ),
                 ],
@@ -657,7 +660,7 @@ class _TekrarliKatilimFormState extends State<TekrarliKatilimForm> {
             ),
             _sayacBtn(Icons.add, () => setState(() => _toplamSeans = (_toplamSeans + 1).clamp(1, 999))),
             const Spacer(),
-            Text('kalan: ${_kaynak?['kalan_seans'] ?? 0}', style: TextStyle(fontSize: 12.5, color: Colors.grey.shade500)),
+            if (_kaynak?['sinirsiz'] != true) Text('kalan: ${_kaynak?['kalan_seans'] ?? 0}', style: TextStyle(fontSize: 12.5, color: Colors.grey.shade500)),
           ]),
           const SizedBox(height: 16),
 

@@ -1099,13 +1099,16 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 		return f > 0 ? f.toStringAsFixed(0) : '';
 	}
 
-	// Paketin varsayilan seans sayisi: hizmetler seans toplami, yoksa paket miktari
+	// Paketin varsayilan seans sayisi: her bolge icin hak (8,8,8 = 8), yoksa paket miktari.
+	// Sinirsizda adet sunucuda belirlenir, forma yazilmaz.
 	String _paketVarsayilanSeans(OnGorusme e) {
+		if (e.paket['sinirsiz']?.toString() == '1') return '';
 		final h = e.paket['hizmetler'];
 		if (h is List) {
 			double s = 0;
 			for (final x in h) {
-				s += double.tryParse(x is Map ? (x['seans']?.toString() ?? '0') : '0') ?? 0;
+				final seans = double.tryParse(x is Map ? (x['seans']?.toString() ?? '0') : '0') ?? 0;
+				if (seans > s) s = seans;
 			}
 			if (s > 0) return s.round().toString();
 		}

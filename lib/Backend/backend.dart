@@ -1712,7 +1712,7 @@ Future <Map<String, dynamic>> satislarigetir(String Salonid , String currpage,St
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seanslar?page='+currpage.toString()),
+    Uri.parse('$kPaketApiTaban/seanslar?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2187,7 +2187,7 @@ Future <Map<String, dynamic>> seanslarigetir(String Salonid , String currpage,St
 
 
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seanslar?page='+currpage.toString()),
+    Uri.parse('$kPaketApiTaban/seanslar?page='+currpage.toString()),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -2218,7 +2218,7 @@ Future<Map<String, dynamic>> seansGuncelleApi(
     'geldi': geldi,
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansGuncelle'),
+    Uri.parse('$kPaketApiTaban/seansGuncelle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -2241,7 +2241,7 @@ Future<Map<String, dynamic>> seansEkleApi(
     'seansTarihi': seansTarihi ?? '',
   };
   final response = await http.post(
-    Uri.parse('https://app.randevumcepte.com.tr/api/v1/seansEkle'),
+    Uri.parse('$kPaketApiTaban/seansEkle'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
   );
@@ -3055,7 +3055,13 @@ Future<String?> kvkkPopup(
     },
   );
 }
-Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildContext context,String salonid,String seanssaati, bool showprogress,String senetid, {String seansSayisi = ''}) async{
+// Sinirsiz paket + satista hizmet secimi uclari. Sunucu degisikligi canliya cikmadan denemek icin:
+// flutter run --dart-define=PAKET_API=https://apptest.randevumcepte.com.tr/api/v1
+// Tanimsizken canli kullanilir; test ve canli ayni veritabanini kullanir.
+const String kPaketApiTaban = String.fromEnvironment('PAKET_API',
+    defaultValue: 'https://app.randevumcepte.com.tr/api/v1');
+
+Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildContext context,String salonid,String seanssaati, bool showprogress,String senetid, {String seansSayisi = '', List<String>? paketHizmetleri}) async{
   if(showprogress)
     showProgressLoading(context);
 
@@ -3077,11 +3083,13 @@ Future<AdisyonPaket> adisyonpaketekle(AdisyonPaket paket,String musteriid,BuildC
     'olusturan':user["id"],
     'senet_id':senetid,
     'seans_sayisi':seansSayisi,
+    // Bu satis icin secilen hizmetler; katalogla ayniysa sunucu katalog paketini yazar.
+    if (paketHizmetleri != null) 'paket_hizmetleri':paketHizmetleri,
 
   };
   log(json.encode(formData));
   final response = await http.post(
-    Uri.parse("https://app.randevumcepte.com.tr/api/v1/adisyonpaketekle"),
+    Uri.parse("$kPaketApiTaban/adisyonpaketekle"),
 
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(formData),
@@ -5799,7 +5807,7 @@ Future<Map<String, dynamic>> paketVarmiKontrolu(String userId, String salonId) a
   try {
     final response = await http.post(
       // GEÇİCİ: test ucu — yayın öncesi app.randevumcepte.com.tr'ye geri alınacak.
-      Uri.parse('https://app.randevumcepte.com.tr/api/v1/paketVarmiKontrolu'),
+      Uri.parse('$kPaketApiTaban/paketVarmiKontrolu'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'userId': userId,

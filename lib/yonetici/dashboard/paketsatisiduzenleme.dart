@@ -55,6 +55,13 @@ class _PaketSatisiState extends State<PaketSatisiDuzenleme> {
       // bos id). where().toList ile guvenli -> yoksa null (dropdown bos baslar).
       final eslP = paket.where((e) => e.id == widget.mevcutpaket.paket_id).toList();
       selectedPaket = eslP.isNotEmpty ? eslP.first : null;
+      // Satista hizmeti degistirilmis paket katalog listesinde yoktur; kendi kaydi secili kalir.
+      if (selectedPaket == null && widget.mevcutpaket.paket is Map) {
+        try {
+          selectedPaket = Paket.fromJson(Map<String, dynamic>.from(widget.mevcutpaket.paket));
+          paket.insert(0, selectedPaket!);
+        } catch (_) {}
+      }
       final eslS = paketsatici.where((e) => e.id == widget.mevcutpaket.personel_id).toList();
       selectedPaketSatici = eslS.isNotEmpty ? eslS.first : null;
       pfiyat.text = tryformat.format(double.parse(widget.mevcutpaket.fiyat)).toString();
