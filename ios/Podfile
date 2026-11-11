@@ -4,6 +4,31 @@ platform :ios, '15.5'  # Minimum iOS sürümü (google_mlkit_commons gerektiriyo
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# --- Marka switch korumasi: pbxproj'de tirnaksiz bosluklu/Turkce degerleri otomatik tirnakla ---
+# Xcode/elle duzenlemede "INFOPLIST_KEY_CFBundleDisplayName = Senail Beauty;" gibi tirnaksiz
+# deger kalirsa pod install "Dictionary missing ';'" / "\xC5" hatasiyla patlar. Bu blok pod
+# projeyi okumadan once bu satirlari "..." icine alir.
+begin
+  pbxproj_path = File.join(__dir__, 'Runner.xcodeproj', 'project.pbxproj')
+  if File.exist?(pbxproj_path)
+    original = File.read(pbxproj_path, encoding: 'UTF-8')
+    fixed = original.gsub(/^(\s*[A-Za-z0-9_.\[\]=*"-]+ = )([^"({\s][^;\n]*?);[ \t]*$/) do |whole|
+      prefix, value = Regexp.last_match(1), Regexp.last_match(2)
+      if value.include?('/*') || !value.match?(/[\s[:^ascii:]]/)
+        whole
+      else
+        "#{prefix}\"#{value.gsub('"', '\\"')}\";"
+      end
+    end
+    if fixed != original
+      File.write(pbxproj_path, fixed)
+      puts '[Podfile] project.pbxproj: tirnaksiz degerler otomatik tirnaklandi.'
+    end
+  end
+rescue => e
+  puts "[Podfile] pbxproj otomatik duzeltme atlandi: #{e.message}"
+end
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
