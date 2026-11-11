@@ -51,6 +51,11 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
   // Puan Ödülleri
   bool _puanOdulLoading = false;
   List<Map<String, dynamic>> _puanOdulleri = [];
+  // Puan kazanım kuralı (her X TL'ye Y puan + gelinen randevuya Z puan) — web ile aynı ayar
+  Map<String, dynamic>? _puanKazanim;
+  // Damga kartı ("X hizmetini N kez alana M seans ücretsiz") — web ile aynı kurallar
+  List<Map<String, dynamic>> _damgaKurallari = [];
+  List<Map<String, dynamic>> _damgaHizmetleri = [];
 
   // Kaydedilmemiş değişiklik var mı? (true ise otomatik sync yapılmaz — kullanıcının emeği silinmesin)
   bool _dilimDirty = false;
@@ -1609,16 +1614,449 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
 
   Future<void> _yuklePuanOdulleri() async {
     setState(() => _puanOdulLoading = true);
-    final r = await carkAdminPuanOdulleriGetir(_salonId);
+    final sonuclar = await Future.wait([
+      carkAdminPuanOdulleriGetir(_salonId),
+      carkAdminPuanKazanimGetir(_salonId),
+      carkAdminDamgaKartiGetir(_salonId),
+    ]);
     if (!mounted) return;
+    final r = sonuclar[0], k = sonuclar[1], d = sonuclar[2];
+    List<Map<String, dynamic>> liste(dynamic v) =>
+        ((v as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     setState(() {
       _puanOdulLoading = false;
       if (r != null && r['basarili'] == true) {
-        _puanOdulleri = ((r['odulSeviyeleri'] as List?) ?? const [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
+        _puanOdulleri = liste(r['odulSeviyeleri']);
+      }
+      if (k != null && k['basarili'] == true && k['ayar'] is Map) {
+        _puanKazanim = Map<String, dynamic>.from(k['ayar'] as Map);
+      }
+      if (d != null) {
+        _damgaKurallari = liste(d['kurallar']);
+        _damgaHizmetleri = liste(d['hizmetler']);
       }
     });
+  }
+
+  /// Ödül listesini değil yalnız kazanım + damga bölümlerini tazeler (kaydet/sil sonrası).
+  Future<void> _yukleDamgaVeKazanim() async {
+    final sonuclar = await Future.wait([carkAdminPuanKazanimGetir(_salonId), carkAdminDamgaKartiGetir(_salonId)]);
+    if (!mounted) return;
+    final k = sonuclar[0], d = sonuclar[1];
+    setState(() {
+      if (k != null && k['basarili'] == true && k['ayar'] is Map) {
+        _puanKazanim = Map<String, dynamic>.from(k['ayar'] as Map);
+      }
+      if (d != null) {
+        _damgaKurallari = ((d['kurallar'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        _damgaHizmetleri = ((d['hizmetler'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    });
+  }
+
+  void _bilgi(String mesaj, {bool hata = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(mesaj),
+      backgroundColor: hata ? Colors.red : null,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  Widget _bolumBaslik(ColorScheme scheme, IconData ikon, String baslik, String aciklama) {
+    return Padding(
+      padding: EdgeInsets.only(top: 18, bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(ikon, color: scheme.primary, size: 20),
+            SizedBox(width: 6),
+            Text(baslik, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          ]),
+          SizedBox(height: 3),
+          Text(aciklama, style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.35)),
+        ],
+      ),
+    );
+  }
+
+  // ---------- Puan Kazanma Kuralı ----------
+
+  Widget _puanKazanimKart(ColorScheme scheme) {
+    final a = _puanKazanim;
+    final aktif = ((a?['aktif'] as num?)?.toInt() ?? 0) == 1;
+    final tutar = (a?['harcama_tutari'] as num?)?.toDouble() ?? 100;
+    final hp = (a?['harcama_puani'] as num?)?.toInt() ?? 0;
+    final zp = (a?['ziyaret_puani'] as num?)?.toInt() ?? 0;
+    final tutarYazi = tutar == tutar.roundToDouble() ? tutar.toInt().toString() : tutar.toStringAsFixed(2);
+    final ozet = <String>[
+      if (hp > 0) 'Her $tutarYazi ₺ tahsilata $hp puan',
+      if (zp > 0) 'Gelinen her randevuya $zp puan',
+    ];
+    return Container(
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  _durumRozet(aktif),
+                  if (aktif && a?['baslangic'] != null) ...[
+                    SizedBox(width: 6),
+                    Flexible(child: Text('${a!['baslangic']} itibarıyla', style: TextStyle(fontSize: 11, color: Colors.grey.shade600))),
+                  ],
+                ]),
+                SizedBox(height: 6),
+                Text(
+                  ozet.isEmpty ? 'Puan miktarı tanımlanmadı' : ozet.join('\n'),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          IconButton(icon: Icon(Icons.edit, color: scheme.primary), tooltip: 'Düzenle', onPressed: _puanKazanimDuzenle),
+        ],
+      ),
+    );
+  }
+
+  Widget _durumRozet(bool aktif) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: aktif ? Color(0xFFDCFCE7) : Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(aktif ? 'AÇIK' : 'KAPALI',
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: aktif ? Color(0xFF166534) : Colors.grey.shade700)),
+    );
+  }
+
+  Future<void> _puanKazanimDuzenle() async {
+    final a = _puanKazanim ?? const <String, dynamic>{};
+    final tutarNum = (a['harcama_tutari'] as num?)?.toDouble() ?? 100;
+    final tutarCtrl = TextEditingController(
+        text: tutarNum == tutarNum.roundToDouble() ? tutarNum.toInt().toString() : tutarNum.toString());
+    final hpCtrl = TextEditingController(text: ((a['harcama_puani'] as num?)?.toInt() ?? 0).toString());
+    final zpCtrl = TextEditingController(text: ((a['ziyaret_puani'] as num?)?.toInt() ?? 0).toString());
+    bool aktif = ((a['aktif'] as num?)?.toInt() ?? 0) == 1;
+    bool kaydediyor = false;
+
+    await showDialog(
+      context: context,
+      builder: (c) => StatefulBuilder(builder: (c, setSt) {
+        final scheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Puan Kazanma Kuralı'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: tutarCtrl,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(labelText: 'Her', suffixText: '₺', border: OutlineInputBorder()),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: hpCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'tahsilata', suffixText: 'puan', border: OutlineInputBorder()),
+                    ),
+                  ),
+                ]),
+                SizedBox(height: 10),
+                TextField(
+                  controller: zpCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Gelinen her randevuya',
+                    suffixText: 'puan',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                SizedBox(height: 6),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Aktif'),
+                  subtitle: Text(
+                    'Açıldığı andan sonraki tahsilat ve randevular puan kazandırır (geriye dönük verilmez).',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                  value: aktif,
+                  activeColor: scheme.primary,
+                  onChanged: (v) => setSt(() => aktif = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: kaydediyor ? null : () => Navigator.pop(c), child: Text('İptal')),
+            ElevatedButton(
+              onPressed: kaydediyor
+                  ? null
+                  : () async {
+                      setSt(() => kaydediyor = true);
+                      final r = await carkAdminPuanKazanimKaydet(_salonId, {
+                        'aktif': aktif ? 1 : 0,
+                        'harcama_tutari': double.tryParse(tutarCtrl.text.trim().replaceAll(',', '.')) ?? 0,
+                        'harcama_puani': int.tryParse(hpCtrl.text.trim()) ?? 0,
+                        'ziyaret_puani': int.tryParse(zpCtrl.text.trim()) ?? 0,
+                      });
+                      if (!mounted) return;
+                      setSt(() => kaydediyor = false);
+                      if (r != null && r['basarili'] == true) {
+                        Navigator.pop(c);
+                        setState(() => _puanKazanim = Map<String, dynamic>.from(r['ayar'] as Map));
+                        _bilgi('Puan kazanma kuralı kaydedildi');
+                      } else {
+                        _bilgi(r?['mesaj']?.toString() ?? 'Kaydedilemedi', hata: true);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: scheme.primary, foregroundColor: Colors.white),
+              child: kaydediyor
+                  ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text('Kaydet'),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  // ---------- Damga Kartı ----------
+
+  Widget _damgaKartBolumu(ColorScheme scheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => _damgaKuralDuzenle(null),
+          icon: Icon(Icons.add),
+          label: Text('Yeni Damga Kuralı'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: scheme.primary,
+            side: BorderSide(color: scheme.primary.withValues(alpha: 0.5)),
+            padding: EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
+        SizedBox(height: 10),
+        if (_damgaKurallari.isEmpty)
+          Container(
+            padding: EdgeInsets.all(18),
+            alignment: Alignment.center,
+            child: Text('Henüz damga kuralı yok. Örn. "Cilt Bakımı 4 kez alana 1 seans ücretsiz".',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          )
+        else
+          ..._damgaKurallari.map((k) => _damgaKuralKart(scheme, k)),
+      ],
+    );
+  }
+
+  Widget _damgaKuralKart(ColorScheme scheme, Map<String, dynamic> k) {
+    final aktif = ((k['aktif'] as num?)?.toInt() ?? 0) == 1;
+    final gereken = (k['gereken_adet'] as num?)?.toInt() ?? 0;
+    final ucretsiz = (k['ucretsiz_adet'] as num?)?.toInt() ?? 0;
+    return Container(
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: aktif ? Colors.transparent : Colors.grey.shade300),
+        boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.04), blurRadius: 10, offset: Offset(0, 2))],
+      ),
+      child: Opacity(
+        opacity: aktif ? 1 : 0.55,
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [Color(0xFFA7F3D0), Color(0xFF10B981)]),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(children: [
+                Text('$gereken+$ucretsiz', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF064E3B), height: 1)),
+                SizedBox(height: 1),
+                Text('DAMGA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF064E3B), letterSpacing: 0.4)),
+              ]),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text((k['hizmet_adi'] ?? '-').toString(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                  SizedBox(height: 2),
+                  Text('$gereken kez alana $ucretsiz seans ücretsiz',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                  SizedBox(height: 6),
+                  _durumRozet(aktif),
+                ],
+              ),
+            ),
+            IconButton(icon: Icon(Icons.edit, color: scheme.primary), tooltip: 'Düzenle', onPressed: () => _damgaKuralDuzenle(k)),
+            IconButton(icon: Icon(Icons.delete_outline, color: Colors.red), tooltip: 'Sil', onPressed: () => _damgaKuralSil(k)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _damgaKuralDuzenle(Map<String, dynamic>? mevcut) async {
+    int? hizmetId = (mevcut?['hizmet_id'] as num?)?.toInt();
+    final gerekenCtrl = TextEditingController(text: ((mevcut?['gereken_adet'] as num?)?.toInt() ?? 4).toString());
+    final ucretsizCtrl = TextEditingController(text: ((mevcut?['ucretsiz_adet'] as num?)?.toInt() ?? 1).toString());
+    bool aktif = ((mevcut?['aktif'] as num?)?.toInt() ?? 1) == 1;
+    bool kaydediyor = false;
+
+    // Kuraldaki hizmet artık aktif listede değilse de seçili görünsün
+    final hizmetler = List<Map<String, dynamic>>.from(_damgaHizmetleri);
+    if (hizmetId != null && !hizmetler.any((h) => (h['id'] as num).toInt() == hizmetId)) {
+      hizmetler.insert(0, {'id': hizmetId, 'hizmet_adi': mevcut?['hizmet_adi'] ?? 'Hizmet #$hizmetId'});
+    }
+
+    await showDialog(
+      context: context,
+      builder: (c) => StatefulBuilder(builder: (c, setSt) {
+        final scheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(mevcut == null ? 'Yeni Damga Kuralı' : 'Damga Kuralını Düzenle'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AramaliDropdownFormField<int>(
+                  value: hizmetId,
+                  isExpanded: true,
+                  hint: Text('Hizmet ara veya seçin'),
+                  decoration: InputDecoration(labelText: 'Hizmet', border: OutlineInputBorder()),
+                  items: hizmetler
+                      .map((h) => DropdownMenuItem<int>(
+                            value: (h['id'] as num).toInt(),
+                            child: Text((h['hizmet_adi'] ?? '').toString(), overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setSt(() => hizmetId = v),
+                ),
+                SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: gerekenCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Kaç kez alana', suffixText: 'kez', border: OutlineInputBorder()),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: ucretsizCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Ücretsiz', suffixText: 'seans', border: OutlineInputBorder()),
+                    ),
+                  ),
+                ]),
+                SizedBox(height: 8),
+                Text(
+                  '"Geldi" işaretli randevular sayılır; paket/seanslı satış seansları sayılmaz. '
+                  'Ücretsiz seansı tahsilat ekranında personel uygular (%100 indirim + 0 TL tahsilat).',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.35),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Aktif'),
+                  subtitle: Text('Sayım açıldığı andan itibaren başlar', style: TextStyle(fontSize: 11)),
+                  value: aktif,
+                  activeColor: scheme.primary,
+                  onChanged: (v) => setSt(() => aktif = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: kaydediyor ? null : () => Navigator.pop(c), child: Text('İptal')),
+            ElevatedButton(
+              onPressed: kaydediyor
+                  ? null
+                  : () async {
+                      if (hizmetId == null) {
+                        _bilgi('Lütfen bir hizmet seçin', hata: true);
+                        return;
+                      }
+                      setSt(() => kaydediyor = true);
+                      final r = await carkAdminDamgaKartiKaydet(_salonId, {
+                        if (mevcut != null) 'id': mevcut['id'],
+                        'hizmet_id': hizmetId,
+                        'gereken_adet': int.tryParse(gerekenCtrl.text.trim()) ?? 0,
+                        'ucretsiz_adet': int.tryParse(ucretsizCtrl.text.trim()) ?? 0,
+                        'aktif': aktif ? 1 : 0,
+                      });
+                      if (!mounted) return;
+                      setSt(() => kaydediyor = false);
+                      if (r != null && r['basarili'] == true) {
+                        Navigator.pop(c);
+                        _yukleDamgaVeKazanim();
+                        _bilgi('Damga kuralı kaydedildi');
+                      } else {
+                        _bilgi(r?['mesaj']?.toString() ?? 'Kaydedilemedi', hata: true);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: scheme.primary, foregroundColor: Colors.white),
+              child: kaydediyor
+                  ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(mevcut == null ? 'Ekle' : 'Güncelle'),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Future<void> _damgaKuralSil(Map<String, dynamic> k) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Damga Kuralını Sil'),
+        content: Text('"${k['hizmet_adi']}" damga kuralı silinsin mi?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text('İptal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: Text('Sil'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final r = await carkAdminDamgaKartiSil(_salonId, (k['id'] as num).toInt());
+    if (!mounted) return;
+    if (r != null && r['basarili'] == true) {
+      _yukleDamgaVeKazanim();
+      _bilgi('Damga kuralı silindi');
+    } else {
+      _bilgi(r?['mesaj']?.toString() ?? 'Silinemedi', hata: true);
+    }
   }
 
   Widget _puanOdulleriTab(ColorScheme scheme) {
@@ -1684,6 +2122,12 @@ class _CarkYonetimiPageState extends State<CarkYonetimiPage> with TickerProvider
             )
           else
             ..._puanOdulleri.map((o) => _puanOdulKart(scheme, o)),
+          _bolumBaslik(scheme, Icons.trending_up, 'Puan Kazanma Kuralı',
+              'Müşteri tahsilat ve gelinen randevularla otomatik puan toplar; puanla yukarıdaki ödülleri alır.'),
+          _puanKazanimKart(scheme),
+          _bolumBaslik(scheme, Icons.confirmation_number_outlined, 'Damga Kartı (Al-Kazan)',
+              'Bir hizmeti belirli sayıda alan müşteriye ücretsiz seans. Ücretsiz seans tahsilatta personel onayıyla uygulanır.'),
+          _damgaKartBolumu(scheme),
         ],
       ),
     );

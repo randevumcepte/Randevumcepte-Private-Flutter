@@ -6885,6 +6885,55 @@ Future<bool> carkAdminPuanOdulSil(String salonId, int id) async {
   return false;
 }
 
+// ----- Puan Kazanim Kurali + Damga Karti (admin tarafi) -----
+
+Future<Map<String, dynamic>?> _carkAdminGetJson(String yol) async {
+  try {
+    final res = await http.get(Uri.parse('$_apiBase/$yol'), headers: _jsonHeaders())
+        .timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+  } catch (e) {
+    log('carkAdmin GET $yol: $e');
+  }
+  return null;
+}
+
+Future<Map<String, dynamic>?> _carkAdminPostJson(String yol, Map<String, dynamic> data) async {
+  try {
+    final res = await http.post(Uri.parse('$_apiBase/$yol'), headers: _jsonHeaders(), body: jsonEncode(data))
+        .timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(res.body) as Map);
+    }
+    try {
+      final b = json.decode(res.body);
+      if (b is Map) return Map<String, dynamic>.from(b);
+    } catch (_) {}
+  } catch (e) {
+    log('carkAdmin POST $yol: $e');
+  }
+  return null;
+}
+
+/// Puan kazanim kurali: { basarili, ayar: {aktif, harcama_tutari, harcama_puani, ziyaret_puani, baslangic} }
+Future<Map<String, dynamic>?> carkAdminPuanKazanimGetir(String salonId) =>
+    _carkAdminGetJson('carkAdmin/puan-kazanim/$salonId');
+
+Future<Map<String, dynamic>?> carkAdminPuanKazanimKaydet(String salonId, Map<String, dynamic> data) =>
+    _carkAdminPostJson('carkAdmin/puan-kazanim/$salonId', data);
+
+/// Damga karti: { basarili, kurallar: [...], hizmetler: [{id, hizmet_adi}] }
+Future<Map<String, dynamic>?> carkAdminDamgaKartiGetir(String salonId) =>
+    _carkAdminGetJson('carkAdmin/damga-karti/$salonId');
+
+Future<Map<String, dynamic>?> carkAdminDamgaKartiKaydet(String salonId, Map<String, dynamic> data) =>
+    _carkAdminPostJson('carkAdmin/damga-karti/$salonId', data);
+
+Future<Map<String, dynamic>?> carkAdminDamgaKartiSil(String salonId, int id) =>
+    _carkAdminPostJson('carkAdmin/damga-karti-sil/$salonId', {'id': id});
+
 // ============================================================
 // WHATSAPP API (mobil)
 // ============================================================
