@@ -2085,8 +2085,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     final kalanGun = (k['kalanGun'] as num?)?.toInt();
     final fiyat = (k['fiyat'] as num?)?.toDouble();
     final isGap = k['tip']?.toString() == 'gap';
+    // Damga karti kampanyasi ("N al M ucretsiz"): dokununca Puan Odullerim (damga ilerlemesi orada)
+    final isDamga = k['tip']?.toString() == 'damga';
 
-    return Container(
+    final kart = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -2117,7 +2119,9 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isGap ? Icons.schedule_rounded : Icons.local_offer_rounded,
+              isDamga
+                  ? Icons.confirmation_number_rounded
+                  : (isGap ? Icons.schedule_rounded : Icons.local_offer_rounded),
               size: 22,
               color: scheme.primary,
             ),
@@ -2177,6 +2181,12 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                         const Color(0xFFF59E0B),
                         Icons.timer_outlined,
                       ),
+                    if (isDamga)
+                      _kampanyaRozet(
+                        'Damgalarımı gör',
+                        const Color(0xFF8B5CF6),
+                        Icons.chevron_right_rounded,
+                      ),
                   ],
                 ),
               ],
@@ -2184,6 +2194,17 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
           ),
         ],
       ),
+    );
+    if (!isDamga) return kart;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => PuanOdullerimPage(
+          md: widget.md,
+          salonId: widget.isletmebilgi?['id']?.toString(),
+        ),
+      )),
+      child: kart,
     );
   }
 
