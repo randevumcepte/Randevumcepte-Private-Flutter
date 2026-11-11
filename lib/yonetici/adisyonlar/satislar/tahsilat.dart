@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'dart:developer';
 import 'dart:io';
@@ -9,6 +10,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Backend/odeme_durumu_api.dart';
@@ -192,6 +194,10 @@ class _TahsilatState extends State<TahsilatEkrani> {
   Map<String, dynamic>? _kampanyaKodInfo;
   bool _kampanyaKodApplied = false;
   bool _kampanyaKodLoading = false;
+
+  // Damga karti ("N al M ucretsiz"): bu adisyondaki kurala tabi kalemler (web tahsilat kutusu ile ayni veri)
+  List<Map<String, dynamic>> _damgaKalemleri = [];
+  bool _damgaIsleniyor = false;
 
   @override
   void initState() {
@@ -1008,6 +1014,221 @@ class _TahsilatState extends State<TahsilatEkrani> {
       kalemleryukleniyor = false;
       tutar_hesapla(false);
     });
+    _damgaYukle();
+  }
+
+  // ============ DAMGA KARTI ============
+
+  Future<void> _damgaYukle() async {
+    if (widget.adisyonId == '' || seciliisletme == null) return;
+    final r = await damgaKartiAdisyonDurum(seciliisletme!, widget.adisyonId);
+    if (!mounted) return;
+    setState(() {
+      _damgaKalemleri = (r != null && r['basarili'] == true)
+          ? ((r['kalemler'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList()
+          : [];
+    });
+  }
+
+  Future<void> _damgaIslem(Map<String, dynamic> d, {required bool geriAl}) async {
+    final tutar = tryformat.format((d['kalan'] as num?)?.toDouble() ?? 0);
+    final hizmet = (d['hizmet_adi'] ?? '').toString();
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(geriAl ? 'Ücretsiz seans geri alınsın mı?' : 'Ücretsiz seans uygulansın mı?'),
+        content: Text(
+          geriAl
+              ? 'İndirim kaldırılır, 0 TL tahsilat kaydı silinir.\nMüşterinin ücretsiz seans hakkı geri gelir.'
+              : '$hizmet için $tutar ₺ indirim (%100) uygulanır ve 0 TL tahsilat kaydı oluşturulur.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text('Vazgeç')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: geriAl ? Colors.orange : const Color(0xFF059669),
+              foregroundColor: Colors.white,
+            ),
+            child: Text(geriAl ? 'Geri Al' : 'Ücretsiz Uygula'),
+          ),
+        ],
+      ),
+    );
+    if (onay != true || !mounted) return;
+
+    setState(() => _damgaIsleniyor = true);
+    String? yetkiliId;
+    try {
+      final us = (await SharedPreferences.getInstance()).getString('user');
+      if (us != null) yetkiliId = (jsonDecode(us)['id']).toString();
+    } catch (_) {}
+    final r = await damgaKartiUygula(
+      seciliisletme!,
+      adisyonHizmetId: geriAl ? null : (d['adisyon_hizmet_id'] as num).toInt(),
+      kullanimId: geriAl ? (d['kullanim_id'] as num).toInt() : null,
+      olusturanId: yetkiliId,
+    );
+    if (!mounted) return;
+    setState(() => _damgaIsleniyor = false);
+    if (r != null && r['basarili'] == true) {
+      // Kalemler + tutarlar + damga kutusu yeniden yuklenir (alacaklarigetir sonunda _damgaYukle)
+      if (secilimusteridanisan != null) {
+        loadbar(secilimusteridanisan!);
+      } else {
+        _damgaYukle();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(geriAl ? 'Ücretsiz seans geri alındı' : 'Ücretsiz seans uygulandı'),
+        backgroundColor: const Color(0xFF059669),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(r?['mesaj']?.toString() ?? 'İşlem yapılamadı'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  Widget _buildDamgaKartiKutu() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F3FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+      ),
+      child: Column(
+        children: _damgaKalemleri.map(_buildDamgaSatir).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDamgaSatir(Map<String, dynamic> d) {
+    final durum = Map<String, dynamic>.from((d['durum'] as Map?) ?? const {});
+    final hak = (durum['hak'] as num?)?.toInt() ?? 0;
+    final gereken = (d['gereken'] as num?)?.toInt() ?? 0;
+    final ilerleme = (d['ilerleme'] as num?)?.toInt() ?? 0;
+    final kullanildi = d['kullanim_id'] != null;
+    final uygulanabilir = d['uygulanabilir'] == true;
+    final dokum = ((d['dokum'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+
+    Widget durumYazi;
+    if (kullanildi) {
+      durumYazi = Text(
+        'Bu seans ücretsiz olarak işlendi (${tryformat.format((d['kullanim_indirim'] as num?)?.toDouble() ?? 0)} ₺ indirim)',
+        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
+      );
+    } else if (hak > 0) {
+      durumYazi = Text('Müşterinin $hak ücretsiz seans hakkı var',
+          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF5C008E)));
+    } else {
+      durumYazi = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Text('Damga: $ilerleme/$gereken  ', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+            ...List.generate(gereken.clamp(0, 12), (i) => Padding(
+                  padding: const EdgeInsets.only(right: 3),
+                  child: Icon(i < ilerleme ? Icons.circle : Icons.circle_outlined,
+                      size: 11, color: const Color(0xFF8B5CF6)),
+                )),
+          ]),
+          Text('(bu ziyaret dahil; ücretsiz hak $gereken ücretli ziyaretten sonraki seansta kullanılır)',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🎟️', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${d['hizmet_adi']} damga kartı (${d['gereken']} alana ${d['ucretsiz']} ücretsiz)',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF374151))),
+                    const SizedBox(height: 2),
+                    durumYazi,
+                  ],
+                ),
+              ),
+              if (kullanildi)
+                OutlinedButton(
+                  onPressed: _damgaIsleniyor ? null : () => _damgaIslem(d, geriAl: true),
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  child: const Text('Geri Al', style: TextStyle(fontSize: 12)),
+                )
+              else if (uygulanabilir)
+                ElevatedButton(
+                  onPressed: _damgaIsleniyor ? null : () => _damgaIslem(d, geriAl: false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _damgaIsleniyor
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('🎁 Ücretsiz Uygula', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                ),
+            ],
+          ),
+          if (dokum.isNotEmpty)
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.only(left: 26),
+                childrenPadding: const EdgeInsets.only(left: 26, bottom: 4),
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                title: const Text('Hangi ziyaretler sayıldı?', style: TextStyle(fontSize: 12, color: Color(0xFF5C008E))),
+                children: dokum.map((z) {
+                  final sayildi = z['sayildi'] == true;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(children: [
+                      SizedBox(width: 78, child: Text('${z['tarih']}', style: const TextStyle(fontSize: 11.5))),
+                      Expanded(
+                        child: Text('#${z['randevu_id']}${z['bu_ziyaret'] == true ? ' (bu ziyaret)' : ''}',
+                            style: const TextStyle(fontSize: 11.5)),
+                      ),
+                      Flexible(
+                        flex: 2,
+                        child: Text(
+                          sayildi ? '✓ Sayıldı' : '✗ ${z['neden']}',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: sayildi ? FontWeight.w700 : FontWeight.w400,
+                            color: sayildi ? const Color(0xFF065F46) : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ]),
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
   }
   void hizmetsatisi(AdisyonHizmet? mevcutadisyonhizmet) async {
     if(secilimusteridanisan == null)
@@ -1416,6 +1637,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
               _buildCarkKuponBanner(),
 
               _buildKampanyaKoduBanner(),
+            if (!_studyo && _damgaKalemleri.isNotEmpty)
+              _buildDamgaKartiKutu(),
             widget.adisyonId == '' ?
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),

@@ -6934,6 +6934,20 @@ Future<Map<String, dynamic>?> carkAdminDamgaKartiKaydet(String salonId, Map<Stri
 Future<Map<String, dynamic>?> carkAdminDamgaKartiSil(String salonId, int id) =>
     _carkAdminPostJson('carkAdmin/damga-karti-sil/$salonId', {'id': id});
 
+/// Tahsilat: adisyondaki damga karti kalemleri { basarili, kalemler: [...] } (web tahsilat kutusu ile ayni)
+Future<Map<String, dynamic>?> damgaKartiAdisyonDurum(String salonId, String adisyonId) =>
+    _carkAdminPostJson('carkAdmin/damga-karti-adisyon/$salonId', {'adisyon_id': adisyonId});
+
+/// Tahsilat: ucretsiz seansi uygula (adisyonHizmetId) veya geri al (kullanimId).
+Future<Map<String, dynamic>?> damgaKartiUygula(String salonId,
+    {int? adisyonHizmetId, int? kullanimId, String? olusturanId}) =>
+    _carkAdminPostJson('carkAdmin/damga-karti-uygula/$salonId', {
+      'aksiyon': kullanimId != null ? 'geri_al' : 'uygula',
+      if (adisyonHizmetId != null) 'adisyon_hizmet_id': adisyonHizmetId,
+      if (kullanimId != null) 'kullanim_id': kullanimId,
+      if (olusturanId != null) 'olusturan_id': olusturanId,
+    });
+
 // ============================================================
 // WHATSAPP API (mobil)
 // ============================================================
