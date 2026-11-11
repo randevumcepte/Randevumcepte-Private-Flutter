@@ -25,6 +25,10 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
   double _puanBakiyesi = 0;
   List<Map<String, dynamic>> _odulSeviyeleri = [];
   List<Map<String, dynamic>> _puanKayitlari = [];
+  // Puanlarin nereden geldigi: kaynak ozeti + hareket listesi (API: puanGecmisi).
+  List<Map<String, dynamic>> _puanOzet = [];
+  List<Map<String, dynamic>> _puanHareketleri = [];
+  bool _tumHareketler = false;
   String? _aktifSalonId;
 
   @override
@@ -63,6 +67,14 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
           _puanKayitlari = (res['puanKayitlari'] as List? ?? [])
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
+          final gecmis = Map<String, dynamic>.from(res['puanGecmisi'] as Map? ?? {});
+          _puanOzet = (gecmis['ozet'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+          _puanHareketleri = (gecmis['hareketler'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+          _tumHareketler = false;
           _aktifSalonId = (_salon?['id'] ?? _aktifSalonId).toString();
         }
         _isLoading = false;
@@ -173,6 +185,14 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
                             const SizedBox(height: 12),
                             _buildSalonSecici(),
                           ],
+                          if (_puanOzet.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _buildPuanKaynaklari(),
+                          ],
+                          if (_puanHareketleri.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildPuanHareketleri(),
+                          ],
                           const SizedBox(height: 16),
                           if (_odulSeviyeleri.isEmpty)
                             _buildSeviyeBos()
@@ -212,7 +232,7 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
             const Text('🎖️', style: TextStyle(fontSize: 56)),
             const SizedBox(height: 12),
             const Text(
-              'Henüz puanınız bulunmuyor.\nÇarkıfelekten "Puan" kazanarak biriktirebilir,\nbiriktiren puanlarla özel ödüller alabilirsiniz.',
+              'Henüz puanınız bulunmuyor.\nÖdemeler, gelinen randevular, çarkıfelek, anket ve\nGoogle yorumlarıyla puan biriktirebilir,\nbiriktirdiğiniz puanlarla özel ödüller alabilirsiniz.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Color(0xFF636E72), height: 1.5),
             ),
@@ -274,6 +294,180 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  // Kaynak -> (ikon, renk). Bilinmeyen kaynak 'diger' gibi gosterilir.
+  static const Map<String, List<Object>> _kaynakStil = {
+    'tahsilat': [Icons.payments_outlined, Color(0xFF10B981)],
+    'randevu': [Icons.event_available_outlined, Color(0xFF3B82F6)],
+    'cark': [Icons.casino_outlined, Color(0xFF8B5CF6)],
+    'anket': [Icons.fact_check_outlined, Color(0xFFF59E0B)],
+    'google': [Icons.rate_review_outlined, Color(0xFFEA4335)],
+    'harcama': [Icons.card_giftcard_outlined, Color(0xFFEC4899)],
+    'diger': [Icons.history, Color(0xFF6B7280)],
+  };
+
+  IconData _kaynakIkon(String? k) =>
+      (_kaynakStil[k] ?? _kaynakStil['diger']!)[0] as IconData;
+  Color _kaynakRenk(String? k) =>
+      (_kaynakStil[k] ?? _kaynakStil['diger']!)[1] as Color;
+
+  String _isaretliPuan(dynamic p) {
+    final n = int.tryParse(p.toString()) ?? double.tryParse(p.toString())?.toInt() ?? 0;
+    return n > 0 ? '+$n' : '$n';
+  }
+
+  String _tarihYaz(dynamic t) {
+    final d = DateTime.tryParse((t ?? '').toString());
+    if (d == null) return '';
+    String iki(int x) => x.toString().padLeft(2, '0');
+    return '${iki(d.day)}.${iki(d.month)}.${d.year}';
+  }
+
+  Widget _kart({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  /// "Puanlarım nereden geldi?" — kaynak bazli toplamlar (toplami bakiyeye esittir).
+  Widget _buildPuanKaynaklari() {
+    return _kart(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Puanlarım nereden geldi?',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+          ),
+          const SizedBox(height: 12),
+          ..._puanOzet.map((o) {
+            final k = o['kaynak']?.toString();
+            final renk = _kaynakRenk(k);
+            final puan = int.tryParse(o['puan'].toString()) ?? 0;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: renk.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(_kaynakIkon(k), size: 18, color: renk),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      (o['etiket'] ?? '').toString(),
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF374151), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(
+                    '${_isaretliPuan(puan)} puan',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: puan < 0 ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Divider(height: 20),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Toplam',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+              ),
+              Text(
+                '${_puanBakiyesi.toInt()} puan',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF1F2937)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Tek tek puan hareketleri (en yeni ustte); ilk 5 + "Tümünü göster".
+  Widget _buildPuanHareketleri() {
+    final liste = _tumHareketler ? _puanHareketleri : _puanHareketleri.take(5).toList();
+    return _kart(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Puan hareketleri',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+          ),
+          const SizedBox(height: 8),
+          ...liste.map((h) {
+            final k = h['kaynak']?.toString();
+            final puan = int.tryParse(h['puan'].toString()) ?? 0;
+            final aciklama = (h['aciklama'] ?? '').toString();
+            final tarih = _tarihYaz(h['tarih']);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(_kaynakIkon(k), size: 20, color: _kaynakRenk(k)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          (h['etiket'] ?? '').toString(),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF374151)),
+                        ),
+                        if (aciklama.isNotEmpty || tarih.isNotEmpty)
+                          Text(
+                            [aciklama, tarih].where((x) => x.isNotEmpty).join(' · '),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    _isaretliPuan(puan),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: puan < 0 ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (_puanHareketleri.length > 5)
+            Center(
+              child: TextButton(
+                onPressed: () => setState(() => _tumHareketler = !_tumHareketler),
+                child: Text(_tumHareketler ? 'Daha az göster' : 'Tümünü göster (${_puanHareketleri.length})'),
+              ),
+            ),
         ],
       ),
     );
