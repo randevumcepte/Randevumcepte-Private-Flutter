@@ -29,6 +29,7 @@ import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'anasayfa/anasayfa.dart';
 import 'anasayfa/carkifelek.dart';
+import 'anasayfa/puan_odullerim.dart';
 import 'anasayfa/musteribildirimleri/musteribildirimleri.dart';
 import 'menu/musteriresimleri.dart' show ImageGallery;
 import 'anasayfa/raporlar/seanslar.dart';
@@ -154,6 +155,18 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
       case NotificationIntent.wheel:
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => WheelPage(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
+        ));
+        break;
+      case NotificationIntent.loyaltyPoints:
+        // Damga karti doldu push -> Puan Odullerim (damga kartlari bolumu)
+        final sid = intent.params['salon_id']?.toString();
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PuanOdullerimPage(
+            md: widget.musteriId,
+            salonId: (sid != null && sid.isNotEmpty)
+                ? sid
+                : (widget.isletmebilgi is Map ? widget.isletmebilgi['id']?.toString() : null),
+          ),
         ));
         break;
       case NotificationIntent.appointments:

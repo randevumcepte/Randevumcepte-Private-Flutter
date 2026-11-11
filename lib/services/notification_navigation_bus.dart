@@ -23,6 +23,9 @@ class NotificationIntent {
   /// Grup dersleri (Derslerim) ekrani — ders bitiminde "katildiniz mi?" push'u
   /// tiklaninca acilir.
   static const groupClasses  = 'group_classes';
+  /// Puan Ödüllerim (damga kartları dahil) — damga kartı dolunca gelen push.
+  /// params: {'salon_id': String?}
+  static const loyaltyPoints = 'loyalty_points';
 
   /// İşletme tarafı hedefleri
   static const adminCalendar      = 'admin_calendar';

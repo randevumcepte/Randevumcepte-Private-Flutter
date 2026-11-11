@@ -101,6 +101,16 @@ class NotificationRouter {
               const NotificationIntent(NotificationIntent.wheel));
           break;
 
+        // Damga karti doldu -> musteri: Puan Odullerim (damga kartlari orada)
+        case NotificationTypes.stampReward:
+          NotificationNavigationBus.publish(NotificationIntent(
+            isMusteri
+                ? NotificationIntent.loyaltyPoints
+                : NotificationIntent.adminNotifications,
+            {'salon_id': payload.salonId},
+          ));
+          break;
+
         case NotificationTypes.campaign:
         case NotificationTypes.discount:
         case NotificationTypes.birthday:

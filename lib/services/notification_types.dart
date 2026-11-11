@@ -23,6 +23,8 @@ class NotificationTypes {
   static const discount                = 'discount';
   static const wheelChance             = 'wheel_chance';
   static const birthday                = 'birthday';
+  // Damga karti doldu (ucretsiz seans kazanildi) -> musteri Puan Odullerim
+  static const stampReward             = 'stamp_reward';
 
   // Geri besleme
   static const survey                  = 'survey';
