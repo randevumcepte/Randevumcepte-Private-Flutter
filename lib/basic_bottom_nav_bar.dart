@@ -31,7 +31,8 @@ import 'package:randevu_sistem/yonetici/randevular/appointment-editor.dart';
 import 'package:randevu_sistem/yonetici/randevular/randevu_page.dart';
 import 'package:randevu_sistem/yonetici/randevular/takvim.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
-// SIP/santral tamamen kaldirildi (flutter_webrtc/callkit paketleri yok)
+// SIP softphone: lib/telefon/softphone.dart (ac/kapat: tool/softphone.sh)
+import 'package:randevu_sistem/telefon/softphone.dart';
 
 import 'package:randevu_sistem/yonetici/subesecimi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -131,10 +132,11 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       DigerPage(scaffoldMessengerKey: widget.scaffoldMessengerKey, kullanici: widget.kullanici, uyelikturu: widget.uyelikturu, onLogout: _handleLogout, isletmebilgi: widget.isletmebilgi,dialpadManager: dialPadManager, onGeriDon: () => _selectScreen(0),),
 
     ];
-    // FCM/VoIP token kaydi (push bildirimleri icin). SIP softphone
-    // uygulamadan tamamen cikarildi; dis arama Bria Mobile ile.
+    // FCM/VoIP token kaydi (push bildirimleri icin).
     if(!lisansBitti && dahili != null && dahili != "null" && dahili.isNotEmpty){
       setupVoipAndFcmTokenListener();
+      // Softphone modulu bu build'de yoksa (tool/softphone.sh kapat) no-op.
+      Softphone.instance.baslat(dahili: dahili, dahiliSifre: dahiliSifre);
     }
 
     // Bildirim tıklamasından gelen yönlendirme niyetlerini dinle.
@@ -154,6 +156,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       _lisansYenilendiKuruldu = true;
       if (dahili != null && dahili != "null" && dahili.isNotEmpty) {
         setupVoipAndFcmTokenListener();
+        Softphone.instance.baslat(dahili: dahili, dahiliSifre: dahiliSifre);
       }
       NotificationNavigationBus.current.addListener(_handleNotificationIntent);
       WidgetsBinding.instance
@@ -327,6 +330,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
   }
 
   void _handleLogout() async {
+    await Softphone.instance.kapat();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userToken');
     await Yetki.temizle();

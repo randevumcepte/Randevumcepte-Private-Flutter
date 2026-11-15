@@ -20,7 +20,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/yonetici/randevular/sesli_randevu.dart';
-import 'package:randevu_sistem/services/sip_service.dart' show kAsistanEnabled;
+import 'package:randevu_sistem/config/ozellikler.dart' show kAsistanEnabled;
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Frontend/dogum_gunu_popup.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
@@ -380,7 +380,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
-      // ASISTAN — kAsistanEnabled (sip_service.dart) ile toggle. Store incelemesi
+      // ASISTAN — kAsistanEnabled (config/ozellikler.dart) ile toggle. Store incelemesi
       // icin kapali; test tamamlaninca sabiti true yap.
       floatingActionButton: (kAsistanEnabled && seciliisletme != null)
           ? FloatingActionButton.extended(
