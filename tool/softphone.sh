@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # SIP softphone modulunu (packages/rc_softphone) ac / kapat / durum.
 #
-#   tool/softphone.sh durum
+#   tool/softphone.sh durum            ACIK / KAPALI / KARISIK (dosya dosya detay)
+#   tool/softphone.sh yayin-kontrol    Store build'i oncesi: KAPALI ve native
+#                                      kalinti yoksa exit 0, degilse exit 1
 #   tool/softphone.sh ac       [--pod-yok]
 #   tool/softphone.sh kapat    [--pod-yok]
 #
@@ -32,8 +34,54 @@ KAYIT="lib/telefon/softphone_kayit.dart"
 MANIFEST="android/app/src/main/AndroidManifest.xml"
 PLIST="ios/Runner/Info.plist"
 
+# Dort ayar dosyasini ayri ayri okur. Her biri "1" (acik) / "0" (kapali).
+# Hepsi ayni -> ACIK/KAPALI, farkli -> KARISIK. KARISIK en tehlikelisi:
+# ornegin pubspec'te paket kalip kayit kapali ise native webrtc/callkit
+# hicbir ise yaramadan build'e girer (Apple/Play red sebebi).
+D_PUBSPEC=0; D_KAYIT=0; D_MANIFEST=0; D_PLIST=0
+durum_hesapla() {
+  D_PUBSPEC=0; D_KAYIT=0; D_MANIFEST=0; D_PLIST=0
+  grep -q "^  rc_softphone:" "$PUBSPEC" && D_PUBSPEC=1
+  grep -q "package:rc_softphone/" "$KAYIT" && D_KAYIT=1
+  # FGS_PHONE_CALL izni remove'suz duruyorsa acik say
+  grep -E 'android\.permission\.FOREGROUND_SERVICE_PHONE_CALL"' "$MANIFEST" | grep -vq 'tools:node="remove"' && D_MANIFEST=1
+  python3 -I -c '
+import re,sys
+p=open(sys.argv[1]).read()
+m=re.search(r"<key>UIBackgroundModes</key>\s*<array>(.*?)</array>",p,re.S)
+sys.exit(0 if m and "<string>audio</string>" in m.group(1) else 1)' "$PLIST" && D_PLIST=1
+  true
+}
+
 durum_oku() {
-  if grep -q "^  rc_softphone:" "$PUBSPEC"; then echo "ACIK"; else echo "KAPALI"; fi
+  durum_hesapla
+  local t=$((D_PUBSPEC + D_KAYIT + D_MANIFEST + D_PLIST))
+  if [[ $t -eq 4 ]]; then echo "ACIK"; elif [[ $t -eq 0 ]]; then echo "KAPALI"; else echo "KARISIK"; fi
+}
+
+durum_detay() {
+  durum_hesapla
+  local e; e() { [[ $1 -eq 1 ]] && echo "acik  " || echo "kapali"; }
+  echo "  pubspec.yaml (rc_softphone)        : $(e $D_PUBSPEC)"
+  echo "  lib/telefon/softphone_kayit.dart   : $(e $D_KAYIT)"
+  echo "  AndroidManifest (FGS izinleri)     : $(e $D_MANIFEST)"
+  echo "  Info.plist (audio background)      : $(e $D_PLIST)"
+}
+
+# Kapali gorunse bile pub get / pod install calistirilmadiysa native paket
+# kalintisi build'e girebilir. Bunlari ayrica yakala.
+native_kalinti() {
+  local bulunan=""
+  for f in .flutter-plugins-dependencies ios/Podfile.lock; do
+    [[ -f "$f" ]] || continue
+    if grep -Eq "flutter_webrtc|flutter_callkit_incoming|sip_ua" "$f"; then
+      bulunan="$bulunan $f"
+    fi
+  done
+  if [[ -f ios/Runner.xcodeproj/project.pbxproj ]] && grep -Eqi "siprix|WebRTC\.xcframework" ios/Runner.xcodeproj/project.pbxproj; then
+    bulunan="$bulunan ios/Runner.xcodeproj/project.pbxproj"
+  fi
+  echo "$bulunan"
 }
 
 kayit_yaz() {
@@ -132,7 +180,30 @@ bagimliliklari_guncelle() {
 
 case "$KOMUT" in
   durum)
-    echo "Softphone: $(durum_oku)"
+    D="$(durum_oku)"
+    echo "Softphone: $D"
+    durum_detay
+    K="$(native_kalinti)"
+    if [[ "$D" == "KAPALI" && -n "$K" ]]; then
+      echo "UYARI: ayarlar kapali ama native kalinti var:$K"
+      echo "       -> tool/softphone.sh kapat  (pub get + pod install yeniden calisir)"
+    fi
+    [[ "$D" == "KARISIK" ]] && { echo "HATA: dosyalar tutarsiz -> 'tool/softphone.sh kapat' veya 'ac' ile duzelt."; exit 2; }
+    true
+    ;;
+  yayin-kontrol)
+    D="$(durum_oku)"
+    K="$(native_kalinti)"
+    if [[ "$D" == "KAPALI" && -z "$K" ]]; then
+      echo "OK: softphone KAPALI, native SIP/WebRTC/CallKit kalintisi yok. Build alinabilir."
+      exit 0
+    fi
+    echo "DUR: store build'i icin softphone tamamen kapali olmali."
+    echo "Softphone: $D"
+    durum_detay
+    [[ -n "$K" ]] && echo "  native kalinti:$K"
+    echo "-> tool/softphone.sh kapat  (bilerek ACIK yayinlanacaksa: Play FGS beyani+video, App Store audio gerekcesi)"
+    exit 1
     ;;
   ac|kapat)
     dosyalari_duzenle "$KOMUT"
@@ -145,6 +216,6 @@ case "$KOMUT" in
     fi
     ;;
   *)
-    echo "Kullanim: tool/softphone.sh durum | ac | kapat [--pod-yok]"; exit 1
+    echo "Kullanim: tool/softphone.sh durum | yayin-kontrol | ac | kapat [--pod-yok]"; exit 1
     ;;
 esac
