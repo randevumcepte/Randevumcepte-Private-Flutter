@@ -183,6 +183,43 @@ if ac:
     pnl = "\r\n" if "\r\n" in p else "\n"
     ic = ic.rstrip() + pnl + "\t\t<string>audio</string>" + pnl + "\t"
 p = p[:bm.start(2)] + ic + p[bm.end(2):]
+
+# --- Info.plist (NSMicrophoneUsageDescription) ---
+# Apple 5.1.1: izin metni gercek kullanimi anlatmali. ACIK'ta softphone metni
+# yazilir, markanin orijinal metni base64 olarak yorum satirinda saklanir;
+# KAPALI'da birebir geri konur. Anahtar hic yoksa ACIK'ta eklenir (mikrofon
+# erisiminde iOS uygulamayi kapatir), KAPALI'da isaretli eklenen silinir.
+import base64
+pnl = "\r\n" if "\r\n" in p else "\n"
+SP_METIN = ("Uygulama içinden müşterilerinizi sesli arayabilmeniz, gelen aramaları "
+            "cevaplayabilmeniz ve alanları sesle doldurabilmeniz için mikrofon erişimi gerekiyor.")
+ISARET = "softphone-orijinal-mikrofon"
+EKLENDI = "softphone-eklendi-mikrofon"
+mk = re.search(r"(<key>NSMicrophoneUsageDescription</key>\s*<string>)(.*?)(</string>)"
+               r"(\r?\n\t<!-- (%s): (\S*) -->)?" % "|".join([ISARET, EKLENDI]), p, flags=re.S)
+if mk:
+    # Once eski haline getir (idempotent).
+    if mk.group(5) == EKLENDI:
+        bas = p.rfind(pnl, 0, mk.start(1)) if p.rfind(pnl, 0, mk.start(1)) >= 0 else mk.start(1)
+        p = p[:bas] + p[mk.end(4):]
+        mk = None
+    elif mk.group(5) == ISARET:
+        orijinal = base64.b64decode(mk.group(6)).decode("utf-8")
+        p = p[:mk.start(2)] + orijinal + mk.group(3) + p[mk.end(4):]
+        mk = re.search(r"(<key>NSMicrophoneUsageDescription</key>\s*<string>)(.*?)(</string>)", p, flags=re.S)
+if ac:
+    if mk:
+        kod = base64.b64encode(mk.group(2).encode("utf-8")).decode("ascii")
+        p = (p[:mk.start(2)] + SP_METIN + mk.group(3) + pnl
+             + "\t<!-- %s: %s -->" % (ISARET, kod) + p[mk.end(3):])
+    else:
+        ek = re.search(r"<key>UIBackgroundModes</key>", p)
+        if not ek:
+            sys.exit("Info.plist: mikrofon anahtari eklenecek yer bulunamadi")
+        satir = ("<key>NSMicrophoneUsageDescription</key>" + pnl + "\t<string>" + SP_METIN
+                 + "</string>" + pnl + "\t<!-- %s:  -->" % EKLENDI + pnl + "\t")
+        p = p[:ek.start()] + satir + p[ek.start():]
+
 open(plist, "w", newline="").write(p)
 PY
 }

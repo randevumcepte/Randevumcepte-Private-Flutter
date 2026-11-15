@@ -14,3 +14,12 @@ dependencies:
   flutter_webrtc: ^0.12.12
   flutter_callkit_incoming: ^2.5.5
   uuid: ^4.4.0
+
+# iOS native kopru (CallKit ses oturumu -> WebRTC). Yalnizca iOS; Android'de
+# native kod yok. Paket pubspec'ten cikinca plugin kaydi + pod'u da duser,
+# Runner/AppDelegate'e hicbir sey yazilmaz.
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: RcSoftphonePlugin

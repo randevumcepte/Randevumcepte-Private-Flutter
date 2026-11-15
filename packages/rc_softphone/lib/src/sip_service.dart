@@ -9,6 +9,7 @@ import 'package:sip_ua/sip_ua.dart';
 import 'package:uuid/uuid.dart';
 
 import 'arama_ekrani.dart';
+import 'ios_ses.dart';
 
 /// Mobil SIP softphone servisi (sip_ua + flutter_webrtc + CallKit).
 ///
@@ -55,6 +56,9 @@ class SipService implements SipUaHelperListener {
   bool _started = false;
   bool _callkitListenerKuruldu = false;
   String? _currentCallkitId;
+
+  /// Su anki cagri CallKit uzerinden mi geldi? (iOS ses koprusu icin)
+  bool _callkitCagrisi = false;
   bool _ekranAcik = false;
   GlobalKey<NavigatorState>? _navigatorKey;
 
@@ -217,6 +221,10 @@ class SipService implements SipUaHelperListener {
       call.direction.toString().toLowerCase().contains('incoming');
 
   void _cagriDurumunuSifirla() {
+    if (_callkitCagrisi) {
+      _callkitCagrisi = false;
+      IosSes.otomatikSeseDon();
+    }
     activeCall.value = null;
     callState.value = null;
     sessiz.value = false;
@@ -283,6 +291,11 @@ class SipService implements SipUaHelperListener {
       case CallStateEnum.ACCEPTED:
       case CallStateEnum.CONFIRMED:
         baglandiZamani.value ??= DateTime.now();
+        final String? ckId = _currentCallkitId;
+        if (ckId != null) {
+          // CallKit'e "baglandi" de (iOS sure/durum + ses kesintisi yonetimi).
+          FlutterCallkitIncoming.setCallConnected(ckId).catchError((_) {});
+        }
         // Gelen cagri CallKit'ten (ya da uygulamadan) cevaplandi.
         _ekraniAc();
         break;
@@ -355,6 +368,16 @@ class SipService implements SipUaHelperListener {
         case Event.actionCallTimeout:
           kapatCagri();
           break;
+        case Event.actionCallToggleAudioSession:
+          // iOS: CallKit ses oturumunu acti/kapatti -> WebRTC'ye bildir.
+          final dynamic body = event.body;
+          final bool acik = body is Map && body['isActivate'] == true;
+          if (acik) {
+            IosSes.callkitSesAktif();
+          } else {
+            IosSes.callkitSesPasif();
+          }
+          break;
         default:
           break;
       }
@@ -364,6 +387,9 @@ class SipService implements SipUaHelperListener {
   Future<void> _showIncomingCallkit(Call call) async {
     final String id = const Uuid().v4();
     _currentCallkitId = id;
+    _callkitCagrisi = true;
+    // iOS: ses oturumunu CallKit acana kadar WebRTC beklesin (manuel mod).
+    await IosSes.callkitIcinHazirla();
     final CallKitParams params = CallKitParams(
       id: id,
       nameCaller: (call.remote_display_name?.isNotEmpty ?? false)
