@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:randevu_sistem/telefon/softphone.dart';
+
 import 'cagri_models.dart';
 
 class CagriApi {
@@ -109,13 +111,33 @@ class CagriApi {
     return ListeDetay.fromJson(Map<String, dynamic>.from(j));
   }
 
-  static Future<AramaBaslatSonuc> aramaBaslat(int aranacakMusteriId, String sube) async {
+  /// Musteri arama. Softphone modulu acik ve santrale kayitliysa web'deki
+  /// softphone moduyla AYNI akis: sunucu kaydi damgalar + numarayi dondurur,
+  /// arama cihazdaki softphone'dan yapilir. Degilse santral originate (Bria).
+  static Future<AramaBaslatSonuc> aramaBaslat(int aranacakMusteriId, String sube,
+      {String? gorunenAd}) async {
+    final sp = Softphone.instance;
+    final softphoneIle = sp.aktif && sp.kayitli.value;
     final j = await _post('arama-baslat', {
       'aranacak_musteri_id': aranacakMusteriId,
       'sube': sube,
+      if (softphoneIle) 'softphone': true,
     });
-    return AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
+    final sonuc = AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
+    if (!softphoneIle || !sonuc.success || sonuc.numaraAra == null) return sonuc;
+
+    final basladi = await sp.ara(sonuc.numaraAra!, gorunenAd: gorunenAd);
+    return AramaBaslatSonuc(
+      success: basladi,
+      message: basladi
+          ? 'Aranıyor...'
+          : 'Softphone araması başlatılamadı (devam eden bir arama olabilir).',
+      aramaListeId: sonuc.aramaListeId,
+    );
   }
+
+  /// Arama butonu etiketi: softphone acikken uygulama icinden, degilse Bria.
+  static String get araEtiketi => Softphone.instance.aktif ? 'Ara' : 'Ara (Bria)';
 
   /// Telefon numarasi ile santral uzerinden arama baslat (musteri detay ekrani).
   static Future<AramaBaslatSonuc> aramaBaslatNumara(String telefon, String sube) async {

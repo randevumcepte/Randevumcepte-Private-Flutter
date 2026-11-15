@@ -33,6 +33,7 @@ import 'package:randevu_sistem/yonetici/randevular/takvim.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ongorusmeler/ongorusmeler.dart';
 // SIP softphone: lib/telefon/softphone.dart (ac/kapat: tool/softphone.sh)
 import 'package:randevu_sistem/telefon/softphone.dart';
+import 'package:randevu_sistem/navigatorkey.dart';
 
 import 'package:randevu_sistem/yonetici/subesecimi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -136,7 +137,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     if(!lisansBitti && dahili != null && dahili != "null" && dahili.isNotEmpty){
       setupVoipAndFcmTokenListener();
       // Softphone modulu bu build'de yoksa (tool/softphone.sh kapat) no-op.
-      Softphone.instance.baslat(dahili: dahili, dahiliSifre: dahiliSifre);
+      Softphone.instance.baslat(dahili: dahili, dahiliSifre: dahiliSifre, navigatorKey: navigatorKey);
     }
 
     // Bildirim tıklamasından gelen yönlendirme niyetlerini dinle.
@@ -156,7 +157,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       _lisansYenilendiKuruldu = true;
       if (dahili != null && dahili != "null" && dahili.isNotEmpty) {
         setupVoipAndFcmTokenListener();
-        Softphone.instance.baslat(dahili: dahili, dahiliSifre: dahiliSifre);
+        Softphone.instance.baslat(dahili: dahili, dahiliSifre: dahiliSifre, navigatorKey: navigatorKey);
       }
       NotificationNavigationBus.current.addListener(_handleNotificationIntent);
       WidgetsBinding.instance

@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Models/user.dart';
+import 'package:randevu_sistem/telefon/softphone.dart';
 import 'package:randevu_sistem/yonetici/santral/santralraporlari.dart';
 
 import 'arama_ekrani.dart';
@@ -89,6 +90,19 @@ class CagriMerkeziSayfa extends StatelessWidget {
             'Çağrı Merkezi',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
+          // Softphone modulu acik build'lerde tus takimi (kapaliyken gorunmez).
+          actions: [
+            if (Softphone.instance.aktif)
+              ValueListenableBuilder<bool>(
+                valueListenable: Softphone.instance.kayitli,
+                builder: (context, kayitli, _) => IconButton(
+                  tooltip: kayitli ? 'Tuş takımı' : 'Tuş takımı (santrale bağlı değil)',
+                  icon: Icon(Icons.dialpad,
+                      color: kayitli ? Colors.green : Colors.grey),
+                  onPressed: () => Softphone.instance.tusTakimiAc(context),
+                ),
+              ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(60),
             child: Container(

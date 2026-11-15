@@ -441,11 +441,17 @@ class AramaBaslatSonuc {
   final bool success;
   final String message;
   final int? aramaListeId;
-  AramaBaslatSonuc({required this.success, required this.message, this.aramaListeId});
+  /// Softphone modunda (istekte softphone=true) sunucunun dondurdugu,
+  /// cihazdaki softphone'un cevirecegi numara ('0<no>'). Originate'te null.
+  final String? numaraAra;
+  AramaBaslatSonuc({required this.success, required this.message, this.aramaListeId, this.numaraAra});
   factory AramaBaslatSonuc.fromJson(Map<String, dynamic> j) => AramaBaslatSonuc(
         success: j['success'] == true,
         message: _toStr(j['message']),
         aramaListeId: _toIntN(j['aramaListeId']),
+        numaraAra: (j['numara_ara'] == null || '${j['numara_ara']}'.isEmpty)
+            ? null
+            : '${j['numara_ara']}',
       );
 }
 

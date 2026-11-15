@@ -291,6 +291,7 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
                             trailing: _AraButon(
                               aranacakMusteriId: m.aranacakMusteriId,
                               sube: widget.sube,
+                              gorunenAd: m.ad,
                             ),
                           ),
                         );
@@ -303,11 +304,13 @@ class _AramaListeDetayEkraniState extends State<AramaListeDetayEkrani> {
   }
 }
 
-/// Click-to-call butonu. Bria dahilisini caldirir.
+/// Click-to-call butonu. Softphone aciksa uygulama icinden, degilse Bria
+/// dahilisini caldirir (CagriApi.aramaBaslat karar verir).
 class _AraButon extends StatefulWidget {
   final int aranacakMusteriId;
   final String sube;
-  const _AraButon({required this.aranacakMusteriId, required this.sube});
+  final String? gorunenAd;
+  const _AraButon({required this.aranacakMusteriId, required this.sube, this.gorunenAd});
 
   @override
   State<_AraButon> createState() => _AraButonState();
@@ -319,7 +322,8 @@ class _AraButonState extends State<_AraButon> {
   Future<void> _ara() async {
     setState(() => _araniyor = true);
     try {
-      final sonuc = await CagriApi.aramaBaslat(widget.aranacakMusteriId, widget.sube);
+      final sonuc = await CagriApi.aramaBaslat(widget.aranacakMusteriId, widget.sube,
+          gorunenAd: widget.gorunenAd);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -617,7 +621,8 @@ class _MusteriDetaySheet extends StatelessWidget {
                         child: OutlinedButton.icon(
                           onPressed: () async {
                             final kayit = await CagriApi.aramaBaslat(
-                                musteri.aranacakMusteriId, sube);
+                                musteri.aranacakMusteriId, sube,
+                                gorunenAd: musteri.ad);
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -629,7 +634,7 @@ class _MusteriDetaySheet extends StatelessWidget {
                             );
                           },
                           icon: Icon(Icons.call, color: ext.successColor),
-                          label: const Text('Ara (Bria)'),
+                          label: Text(CagriApi.araEtiketi),
                         ),
                       ),
                       const SizedBox(width: 10),

@@ -550,7 +550,8 @@ class _IslemSheetState extends State<_IslemSheet> {
   Future<void> _ara() async {
     setState(() => _islemde = true);
     try {
-      final r = await CagriApi.aramaBaslat(widget.event.id, widget.sube);
+      final r = await CagriApi.aramaBaslat(widget.event.id, widget.sube,
+          gorunenAd: widget.event.musteri);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(r.message.isEmpty
@@ -765,7 +766,7 @@ class _IslemSheetState extends State<_IslemSheet> {
                                 backgroundColor: const Color(0xFF16A34A),
                                 foregroundColor: Colors.white),
                             icon: const Icon(Icons.phone, size: 18),
-                            label: const Text('Ara (Bria)',
+                            label: Text(CagriApi.araEtiketi,
                                 style: TextStyle(fontWeight: FontWeight.w700)),
                             onPressed: _islemde ? null : _ara,
                           ),

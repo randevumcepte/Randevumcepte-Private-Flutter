@@ -89,6 +89,8 @@ kayit_yaz() {
     cat > "$KAYIT" <<'DART'
 // OTOMATIK URETILIR — elle duzenleme, `tool/softphone.sh ac|kapat` kullan.
 // Durum: ACIK (rc_softphone paketi pubspec'te, native SIP/WebRTC/CallKit build'de).
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:rc_softphone/rc_softphone.dart';
 
 import 'softphone.dart';
@@ -96,18 +98,32 @@ import 'softphone.dart';
 Softphone softphoneOlustur() => _SipSoftphone();
 
 class _SipSoftphone implements Softphone {
+  final SipService _sip = SipService.instance;
+
   @override
   bool get aktif => true;
 
   @override
-  Future<void> baslat({required String dahili, required String dahiliSifre}) =>
-      SipService.instance.init(dahili: dahili, dahiliSifre: dahiliSifre);
+  ValueListenable<bool> get kayitli => _sip.kayitli;
 
   @override
-  Future<void> kapat() => SipService.instance.kapat();
+  Future<void> baslat({
+    required String dahili,
+    required String dahiliSifre,
+    GlobalKey<NavigatorState>? navigatorKey,
+  }) =>
+      _sip.init(dahili: dahili, dahiliSifre: dahiliSifre, navigatorKey: navigatorKey);
 
   @override
-  Future<bool> ara(String hedef) => SipService.instance.cagriBaslat(hedef);
+  Future<void> kapat() => _sip.kapat();
+
+  @override
+  Future<bool> ara(String hedef, {String? gorunenAd}) =>
+      _sip.cagriBaslat(hedef, gorunenAd: gorunenAd);
+
+  @override
+  Future<void> tusTakimiAc(BuildContext context) => Navigator.of(context)
+      .push(MaterialPageRoute<void>(builder: (_) => const TusTakimiEkrani()));
 }
 DART
   else
