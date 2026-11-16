@@ -227,7 +227,11 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(color: const Color(0xFFEDE9FE), borderRadius: BorderRadius.circular(20)),
-                child: Text('🎁 $hak', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF5B21B6))),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.card_giftcard_rounded, size: 16, color: Color(0xFF5B21B6)),
+                const SizedBox(width: 4),
+                Text('$hak', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF5B21B6))),
+              ]),
               )
             : Text('—', style: TextStyle(color: Colors.grey.shade400)),
       ]),

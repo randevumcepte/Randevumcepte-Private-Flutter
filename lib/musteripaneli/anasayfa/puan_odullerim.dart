@@ -369,7 +369,9 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(children: [
-          Text('🎁 $hak', style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+          const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFDE68A), size: 26),
+          const SizedBox(width: 6),
+          Text('$hak', style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
           const SizedBox(width: 12),
           const Expanded(
             child: Text('ikram hizmetiniz var\nHangi hizmetten kazandığınızı görün',

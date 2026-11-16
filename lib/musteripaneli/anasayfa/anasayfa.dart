@@ -192,7 +192,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                     style: TextStyle(color: Color(0xFFFDE68A), fontSize: 12.5, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Row(children: [
-                  const Text('🎁', style: TextStyle(fontSize: 24)),
+                  const Icon(Icons.card_giftcard_rounded, size: 26, color: Color(0xFFFDE68A)),
                   const SizedBox(width: 6),
                   Text('$_ikramHak',
                       style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800, height: 1)),

@@ -55,7 +55,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5FF),
       appBar: AppBar(
-        title: const Text('🎁 İkram Hizmetlerim', style: TextStyle(color: Colors.white)),
+        title: const Text('İkram Hizmetlerim', style: TextStyle(color: Colors.white)),
         backgroundColor: _mor,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -105,7 +105,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
             const Text('İkram bakiyesi', style: TextStyle(color: Color(0xFFFDE68A), fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             Row(children: [
-              const Text('🎁', style: TextStyle(fontSize: 34)),
+              const Icon(Icons.card_giftcard_rounded, size: 38, color: Color(0xFFFDE68A)),
               const SizedBox(width: 8),
               Text('$_toplamHak',
                   style: const TextStyle(color: Colors.white, fontSize: 52, fontWeight: FontWeight.w800, height: 1)),
@@ -214,7 +214,11 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(20)),
-              child: Text('🎁 $hak', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF047857))),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.card_giftcard_rounded, size: 16, color: Color(0xFF047857)),
+                const SizedBox(width: 4),
+                Text('$hak', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF047857))),
+              ]),
             ),
         ]),
         const SizedBox(height: 12),
@@ -232,10 +236,14 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(10)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('⏳ Son kullanma tarihleri',
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
+              const Row(children: [
+                Icon(Icons.hourglass_bottom_rounded, size: 15, color: Color(0xFF92400E)),
+                SizedBox(width: 4),
+                Text('Son kullanma tarihleri',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
+              ]),
               const SizedBox(height: 3),
-              ...gecerliler.map((t) => Text('🎁 1 ikram · ${_tarih(t)} tarihine kadar',
+              ...gecerliler.map((t) => Text('• 1 ikram · ${_tarih(t)} tarihine kadar',
                   style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)))),
             ]),
           ),

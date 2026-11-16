@@ -1125,6 +1125,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
   }
 
   Widget _buildDamgaKartiKutu() {
+    // Takvimden acilan tahsilatta musterinin AYNI hizmetten birden cok acik kalemi olabilir;
+    // ikram durumu musteri+hizmet bazinda tektir -> hizmet basina TEK satir.
+    final gruplar = <String, List<Map<String, dynamic>>>{};
+    for (final d in _damgaKalemleri) {
+      gruplar.putIfAbsent('${d['hizmet_adi']}|${d['gereken']}|${d['ucretsiz']}', () => []).add(d);
+    }
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -1134,55 +1140,115 @@ class _TahsilatState extends State<TahsilatEkrani> {
         border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
       ),
       child: Column(
-        children: _damgaKalemleri.map(_buildDamgaSatir).toList(),
+        children: gruplar.values.map(_buildDamgaSatir).toList(),
       ),
     );
   }
 
-  Widget _buildDamgaSatir(Map<String, dynamic> d) {
-    final durum = Map<String, dynamic>.from((d['durum'] as Map?) ?? const {});
-    final hak = (durum['hak'] as num?)?.toInt() ?? 0;
+  /// Kalemin ekrandaki tarihi + kalan tutari (coklu kalemde secim icin).
+  String _damgaKalemEtiket(Map<String, dynamic> d) {
+    final id = d['adisyon_hizmet_id']?.toString();
+    String tarih = '';
+    for (final e in adisyonkalemleri) {
+      if (e is AdisyonHizmet && e.id == id) {
+        tarih = _damgaTarih(e.islem_tarihi);
+        break;
+      }
+    }
+    final tutar = tryformat.format((d['kalan'] as num?)?.toDouble() ?? 0);
+    return tarih.isNotEmpty ? '$tarih tarihli seans · $tutar ₺' : 'Seans · $tutar ₺';
+  }
+
+  Future<void> _damgaKalemSecVeUygula(List<Map<String, dynamic>> adaylar) async {
+    if (adaylar.length == 1) return _damgaIslem(adaylar.first, geriAl: false);
+    final secilen = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text('İkram hangi seansa uygulansın?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          ),
+          ...adaylar.map((d) => ListTile(
+                leading: const Icon(Icons.card_giftcard_rounded, color: Color(0xFF7C3AED)),
+                title: Text(_damgaKalemEtiket(d)),
+                onTap: () => Navigator.pop(c, d),
+              )),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+    if (secilen != null) await _damgaIslem(secilen, geriAl: false);
+  }
+
+  Widget _buildDamgaSatir(List<Map<String, dynamic>> grup) {
+    // Ilerleme/dokum: sayimi en dolu olan kalem (her kalem "bu ziyaret"ini haric tutar;
+    // en buyuk toplam = musterinin gercek sayilan ziyaret sayisi).
+    Map<String, dynamic> d = grup.first;
+    int hak = 0;
+    Map<String, dynamic> hakDurum = const {};
+    for (final g in grup) {
+      if (((g['toplam'] as num?)?.toInt() ?? 0) > ((d['toplam'] as num?)?.toInt() ?? 0)) d = g;
+      final du = Map<String, dynamic>.from((g['durum'] as Map?) ?? const {});
+      final h = (du['hak'] as num?)?.toInt() ?? 0;
+      if (h > hak) { hak = h; hakDurum = du; }
+    }
     final gereken = (d['gereken'] as num?)?.toInt() ?? 0;
     final ilerleme = (d['ilerleme'] as num?)?.toInt() ?? 0;
-    final kullanildi = d['kullanim_id'] != null;
-    final uygulanabilir = d['uygulanabilir'] == true;
+    final kullanilanlar = grup.where((g) => g['kullanim_id'] != null).toList();
+    final adaylar = grup.where((g) => g['uygulanabilir'] == true).toList();
     final dokum = ((d['dokum'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final gecerliler = (hakDurum['gecerli_ikramlar'] as List?) ?? const [];
 
-    Widget durumYazi;
-    if (kullanildi) {
-      durumYazi = Text(
-        'Bu seans ikram olarak işlendi (${tryformat.format((d['kullanim_indirim'] as num?)?.toDouble() ?? 0)} ₺ indirim)',
-        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
-      );
-    } else if (hak > 0) {
-      durumYazi = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Müşterinin $hak ikram hakkı var',
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF5C008E))),
-          Text('Müşteri isterse bu seansta kullanır; istemezse hakkı saklanır.',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          if (((durum['gecerli_ikramlar'] as List?) ?? const []).isNotEmpty)
-            Text('En yakın son kullanma: ${_damgaTarih((durum['gecerli_ikramlar'] as List).first.toString())}',
-                style: TextStyle(fontSize: 11, color: Colors.amber.shade900)),
-        ],
-      );
+    final satirlar = <Widget>[
+      Text('${d['hizmet_adi']} ikram hizmet (${d['gereken']} alana ${d['ucretsiz']} ikram)',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF374151))),
+      const SizedBox(height: 2),
+    ];
+    if (hak > 0) {
+      satirlar.addAll([
+        Text('Müşterinin $hak ikram hakkı var',
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF5C008E))),
+        Text('Müşteri isterse bu seansta kullanır; istemezse hakkı saklanır.',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        if (gecerliler.isNotEmpty)
+          Text('En yakın son kullanma: ${_damgaTarih(gecerliler.first.toString())}',
+              style: TextStyle(fontSize: 11, color: Colors.amber.shade900)),
+      ]);
     } else {
-      durumYazi = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Text('İkram ilerlemesi: $ilerleme/$gereken  ', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-            ...List.generate(gereken.clamp(0, 12), (i) => Padding(
-                  padding: const EdgeInsets.only(right: 3),
-                  child: Icon(i < ilerleme ? Icons.circle : Icons.circle_outlined,
-                      size: 11, color: const Color(0xFF8B5CF6)),
-                )),
-          ]),
-          Text('(bu ziyaret dahil; $gereken ücretli alımda ${d['ucretsiz']} ikram kazanılır)',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-        ],
-      );
+      satirlar.addAll([
+        Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+          Text('İkram ilerlemesi: $ilerleme/$gereken  ', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+          ...List.generate(gereken.clamp(0, 12), (i) => Padding(
+                padding: const EdgeInsets.only(right: 3),
+                child: Icon(i < ilerleme ? Icons.circle : Icons.circle_outlined, size: 11, color: const Color(0xFF8B5CF6)),
+              )),
+        ]),
+        Text('(bu ziyaret dahil; $gereken ücretli alımda ${d['ucretsiz']} ikram kazanılır)',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+      ]);
+    }
+    // Bu ekrandaki kalemlerden ikram olarak islenenler (her biri ayri Geri Al)
+    for (final k in kullanilanlar) {
+      satirlar.add(Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(children: [
+          const Icon(Icons.check_circle_rounded, size: 15, color: Color(0xFF059669)),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              '${_damgaKalemEtiket(k).split(' · ').first} ikram olarak işlendi (${tryformat.format((k['kullanim_indirim'] as num?)?.toDouble() ?? 0)} ₺)',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
+            ),
+          ),
+          TextButton(
+            onPressed: _damgaIsleniyor ? null : () => _damgaIslem(k, geriAl: true),
+            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            child: const Text('Geri Al', style: TextStyle(fontSize: 12)),
+          ),
+        ]),
+      ));
     }
 
     return Padding(
@@ -1193,31 +1259,15 @@ class _TahsilatState extends State<TahsilatEkrani> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('🎁', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${d['hizmet_adi']} ikram hizmet (${d['gereken']} alana ${d['ucretsiz']} ikram)',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF374151))),
-                    const SizedBox(height: 2),
-                    durumYazi,
-                  ],
-                ),
+              const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Icon(Icons.card_giftcard_rounded, size: 20, color: Color(0xFF7C3AED)),
               ),
-              if (kullanildi)
-                OutlinedButton(
-                  onPressed: _damgaIsleniyor ? null : () => _damgaIslem(d, geriAl: true),
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                  ),
-                  child: const Text('Geri Al', style: TextStyle(fontSize: 12)),
-                )
-              else if (uygulanabilir)
+              const SizedBox(width: 8),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: satirlar)),
+              if (hak > 0 && adaylar.isNotEmpty)
                 ElevatedButton(
-                  onPressed: _damgaIsleniyor ? null : () => _damgaIslem(d, geriAl: false),
+                  onPressed: _damgaIsleniyor ? null : () => _damgaKalemSecVeUygula(adaylar),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
@@ -1228,7 +1278,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                   ),
                   child: _damgaIsleniyor
                       ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('🎁 İkramı Kullan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                      : const Text('İkramı Kullan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                 ),
             ],
           ),
@@ -1236,8 +1286,8 @@ class _TahsilatState extends State<TahsilatEkrani> {
             Theme(
               data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
-                tilePadding: const EdgeInsets.only(left: 26),
-                childrenPadding: const EdgeInsets.only(left: 26, bottom: 4),
+                tilePadding: const EdgeInsets.only(left: 28),
+                childrenPadding: const EdgeInsets.only(left: 28, bottom: 4),
                 dense: true,
                 visualDensity: VisualDensity.compact,
                 title: const Text('Hangi ziyaretler sayıldı?', style: TextStyle(fontSize: 12, color: Color(0xFF5C008E))),
@@ -1247,10 +1297,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(children: [
                       SizedBox(width: 78, child: Text('${z['tarih']}', style: const TextStyle(fontSize: 11.5))),
-                      Expanded(
-                        child: Text('#${z['randevu_id']}${z['bu_ziyaret'] == true ? ' (bu ziyaret)' : ''}',
-                            style: const TextStyle(fontSize: 11.5)),
-                      ),
+                      Expanded(child: Text('#${z['randevu_id']}', style: const TextStyle(fontSize: 11.5))),
                       Flexible(
                         flex: 2,
                         child: Text(
