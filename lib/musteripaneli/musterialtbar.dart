@@ -29,7 +29,7 @@ import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'anasayfa/anasayfa.dart';
 import 'anasayfa/carkifelek.dart';
-import 'anasayfa/puan_odullerim.dart';
+import 'anasayfa/ikram_hizmetlerim.dart';
 import 'anasayfa/musteribildirimleri/musteribildirimleri.dart';
 import 'menu/musteriresimleri.dart' show ImageGallery;
 import 'anasayfa/raporlar/seanslar.dart';
@@ -158,10 +158,10 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
         ));
         break;
       case NotificationIntent.loyaltyPoints:
-        // Damga karti doldu push -> Puan Odullerim (damga kartlari bolumu)
+        // Ikram hizmet kazanildi push -> Ikram Hizmetlerim
         final sid = intent.params['salon_id']?.toString();
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PuanOdullerimPage(
+          builder: (_) => IkramHizmetlerimPage(
             md: widget.musteriId,
             salonId: (sid != null && sid.isNotEmpty)
                 ? sid

@@ -3,6 +3,7 @@ import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/gecerli_sube_rozeti.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/ikram_hizmetlerim.dart';
 
 /// Müşterinin salon bazlı puan merdiveni — kazanılabilecek puan ödülleri.
 class PuanOdullerimPage extends StatefulWidget {
@@ -192,7 +193,7 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
                           ],
                           if (_damgaKartlari.isNotEmpty) ...[
                             const SizedBox(height: 16),
-                            _buildDamgaKartlari(),
+                            _buildIkramBaglanti(),
                           ],
                           if (_puanOzet.isNotEmpty) ...[
                             const SizedBox(height: 16),
@@ -354,149 +355,29 @@ class _PuanOdullerimPageState extends State<PuanOdullerimPage> {
     );
   }
 
-  /// Damga kartlari: her kural icin ilerleme damgalari, bekleyen ucretsiz seans hakki
-  /// ve damga kuralindan kazanilip kullanilan ucretsiz seanslar.
-  Widget _buildDamgaKartlari() {
-    return _kart(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '🎟️ Damga Kartlarım',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Hizmeti aldıkça damga toplarsınız; kart dolunca sonraki seansınız ücretsiz.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-          for (int i = 0; i < _damgaKartlari.length; i++) ...[
-            if (i > 0) const Divider(height: 24),
-            if (i == 0) const SizedBox(height: 12),
-            _buildDamgaKart(_damgaKartlari[i]),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDamgaKart(Map<String, dynamic> k) {
-    int sayi(String a) => int.tryParse((k[a] ?? 0).toString()) ?? 0;
-    final gereken = sayi('gereken_adet');
-    final ucretsiz = sayi('ucretsiz_adet');
-    final ilerleme = sayi('ilerleme');
-    final hak = sayi('hak');
-    final kazanilan = sayi('kazanilan');
-    final kullanilan = sayi('kullanilan');
-    final aktif = sayi('aktif') == 1;
-    final kullanimlar = (k['kullanimlar'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    const mor = Color(0xFF8B5CF6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                (k['hizmet_adi'] ?? '').toString(),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF374151)),
-              ),
-            ),
-            Text(
-              '$gereken al, $ucretsiz ücretsiz',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: mor),
-            ),
-          ],
+  /// Ikram Hizmet ayri sayfada (Carkifelek/puandan bagimsiz); burada yalniz kisayol.
+  Widget _buildIkramBaglanti() {
+    final hak = _damgaKartlari.fold<int>(0, (t, k) => t + (int.tryParse((k['hak'] ?? 0).toString()) ?? 0));
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => IkramHizmetlerimPage(md: widget.md, salonId: _aktifSalonId),
+      )),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFF4C1D95), Color(0xFF7C3AED)]),
+          borderRadius: BorderRadius.circular(16),
         ),
-        const SizedBox(height: 10),
-        if (aktif)
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              ...List.generate(gereken, (i) {
-                final dolu = i < ilerleme;
-                return Container(
-                  width: 30,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: dolu ? mor : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: mor.withOpacity(dolu ? 1 : 0.35), width: 1.5),
-                  ),
-                  child: dolu
-                      ? const Icon(Icons.check_rounded, size: 17, color: Colors.white)
-                      : Text('${i + 1}', style: TextStyle(fontSize: 11, color: mor.withOpacity(0.6))),
-                );
-              }),
-              Container(
-                height: 30,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5)),
-                ),
-                child: const Text('🎁 Ücretsiz',
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF047857))),
-              ),
-            ],
+        child: Row(children: [
+          Text('🎁 $hak', style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text('ikram hizmetiniz var\nHangi hizmetten kazandığınızı görün',
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600, height: 1.35)),
           ),
-        const SizedBox(height: 8),
-        if (hak > 0)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '🎉 $hak ücretsiz seans hakkınız var! Bir sonraki ${(k['hizmet_adi'] ?? '').toString()} seansınızda kullanabilirsiniz.',
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF047857), height: 1.35),
-            ),
-          )
-        else if (aktif)
-          Text(
-            '${gereken - ilerleme} seans sonra ücretsiz seans kazanırsınız.',
-            style: const TextStyle(fontSize: 12.5, color: Color(0xFF6B7280)),
-          )
-        else
-          const Text('Bu kampanya sona erdi.', style: TextStyle(fontSize: 12.5, color: Color(0xFF9CA3AF))),
-        if (kazanilan > 0 || kullanilan > 0) ...[
-          const SizedBox(height: 8),
-          Text(
-            'Bu karttan kazanılan: $kazanilan ücretsiz seans · kullanılan: $kullanilan',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
-          ),
-        ],
-        ...kullanimlar.map((u) {
-          final tutar = double.tryParse((u['tutar'] ?? 0).toString()) ?? 0;
-          return Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Row(
-              children: [
-                const Icon(Icons.card_giftcard_rounded, size: 18, color: Color(0xFF10B981)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Ücretsiz seans · ${_tarihYaz(u['tarih'])}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                ),
-                if (tutar > 0)
-                  Text(
-                    '${tutar.toStringAsFixed(tutar == tutar.roundToDouble() ? 0 : 2)} ₺ kazanç',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF059669)),
-                  ),
-              ],
-            ),
-          );
-        }),
-      ],
+          const Icon(Icons.chevron_right_rounded, color: Colors.white),
+        ]),
+      ),
     );
   }
 

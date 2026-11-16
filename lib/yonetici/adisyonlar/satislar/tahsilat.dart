@@ -1062,11 +1062,11 @@ class _TahsilatState extends State<TahsilatEkrani> {
       context: context,
       builder: (c) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(geriAl ? 'Ücretsiz seans geri alınsın mı?' : 'Ücretsiz seans uygulansın mı?'),
+        title: Text(geriAl ? 'İkram geri alınsın mı?' : 'İkram kullanılsın mı?'),
         content: Text(
           geriAl
-              ? 'İndirim kaldırılır, 0 TL tahsilat kaydı silinir.\nMüşterinin ücretsiz seans hakkı geri gelir.'
-              : '$hizmet için $tutar ₺ indirim (%100) uygulanır ve 0 TL tahsilat kaydı oluşturulur.',
+              ? 'İndirim kaldırılır, 0 TL tahsilat kaydı silinir.\nMüşterinin ikram hakkı geri gelir.'
+              : 'Müşteri $hizmet ikram hakkını bu seansta kullanmak istiyor mu?\n\n$tutar ₺ indirim (%100) uygulanır ve 0 TL tahsilat kaydı oluşturulur.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text('Vazgeç')),
@@ -1076,7 +1076,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
               backgroundColor: geriAl ? Colors.orange : const Color(0xFF059669),
               foregroundColor: Colors.white,
             ),
-            child: Text(geriAl ? 'Geri Al' : 'Ücretsiz Uygula'),
+            child: Text(geriAl ? 'Geri Al' : 'Evet, kullansın'),
           ),
         ],
       ),
@@ -1105,7 +1105,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         _damgaYukle();
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(geriAl ? 'Ücretsiz seans geri alındı' : 'Ücretsiz seans uygulandı'),
+        content: Text(geriAl ? 'İkram geri alındı' : 'İkram kullanıldı'),
         backgroundColor: const Color(0xFF059669),
         behavior: SnackBarBehavior.floating,
       ));
@@ -1145,25 +1145,32 @@ class _TahsilatState extends State<TahsilatEkrani> {
     Widget durumYazi;
     if (kullanildi) {
       durumYazi = Text(
-        'Bu seans ücretsiz olarak işlendi (${tryformat.format((d['kullanim_indirim'] as num?)?.toDouble() ?? 0)} ₺ indirim)',
+        'Bu seans ikram olarak işlendi (${tryformat.format((d['kullanim_indirim'] as num?)?.toDouble() ?? 0)} ₺ indirim)',
         style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
       );
     } else if (hak > 0) {
-      durumYazi = Text('Müşterinin $hak ücretsiz seans hakkı var',
-          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF5C008E)));
+      durumYazi = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Müşterinin $hak ikram hakkı var',
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF5C008E))),
+          Text('Müşteri isterse bu seansta kullanır; istemezse hakkı saklanır.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        ],
+      );
     } else {
       durumYazi = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Text('Damga: $ilerleme/$gereken  ', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+            Text('İkram ilerlemesi: $ilerleme/$gereken  ', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
             ...List.generate(gereken.clamp(0, 12), (i) => Padding(
                   padding: const EdgeInsets.only(right: 3),
                   child: Icon(i < ilerleme ? Icons.circle : Icons.circle_outlined,
                       size: 11, color: const Color(0xFF8B5CF6)),
                 )),
           ]),
-          Text('(bu ziyaret dahil; ücretsiz hak $gereken ücretli ziyaretten sonraki seansta kullanılır)',
+          Text('(bu ziyaret dahil; $gereken ücretli alımda ${d['ucretsiz']} ikram kazanılır)',
               style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
         ],
       );
@@ -1177,13 +1184,13 @@ class _TahsilatState extends State<TahsilatEkrani> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('🎟️', style: TextStyle(fontSize: 18)),
+              const Text('🎁', style: TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${d['hizmet_adi']} damga kartı (${d['gereken']} alana ${d['ucretsiz']} ücretsiz)',
+                    Text('${d['hizmet_adi']} ikram hizmet (${d['gereken']} alana ${d['ucretsiz']} ikram)',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF374151))),
                     const SizedBox(height: 2),
                     durumYazi,
@@ -1212,7 +1219,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                   ),
                   child: _damgaIsleniyor
                       ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('🎁 Ücretsiz Uygula', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                      : const Text('🎁 İkramı Kullan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                 ),
             ],
           ),

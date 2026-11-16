@@ -24,6 +24,7 @@ import 'package:randevu_sistem/Models/salonyorumlarozet.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/ikram_hizmetlerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/salon_yorumlari.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanpaketler.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/alinanurunler.dart';
@@ -72,6 +73,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   List<Map<String, dynamic>> _reklamlar = [];
   // "Kampanya ve Duyurular" bolumu — salonun aktif kampanyalari (gap + genel).
   List<Map<String, dynamic>> _kampanyalar = [];
+  // Ikram Hizmet sayaci (Starbucks "ikram icecek" gibi): kalan ikram + en yakin ilerleme.
+  // Salonda ikram kurali yoksa kart gizli.
+  int _ikramHak = 0;
+  List<Map<String, dynamic>> _ikramKartlari = [];
 
   // Çoklu şubeli markada üst başlıkta salon adı yerine gösterilecek marka başlığı.
   String? _bundleBaslik;
@@ -118,7 +123,120 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     initialize();
     _reklamlariYukle();
     _kampanyalariYukle();
+    _ikramYukle();
     _bundleBasligiYukle();
+  }
+
+  Future<void> _ikramYukle() async {
+    try {
+      final salonId = widget.isletmebilgi?['id']?.toString() ?? '';
+      if (salonId.isEmpty) return;
+      final r = await musteriIkramHizmetleri(salonId, widget.md.id.toString());
+      if (!mounted || r == null || r['basarili'] != true) return;
+      setState(() {
+        _ikramHak = (r['toplam_hak'] as num?)?.toInt() ?? 0;
+        _ikramKartlari = ((r['kartlar'] as List?) ?? const [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      });
+    } catch (_) {
+      // ikram yuklenemezse ana sayfa normal calisir
+    }
+  }
+
+  void _ikramSayfasiAc() {
+    Navigator.push(
+      context,
+      PageTransition(
+        type: PageTransitionType.rightToLeft,
+        duration: const Duration(milliseconds: 400),
+        child: IkramHizmetlerimPage(md: widget.md, salonId: widget.isletmebilgi?['id']?.toString()),
+      ),
+    ).then((_) => _ikramYukle());
+  }
+
+  /// Ana sayfa ikram sayaci: solda kalan ikram, sagda en yakin hizmetin ilerleme halkasi.
+  Widget _ikramKart(BuildContext context) {
+    // En yakin ilerleme: aktif kartlardan ilerleme/gereken orani en yuksek olan
+    Map<String, dynamic>? yakin;
+    double oran = -1;
+    for (final k in _ikramKartlari) {
+      if ((k['aktif'] as num?)?.toInt() != 1) continue;
+      final g = math.max(1, (k['gereken_adet'] as num?)?.toInt() ?? 1);
+      final o = ((k['ilerleme'] as num?)?.toInt() ?? 0) / g;
+      if (o > oran) { oran = o; yakin = k; }
+    }
+    final g = math.max(1, (yakin?['gereken_adet'] as num?)?.toInt() ?? 1);
+    final il = (yakin?['ilerleme'] as num?)?.toInt() ?? 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _ikramSayfasiAc,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF4C1D95), Color(0xFF7C3AED)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: [BoxShadow(color: const Color(0xFF7C3AED).withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6))],
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('İkram bakiyesi',
+                    style: TextStyle(color: Color(0xFFFDE68A), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Row(children: [
+                  const Text('🎁', style: TextStyle(fontSize: 24)),
+                  const SizedBox(width: 6),
+                  Text('$_ikramHak',
+                      style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800, height: 1)),
+                ]),
+                const SizedBox(height: 4),
+                Text('$_ikramHak ikram hizmet',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+            if (yakin != null)
+              Column(children: [
+                SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: Stack(alignment: Alignment.center, children: [
+                    SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: CircularProgressIndicator(
+                        value: il / g,
+                        strokeWidth: 5,
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        valueColor: const AlwaysStoppedAnimation(Color(0xFFFDE68A)),
+                      ),
+                    ),
+                    Text('$il/$g', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+                  ]),
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: 90,
+                  child: Text((yakin['hizmet_adi'] ?? '').toString(),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 10.5, fontWeight: FontWeight.w600)),
+                ),
+              ]),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right_rounded, color: Colors.white.withValues(alpha: 0.8)),
+          ]),
+        ),
+      ),
+    );
   }
 
   /// Salonun aktif kampanyalarini (gap bosluk + genel) ceker; "Kampanya ve
@@ -444,6 +562,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       _premiumTopBar(context),
                       _premiumGreeting(context),
                       const SizedBox(height: 18),
+                      if (_ikramKartlari.isNotEmpty) ...[
+                        _ikramKart(context),
+                        const SizedBox(height: 16),
+                      ],
                       if (_onlineRandevuAktif) ...[
                         _heroRandevuCard(context),
                         const SizedBox(height: 16),
@@ -2120,7 +2242,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
             ),
             child: Icon(
               isDamga
-                  ? Icons.confirmation_number_rounded
+                  ? Icons.card_giftcard_rounded
                   : (isGap ? Icons.schedule_rounded : Icons.local_offer_rounded),
               size: 22,
               color: scheme.primary,
@@ -2183,7 +2305,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
                       ),
                     if (isDamga)
                       _kampanyaRozet(
-                        'Damgalarımı gör',
+                        'İkramlarımı gör',
                         const Color(0xFF8B5CF6),
                         Icons.chevron_right_rounded,
                       ),
@@ -2198,12 +2320,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     if (!isDamga) return kart;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => PuanOdullerimPage(
-          md: widget.md,
-          salonId: widget.isletmebilgi?['id']?.toString(),
-        ),
-      )),
+      onTap: _ikramSayfasiAc,
       child: kart,
     );
   }

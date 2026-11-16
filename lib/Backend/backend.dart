@@ -6934,6 +6934,14 @@ Future<Map<String, dynamic>?> carkAdminDamgaKartiKaydet(String salonId, Map<Stri
 Future<Map<String, dynamic>?> carkAdminDamgaKartiSil(String salonId, int id) =>
     _carkAdminPostJson('carkAdmin/damga-karti-sil/$salonId', {'id': id});
 
+/// Ikram Hizmet yonetim sayfasi: kurallar + hizmetler + ikram kazanan musteriler.
+Future<Map<String, dynamic>?> ikramHizmetYonetimGetir(String salonId) =>
+    _carkAdminGetJson('carkAdmin/damga-karti/$salonId?musteriler=1');
+
+/// Musteri: Ikram Hizmetlerim { basarili, toplam_hak, toplam_kazanilan, kartlar: [...] }
+Future<Map<String, dynamic>?> musteriIkramHizmetleri(String salonId, String userId) =>
+    _carkAdminGetJson('musteri/ikram-hizmetleri?salon_id=$salonId&user_id=$userId');
+
 /// Tahsilat: adisyondaki damga karti kalemleri { basarili, kalemler: [...] } (web tahsilat kutusu ile ayni)
 /// adisyonIds: takvimden acilan tahsilat (adisyonId bos) ekrandaki kalemlerin adisyonlari.
 Future<Map<String, dynamic>?> damgaKartiAdisyonDurum(String salonId, String adisyonId,

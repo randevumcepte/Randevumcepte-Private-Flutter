@@ -25,6 +25,7 @@ import '../dashboard/profilbilgileri.dart';
 import '../subesecimi.dart';
 import 'menu/anket/anket_yonetimi.dart';
 import 'menu/cark/cark_yonetimi.dart';
+import 'menu/ikram/ikram_hizmet.dart';
 import 'menu/whatsapp/whatsapp_yonetimi.dart';
 import 'menu/arsiv/arsivyonetimipage.dart';
 import 'menu/asistanim/asistanpage.dart';
@@ -719,6 +720,26 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: CarkYonetimiPage(
+                            isletmebilgi: widget.isletmebilgi,
+                            kullanicirolu: kullanicirolu,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                // Ikram Hizmet ("N kez alana M ikram") — Carkifelek'ten bagimsiz
+                if (Yetki.varMi('pazarlama.kampanya_yonet'))
+                  _buildMenuButton(
+                    icon: Icons.card_giftcard_rounded,
+                    label: 'İkram Hizmet',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: IkramHizmetPage(
                             isletmebilgi: widget.isletmebilgi,
                             kullanicirolu: kullanicirolu,
                           ),
