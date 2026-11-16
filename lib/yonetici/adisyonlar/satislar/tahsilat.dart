@@ -1118,6 +1118,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
     }
   }
 
+  String _damgaTarih(String t) {
+    final d = DateTime.tryParse(t);
+    if (d == null) return t;
+    return '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+  }
+
   Widget _buildDamgaKartiKutu() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -1156,6 +1162,9 @@ class _TahsilatState extends State<TahsilatEkrani> {
               style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF5C008E))),
           Text('Müşteri isterse bu seansta kullanır; istemezse hakkı saklanır.',
               style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          if (((durum['gecerli_ikramlar'] as List?) ?? const []).isNotEmpty)
+            Text('En yakın son kullanma: ${_damgaTarih((durum['gecerli_ikramlar'] as List).first.toString())}',
+                style: TextStyle(fontSize: 11, color: Colors.amber.shade900)),
         ],
       );
     } else {

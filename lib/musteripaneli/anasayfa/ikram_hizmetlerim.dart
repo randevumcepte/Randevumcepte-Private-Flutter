@@ -139,7 +139,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
       child: Column(children: [
         satir(Icons.event_available_rounded, 'Kampanyalı hizmetleri ücretli aldıkça ikram kazanırsınız; gelinen her randevu sayılır.'),
         satir(Icons.card_giftcard_rounded, 'Kazandığınız ikramı dilediğiniz bir seansınızda kullanırsınız; ödeme sırasında salona söylemeniz yeterli.'),
-        satir(Icons.savings_rounded, 'İstemezseniz ikramınız saklı kalır, sonraki seanslarınızda kullanabilirsiniz.'),
+        satir(Icons.savings_rounded, 'İstemezseniz ikramınız saklı kalır; kullanım süresi varsa o tarihe kadar dilediğiniz seansta kullanabilirsiniz.'),
       ]),
     );
   }
@@ -151,6 +151,9 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
     final hak = n('hak');
     final aktif = n('aktif') == 1;
     final kullanimlar = ((k['kullanimlar'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final gecerlilik = (k['gecerlilik'] ?? '').toString();
+    final gecerliler = ((k['gecerli_ikramlar'] as List?) ?? const []).map((e) => e.toString()).toList();
+    final dolan = n('suresi_dolan');
 
     Widget istat(String sayi, String etiket, {bool vurgu = false}) => Expanded(
           child: Container(
@@ -203,7 +206,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               Text((k['hizmet_adi'] ?? '').toString(),
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
               const SizedBox(height: 2),
-              Text('$gereken alana ${n('ucretsiz_adet')} ikram',
+              Text('$gereken alana ${n('ucretsiz_adet')} ikram${gecerlilik.isNotEmpty ? ' · $gecerlilik geçerli' : ''}',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _mor)),
             ]),
           ),
@@ -221,6 +224,26 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
           istat('${n('kullanilan')}', 'Kullanılan\nikram'),
           istat('$hak', 'Kalan\nikram', vurgu: true),
         ]),
+        // Gecerliligini kaybedecek ikramlar (Starbucks "Gecerliligini Kaybedecek Yildizlar")
+        if (gecerliler.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(10)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('⏳ Son kullanma tarihleri',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
+              const SizedBox(height: 3),
+              ...gecerliler.map((t) => Text('🎁 1 ikram · ${_tarih(t)} tarihine kadar',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)))),
+            ]),
+          ),
+        ],
+        if (dolan > 0) ...[
+          const SizedBox(height: 6),
+          Text('$dolan ikramın kullanım süresi doldu.', style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+        ],
         const SizedBox(height: 10),
         Text(
           aktif

@@ -130,6 +130,13 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
     );
   }
 
+  String _tarih(String t) {
+    final d = DateTime.tryParse(t);
+    if (d == null) return t;
+    String iki(int x) => x.toString().padLeft(2, '0');
+    return '${iki(d.day)}.${iki(d.month)}.${d.year}';
+  }
+
   Widget _bos(String yazi) => Container(
         padding: const EdgeInsets.all(18),
         alignment: Alignment.center,
@@ -157,6 +164,8 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
     final aktif = ((k['aktif'] as num?)?.toInt() ?? 0) == 1;
     final gereken = (k['gereken_adet'] as num?)?.toInt() ?? 0;
     final ikram = (k['ucretsiz_adet'] as num?)?.toInt() ?? 0;
+    final gDeger = (k['gecerlilik_deger'] as num?)?.toInt() ?? 0;
+    final gecerlilik = gDeger > 0 ? '$gDeger ${k['gecerlilik_birim'] == 'gun' ? 'gün' : 'ay'} geçerli' : 'Süresiz';
     return _kart(
       soluk: !aktif,
       child: Row(children: [
@@ -179,7 +188,7 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text((k['hizmet_adi'] ?? '-').toString(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
             const SizedBox(height: 2),
-            Text('$gereken kez alana $ikram ikram', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            Text('$gereken kez alana $ikram ikram · $gecerlilik', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
             const SizedBox(height: 6),
             aktif
                 ? _rozet('AÇIK', const Color(0xFFDCFCE7), const Color(0xFF166534))
@@ -196,6 +205,7 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
     int n(String a) => (m[a] as num?)?.toInt() ?? 0;
     final hak = n('hak');
     final tel = (m['telefon'] ?? '').toString();
+    final son = (m['son_kullanma'] ?? '').toString();
     return _kart(
       child: Row(children: [
         Expanded(
@@ -207,6 +217,10 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
             const SizedBox(height: 2),
             Text('Ücretli alım ${n('ucretli')} · kazanılan ${n('kazanilan')} · kullanılan ${n('kullanilan')}',
                 style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+            if (hak > 0 && son.isNotEmpty)
+              Text('En yakın son kullanma: ${_tarih(son)}', style: TextStyle(fontSize: 11.5, color: Colors.amber.shade900)),
+            if (n('suresi_dolan') > 0)
+              Text('${n('suresi_dolan')} ikramın süresi doldu', style: const TextStyle(fontSize: 11.5, color: Colors.red)),
           ]),
         ),
         hak > 0
@@ -224,6 +238,9 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
     int? hizmetId = (mevcut?['hizmet_id'] as num?)?.toInt();
     final gerekenCtrl = TextEditingController(text: ((mevcut?['gereken_adet'] as num?)?.toInt() ?? 4).toString());
     final ikramCtrl = TextEditingController(text: ((mevcut?['ucretsiz_adet'] as num?)?.toInt() ?? 1).toString());
+    final mevcutSure = (mevcut?['gecerlilik_deger'] as num?)?.toInt() ?? 0;
+    final sureCtrl = TextEditingController(text: mevcutSure > 0 ? '$mevcutSure' : '');
+    String sureBirim = mevcut?['gecerlilik_birim'] == 'gun' ? 'gun' : 'ay';
     bool aktif = ((mevcut?['aktif'] as num?)?.toInt() ?? 1) == 1;
     bool kaydediyor = false;
 
@@ -272,6 +289,36 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                   ),
                 ),
               ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: sureCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Kullanım süresi',
+                      hintText: 'Boş = süresiz',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 96,
+                  child: DropdownButtonFormField<String>(
+                    value: sureBirim,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 'ay', child: Text('ay')),
+                      DropdownMenuItem(value: 'gun', child: Text('gün')),
+                    ],
+                    onChanged: (v) => setSt(() => sureBirim = v ?? 'ay'),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              Text('İkram, kazanıldığı günden itibaren bu süre içinde kullanılmazsa düşer.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
               const SizedBox(height: 8),
               Text(
                 '"Geldi" işaretli ücretli randevular sayılır; paket/seanslı satış seansları sayılmaz. '
@@ -305,6 +352,8 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                         'gereken_adet': int.tryParse(gerekenCtrl.text.trim()) ?? 0,
                         'ucretsiz_adet': int.tryParse(ikramCtrl.text.trim()) ?? 0,
                         'aktif': aktif ? 1 : 0,
+                        'gecerlilik_deger': int.tryParse(sureCtrl.text.trim()) ?? 0,
+                        'gecerlilik_birim': sureBirim,
                       });
                       if (!mounted) return;
                       setSt(() => kaydediyor = false);
