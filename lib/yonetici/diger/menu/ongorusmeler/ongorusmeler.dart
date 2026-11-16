@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -670,6 +671,12 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 						),
 					),
 					const SizedBox(width: 6),
+					// On gorusmede user_id yok -> telefonla ara (kapaliyken gizli).
+					MusteriAraButon(
+						telefon: e.cep_telefon,
+						sube: widget.isletmebilgi['id'].toString(),
+						gorunenAd: e.ad_soyad,
+					),
 					_kartActionButton(e, isPending, isNotSold),
 				],
 			),
@@ -950,6 +957,12 @@ class _OnGorusmelerState extends State<OnGorusmeler> {
 														),
 													],
 												),
+											),
+											MusteriAraButon(
+												telefon: e.cep_telefon,
+												sube: widget.isletmebilgi['id'].toString(),
+												gorunenAd: e.ad_soyad,
+												stil: MusteriAraStil.daire,
 											),
 										],
 									),

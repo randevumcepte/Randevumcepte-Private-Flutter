@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 
 /// Bugun dogum gunu olan musteriler icin sirali kutlama popup'i.
 /// Web'deki dashboard popup'inin mobil karsiligi: veriler yuklendikten
@@ -92,6 +93,16 @@ class _DogumGunuDialogState extends State<_DogumGunuDialog> {
                 color: Color(0xFFE63B6E),
               ),
             ),
+            // Ara — Cagri Merkezi click-to-call (kapaliyken gizli).
+            if (MusteriAraButon.gosterilir(userId: widget.musteriId)) ...[
+              const SizedBox(height: 8),
+              MusteriAraButon(
+                userId: widget.musteriId,
+                sube: widget.salonId,
+                gorunenAd: widget.ad,
+                stil: MusteriAraStil.etiketli,
+              ),
+            ],
             const SizedBox(height: 10),
             const Text(
               'Müşterinize doğum günü mesajı göndermek ister misiniz?',

@@ -411,7 +411,8 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			const SnackBar(content: Text('Arama başlatılıyor...'), duration: Duration(seconds: 2)),
 		);
 		try {
-			final sonuc = await CagriApi.aramaBaslatNumara(tel, sube);
+			final sonuc = await CagriApi.musteriAra(
+					userId: _md.id.toString(), telefon: tel, sube: sube, gorunenAd: _md.name);
 			if (!mounted) return;
 			ScaffoldMessenger.of(context).showSnackBar(
 				SnackBar(
@@ -695,15 +696,18 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		// Duzenle — musteri.ekle_duzenle yetkisi varsa gorunur.
 		final duzenleYet = Yetki.varMi('musteri.ekle_duzenle');
 		final actions = <Widget>[];
-		actions.add(Expanded(
-			child: _actionBtn(
-				Icons.call,
-				'Ara',
-				const Color(0xFF43A047),
-				enabled: hasTel,
-				onTap: hasTel ? _onCallPressed : null,
-			),
-		));
+		// Ara — Cagri Merkezi click-to-call; santral/dahili yoksa gizli.
+		if (CagriApi.aramaAcik) {
+			actions.add(Expanded(
+				child: _actionBtn(
+					Icons.call,
+					'Ara',
+					const Color(0xFF43A047),
+					enabled: hasTel,
+					onTap: hasTel ? _onCallPressed : null,
+				),
+			));
+		}
 		if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
 		actions.add(Expanded(
 			child: _actionBtn(

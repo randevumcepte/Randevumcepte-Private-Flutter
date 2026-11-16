@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -1590,6 +1591,12 @@ class _TahsilatState extends State<TahsilatEkrani> {
                   child: YukseltButonu(isletme_bilgi: widget.isletmebilgi,)
               ),
             ),
+          // Adisyonun musterisini ara (Cagri Merkezi click-to-call; kapaliyken gizli).
+          MusteriAraButon(
+            userId: widget.musteridanisanid,
+            sube: widget.isletmebilgi['id'].toString(),
+            boyut: 22,
+          ),
           IconButton(
             icon: Icon(Icons.person_add_alt_1_rounded, color: cs.primary),
             iconSize: 24,

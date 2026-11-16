@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -369,6 +370,12 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
                   ],
                 ),
               ),
+              MusteriAraButon(
+                userId: m.id,
+                telefon: m.cep_telefon,
+                sube: widget.isletmebilgi["id"]?.toString(),
+                gorunenAd: m.name,
+              ),
               _buildMenu(m),
             ],
           ),
@@ -437,6 +444,14 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
               ),
             ),
           );
+        } else if (value == 'ara') {
+          MusteriAraButon.ara(
+            context,
+            userId: m.id,
+            telefon: m.cep_telefon,
+            sube: widget.isletmebilgi["id"]?.toString(),
+            gorunenAd: m.name,
+          );
         } else if (value == 'whatsapp') {
           IletisimHelper.gonderWhatsapp(
             context,
@@ -459,6 +474,8 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
       },
       itemBuilder: (context) => [
         _menuItem('bilgi', Icons.info_outline_rounded, 'Detaylı Bilgi'),
+        if (MusteriAraButon.gosterilir(userId: m.id, telefon: m.cep_telefon))
+          _menuItem('ara', Icons.call, 'Ara'),
         if (Yetki.varMi('musteri.telefon_gor') &&
             Yetki.varMi('pazarlama.whatsapp_gonder') &&
             (m.cep_telefon).isNotEmpty)

@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -873,17 +874,19 @@ class _CDRState extends State<CDRRaporlari> {
                   ),
                 ),
 
-              // Tekrar ara
-              _buildActionButtonSmall(
-                icon: Icons.phone,
-                label: 'Ara',
-                color: Colors.blue,
-                onPressed: () {
-                  /*widget.dialPadManager.updateDialPad(
-                    context, true, "", widget.kullanici
-                );*/
-                },
-              ),
+              // Tekrar ara — Cagri Merkezi click-to-call (numara ile; Bria/softphone).
+              if (MusteriAraButon.gosterilir(telefon: cdr.telefon))
+                _buildActionButtonSmall(
+                  icon: Icons.phone,
+                  label: 'Ara',
+                  color: Colors.blue,
+                  onPressed: () => MusteriAraButon.ara(
+                    context,
+                    telefon: cdr.telefon,
+                    sube: widget.isletmebilgi['id']?.toString(),
+                    gorunenAd: cdr.musteri.isNotEmpty ? cdr.musteri : null,
+                  ),
+                ),
 
               // Müşteri ekle (sadece müşteri adı yoksa VE telefonu görme yetkisi varsa)
               // Bu isletmenin aktif portfoyunde kayit yoksa (backend 'kayitli')

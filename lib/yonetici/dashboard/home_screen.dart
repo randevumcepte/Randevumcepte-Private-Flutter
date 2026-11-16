@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/cupertino.dart';
@@ -4742,6 +4743,18 @@ class ListCardRandevular extends StatelessWidget {
                                 _buildInfoRow("Ad Soyad:", musteriAdi),
                                 SizedBox(height: 8),
                                 _buildInfoRow("Telefon:", telefon),
+                                if (MusteriAraButon.gosterilir(
+                                    userId: (randevu["user_id"] ?? users?['id'] ?? '').toString(),
+                                    telefon: telefonRaw))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: MusteriAraButon(
+                                      userId: (randevu["user_id"] ?? users?['id'] ?? '').toString(),
+                                      telefon: telefonRaw,
+                                      gorunenAd: musteriAdi,
+                                      stil: MusteriAraStil.etiketli,
+                                    ),
+                                  ),
                                 SizedBox(height: 8),
                                 if (personelAdi.isNotEmpty)
                                   _buildInfoRow("Personel:", personelAdi),
@@ -5140,7 +5153,16 @@ class ListCardRandevular extends StatelessWidget {
               ),
 
 
-              trailing: _buildRandevuStatusBadge(durum),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  MusteriAraButon(
+                    userId: (randevu["user_id"] ?? users?['id'] ?? '').toString(),
+                    gorunenAd: musteriAdi,
+                  ),
+                  _buildRandevuStatusBadge(durum),
+                ],
+              ),
               contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
               onTap: () => _showRandevuDetails(context, randevu),
             ),

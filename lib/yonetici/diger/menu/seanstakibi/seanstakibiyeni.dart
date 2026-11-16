@@ -9,6 +9,7 @@ import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/Frontend/cihaz_bilgileri_modal.dart';
 
 import 'package:randevu_sistem/Models/seanstakibi.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/sinirsiz_seans_karti.dart';
 
 class SeansTakibi extends StatefulWidget {
@@ -347,6 +348,13 @@ class _SeansTakibiState extends State<SeansTakibi> {
                       ],
                     ),
                   ),
+                  // Ara — Cagri Merkezi click-to-call (kapaliyken gizli).
+                  if (item.musteri is Map)
+                    MusteriAraButon(
+                      userId: item.musteri['id']?.toString(),
+                      sube: widget.isletmebilgi['id']?.toString(),
+                      gorunenAd: musteriAdi,
+                    ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 4, vertical: 2),

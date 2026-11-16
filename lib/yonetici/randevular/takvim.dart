@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -2436,12 +2437,29 @@ List<Widget> _buildAppointmentsForResource(
     final hasForm = (Yetki.varMi('form.olustur') || Yetki.varMi('form.gonder')) &&
         userId.isNotEmpty;
 
-    if (!hasWa && !hasAnket && !hasForm) return const SizedBox.shrink();
+    // Ara — Cagri Merkezi click-to-call (kapali markada/dahilisizde gorunmez).
+    final hasAra = MusteriAraButon.gosterilir(userId: userId, telefon: tel);
+
+    if (!hasAra && !hasWa && !hasAnket && !hasForm) return const SizedBox.shrink();
 
     // Salon id (isletmebilgi'den)
     final String salonIdStr = widget.isletmebilgi["id"]?.toString() ?? '';
 
     final buttons = <Widget>[];
+    if (hasAra) {
+      buttons.add(_detayBtn(
+        label: 'Ara',
+        icon: Icons.call,
+        color: const Color(0xFF43A047),
+        onTap: () => MusteriAraButon.ara(
+          context,
+          userId: userId,
+          telefon: tel,
+          sube: salonIdStr,
+          gorunenAd: rnd!.musteriname,
+        ),
+      ));
+    }
     if (hasWa) {
       buttons.add(_detayBtn(
         label: 'WhatsApp',

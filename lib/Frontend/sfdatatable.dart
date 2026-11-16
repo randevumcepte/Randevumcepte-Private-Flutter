@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -1944,6 +1945,19 @@ class KatilimciDataSource extends DataGridSource {
 
   List<dynamic> _katilimcilar = [];
   List<DataGridRow> _katilimciRows = [];
+  // Satir -> musteri (users.id): telefon hucresindeki "Ara" butonu icin.
+  // Hucrede sadece maskeli telefon var; numara sunucudan user_id ile alinir.
+  final Expando<String> _satirMusteriId = Expando<String>();
+
+  DataGridRow _katilimciRow(dynamic e) {
+    final row = DataGridRow(cells: [
+      DataGridCell<String>(columnName: 'musteri', value: e['musteri']['name']),
+      DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
+      DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
+    ]);
+    _satirMusteriId[row] = e['musteri']['id']?.toString();
+    return row;
+  }
   KatilimciDataSource(List<dynamic> katilimcilar, BuildContext context,String durum) {
 
     context2 = context;
@@ -1958,44 +1972,22 @@ class KatilimciDataSource extends DataGridSource {
     {
 
       _katilimciRows = _katilimcilar
-          .map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-      ]))
+          .map<DataGridRow>(_katilimciRow)
           .toList();
     }
 
     if(durum == '1'){
 
       _katilimciRows = _katilimcilar.where((element) => element['durum']=='1')
-          .map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-
-      ]))
+          .map<DataGridRow>(_katilimciRow)
           .toList();
     }
 
     if(durum == '0')
-      _katilimciRows = _katilimcilar.where((element) => element['durum']=='0').map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-
-      ]))
+      _katilimciRows = _katilimcilar.where((element) => element['durum']=='0').map<DataGridRow>(_katilimciRow)
           .toList();
     if(durum == 'null')
-      _katilimciRows = _katilimcilar.where((element) => element['durum']==null).map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-      ]))
+      _katilimciRows = _katilimcilar.where((element) => element['durum']==null).map<DataGridRow>(_katilimciRow)
           .toList();
   }
   @override
@@ -2003,7 +1995,21 @@ class KatilimciDataSource extends DataGridSource {
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
     List<Widget> cellwidget = row.getCells().map<Widget>((cell) {
-
+      if (cell.columnName == 'telefon' &&
+          MusteriAraButon.gosterilir(userId: _satirMusteriId[row])) {
+        return Container(
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.symmetric(horizontal: 8.0),
+          child: Row(children: [
+            Flexible(child: Text(cell.value.toString(), overflow: TextOverflow.ellipsis)),
+            MusteriAraButon(
+              userId: _satirMusteriId[row],
+              gorunenAd: row.getCells()[0].value?.toString(),
+              boyut: 18,
+            ),
+          ]),
+        );
+      }
       return Container(
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.all(8.0),
@@ -2039,44 +2045,22 @@ class KatilimciDataSource extends DataGridSource {
     {
 
       _katilimciRows = newKatilimcilar
-          .map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-      ]))
+          .map<DataGridRow>(_katilimciRow)
           .toList();
     }
 
     if(durum == '1'){
 
       _katilimciRows = newKatilimcilar.where((element) => element['durum']==1)
-          .map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-
-      ]))
+          .map<DataGridRow>(_katilimciRow)
           .toList();
     }
 
     if(durum == '0')
-      _katilimciRows = newKatilimcilar.where((element) => element['durum']==0).map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-
-      ]))
+      _katilimciRows = newKatilimcilar.where((element) => element['durum']==0).map<DataGridRow>(_katilimciRow)
           .toList();
     if(durum == 'null')
-      _katilimciRows = newKatilimcilar.where((element) => element['durum']==null).map<DataGridRow>((e) =>  DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'musteri',value: e['musteri']['name']),
-        DataGridCell<String>(columnName: 'telefon', value: Yetki.telefonGoster(e['musteri']['cep_telefon']?.toString())),
-        DataGridCell<String>(columnName: 'durum', value: e['durum'].toString()),
-
-      ]))
+      _katilimciRows = newKatilimcilar.where((element) => element['durum']==null).map<DataGridRow>(_katilimciRow)
           .toList();
 
     notifyListeners();
@@ -5928,7 +5912,15 @@ class SenetDataSource extends DataGridSource {
       Container(
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.all(8.0),
-        child: Text(row.getCells()[2].value.toString()),
+        child: Row(children: [
+          Flexible(child: Text(row.getCells()[2].value.toString(), overflow: TextOverflow.ellipsis)),
+          // Ara — Cagri Merkezi click-to-call (kapaliyken yer kaplamaz).
+          MusteriAraButon(
+            userId: (row.getCells()[0].value as Senet).musteri['id']?.toString(),
+            gorunenAd: row.getCells()[2].value?.toString(),
+            boyut: 18,
+          ),
+        ]),
       ),
       Container(
         alignment: Alignment.centerLeft,

@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -621,7 +622,18 @@ class _RandevularMenuState extends State<RandevularMenu> {
             children: [
               _statusBadge(status),
               const SizedBox(height: 6),
-              _actionMenu(r),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  MusteriAraButon(
+                    userId: r.user_id,
+                    telefon: r.musteri?["cep_telefon"]?.toString(),
+                    sube: widget.isletmebilgi['id'].toString(),
+                    gorunenAd: r.musteriname,
+                  ),
+                  _actionMenu(r),
+                ],
+              ),
             ],
           ),
         ],
@@ -1154,6 +1166,22 @@ class _RandevularMenuState extends State<RandevularMenu> {
                 _detayRow(Icons.calendar_month_outlined, 'Tarih & Saat', r.tarih),
                 if (telefon.isNotEmpty)
                   _detayRow(Icons.phone_outlined, 'Telefon', telefon),
+                if (MusteriAraButon.gosterilir(
+                    userId: r.user_id,
+                    telefon: r.musteri?["cep_telefon"]?.toString()))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: MusteriAraButon(
+                        userId: r.user_id,
+                        telefon: r.musteri?["cep_telefon"]?.toString(),
+                        sube: widget.isletmebilgi['id'].toString(),
+                        gorunenAd: r.musteriname,
+                        stil: MusteriAraStil.etiketli,
+                      ),
+                    ),
+                  ),
                 if (hizmetler.isNotEmpty)
                   _detayRow(Icons.spa_outlined, 'Hizmetler', hizmetler),
                 if (r.toplam.isNotEmpty && r.toplam != 'null')

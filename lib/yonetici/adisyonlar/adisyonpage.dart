@@ -1,4 +1,5 @@
-  import 'dart:convert';
+  import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
+import 'dart:convert';
   import 'dart:developer';
 
   import 'package:dropdown_button2/dropdown_button2.dart';
@@ -709,6 +710,12 @@
                               child: Icon(Icons.receipt_long, size: 12, color: Colors.white),
                             ),
                           ],
+                          MusteriAraButon(
+                            userId: adisyon.user_id,
+                            sube: widget.isletmebilgi['id'].toString(),
+                            gorunenAd: adisyon.musteri,
+                            boyut: 18,
+                          ),
                           _buildKebabMenu(adisyon, isOpenTab),
                         ],
                       ),

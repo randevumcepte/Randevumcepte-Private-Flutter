@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 
 /// Isletme sahibi/yoneticileri icin musteri yorumlari moderasyon ekrani.
 /// Apple 1.2 UGC uyumu: bildirilen yorumlar en uste alinir, sil butonu ile
@@ -262,6 +263,12 @@ class _MusteriYorumlariYonetimState extends State<MusteriYorumlariYonetim> {
                     (_) => const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB400)),
                   ),
                 ),
+              // Ara — Cagri Merkezi click-to-call (kapaliyken gizli).
+              MusteriAraButon(
+                userId: y['user_id']?.toString(),
+                sube: widget.salonId,
+                gorunenAd: ad,
+              ),
             ],
           ),
           if (yorum.trim().isNotEmpty) ...[

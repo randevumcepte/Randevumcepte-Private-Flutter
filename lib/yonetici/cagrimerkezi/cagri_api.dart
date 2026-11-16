@@ -139,14 +139,80 @@ class CagriApi {
   /// Arama butonu etiketi: softphone acikken uygulama icinden, degilse Bria.
   static String get araEtiketi => Softphone.instance.aktif ? 'Ara' : 'Ara (Bria)';
 
-  /// Telefon numarasi ile santral uzerinden arama baslat (musteri detay ekrani).
-  static Future<AramaBaslatSonuc> aramaBaslatNumara(String telefon, String sube) async {
-    final j = await _post('arama-baslat', {
-      'telefon': telefon,
-      'sube': sube,
-    });
-    return AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
+  // ---------------------------------------------------------------------------
+  // Uygulama geneli "Ara" kapisi (musteri listesi/detay, takvim, adisyon, ...).
+  // BottomNavigationExample acilisinda [aramaKapisiAyarla] ile bir kez kurulur;
+  // MusteriAraButon yalnizca [aramaAcik] true iken gorunur.
+  // ---------------------------------------------------------------------------
+  static String? _aktifSube;
+  static bool _aramaAcik = false;
+
+  /// Aktif sube (salon_id). Kapi kurulmadiysa null.
+  static String? get aktifSube => _aktifSube;
+
+  /// Click-to-call kullanilabilir mi: Cagri Merkezi bayragi acik + uyelik
+  /// turu 3 + kullanicinin bu subede dahilisi (Bria) var ya da softphone acik.
+  static bool get aramaAcik => _aramaAcik && _aktifSube != null;
+
+  static void aramaKapisiAyarla({
+    required String sube,
+    required bool acik,
+  }) {
+    _aktifSube = sube.isEmpty ? null : sube;
+    _aramaAcik = acik;
   }
+
+  static void aramaKapisiKapat() {
+    _aktifSube = null;
+    _aramaAcik = false;
+  }
+
+  /// Musteriyi ara (cagri merkezi listesine bagli olmayan her ekran).
+  /// [userId] verilirse numara SUNUCUDAN alinir (maskeli personel numarayi
+  /// gormeden arayabilir); yoksa [telefon] kullanilir (orn. santral raporu).
+  /// Softphone acik+kayitliysa web ile ayni softphone akisi, degilse santral
+  /// originate (once Bria dahilisi calar, acinca musteri aranir).
+  static Future<AramaBaslatSonuc> musteriAra({
+    String? userId,
+    String? telefon,
+    String? sube,
+    String? gorunenAd,
+  }) async {
+    final s = (sube ?? _aktifSube ?? '').trim();
+    if (s.isEmpty) {
+      return AramaBaslatSonuc(success: false, message: 'İşletme bilgisi bulunamadı');
+    }
+    final uid = (userId ?? '').trim();
+    // Maskeli numara ('5068 *** ** 33') rakama indirgenirse YANLIS kisi aranir -> yok say.
+    final ham = telefon ?? '';
+    final tel = ham.contains('*') ? '' : ham.replaceAll(RegExp(r'\D'), '');
+    if ((uid.isEmpty || uid == 'null' || uid == '0') && tel.isEmpty) {
+      return AramaBaslatSonuc(success: false, message: 'Müşteri telefonu yok');
+    }
+    final sp = Softphone.instance;
+    final softphoneIle = sp.aktif && sp.kayitli.value;
+    final j = await _post('arama-baslat-numara', {
+      if (uid.isNotEmpty && uid != 'null' && uid != '0') 'user_id': uid,
+      if (tel.isNotEmpty) 'numara': tel,
+      'sube': s,
+      if (softphoneIle) 'softphone': true,
+    });
+    final sonuc = AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
+    if (!softphoneIle || !sonuc.success || sonuc.numaraAra == null) return sonuc;
+
+    final basladi = await sp.ara(sonuc.numaraAra!, gorunenAd: gorunenAd);
+    return AramaBaslatSonuc(
+      success: basladi,
+      message: basladi
+          ? 'Aranıyor...'
+          : 'Softphone araması başlatılamadı (devam eden bir arama olabilir).',
+    );
+  }
+
+  /// Geriye donuk: eski imza. Artik dogru uca (arama-baslat-numara) gider.
+  static Future<AramaBaslatSonuc> aramaBaslatNumara(String telefon, String sube,
+          {String? userId}) =>
+      musteriAra(userId: userId, telefon: telefon, sube: sube);
 
   /// Gorusme sonucu kaydet. sonuc: 0,2,4,5,6,7 veya null (sadece not).
   /// santralnottarih/santralnotsaat verilirse (3 veya 6) geri arama planlanir.

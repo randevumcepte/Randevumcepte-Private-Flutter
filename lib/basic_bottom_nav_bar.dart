@@ -1,3 +1,5 @@
+import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
+import 'package:randevu_sistem/config/ozellikler.dart' show kCagriMerkeziEnabled;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -124,6 +126,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     dahili =  widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_no_webrtc"].toString();
     dahiliSifre = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_sifre_webrtc"].toString();
     personelId = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["id"].toString();
+    _aramaKapisiniKur(lisansBitti);
     _pages = [
       DashBoard(kullanicirolu: kullanicirolu, kullanici: widget.kullanici, isletmebilgi: widget.isletmebilgi),
       _buildTakvim(),
@@ -147,6 +150,32 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     }
   }
 
+  /// Uygulama geneli musteri "Ara" butonlarinin (MusteriAraButon) kapisi.
+  /// Cagri Merkezi menusuyle ayni kosul: bayrak + uyelik turu 3 + bu subede
+  /// Bria dahilisi (dahili_no) ya da acik softphone + WebRTC dahilisi.
+  void _aramaKapisiniKur(bool lisansBitti) {
+    String alan(String k) {
+      try {
+        final e = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((x) =>
+            x["salon_id"].toString() == widget.isletmebilgi["id"].toString());
+        final v = e[k]?.toString() ?? '';
+        return v == 'null' ? '' : v.trim();
+      } catch (_) {
+        return '';
+      }
+    }
+
+    final dahiliVar = alan('dahili_no').isNotEmpty ||
+        (Softphone.instance.aktif && alan('dahili_no_webrtc').isNotEmpty);
+    CagriApi.aramaKapisiAyarla(
+      sube: widget.isletmebilgi['id'].toString(),
+      acik: !lisansBitti &&
+          kCagriMerkeziEnabled &&
+          widget.uyelikturu == 3 &&
+          dahiliVar,
+    );
+  }
+
   // Lisans bitti modunda initState'teki yan-kurulumlar (FCM/VoIP token +
   // bildirim yonlendirme dinleyicisi) atlaniyordu. Uyelik uzatilip Hesabim
   // ekrani taze veriyle "lisans gecerli" dedikce bir kez kurup panele donelim.
@@ -163,6 +192,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _handleNotificationIntent());
     }
+    _aramaKapisiniKur(false);
     // build() artik guncel (gecerli) tarihe bakacagi icin paneli gosterir.
     setState(() {});
   }
@@ -332,6 +362,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
   void _handleLogout() async {
     await Softphone.instance.kapat();
+    CagriApi.aramaKapisiKapat();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userToken');
     await Yetki.temizle();

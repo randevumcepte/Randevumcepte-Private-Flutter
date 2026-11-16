@@ -7,6 +7,7 @@ import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/yonetici/randevular/grup_dersi_ekle_ekran.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 
 const Color _mor = Color(0xFF5C008E);
 
@@ -259,6 +260,13 @@ class _GrupDersiKatilimciEkranState extends State<GrupDersiKatilimciEkran> {
                   ],
                 ),
               ),
+              // Ara — Cagri Merkezi click-to-call (kapaliyken gizli).
+              MusteriAraButon(
+                userId: k.userId,
+                telefon: k.tel.contains('*') ? null : k.tel,
+                sube: widget.salonId,
+                gorunenAd: k.ad,
+              ),
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.red, size: 20),
                 tooltip: 'Çıkar',
@@ -342,7 +350,7 @@ class _MusteriAraSheetState extends State<_MusteriAraSheet> {
     }
     setState(() { _ara = true; _hata = null; });
     try {
-      final r = await musterilistegetirSayfali('', widget.salonId, q, '20', '0');
+      final r = await musterilistegetirSayfali('', widget.salonId, q, '389', '0');
       if (!mounted) return;
       setState(() { _sonuc = r; _ara = false; });
     } catch (e) {
