@@ -144,13 +144,61 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
     );
   }
 
+  Widget _ikramSatir(Map<String, dynamic> ik) {
+    final durum = (ik['durum'] ?? '').toString();
+    final tutar = double.tryParse((ik['tutar'] ?? 0).toString()) ?? 0;
+    final bitis = (ik['bitis'] ?? '').toString();
+    late final String aciklama;
+    late final String rozet;
+    late final Color renk;
+    late final IconData ikon;
+    if (durum == 'kullanildi') {
+      aciklama = '${_tarih(ik['kullanim_tarihi'])} tarihinde kullanıldı'
+          '${tutar > 0 ? ' · ${tutar.toStringAsFixed(tutar == tutar.roundToDouble() ? 0 : 2)} ₺ kazanç' : ''}';
+      rozet = 'Kullanıldı';
+      renk = const Color(0xFF059669);
+      ikon = Icons.check_circle_rounded;
+    } else if (durum == 'gecerli') {
+      aciklama = bitis.isNotEmpty ? '${_tarih(bitis)} tarihine kadar kullanılabilir' : 'Süresiz, dilediğiniz zaman kullanılabilir';
+      rozet = 'Kullanılabilir';
+      renk = _mor;
+      ikon = Icons.card_giftcard_rounded;
+    } else {
+      aciklama = '${_tarih(bitis)} tarihinde süresi doldu';
+      rozet = 'Süresi doldu';
+      renk = const Color(0xFFDC2626);
+      ikon = Icons.timer_off_rounded;
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(children: [
+        Icon(ikon, size: 18, color: renk),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${_tarih(ik['kazanma'])} tarihinde kazanıldı',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+            Text(aciklama, style: const TextStyle(fontSize: 12.5, color: Color(0xFF374151))),
+          ]),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(color: renk.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+          child: Text(rozet, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: renk)),
+        ),
+      ]),
+    );
+  }
+
   Widget _hizmetKart(Map<String, dynamic> k) {
     int n(String a) => int.tryParse((k[a] ?? 0).toString()) ?? 0;
     final gereken = math.max(1, n('gereken_adet'));
     final ilerleme = n('ilerleme');
     final hak = n('hak');
     final aktif = n('aktif') == 1;
-    final kullanimlar = ((k['kullanimlar'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    // Ikram gecmisi: kazanilan her ikram (en yeni ustte) — kullanildi / kullanilabilir / suresi doldu.
+    // Eski backend 'ikramlar' gondermezse bolum gizli kalir.
+    final ikramlar = ((k['ikramlar'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     final gecerlilik = (k['gecerlilik'] ?? '').toString();
     final gecerliler = ((k['gecerli_ikramlar'] as List?) ?? const []).map((e) => e.toString()).toList();
     final dolan = n('suresi_dolan');
@@ -259,25 +307,12 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               : 'Bu ikram kampanyası sona erdi${hak > 0 ? '; kalan ikramınızı kullanabilirsiniz.' : '.'}',
           style: const TextStyle(fontSize: 12.5, color: Color(0xFF6B7280)),
         ),
-        if (kullanimlar.isNotEmpty) ...[
-          const Divider(height: 20),
-          ...kullanimlar.map((u) {
-            final tutar = double.tryParse((u['tutar'] ?? 0).toString()) ?? 0;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(children: [
-                const Icon(Icons.card_giftcard_rounded, size: 17, color: Color(0xFF10B981)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('İkram kullanıldı · ${_tarih(u['tarih'])}',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                ),
-                if (tutar > 0)
-                  Text('${tutar.toStringAsFixed(tutar == tutar.roundToDouble() ? 0 : 2)} ₺ kazanç',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF059669))),
-              ]),
-            );
-          }),
+        if (ikramlar.isNotEmpty) ...[
+          const Divider(height: 22),
+          const Text('İkram geçmişi',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF374151))),
+          const SizedBox(height: 4),
+          ...ikramlar.map(_ikramSatir),
         ],
       ]),
     );
