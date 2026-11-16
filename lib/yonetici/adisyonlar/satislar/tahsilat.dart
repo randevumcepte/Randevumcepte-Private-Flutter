@@ -198,6 +198,11 @@ class _TahsilatState extends State<TahsilatEkrani> {
 
   // Damga karti ("N al M ucretsiz"): bu adisyondaki kurala tabi kalemler (web tahsilat kutusu ile ayni veri)
   List<Map<String, dynamic>> _damgaKalemleri = [];
+  // Takvimden acilan tahsilatta (adisyonId bos) ekranda gorulen kalemlerin adisyonlari.
+  // Birikimli tutulur: ucretsiz uygulanan kalem (borcu 0) listeden duser ama
+  // "Geri Al" icin adisyonu sorulmaya devam etmeli.
+  final Set<String> _damgaAdisyonlari = {};
+  String? _damgaMusteriId;
   bool _damgaIsleniyor = false;
 
   @override
@@ -1021,8 +1026,27 @@ class _TahsilatState extends State<TahsilatEkrani> {
   // ============ DAMGA KARTI ============
 
   Future<void> _damgaYukle() async {
-    if (widget.adisyonId == '' || seciliisletme == null) return;
-    final r = await damgaKartiAdisyonDurum(seciliisletme!, widget.adisyonId);
+    if (seciliisletme == null) return;
+    List<String>? adisyonlar;
+    if (widget.adisyonId == '') {
+      // Musteri degistiyse onceki musterinin adisyonlari sorulmasin
+      final mid = secilimusteridanisan?.id.toString();
+      if (mid != _damgaMusteriId) {
+        _damgaAdisyonlari.clear();
+        _damgaMusteriId = mid;
+      }
+      for (final e in adisyonkalemleri) {
+        if (e is AdisyonHizmet && e.adisyon_id.isNotEmpty && e.adisyon_id != 'null') {
+          _damgaAdisyonlari.add(e.adisyon_id);
+        }
+      }
+      if (_damgaAdisyonlari.isEmpty) {
+        if (mounted && _damgaKalemleri.isNotEmpty) setState(() => _damgaKalemleri = []);
+        return;
+      }
+      adisyonlar = _damgaAdisyonlari.toList();
+    }
+    final r = await damgaKartiAdisyonDurum(seciliisletme!, widget.adisyonId, adisyonIds: adisyonlar);
     if (!mounted) return;
     setState(() {
       _damgaKalemleri = (r != null && r['basarili'] == true)
