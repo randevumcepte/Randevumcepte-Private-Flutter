@@ -234,6 +234,10 @@ PY
 
 bagimliliklari_guncelle() {
   flutter pub get
+  # IDE (Android Studio/VS Code) packages/rc_softphone'u ayri bir Dart projesi
+  # olarak da analiz eder; orada pub get yoksa importlar cozulmez ve
+  # "TusTakimiEkrani isn't a class" gibi sahte hatalar gosterir.
+  (cd packages/rc_softphone && flutter pub get >/dev/null) || true
   if [[ $POD -eq 1 && "$(uname)" == "Darwin" && -f ios/Podfile ]]; then
     (cd ios && pod install) || echo "UYARI: pod install basarisiz; elle 'cd ios && pod install' calistir."
   fi
