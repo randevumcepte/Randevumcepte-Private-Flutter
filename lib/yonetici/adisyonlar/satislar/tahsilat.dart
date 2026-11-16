@@ -1066,7 +1066,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
         content: Text(
           geriAl
               ? 'İndirim kaldırılır, 0 TL tahsilat kaydı silinir.\nMüşterinin ikram hakkı geri gelir.'
-              : 'Müşteri $hizmet ikram hakkını bu seansta kullanmak istiyor mu?\n\n$tutar ₺ indirim (%100) uygulanır ve 0 TL tahsilat kaydı oluşturulur.',
+              : 'Müşteri $hizmet ikram hakkını kullanmak istiyor mu?\n\nİkram ${_damgaKalemEtiket(d).split(' · ').first.toLowerCase()} kalemine uygulanır: $tutar ₺ indirim (%100), 0 TL tahsilat kaydı.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text('Vazgeç')),
@@ -1159,27 +1159,22 @@ class _TahsilatState extends State<TahsilatEkrani> {
     return tarih.isNotEmpty ? '$tarih tarihli seans · $tutar ₺' : 'Seans · $tutar ₺';
   }
 
+  /// Ikram, uygulanabilir kalemlerden EN SON tarihli seansa uygulanir (secim sorulmaz).
   Future<void> _damgaKalemSecVeUygula(List<Map<String, dynamic>> adaylar) async {
-    if (adaylar.length == 1) return _damgaIslem(adaylar.first, geriAl: false);
-    final secilen = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
-      builder: (c) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text('İkram hangi seansa uygulansın?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          ),
-          ...adaylar.map((d) => ListTile(
-                leading: const Icon(Icons.card_giftcard_rounded, color: Color(0xFF7C3AED)),
-                title: Text(_damgaKalemEtiket(d)),
-                onTap: () => Navigator.pop(c, d),
-              )),
-          const SizedBox(height: 8),
-        ]),
-      ),
-    );
-    if (secilen != null) await _damgaIslem(secilen, geriAl: false);
+    String tarihi(Map<String, dynamic> d) {
+      final id = d['adisyon_hizmet_id']?.toString();
+      for (final e in adisyonkalemleri) {
+        if (e is AdisyonHizmet && e.id == id) return e.islem_tarihi;
+      }
+      return '';
+    }
+    final sirali = List<Map<String, dynamic>>.from(adaylar)
+      ..sort((a, b) {
+        final t = tarihi(b).compareTo(tarihi(a));
+        if (t != 0) return t;
+        return ((b['adisyon_hizmet_id'] as num?) ?? 0).compareTo((a['adisyon_hizmet_id'] as num?) ?? 0);
+      });
+    await _damgaIslem(sirali.first, geriAl: false);
   }
 
   Widget _buildDamgaSatir(List<Map<String, dynamic>> grup) {
