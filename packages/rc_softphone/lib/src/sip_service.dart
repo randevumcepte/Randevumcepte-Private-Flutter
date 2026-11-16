@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
@@ -85,6 +86,9 @@ class SipService implements SipUaHelperListener {
   // --- iOS VoIP push ---
   static const String _kDahili = 'rc_sp_dahili';
   static const String _kSifre = 'rc_sp_sifre';
+  // Android: arka plan isolate'inin (FCM) gosterdigi cagri; ana isolate okur.
+  static const String _kBekleyen = 'rc_sp_bekleyen_push';
+  bool _fcmDinleniyor = false;
   bool _pushKuruldu = false;
   _PushCagri? _push;
   Timer? _pushZamanAsimi;
@@ -112,7 +116,11 @@ class SipService implements SipUaHelperListener {
     _kurCallkitListener();
     _pushKur();
     _kimlikSakla(dahili, dahiliSifre);
-    _tokenKaydet(await IosPush.voipToken());
+    if (!kIsWeb && Platform.isIOS) {
+      _tokenKaydet(await IosPush.voipToken());
+    } else if (!kIsWeb && Platform.isAndroid) {
+      _androidTokenKur();
+    }
 
     if (_started) {
       await _restart();
@@ -155,12 +163,39 @@ class SipService implements SipUaHelperListener {
   /// uyandirildiysa, ana ekran yuklenmesini beklemeden kayitli dahiliyle
   /// santrale baglanir ve bekleyen cagriyi karsilar.
   Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async {
-    if (kIsWeb || !Platform.isIOS) return;
+    if (kIsWeb || !(Platform.isIOS || Platform.isAndroid)) return;
     if (navigatorKey != null) _navigatorKey = navigatorKey;
     _kurCallkitListener();
     _pushKur();
-    final Map<String, dynamic>? bekleyen = await IosPush.bekleyenPush();
-    if (bekleyen != null) await _pushGeldi(bekleyen);
+    final Map<String, dynamic>? bekleyen = Platform.isIOS
+        ? await IosPush.bekleyenPush()
+        : await _androidBekleyenOku();
+    if (bekleyen != null) {
+      // Android: kullanici bildirimden "Cevapla"ya basip uygulamayi actiysa.
+      final bool kabul = await _callkitKabulMu((bekleyen['uuid'] ?? '').toString());
+      await _pushGeldi(bekleyen, kabul: kabul);
+    }
+  }
+
+  /// FCM mesaji softphone gelen cagrisi mi? Oyleyse isler ve true doner
+  /// (uygulamanin normal bildirim akisi bu mesaji atlamali).
+  /// [arkaPlan]: FCM arka plan isolate'i (uygulama kapali/arka planda).
+  Future<bool> pushIsle(Map<String, dynamic> data, {bool arkaPlan = false}) async {
+    if (data['kaynak']?.toString() != 'softphone_cagri') return false;
+    if (kIsWeb || !Platform.isAndroid) return true; // iOS PushKit kullanir
+    final Map<String, dynamic> m = <String, dynamic>{
+      'uuid': (data['uuid'] ?? '').toString(),
+      'numara': (data['numara'] ?? '').toString(),
+      'arayan': (data['arayan'] ?? '').toString(),
+    };
+    if ((m['uuid'] as String).isEmpty) return true;
+    if (arkaPlan) {
+      await _arkaPlanCagriGoster(m);
+    } else {
+      _kurCallkitListener();
+      await _pushGeldi(m, callkitGoster: true);
+    }
+    return true;
   }
 
   /// Logout / dahili degisimi / lisans bitimi gibi durumlarda kapat.
@@ -427,11 +462,18 @@ class SipService implements SipUaHelperListener {
           !p.bagli &&
           (olayId == null || olayId.toLowerCase() == p.uuid.toLowerCase());
       switch (event.event) {
+        case Event.actionCallIncoming:
+          // Android: FCM arka plan isolate'i cagriyi gosterdi; ana isolate
+          // hayattaysa hemen santrale baglanip "hazir" desin (calarken).
+          _androidCallkitOlayi(govde, kabul: false);
+          break;
         case Event.actionCallAccept:
           if (pushCagrisi) {
             p.kabul = true; // INVITE gelince otomatik cevaplanir
-          } else {
+          } else if (activeCall.value != null) {
             cevapla();
+          } else {
+            _androidCallkitOlayi(govde, kabul: true);
           }
           break;
         case Event.actionCallDecline:
@@ -468,32 +510,12 @@ class SipService implements SipUaHelperListener {
     _callkitCagrisi = true;
     // iOS: ses oturumunu CallKit acana kadar WebRTC beklesin (manuel mod).
     await IosSes.callkitIcinHazirla();
-    final CallKitParams params = CallKitParams(
-      id: id,
-      nameCaller: (call.remote_display_name?.isNotEmpty ?? false)
-          ? call.remote_display_name
-          : (call.remote_identity ?? 'Gelen Arama'),
-      handle: call.remote_identity ?? '',
-      type: 0, // sesli
-      textAccept: 'Cevapla',
-      textDecline: 'Reddet',
-      android: const AndroidParams(
-        isCustomNotification: true,
-        isShowLogo: false,
-        ringtonePath: 'system_ringtone_default',
-        backgroundColor: '#0955fa',
-        actionColor: '#4CAF50',
-        isShowFullLockedScreen: true,
-      ),
-      ios: const IOSParams(
-        handleType: 'generic',
-        supportsVideo: false,
-        audioSessionMode: 'default',
-        audioSessionActive: true,
-        supportsDTMF: true,
-        supportsHolding: true,
-      ),
-    );
+    final CallKitParams params = _callkitParams(
+        id,
+        (call.remote_display_name?.isNotEmpty ?? false)
+            ? call.remote_display_name!
+            : (call.remote_identity ?? 'Gelen Arama'),
+        call.remote_identity ?? '');
     await FlutterCallkitIncoming.showCallkitIncoming(params);
     // Gec gelen VoIP push ikinci bir CallKit ekrani acmasin.
     IosPush.dartCagrisi(id);
@@ -531,23 +553,28 @@ class SipService implements SipUaHelperListener {
   }
 
   Future<void> _tokenKaydet(String token) async {
-    if (kIsWeb || !Platform.isIOS) return;
+    if (kIsWeb || !(Platform.isIOS || Platform.isAndroid)) return;
     if (token.isEmpty || _dahili == null) return;
     if (token == _kayitliToken) return;
-    final String bundle = await IosPush.bundleId();
+    // Android: bundle bos; backend Firebase projesini token kaydindan/salondan cozer.
+    final String bundle = Platform.isIOS ? await IosPush.bundleId() : '';
     final bool ok = await _api('voip-token', <String, dynamic>{
       'token': token,
       'bundle': bundle,
-      'platform': 'ios',
+      'platform': Platform.isIOS ? 'ios' : 'android',
     });
     if (ok) _kayitliToken = token;
   }
 
-  Future<void> _pushGeldi(Map<String, dynamic> m) async {
+  Future<void> _pushGeldi(Map<String, dynamic> m,
+      {bool kabul = false, bool callkitGoster = false}) async {
     final String uuid = (m['uuid'] ?? '').toString();
     if (uuid.isEmpty) return;
-    // Ayni push hem kanaldan hem bekleyenPush'tan gelebilir.
-    if (_push?.uuid == uuid) return;
+    // Ayni push birden fazla yoldan gelebilir (kanal / bekleyen / callkit olayi).
+    if (_push?.uuid == uuid) {
+      if (kabul) _push!.kabul = true;
+      return;
+    }
     // Native, Dart'in kendi actigi cagrinin UUID'sini kullandi (gec push).
     if (_currentCallkitId?.toLowerCase() == uuid.toLowerCase()) return;
 
@@ -563,13 +590,21 @@ class SipService implements SipUaHelperListener {
 
     final _PushCagri p = _PushCagri(
         uuid, (m['numara'] ?? '').toString(), (m['arayan'] ?? '').toString());
+    p.kabul = kabul;
     _push = p;
+    if (callkitGoster) {
+      await IosSes.callkitIcinHazirla();
+      await FlutterCallkitIncoming.showCallkitIncoming(_callkitParams(
+          uuid, p.arayan.isNotEmpty ? p.arayan : (p.numara.isNotEmpty ? p.numara : 'Gelen Arama'),
+          p.numara, pushtan: true));
+    }
     _pushZamanAsimi?.cancel();
     // Santral en fazla ~9 sn bekler + calma; INVITE hic gelmezse CallKit'i kapat.
     _pushZamanAsimi = Timer(const Duration(seconds: 25), () {
       if (identical(_push, p) && !p.bagli) {
         _push = null;
         IosPush.pushTuketildi();
+        _androidBekleyenSil();
         FlutterCallkitIncoming.endCall(p.uuid).catchError((_) {});
       }
     });
@@ -618,6 +653,7 @@ class SipService implements SipUaHelperListener {
     _push = null;
     _pushZamanAsimi?.cancel();
     IosPush.pushTuketildi();
+    _androidBekleyenSil();
 
     if (p.red) {
       try {
@@ -630,22 +666,8 @@ class SipService implements SipUaHelperListener {
     _callkitCagrisi = true;
     await IosSes.callkitIcinHazirla();
 
-    bool kabul = p.kabul;
-    if (!kabul) {
-      // Kabul olayi Dart dinlemeye baslamadan gelmis olabilir (kilit ekrani).
-      try {
-        final dynamic aktifler = await FlutterCallkitIncoming.activeCalls();
-        if (aktifler is List) {
-          for (final dynamic c in aktifler) {
-            if (c is Map &&
-                c['id']?.toString().toLowerCase() == p.uuid.toLowerCase() &&
-                c['isAccepted'] == true) {
-              kabul = true;
-            }
-          }
-        }
-      } catch (_) {}
-    }
+    // Kabul olayi Dart dinlemeye baslamadan gelmis olabilir (kilit ekrani).
+    final bool kabul = p.kabul || await _callkitKabulMu(p.uuid);
     if (kabul) {
       cevapla();
       // CallKit ses oturumu kabul aninda zaten acildi; WebRTC'ye bildir.
@@ -698,6 +720,162 @@ class SipService implements SipUaHelperListener {
       final SharedPreferences p = await SharedPreferences.getInstance();
       await p.remove(_kDahili);
       await p.remove(_kSifre);
+    } catch (_) {}
+  }
+
+  static CallKitParams _callkitParams(String id, String ad, String numara,
+      {bool pushtan = false}) {
+    return CallKitParams(
+      id: id,
+      nameCaller: ad,
+      handle: numara,
+      type: 0, // sesli
+      duration: 30000,
+      textAccept: 'Cevapla',
+      textDecline: 'Reddet',
+      extra: <String, dynamic>{if (pushtan) 'kaynak': 'softphone_push'},
+      android: const AndroidParams(
+        isCustomNotification: true,
+        isShowLogo: false,
+        ringtonePath: 'system_ringtone_default',
+        backgroundColor: '#0955fa',
+        actionColor: '#4CAF50',
+        isShowFullLockedScreen: true,
+        isShowCallID: true,
+      ),
+      ios: const IOSParams(
+        handleType: 'generic',
+        supportsVideo: false,
+        audioSessionMode: 'default',
+        audioSessionActive: true,
+        supportsDTMF: true,
+        supportsHolding: true,
+      ),
+    );
+  }
+
+  Future<bool> _callkitKabulMu(String uuid) async {
+    if (uuid.isEmpty) return false;
+    try {
+      final dynamic aktifler = await FlutterCallkitIncoming.activeCalls();
+      if (aktifler is List) {
+        for (final dynamic c in aktifler) {
+          if (c is Map &&
+              c['id']?.toString().toLowerCase() == uuid.toLowerCase() &&
+              c['isAccepted'] == true) {
+            return true;
+          }
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  // =========================================================================
+  // Android FCM gelen cagri
+  // =========================================================================
+  //
+  // Santral -> Laravel -> FCM (data-only, HIGH). Uygulama kapali/arka plandaysa
+  // mesaj FCM arka plan isolate'inde [pushIsle(arkaPlan: true)] ile gelir:
+  // orada sadece tam ekran gelen cagri gosterilir ve cagri bilgisi
+  // SharedPreferences'a yazilir (SIP o isolate'te kurulmaz). Ana isolate
+  // hayattaysa callkit'in "incoming" olayiyla hemen santrale baglanir; degilse
+  // kullanici "Cevapla"ya basinca uygulama acilir, [erkenBaslat] bekleyen
+  // cagriyi okur, santrale baglanip "hazir" der, INVITE gelince otomatik cevaplar.
+
+  void _androidTokenKur() {
+    if (_fcmDinleniyor) return;
+    _fcmDinleniyor = true;
+    FirebaseMessaging.instance.getToken().then((String? t) {
+      if (t != null) _tokenKaydet(t);
+    }).catchError((_) {});
+    FirebaseMessaging.instance.onTokenRefresh.listen((String t) => _tokenKaydet(t));
+  }
+
+  Future<void> _arkaPlanCagriGoster(Map<String, dynamic> m) async {
+    final String uuid = m['uuid'] as String;
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kBekleyen, jsonEncode(<String, dynamic>{
+        ...m,
+        'zaman': DateTime.now().millisecondsSinceEpoch,
+      }));
+    } catch (_) {}
+    final String numara = m['numara'] as String;
+    final String arayan = m['arayan'] as String;
+    await FlutterCallkitIncoming.showCallkitIncoming(_callkitParams(
+        uuid, arayan.isNotEmpty ? arayan : (numara.isNotEmpty ? numara : 'Gelen Arama'),
+        numara, pushtan: true));
+
+    // Uygulama acilmadan "Reddet" basilirsa santral beklemesin: red bildir.
+    final Completer<void> bitti = Completer<void>();
+    final StreamSubscription<CallEvent?> abone =
+        FlutterCallkitIncoming.onEvent.listen((CallEvent? e) async {
+      if (e == null) return;
+      final dynamic g = e.body;
+      final String? id = g is Map ? g['id']?.toString() : null;
+      if (id != null && id.toLowerCase() != uuid.toLowerCase()) return;
+      if (e.event == Event.actionCallDecline) {
+        final List<String>? k = await _kimlikOku();
+        if (k != null) {
+          _dahili = k[0];
+          _dahiliSifre = k[1];
+          await _api('hazir', <String, dynamic>{'uuid': uuid, 'durum': 'red'});
+        }
+        await _androidBekleyenSil();
+        if (!bitti.isCompleted) bitti.complete();
+      } else if (e.event == Event.actionCallAccept ||
+          e.event == Event.actionCallTimeout ||
+          e.event == Event.actionCallEnded) {
+        if (!bitti.isCompleted) bitti.complete();
+      }
+    });
+    await bitti.future.timeout(const Duration(seconds: 25), onTimeout: () {});
+    await abone.cancel();
+  }
+
+  /// Android ana isolate: callkit olayindan (incoming/accept) bekleyen cagriyi baslat.
+  Future<void> _androidCallkitOlayi(dynamic govde, {required bool kabul}) async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    if (govde is! Map) return;
+    final dynamic extra = govde['extra'];
+    if (extra is! Map || extra['kaynak'] != 'softphone_push') return;
+    final String uuid = (govde['id'] ?? '').toString();
+    if (uuid.isEmpty) return;
+    Map<String, dynamic>? b = await _androidBekleyenOku();
+    if (b == null || (b['uuid'] ?? '').toString().toLowerCase() != uuid.toLowerCase()) {
+      b = <String, dynamic>{
+        'uuid': uuid,
+        'numara': (govde['handle'] ?? '').toString(),
+        'arayan': (govde['nameCaller'] ?? '').toString(),
+      };
+    }
+    await _pushGeldi(b, kabul: kabul);
+  }
+
+  Future<Map<String, dynamic>?> _androidBekleyenOku() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.reload(); // diger isolate yazdi
+      final String? j = prefs.getString(_kBekleyen);
+      if (j == null) return null;
+      final Map<String, dynamic> m = Map<String, dynamic>.from(jsonDecode(j) as Map);
+      final int zaman = (m['zaman'] as num?)?.toInt() ?? 0;
+      if (DateTime.now().millisecondsSinceEpoch - zaman > 60000) {
+        await prefs.remove(_kBekleyen);
+        return null;
+      }
+      return m;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _androidBekleyenSil() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kBekleyen);
     } catch (_) {}
   }
 }

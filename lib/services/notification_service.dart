@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
+import 'package:randevu_sistem/telefon/softphone.dart';
 import 'package:randevu_sistem/services/notification_popup.dart';
 import 'package:randevu_sistem/services/notification_router.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
@@ -64,6 +65,9 @@ Future<void> rmcNotificationBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   log('🔔 [BG] FCM mesaj: ${message.messageId} data=${message.data}');
 
+  // Softphone gelen cagrisi (Android): tam ekran cagri ekrani. Kapali build'de no-op.
+  if (await Softphone.instance.pushIsle(message.data, arkaPlan: true)) return;
+
   // GUVENLIK: sifre degisti / personel pasif-silme -> sunucuda token revoke
   // edildi. Arka plandayken UI acamayiz; yereldeki oturum verisini SIL ki
   // uygulama tekrar acildiginda login ekranina dussun (checklogin 'token'a bakar).
@@ -77,7 +81,6 @@ Future<void> rmcNotificationBackgroundHandler(RemoteMessage message) async {
     return;
   }
 
-  // SIP/santral kaldirildi: gelen cagri CallKit push'u artik islenmiyor.
 }
 
 /// force_logout durumunda yereldeki oturum anahtarlarini siler. UI'siz calisir,
@@ -526,6 +529,7 @@ class NotificationService {
 
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     log('🔔 [FG] ${message.notification?.title} data=${message.data}');
+    if (await Softphone.instance.pushIsle(message.data)) return;
     final payload = NotificationPayload.fromMap(message.data);
 
     // GUVENLIK: force_logout → oturumu hemen kapat, mesaji goster, login'e don.

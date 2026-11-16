@@ -119,6 +119,10 @@ class _SipSoftphone implements Softphone {
       _sip.erkenBaslat(navigatorKey: navigatorKey);
 
   @override
+  Future<bool> pushIsle(Map<String, dynamic> data, {bool arkaPlan = false}) =>
+      _sip.pushIsle(data, arkaPlan: arkaPlan);
+
+  @override
   Future<void> kapat() => _sip.kapat();
 
   @override

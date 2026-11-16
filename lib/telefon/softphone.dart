@@ -31,6 +31,11 @@ abstract class Softphone {
   /// uyandirildiysa gelen cagriyi karsilar. Kapaliyken no-op.
   Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey});
 
+  /// FCM mesaji softphone gelen cagrisi mi? Oyleyse isler ve true doner;
+  /// uygulamanin normal bildirim akisi mesaji atlamali. [arkaPlan]: FCM arka
+  /// plan isolate'i. Kapaliyken her zaman false.
+  Future<bool> pushIsle(Map<String, dynamic> data, {bool arkaPlan = false});
+
   /// Logout / sube degisimi / lisans bitimi.
   Future<void> kapat();
 
@@ -60,6 +65,9 @@ class KapaliSoftphone implements Softphone {
   }) async {}
   @override
   Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async {}
+  @override
+  Future<bool> pushIsle(Map<String, dynamic> data, {bool arkaPlan = false}) async =>
+      false;
   @override
   Future<void> kapat() async {}
   @override
