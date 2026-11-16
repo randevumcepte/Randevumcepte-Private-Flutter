@@ -3,7 +3,7 @@
 Pod::Spec.new do |s|
   s.name             = 'rc_softphone'
   s.version          = '1.0.0'
-  s.summary          = 'CallKit ses oturumunu WebRTC RTCAudioSession ile eslestirir.'
+  s.summary          = 'CallKit ses koprusu + PushKit VoIP push (gelen cagri).'
   s.homepage         = 'https://randevumcepte.com.tr'
   s.license          = { :type => 'Proprietary', :text => 'Randevumcepte' }
   s.author           = { 'Randevumcepte' => 'destek@randevumcepte.com.tr' }
@@ -12,6 +12,8 @@ Pod::Spec.new do |s|
   s.dependency 'Flutter'
   # Surum yazilmaz: flutter_webrtc'nin kilitledigi WebRTC-SDK surumu kullanilir.
   s.dependency 'WebRTC-SDK'
+  # PushKit ile gelen cagriyi callkit'in CXProvider'i uzerinden gostermek icin.
+  s.dependency 'flutter_callkit_incoming'
   s.static_framework = true
   s.platform         = :ios, '13.0'
   s.swift_version    = '5.0'

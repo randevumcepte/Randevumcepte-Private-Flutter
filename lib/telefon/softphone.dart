@@ -27,6 +27,10 @@ abstract class Softphone {
     GlobalKey<NavigatorState>? navigatorKey,
   });
 
+  /// Uygulama acilisinda (main) cagrilir: iOS'ta uygulama VoIP push ile
+  /// uyandirildiysa gelen cagriyi karsilar. Kapaliyken no-op.
+  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey});
+
   /// Logout / sube degisimi / lisans bitimi.
   Future<void> kapat();
 
@@ -54,6 +58,8 @@ class KapaliSoftphone implements Softphone {
     required String dahiliSifre,
     GlobalKey<NavigatorState>? navigatorKey,
   }) async {}
+  @override
+  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async {}
   @override
   Future<void> kapat() async {}
   @override

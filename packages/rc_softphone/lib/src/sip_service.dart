@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' show Helper;
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sip_ua/sip_ua.dart';
 import 'package:uuid/uuid.dart';
 
 import 'arama_ekrani.dart';
+import 'ios_push.dart';
 import 'ios_ses.dart';
 
 /// Mobil SIP softphone servisi (sip_ua + flutter_webrtc + CallKit).
@@ -22,6 +27,21 @@ import 'ios_ses.dart';
 /// bitince ekran kendini kapatir.
 const String kSipDomain = 'santral.randevumcepte.com.tr';
 const String kSipWssUrl = 'wss://santral.randevumcepte.com.tr:8089/ws';
+
+/// Softphone backend uclari (SoftphoneApiController). Kimlik = dahili + sifre.
+const String kSoftphoneApi = 'https://app.randevumcepte.com.tr/api/v1/softphone';
+
+/// iOS VoIP push ile gelen, henuz SIP INVITE'i gelmemis cagri.
+class _PushCagri {
+  _PushCagri(this.uuid, this.numara, this.arayan);
+  final String uuid;
+  final String numara;
+  final String arayan;
+  final DateTime zaman = DateTime.now();
+  bool kabul = false; // CallKit'te INVITE gelmeden cevaplandi
+  bool red = false; // CallKit'te reddedildi
+  bool bagli = false; // INVITE geldi ve bu cagriya baglandi
+}
 
 class SipService implements SipUaHelperListener {
   SipService._();
@@ -62,6 +82,15 @@ class SipService implements SipUaHelperListener {
   bool _ekranAcik = false;
   GlobalKey<NavigatorState>? _navigatorKey;
 
+  // --- iOS VoIP push ---
+  static const String _kDahili = 'rc_sp_dahili';
+  static const String _kSifre = 'rc_sp_sifre';
+  bool _pushKuruldu = false;
+  _PushCagri? _push;
+  Timer? _pushZamanAsimi;
+  String? _hazirBekleyen; // register olunca santrale "hazirim" denecek uuid
+  String? _kayitliToken; // backend'e son kaydedilen VoIP token
+
   bool get registered => _helper.registered;
 
   /// Dahili bilgisiyle register ol. Dahili degistiyse yeniden baslatir.
@@ -81,6 +110,9 @@ class SipService implements SipUaHelperListener {
     _dahiliSifre = dahiliSifre;
 
     _kurCallkitListener();
+    _pushKur();
+    _kimlikSakla(dahili, dahiliSifre);
+    _tokenKaydet(await IosPush.voipToken());
 
     if (_started) {
       await _restart();
@@ -119,8 +151,30 @@ class SipService implements SipUaHelperListener {
     _start();
   }
 
+  /// Uygulama acilisinda (main) cagrilir. iOS'ta uygulama VoIP push ile
+  /// uyandirildiysa, ana ekran yuklenmesini beklemeden kayitli dahiliyle
+  /// santrale baglanir ve bekleyen cagriyi karsilar.
+  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async {
+    if (kIsWeb || !Platform.isIOS) return;
+    if (navigatorKey != null) _navigatorKey = navigatorKey;
+    _kurCallkitListener();
+    _pushKur();
+    final Map<String, dynamic>? bekleyen = await IosPush.bekleyenPush();
+    if (bekleyen != null) await _pushGeldi(bekleyen);
+  }
+
   /// Logout / dahili degisimi / lisans bitimi gibi durumlarda kapat.
   Future<void> kapat() async {
+    // Bu cihaza artik VoIP push gelmesin.
+    final String? tok = _kayitliToken;
+    if (tok != null && _dahili != null) {
+      _api('voip-token-sil', <String, dynamic>{'token': tok});
+    }
+    _kayitliToken = null;
+    _kimlikSil();
+    _push = null;
+    _pushZamanAsimi?.cancel();
+    _hazirBekleyen = null;
     try {
       activeCall.value?.hangup();
     } catch (_) {}
@@ -258,6 +312,11 @@ class SipService implements SipUaHelperListener {
   void registrationStateChanged(RegistrationState state) {
     registrationState.value = state.state;
     kayitli.value = state.state == RegistrationStateEnum.REGISTERED;
+    final String? bekleyenUuid = _hazirBekleyen;
+    if (kayitli.value && bekleyenUuid != null) {
+      _hazirBekleyen = null;
+      _api('hazir', <String, dynamic>{'uuid': bekleyenUuid, 'durum': 'hazir'});
+    }
     if (kDebugMode) {
       debugPrint('[SIP] register => ${state.state} (${state.cause?.cause})');
     }
@@ -283,7 +342,7 @@ class SipService implements SipUaHelperListener {
               : null;
           karsiTarafNumara = call.remote_identity;
           bitisNedeni.value = null;
-          _showIncomingCallkit(call);
+          _gelenCagriyiKarsila(call);
         } else {
           _ekraniAc();
         }
@@ -359,14 +418,33 @@ class SipService implements SipUaHelperListener {
     _callkitListenerKuruldu = true;
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       if (event == null) return;
+      final dynamic govde = event.body;
+      final String? olayId = govde is Map ? govde['id']?.toString() : null;
+      final _PushCagri? p = _push;
+      // INVITE'i henuz gelmemis push cagrisi mi?
+      final bool pushCagrisi = activeCall.value == null &&
+          p != null &&
+          !p.bagli &&
+          (olayId == null || olayId.toLowerCase() == p.uuid.toLowerCase());
       switch (event.event) {
         case Event.actionCallAccept:
-          cevapla();
+          if (pushCagrisi) {
+            p.kabul = true; // INVITE gelince otomatik cevaplanir
+          } else {
+            cevapla();
+          }
           break;
         case Event.actionCallDecline:
         case Event.actionCallEnded:
         case Event.actionCallTimeout:
-          kapatCagri();
+          if (pushCagrisi) {
+            p.red = true;
+            // Santral beklemeyi birakip cagriyi bu cihaza hic gondermesin.
+            _api('hazir', <String, dynamic>{'uuid': p.uuid, 'durum': 'red'});
+            IosPush.pushTuketildi();
+          } else {
+            kapatCagri();
+          }
           break;
         case Event.actionCallToggleAudioSession:
           // iOS: CallKit ses oturumunu acti/kapatti -> WebRTC'ye bildir.
@@ -417,15 +495,209 @@ class SipService implements SipUaHelperListener {
       ),
     );
     await FlutterCallkitIncoming.showCallkitIncoming(params);
+    // Gec gelen VoIP push ikinci bir CallKit ekrani acmasin.
+    IosPush.dartCagrisi(id);
   }
 
   Future<void> _endCallkit() async {
     final String? id = _currentCallkitId;
     if (id != null) {
+      IosPush.dartCagrisi(null);
       try {
         await FlutterCallkitIncoming.endCall(id);
       } catch (_) {}
       _currentCallkitId = null;
     }
+  }
+
+  // =========================================================================
+  // iOS VoIP push (PushKit) — uygulama kapali/arka plandayken gelen cagri
+  // =========================================================================
+  //
+  // Akis: santral dahiliyi cagirmadan once backend'den bu dahilinin VoIP
+  // token'larini alir, APNs'e push yollar ve "hazir" cevabini bekler (~9 sn).
+  // Native taraf push gelince CallKit'i hemen acar; burada santrale
+  // (yeniden) register olunup "hazir" denir; santral cagriyi o zaman
+  // gonderir ve INVITE ayni CallKit cagrisina baglanir. Kullanici INVITE'tan
+  // once "Cevapla"ya bastiysa INVITE gelince otomatik cevaplanir.
+
+  void _pushKur() {
+    if (_pushKuruldu || kIsWeb || !Platform.isIOS) return;
+    _pushKuruldu = true;
+    IosPush.dinle(
+      onToken: (String t) => _tokenKaydet(t),
+      onPush: (Map<String, dynamic> m) => _pushGeldi(m),
+    );
+  }
+
+  Future<void> _tokenKaydet(String token) async {
+    if (kIsWeb || !Platform.isIOS) return;
+    if (token.isEmpty || _dahili == null) return;
+    if (token == _kayitliToken) return;
+    final String bundle = await IosPush.bundleId();
+    final bool ok = await _api('voip-token', <String, dynamic>{
+      'token': token,
+      'bundle': bundle,
+      'platform': 'ios',
+    });
+    if (ok) _kayitliToken = token;
+  }
+
+  Future<void> _pushGeldi(Map<String, dynamic> m) async {
+    final String uuid = (m['uuid'] ?? '').toString();
+    if (uuid.isEmpty) return;
+    // Ayni push hem kanaldan hem bekleyenPush'tan gelebilir.
+    if (_push?.uuid == uuid) return;
+    // Native, Dart'in kendi actigi cagrinin UUID'sini kullandi (gec push).
+    if (_currentCallkitId?.toLowerCase() == uuid.toLowerCase()) return;
+
+    // Zaten konusmadaysa: tek hat, bu cagri bu cihaza gelmesin.
+    if (activeCall.value != null) {
+      FlutterCallkitIncoming.endCall(uuid).catchError((_) {});
+      IosPush.pushTuketildi();
+      if (_dahili != null) {
+        _api('hazir', <String, dynamic>{'uuid': uuid, 'durum': 'red'});
+      }
+      return;
+    }
+
+    final _PushCagri p = _PushCagri(
+        uuid, (m['numara'] ?? '').toString(), (m['arayan'] ?? '').toString());
+    _push = p;
+    _pushZamanAsimi?.cancel();
+    // Santral en fazla ~9 sn bekler + calma; INVITE hic gelmezse CallKit'i kapat.
+    _pushZamanAsimi = Timer(const Duration(seconds: 25), () {
+      if (identical(_push, p) && !p.bagli) {
+        _push = null;
+        IosPush.pushTuketildi();
+        FlutterCallkitIncoming.endCall(p.uuid).catchError((_) {});
+      }
+    });
+
+    // Uygulama push ile sifirdan acildiysa dahili henuz yok: kayitli olanla basla.
+    if (_dahili == null) {
+      final List<String>? k = await _kimlikOku();
+      if (k == null) {
+        // Cikis yapilmis; cagri karsilanamaz.
+        _push = null;
+        IosPush.pushTuketildi();
+        FlutterCallkitIncoming.endCall(uuid).catchError((_) {});
+        return;
+      }
+      _hazirBekleyen = uuid;
+      await init(dahili: k[0], dahiliSifre: k[1]);
+      return;
+    }
+
+    final bool onPlanda =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    if (_started && _helper.registered && onPlanda) {
+      // Baglanti canli: hemen "hazir".
+      _api('hazir', <String, dynamic>{'uuid': uuid, 'durum': 'hazir'});
+    } else {
+      // Arka planda iOS soketi dondurmus/kapatmis olabilir: temiz yeniden kayit.
+      _hazirBekleyen = uuid;
+      if (_started) {
+        await _restart();
+      } else {
+        _start();
+      }
+    }
+  }
+
+  /// Gelen INVITE: bekleyen push cagrisi varsa ona bagla, yoksa CallKit ac.
+  Future<void> _gelenCagriyiKarsila(Call call) async {
+    final _PushCagri? p = _push;
+    if (p == null ||
+        p.bagli ||
+        DateTime.now().difference(p.zaman) > const Duration(seconds: 40)) {
+      await _showIncomingCallkit(call);
+      return;
+    }
+    p.bagli = true;
+    _push = null;
+    _pushZamanAsimi?.cancel();
+    IosPush.pushTuketildi();
+
+    if (p.red) {
+      try {
+        call.hangup(<String, dynamic>{'status_code': 486});
+      } catch (_) {}
+      return;
+    }
+
+    _currentCallkitId = p.uuid;
+    _callkitCagrisi = true;
+    await IosSes.callkitIcinHazirla();
+
+    bool kabul = p.kabul;
+    if (!kabul) {
+      // Kabul olayi Dart dinlemeye baslamadan gelmis olabilir (kilit ekrani).
+      try {
+        final dynamic aktifler = await FlutterCallkitIncoming.activeCalls();
+        if (aktifler is List) {
+          for (final dynamic c in aktifler) {
+            if (c is Map &&
+                c['id']?.toString().toLowerCase() == p.uuid.toLowerCase() &&
+                c['isAccepted'] == true) {
+              kabul = true;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    if (kabul) {
+      cevapla();
+      // CallKit ses oturumu kabul aninda zaten acildi; WebRTC'ye bildir.
+      await IosSes.callkitSesAktif();
+    }
+  }
+
+  Future<bool> _api(String uc, Map<String, dynamic> govde) async {
+    final String? d = _dahili;
+    final String? s = _dahiliSifre;
+    if (d == null || s == null) return false;
+    try {
+      final http.Response r = await http
+          .post(
+            Uri.parse('$kSoftphoneApi/$uc'),
+            headers: <String, String>{'Content-Type': 'application/json'},
+            body: jsonEncode(<String, dynamic>{'dahili': d, 'sifre': s, ...govde}),
+          )
+          .timeout(const Duration(seconds: 8));
+      if (kDebugMode) debugPrint('[SIP] api $uc => ${r.statusCode}');
+      return r.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[SIP] api $uc hatasi: $e');
+      return false;
+    }
+  }
+
+  Future<void> _kimlikSakla(String d, String s) async {
+    try {
+      final SharedPreferences p = await SharedPreferences.getInstance();
+      await p.setString(_kDahili, d);
+      await p.setString(_kSifre, s);
+    } catch (_) {}
+  }
+
+  Future<List<String>?> _kimlikOku() async {
+    try {
+      final SharedPreferences p = await SharedPreferences.getInstance();
+      final String? d = p.getString(_kDahili);
+      final String? s = p.getString(_kSifre);
+      if (d == null || s == null || d.isEmpty || s.isEmpty) return null;
+      return <String>[d, s];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _kimlikSil() async {
+    try {
+      final SharedPreferences p = await SharedPreferences.getInstance();
+      await p.remove(_kDahili);
+      await p.remove(_kSifre);
+    } catch (_) {}
   }
 }

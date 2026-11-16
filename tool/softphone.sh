@@ -13,13 +13,13 @@
 #   lib/telefon/softphone_kayit.dart      KapaliSoftphone <-> SipService adaptoru
 #   android/app/src/main/AndroidManifest.xml
 #                                         5 FGS/telefon izni: tools:node="remove" <-> normal
-#   ios/Runner/Info.plist                 UIBackgroundModes: audio ekle/cikar
+#   ios/Runner/Info.plist                 UIBackgroundModes: audio + voip ekle/cikar
 # Sonra: flutter pub get + (iOS) pod install.
 #
 # KAPALI = native webrtc/callkit paketleri build'e hic girmez (Play FGS beyani
 # ve Apple 2.5.4 / VoIP gerekcesi gerekmez). ACIK = store'a yollarken Play
 # Console'da FGS (microphone/phone_call) beyani + calisan ozellik videosu,
-# App Store'da arka plan audio gerekcesi gerekir.
+# App Store'da arka plan audio + voip (PushKit) gerekcesi gerekir.
 set -euo pipefail
 
 KOK="$(cd "$(dirname "$0")/.." && pwd)"
@@ -49,7 +49,7 @@ durum_hesapla() {
 import re,sys
 p=open(sys.argv[1]).read()
 m=re.search(r"<key>UIBackgroundModes</key>\s*<array>(.*?)</array>",p,re.S)
-sys.exit(0 if m and "<string>audio</string>" in m.group(1) else 1)' "$PLIST" && D_PLIST=1
+sys.exit(0 if m and ("<string>audio</string>" in m.group(1) or "<string>voip</string>" in m.group(1)) else 1)' "$PLIST" && D_PLIST=1
   true
 }
 
@@ -65,7 +65,7 @@ durum_detay() {
   echo "  pubspec.yaml (rc_softphone)        : $(e $D_PUBSPEC)"
   echo "  lib/telefon/softphone_kayit.dart   : $(e $D_KAYIT)"
   echo "  AndroidManifest (FGS izinleri)     : $(e $D_MANIFEST)"
-  echo "  Info.plist (audio background)      : $(e $D_PLIST)"
+  echo "  Info.plist (audio+voip background) : $(e $D_PLIST)"
 }
 
 # Kapali gorunse bile pub get / pod install calistirilmadiysa native paket
@@ -113,6 +113,10 @@ class _SipSoftphone implements Softphone {
     GlobalKey<NavigatorState>? navigatorKey,
   }) =>
       _sip.init(dahili: dahili, dahiliSifre: dahiliSifre, navigatorKey: navigatorKey);
+
+  @override
+  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) =>
+      _sip.erkenBaslat(navigatorKey: navigatorKey);
 
   @override
   Future<void> kapat() => _sip.kapat();
@@ -173,15 +177,19 @@ for izin in izinler:
         print("UYARI: manifestte %s satiri yok, atlandi." % izin)
 open(manifest, "w", newline="").write(m)
 
-# --- Info.plist (UIBackgroundModes: audio) ---
+# --- Info.plist (UIBackgroundModes: audio + voip) ---
 p = open(plist, newline="").read()
 bm = re.search(r"(<key>UIBackgroundModes</key>\s*<array>)(.*?)(</array>)", p, flags=re.S)
 if not bm:
     sys.exit("Info.plist: UIBackgroundModes bulunamadi")
-ic = re.sub(r"\s*<string>audio</string>", "", bm.group(2))
+# audio: arka planda gorusme sesi; voip: PushKit (kapaliyken gelen cagri).
+MODLAR = ["audio", "voip"]
+ic = bm.group(2)
+for mod_ in MODLAR:
+    ic = re.sub(r"\s*<string>%s</string>" % mod_, "", ic)
 if ac:
     pnl = "\r\n" if "\r\n" in p else "\n"
-    ic = ic.rstrip() + pnl + "\t\t<string>audio</string>" + pnl + "\t"
+    ic = ic.rstrip() + "".join(pnl + "\t\t<string>%s</string>" % mod_ for mod_ in MODLAR) + pnl + "\t"
 p = p[:bm.start(2)] + ic + p[bm.end(2):]
 
 # --- Info.plist (NSMicrophoneUsageDescription) ---

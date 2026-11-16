@@ -18,6 +18,7 @@ import 'package:randevu_sistem/Frontend/route_observer.dart';
 import 'package:randevu_sistem/Frontend/randevuguncellemeprovider.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
 import 'package:randevu_sistem/navigatorkey.dart';
+import 'package:randevu_sistem/telefon/softphone.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/theme/app_theme.dart';
 import 'package:randevu_sistem/theme/theme_provider.dart';
@@ -42,6 +43,10 @@ void main() async {
   // 4) Yetki cache'ini disktan belege yukle (varsa). Personeller sayfasi
   //    acilirken tazelenecek; bu sadece onceki oturumun ayarlarini yukler.
   await Yetki.baslat();
+
+  // 4.5) Softphone: iOS'ta uygulama gelen cagri push'u ile uyandirildiysa
+  //      cagriyi karsila (softphone kapali build'de no-op).
+  Softphone.instance.erkenBaslat(navigatorKey: navigatorKey);
 
   // 5) Uygulamayı başlat
   runApp(MyApp());
