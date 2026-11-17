@@ -36,24 +36,72 @@ void main() async {
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(rmcNotificationBackgroundHandler);
 
-  // 3) Bildirim altyapısı (FCM + local + foreground + tıklama + popup)
-  await NotificationService.instance.init();
+  // 3) Softphone: uygulama gelen cagride "Cevapla" ile acildiysa splash,
+  //    surum kontrolu ve bildirim/yetki yuklemesini bekletmeden hemen
+  //    santrale baglan ve dogrudan arama ekranini goster. Kalan acilis
+  //    adimlari cagri bitince yapilir (softphone kapali build'de false).
+  final bool cagriAcilisi =
+      await Softphone.instance.erkenBaslat(navigatorKey: navigatorKey);
+  if (cagriAcilisi) {
+    runApp(MyApp(cagriAcilisi: true));
+    return;
+  }
 
-
-  // 4) Yetki cache'ini disktan belege yukle (varsa). Personeller sayfasi
-  //    acilirken tazelenecek; bu sadece onceki oturumun ayarlarini yukler.
-  await Yetki.baslat();
-
-  // 4.5) Softphone: iOS'ta uygulama gelen cagri push'u ile uyandirildiysa
-  //      cagriyi karsila (softphone kapali build'de no-op).
-  Softphone.instance.erkenBaslat(navigatorKey: navigatorKey);
+  await _acilisAltyapisi();
 
   // 5) Uygulamayı başlat
   runApp(MyApp());
 }
 
+/// Bildirim altyapisi + yetki cache'i. Normal acilista runApp'ten once,
+/// "Cevapla" ile acilista cagri bittikten sonra calisir.
+Future<void> _acilisAltyapisi() async {
+  // Bildirim altyapısı (FCM + local + foreground + tıklama + popup)
+  await NotificationService.instance.init();
+
+  // Yetki cache'ini disktan belege yukle (varsa). Personeller sayfasi
+  // acilirken tazelenecek; bu sadece onceki oturumun ayarlarini yukler.
+  await Yetki.baslat();
+}
+
+/// "Cevapla" ile acilista kok sayfa: arama ekrani. Cagri bitince acilis
+/// altyapisini yukleyip normal akisa (splash / giris kontrolu) gecer.
+class _CagriAcilis extends StatefulWidget {
+  const _CagriAcilis();
+
+  @override
+  State<_CagriAcilis> createState() => _CagriAcilisState();
+}
+
+class _CagriAcilisState extends State<_CagriAcilis> {
+  bool _gecildi = false;
+
+  Future<void> _normalAcilisaGec() async {
+    if (_gecildi) return;
+    _gecildi = true;
+    try {
+      await _acilisAltyapisi();
+    } catch (e) {
+      print('Acilis altyapisi (cagri sonrasi) hatasi: $e');
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => MyHomePage()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      Softphone.instance.cagriAcilisEkrani(onBitti: _normalAcilisaGec);
+}
+
 
 class MyApp extends StatelessWidget {
+  MyApp({this.cagriAcilisi = false});
+
+  /// Uygulama gelen cagride "Cevapla" ile acildi: kok sayfa arama ekrani.
+  final bool cagriAcilisi;
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -86,7 +134,7 @@ class MyApp extends StatelessWidget {
                 child: child ?? const SizedBox.shrink(),
               );
             },
-            home: MyHomePage(),
+            home: cagriAcilisi ? const _CagriAcilis() : MyHomePage(),
           );
         },
       ),

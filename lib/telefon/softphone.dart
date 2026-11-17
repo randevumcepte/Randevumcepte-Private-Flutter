@@ -27,9 +27,15 @@ abstract class Softphone {
     GlobalKey<NavigatorState>? navigatorKey,
   });
 
-  /// Uygulama acilisinda (main) cagrilir: iOS'ta uygulama VoIP push ile
-  /// uyandirildiysa gelen cagriyi karsilar. Kapaliyken no-op.
-  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey});
+  /// Uygulama acilisinda (main) cagrilir: uygulama gelen cagri push'u ile
+  /// uyandirildiysa cagriyi karsilar. true: uygulama "Cevapla"ya basilarak
+  /// acildi; main splash yerine [cagriAcilisEkrani] gostermeli.
+  /// Kapaliyken her zaman false.
+  Future<bool> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey});
+
+  /// "Cevapla" ile acilista kok sayfa olarak gosterilen arama ekrani.
+  /// Cagri bitince [onBitti] cagrilir (normal acilis akisina gecilir).
+  Widget cagriAcilisEkrani({required VoidCallback onBitti});
 
   /// FCM mesaji softphone gelen cagrisi mi? Oyleyse isler ve true doner;
   /// uygulamanin normal bildirim akisi mesaji atlamali. [arkaPlan]: FCM arka
@@ -64,7 +70,11 @@ class KapaliSoftphone implements Softphone {
     GlobalKey<NavigatorState>? navigatorKey,
   }) async {}
   @override
-  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async {}
+  Future<bool> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async =>
+      false;
+  @override
+  Widget cagriAcilisEkrani({required VoidCallback onBitti}) =>
+      const SizedBox.shrink();
   @override
   Future<bool> pushIsle(Map<String, dynamic> data, {bool arkaPlan = false}) async =>
       false;

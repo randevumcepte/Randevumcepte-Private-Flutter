@@ -115,8 +115,12 @@ class _SipSoftphone implements Softphone {
       _sip.init(dahili: dahili, dahiliSifre: dahiliSifre, navigatorKey: navigatorKey);
 
   @override
-  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) =>
+  Future<bool> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) =>
       _sip.erkenBaslat(navigatorKey: navigatorKey);
+
+  @override
+  Widget cagriAcilisEkrani({required VoidCallback onBitti}) =>
+      AramaEkrani(onBitti: onBitti);
 
   @override
   Future<bool> pushIsle(Map<String, dynamic> data, {bool arkaPlan = false}) =>

@@ -10,7 +10,12 @@ import 'tus_takimi.dart';
 /// tus takimi (DTMF) ve kapat. SipService tarafindan otomatik acilir; cagri
 /// bitince bitis nedenini kisa sure gosterip kendini kapatir.
 class AramaEkrani extends StatefulWidget {
-  const AramaEkrani({super.key});
+  const AramaEkrani({super.key, this.onBitti});
+
+  /// Verilirse cagri bitince ekran kendini kapatmaz, bunu cagirir. Uygulama
+  /// "Cevapla" ile acildiginda arama ekrani kok sayfa olur; onBitti normal
+  /// acilis akisina (splash/giris) gecer.
+  final VoidCallback? onBitti;
 
   @override
   State<AramaEkrani> createState() => _AramaEkraniState();
@@ -26,7 +31,9 @@ class _AramaEkraniState extends State<AramaEkrani> {
   @override
   void initState() {
     super.initState();
+    _sip.ekranDurumu(true);
     _sip.activeCall.addListener(_cagriDegisti);
+    _sip.pushBaglaniyor.addListener(_cagriDegisti);
     _sayac = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -37,16 +44,28 @@ class _AramaEkraniState extends State<AramaEkrani> {
   @override
   void dispose() {
     _sip.activeCall.removeListener(_cagriDegisti);
+    _sip.pushBaglaniyor.removeListener(_cagriDegisti);
+    _sip.ekranDurumu(false);
     _sayac?.cancel();
     super.dispose();
   }
 
+  /// Cagri yok ve "Cevapla"dan sonra baglanti da beklenmiyor.
+  bool get _cagriYok =>
+      _sip.activeCall.value == null && !_sip.pushBaglaniyor.value;
+
   void _cagriDegisti() {
-    if (_sip.activeCall.value != null || _kapaniyor) return;
-    _kapaniyor = true;
     if (mounted) setState(() {});
+    if (!_cagriYok || _kapaniyor) return;
+    _kapaniyor = true;
     Future<void>.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) Navigator.of(context).maybePop();
+      if (!mounted) return;
+      final VoidCallback? bitti = widget.onBitti;
+      if (bitti != null) {
+        bitti();
+      } else {
+        Navigator.of(context).maybePop();
+      }
     });
   }
 
@@ -82,7 +101,7 @@ class _AramaEkraniState extends State<AramaEkrani> {
 
     return PopScope(
       // Aktif cagri varken geri tusu ekrani kapatmasin (cagri arka planda kalir).
-      canPop: _kapaniyor || _sip.activeCall.value == null,
+      canPop: widget.onBitti == null && (_kapaniyor || _cagriYok),
       child: Scaffold(
         backgroundColor: const Color(0xFF101828),
         body: SafeArea(
@@ -200,7 +219,7 @@ class _AramaEkraniState extends State<AramaEkrani> {
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),
-            onTap: _kapaniyor ? null : _sip.kapatCagri,
+            onTap: _kapaniyor || _cagriYok ? null : _sip.kapatCagri,
             child: const SizedBox(
               width: 72,
               height: 72,

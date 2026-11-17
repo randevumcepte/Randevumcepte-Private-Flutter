@@ -7,7 +7,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart' show Helper;
+import 'package:flutter_webrtc/flutter_webrtc.dart'
+    show Helper, MediaStream, navigator;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sip_ua/sip_ua.dart';
@@ -68,6 +69,10 @@ class SipService implements SipUaHelperListener {
   /// Son cagrinin bitis/hata aciklamasi (ekranda kisa sure gosterilir).
   final ValueNotifier<String?> bitisNedeni = ValueNotifier<String?>(null);
 
+  /// Push cagrisi "Cevapla" ile kabul edildi, SIP INVITE'i bekleniyor.
+  /// Arama ekrani bu surede "Baglaniyor..." gosterir, kapanmaz.
+  final ValueNotifier<bool> pushBaglaniyor = ValueNotifier<bool>(false);
+
   /// Ekranda gosterilecek karsi taraf adi (giden aramada uygulama verir).
   String? karsiTarafAdi;
   String? karsiTarafNumara;
@@ -94,6 +99,11 @@ class SipService implements SipUaHelperListener {
   Timer? _pushZamanAsimi;
   String? _hazirBekleyen; // register olunca santrale "hazirim" denecek uuid
   String? _kayitliToken; // backend'e son kaydedilen VoIP token
+  // Android: "Cevapla"dan sonra INVITE beklenirken onceden alinan mikrofon.
+  // answer() bunu kullanir (getUserMedia ~1-2 sn kazanilir). sip_ua disaridan
+  // verilen akisi kapatmaz; cagri bitince burada kapatilir.
+  MediaStream? _onMedya;
+  bool _onMedyaAliniyor = false;
 
   bool get registered => _helper.registered;
 
@@ -159,23 +169,31 @@ class SipService implements SipUaHelperListener {
     _start();
   }
 
-  /// Uygulama acilisinda (main) cagrilir. iOS'ta uygulama VoIP push ile
+  /// Uygulama acilisinda (main) cagrilir. Uygulama gelen cagri push'u ile
   /// uyandirildiysa, ana ekran yuklenmesini beklemeden kayitli dahiliyle
   /// santrale baglanir ve bekleyen cagriyi karsilar.
-  Future<void> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async {
-    if (kIsWeb || !(Platform.isIOS || Platform.isAndroid)) return;
+  ///
+  /// true: uygulama CallKit'te "Cevapla"ya basilarak acildi. Uygulama splash /
+  /// surum kontrolu yerine dogrudan arama ekranini ([AramaEkrani] onBitti ile)
+  /// gostermeli.
+  Future<bool> erkenBaslat({GlobalKey<NavigatorState>? navigatorKey}) async {
+    if (kIsWeb || !(Platform.isIOS || Platform.isAndroid)) return false;
     if (navigatorKey != null) _navigatorKey = navigatorKey;
     _kurCallkitListener();
     _pushKur();
     final Map<String, dynamic>? bekleyen = Platform.isIOS
         ? await IosPush.bekleyenPush()
         : await _androidBekleyenOku();
-    if (bekleyen != null) {
-      // Android: kullanici bildirimden "Cevapla"ya basip uygulamayi actiysa.
-      final bool kabul = await _callkitKabulMu((bekleyen['uuid'] ?? '').toString());
-      await _pushGeldi(bekleyen, kabul: kabul);
-    }
+    if (bekleyen == null) return false;
+    // Android: kullanici bildirimden "Cevapla"ya basip uygulamayi actiysa.
+    final bool kabul = await _callkitKabulMu((bekleyen['uuid'] ?? '').toString())
+        .timeout(const Duration(seconds: 2), onTimeout: () => false);
+    await _pushGeldi(bekleyen, kabul: kabul);
+    return kabul && pushBaglaniyor.value;
   }
+
+  /// Arama ekrani acildi/kapandi (otomatik ekran ikinci kez acilmasin).
+  void ekranDurumu(bool acik) => _ekranAcik = acik;
 
   /// FCM mesaji softphone gelen cagrisi mi? Oyleyse isler ve true doner
   /// (uygulamanin normal bildirim akisi bu mesaji atlamali).
@@ -252,10 +270,76 @@ class SipService implements SipUaHelperListener {
   }
 
   void kapatCagri() {
+    final _PushCagri? p = _push;
+    if (activeCall.value == null && p != null && !p.bagli) {
+      // "Cevapla"dan sonra, INVITE gelmeden ekrandan kapatildi.
+      p.red = true; // gec gelen INVITE 486 ile reddedilir
+      _api('hazir', <String, dynamic>{'uuid': p.uuid, 'durum': 'red'});
+      IosPush.pushTuketildi();
+      _androidBekleyenSil();
+      FlutterCallkitIncoming.endCall(p.uuid).catchError((_) {});
+      bitisNedeni.value = 'Arama sonlandı';
+      _pushBaglantiBitti();
+      return;
+    }
     try {
       activeCall.value?.hangup();
     } catch (_) {}
     _endCallkit();
+  }
+
+  /// INVITE beklemesi bitti (baglandi / reddedildi / zaman asimi).
+  void _pushBaglantiBitti() {
+    pushBaglaniyor.value = false;
+    if (activeCall.value == null) _onMedyaBirak();
+  }
+
+  /// "Cevapla" ile kabul edilen push cagrisi: arama ekranini hemen ac,
+  /// Android'de mikrofonu INVITE beklenirken hazirla.
+  void _pushKabulEdildi(_PushCagri p) {
+    p.kabul = true;
+    karsiTarafAdi = p.arayan.isNotEmpty ? p.arayan : null;
+    karsiTarafNumara = p.numara.isNotEmpty ? p.numara : null;
+    bitisNedeni.value = null;
+    pushBaglaniyor.value = true;
+    _ekraniAc(); // soguk acilista navigator yok: main ekrani kendisi gosterir
+    _onMedyaHazirla();
+  }
+
+  Future<void> _onMedyaHazirla() async {
+    // iOS'ta mikrofon CallKit ses oturumu acilinca alinmali (manuel ses modu).
+    if (kIsWeb || !Platform.isAndroid) return;
+    if (_onMedya != null || _onMedyaAliniyor) return;
+    _onMedyaAliniyor = true;
+    try {
+      final MediaStream m = await navigator.mediaDevices
+          .getUserMedia(<String, dynamic>{'audio': true, 'video': false});
+      // Bu arada cagri bittiyse/iptal olduysa hemen birak.
+      if (!pushBaglaniyor.value && activeCall.value == null) {
+        await _akisiKapat(m);
+      } else {
+        _onMedya = m;
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[SIP] on mikrofon alinamadi: $e');
+    } finally {
+      _onMedyaAliniyor = false;
+    }
+  }
+
+  void _onMedyaBirak() {
+    final MediaStream? m = _onMedya;
+    _onMedya = null;
+    if (m != null) _akisiKapat(m);
+  }
+
+  static Future<void> _akisiKapat(MediaStream m) async {
+    try {
+      for (final t in m.getTracks()) {
+        await t.stop();
+      }
+      await m.dispose();
+    } catch (_) {}
   }
 
   void sessizToggle([bool? deger]) {
@@ -301,6 +385,7 @@ class SipService implements SipUaHelperListener {
         'audio': true,
         'video': false,
       },
+      if (_onMedya != null) 'mediaStream': _onMedya,
     };
   }
 
@@ -310,6 +395,8 @@ class SipService implements SipUaHelperListener {
       call.direction.toString().toLowerCase().contains('incoming');
 
   void _cagriDurumunuSifirla() {
+    pushBaglaniyor.value = false;
+    _onMedyaBirak();
     if (_callkitCagrisi) {
       _callkitCagrisi = false;
       IosSes.otomatikSeseDon();
@@ -469,7 +556,7 @@ class SipService implements SipUaHelperListener {
           break;
         case Event.actionCallAccept:
           if (pushCagrisi) {
-            p.kabul = true; // INVITE gelince otomatik cevaplanir
+            _pushKabulEdildi(p); // INVITE gelince otomatik cevaplanir
           } else if (activeCall.value != null) {
             cevapla();
           } else {
@@ -484,6 +571,8 @@ class SipService implements SipUaHelperListener {
             // Santral beklemeyi birakip cagriyi bu cihaza hic gondermesin.
             _api('hazir', <String, dynamic>{'uuid': p.uuid, 'durum': 'red'});
             IosPush.pushTuketildi();
+            bitisNedeni.value = 'Arama sonlandı';
+            _pushBaglantiBitti();
           } else {
             kapatCagri();
           }
@@ -572,7 +661,7 @@ class SipService implements SipUaHelperListener {
     if (uuid.isEmpty) return;
     // Ayni push birden fazla yoldan gelebilir (kanal / bekleyen / callkit olayi).
     if (_push?.uuid == uuid) {
-      if (kabul) _push!.kabul = true;
+      if (kabul && !_push!.kabul && !_push!.bagli) _pushKabulEdildi(_push!);
       return;
     }
     // Native, Dart'in kendi actigi cagrinin UUID'sini kullandi (gec push).
@@ -590,8 +679,8 @@ class SipService implements SipUaHelperListener {
 
     final _PushCagri p = _PushCagri(
         uuid, (m['numara'] ?? '').toString(), (m['arayan'] ?? '').toString());
-    p.kabul = kabul;
     _push = p;
+    if (kabul) _pushKabulEdildi(p);
     if (callkitGoster) {
       await IosSes.callkitIcinHazirla();
       await FlutterCallkitIncoming.showCallkitIncoming(_callkitParams(
@@ -606,6 +695,10 @@ class SipService implements SipUaHelperListener {
         IosPush.pushTuketildi();
         _androidBekleyenSil();
         FlutterCallkitIncoming.endCall(p.uuid).catchError((_) {});
+        if (pushBaglaniyor.value) {
+          bitisNedeni.value = 'Bağlantı kurulamadı';
+          _pushBaglantiBitti();
+        }
       }
     });
 
@@ -617,6 +710,7 @@ class SipService implements SipUaHelperListener {
         _push = null;
         IosPush.pushTuketildi();
         FlutterCallkitIncoming.endCall(uuid).catchError((_) {});
+        _pushBaglantiBitti();
         return;
       }
       _hazirBekleyen = uuid;
@@ -654,6 +748,11 @@ class SipService implements SipUaHelperListener {
     _pushZamanAsimi?.cancel();
     IosPush.pushTuketildi();
     _androidBekleyenSil();
+    // activeCall artik dolu: ekran cagriyi izler, on mikrofon answer'a gider.
+    pushBaglaniyor.value = false;
+    // Push'taki ad (musteri adi) santralin From basligindan daha anlamli.
+    if (p.arayan.isNotEmpty) karsiTarafAdi = p.arayan;
+    if (p.numara.isNotEmpty) karsiTarafNumara = p.numara;
 
     if (p.red) {
       try {
