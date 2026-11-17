@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- rc_softphone: gelen cagri bildirimi "Reddet" butonu (tool/softphone.sh kopyalar). -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40FFFFFF">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E53935" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+</ripple>

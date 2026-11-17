@@ -14,6 +14,9 @@
 #   android/app/src/main/AndroidManifest.xml
 #                                         5 FGS/telefon izni: tools:node="remove" <-> normal
 #   ios/Runner/Info.plist                 UIBackgroundModes: audio + voip ekle/cikar
+#   android/app/src/main/res/{layout,drawable}/
+#                                         gelen cagri bildirim tasarimi (rc_softphone/
+#                                         android_bildirim'den kopyalanir / silinir)
 # Sonra: flutter pub get + (iOS) pod install.
 #
 # KAPALI = native webrtc/callkit paketleri build'e hic girmez (Play FGS beyani
@@ -240,6 +243,24 @@ open(plist, "w", newline="").write(p)
 PY
 }
 
+# Gelen cagri bildirimi (flutter_callkit_incoming) tasarimi: eklentinin ayni
+# adli duzenlerini uygulama kaynaklariyla ezer. ACIK'ta kopyalanir, KAPALI'da
+# silinir (softphone'suz markaya hic girmez). Git'e eklenmez; kaynak paketteki.
+BILDIRIM_KAYNAK="packages/rc_softphone/android_bildirim/res"
+BILDIRIM_HEDEF="android/app/src/main/res"
+bildirim_tasarimi() {
+  local f goreli
+  while IFS= read -r f; do
+    goreli="${f#"$BILDIRIM_KAYNAK"/}"
+    if [[ "$1" == "ac" ]]; then
+      mkdir -p "$BILDIRIM_HEDEF/$(dirname "$goreli")"
+      cp "$f" "$BILDIRIM_HEDEF/$goreli"
+    else
+      rm -f "$BILDIRIM_HEDEF/$goreli"
+    fi
+  done < <(find "$BILDIRIM_KAYNAK" -type f -name '*.xml')
+}
+
 bagimliliklari_guncelle() {
   flutter pub get
   # IDE (Android Studio/VS Code) packages/rc_softphone'u ayri bir Dart projesi
@@ -281,6 +302,7 @@ case "$KOMUT" in
   ac|kapat)
     dosyalari_duzenle "$KOMUT"
     kayit_yaz "$KOMUT"
+    bildirim_tasarimi "$KOMUT"
     bagimliliklari_guncelle
     echo
     echo "Softphone: $(durum_oku)"
