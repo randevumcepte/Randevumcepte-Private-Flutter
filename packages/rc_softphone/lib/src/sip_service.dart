@@ -946,7 +946,10 @@ class SipService implements SipUaHelperListener {
       ios: const IOSParams(
         handleType: 'generic',
         supportsVideo: false,
-        audioSessionMode: 'default',
+        // voiceChat: iOS ahize sesini gorusme seviyesine ayarlar, yanki
+        // engelleme duzgun calisir (WebRTC'nin onerisi). 'default' modda
+        // kulaktaki ses cok kisik kaliyordu.
+        audioSessionMode: 'voiceChat',
         audioSessionActive: true,
         supportsDTMF: true,
         supportsHolding: true,

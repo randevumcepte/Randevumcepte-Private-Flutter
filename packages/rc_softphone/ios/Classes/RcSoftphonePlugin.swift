@@ -230,7 +230,9 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
         "supportsVideo": false,
         "maximumCallGroups": 1,
         "maximumCallsPerCallGroup": 1,
-        "audioSessionMode": "default",
+        // voiceChat: kulaktaki ses gorusme seviyesinde ('default'ta cok kisikti).
+        // Dart tarafindaki _callkitParams ile AYNI olmali.
+        "audioSessionMode": "voiceChat",
         "audioSessionActive": true,
         "supportsDTMF": true,
         "supportsHolding": true,
