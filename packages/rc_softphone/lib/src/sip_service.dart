@@ -199,14 +199,26 @@ class SipService implements SipUaHelperListener {
   /// (uygulamanin normal bildirim akisi bu mesaji atlamali).
   /// [arkaPlan]: FCM arka plan isolate'i (uygulama kapali/arka planda).
   Future<bool> pushIsle(Map<String, dynamic> data, {bool arkaPlan = false}) async {
-    if (data['kaynak']?.toString() != 'softphone_cagri') return false;
+    final String kaynak = data['kaynak']?.toString() ?? '';
+    if (kaynak != 'softphone_cagri' && kaynak != 'softphone_iptal') return false;
     if (kIsWeb || !Platform.isAndroid) return true; // iOS PushKit kullanir
+    final String uuid = (data['uuid'] ?? '').toString();
+    if (uuid.isEmpty) return true;
+    if (kaynak == 'softphone_iptal') {
+      // Santral: cagri bitti (arayan kapatti / kuyruk denemesi doldu).
+      await _pushIptal(uuid, arkaPlan: arkaPlan);
+      return true;
+    }
+    // Cihaz cevrimdisiyken bekleyip gec dusen push: cagri coktan bitti.
+    if (_pushBayatMi(data['gonderim'])) {
+      if (kDebugMode) debugPrint('[SIP] bayat push atlandi: $uuid');
+      return true;
+    }
     final Map<String, dynamic> m = <String, dynamic>{
-      'uuid': (data['uuid'] ?? '').toString(),
+      'uuid': uuid,
       'numara': (data['numara'] ?? '').toString(),
       'arayan': (data['arayan'] ?? '').toString(),
     };
-    if ((m['uuid'] as String).isEmpty) return true;
     if (arkaPlan) {
       await _arkaPlanCagriGoster(m);
     } else {
@@ -451,6 +463,18 @@ class SipService implements SipUaHelperListener {
 
   @override
   void callStateChanged(Call call, CallState state) {
+    final Call? mevcut = activeCall.value;
+    if (mevcut != null && mevcut.id != call.id) {
+      // Tek hat: gorusme surerken gelen ikinci cagri mesgul ile reddedilir;
+      // onun olaylari (FAILED/ENDED) mevcut cagrinin durumunu bozmaz.
+      if (state.state == CallStateEnum.CALL_INITIATION && _gelenMi(call)) {
+        if (kDebugMode) debugPrint('[SIP] ikinci gelen cagri 486 ile reddedildi');
+        try {
+          call.hangup(<String, dynamic>{'status_code': 486});
+        } catch (_) {}
+      }
+      return;
+    }
     callState.value = state.state;
     if (kDebugMode) {
       debugPrint('[SIP] call => ${state.state} dir=${call.direction}');
@@ -667,8 +691,11 @@ class SipService implements SipUaHelperListener {
     // Native, Dart'in kendi actigi cagrinin UUID'sini kullandi (gec push).
     if (_currentCallkitId?.toLowerCase() == uuid.toLowerCase()) return;
 
-    // Zaten konusmadaysa: tek hat, bu cagri bu cihaza gelmesin.
-    if (activeCall.value != null) {
+    final _PushCagri? onceki = _push;
+    // Zaten konusmadaysa ya da "Cevapla"dan sonra baglaniyorsa: tek hat,
+    // bu cagri bu cihaza gelmesin.
+    if (activeCall.value != null ||
+        (onceki != null && !onceki.bagli && onceki.kabul)) {
       FlutterCallkitIncoming.endCall(uuid).catchError((_) {});
       IosPush.pushTuketildi();
       if (_dahili != null) {
@@ -677,10 +704,20 @@ class SipService implements SipUaHelperListener {
       return;
     }
 
+    // Cevaplanmamis eski push (kuyrugun onceki denemesi): ekrani ust uste
+    // birikmesin.
+    if (onceki != null && !onceki.bagli) {
+      FlutterCallkitIncoming.endCall(onceki.uuid).catchError((_) {});
+    }
+
     final _PushCagri p = _PushCagri(
         uuid, (m['numara'] ?? '').toString(), (m['arayan'] ?? '').toString());
     _push = p;
     if (kabul) _pushKabulEdildi(p);
+    // Gec gelen push'ta cagri santralde bitmis olabilir: sor, bittiyse kapat.
+    _durumSor(uuid).then((String? d) {
+      if (d == 'bitti' && identical(_push, p) && !p.bagli) _pushIptal(uuid);
+    });
     if (callkitGoster) {
       await IosSes.callkitIcinHazirla();
       await FlutterCallkitIncoming.showCallkitIncoming(_callkitParams(
@@ -902,9 +939,14 @@ class SipService implements SipUaHelperListener {
     } catch (_) {}
     final String numara = m['numara'] as String;
     final String arayan = m['arayan'] as String;
+    // Ekran hemen acilir; santral cagri bitti derse kapatilir (gec push).
+    final Future<String?> durum = _durumSor(uuid);
     await FlutterCallkitIncoming.showCallkitIncoming(_callkitParams(
         uuid, arayan.isNotEmpty ? arayan : (numara.isNotEmpty ? numara : 'Gelen Arama'),
         numara, pushtan: true));
+    durum.then((String? d) {
+      if (d == 'bitti') _pushIptal(uuid, arkaPlan: true);
+    });
 
     // Uygulama acilmadan "Reddet" basilirsa santral beklemesin: red bildir.
     final Completer<void> bitti = Completer<void>();
@@ -968,6 +1010,78 @@ class SipService implements SipUaHelperListener {
     } catch (_) {
       return null;
     }
+  }
+
+  /// FCM 'gonderim' (sunucu ms) 25 sn'den eskiyse push bayattir. Cok buyuk
+  /// fark (>10 dk) cihaz saati yanlis demektir: bayat sayma, "durum" sorusu
+  /// yakalar.
+  static bool _pushBayatMi(dynamic gonderim) {
+    final int? g = int.tryParse(gonderim?.toString() ?? '');
+    if (g == null || g <= 0) return false;
+    final int yas = DateTime.now().millisecondsSinceEpoch - g;
+    return yas > 25000 && yas < 600000;
+  }
+
+  /// Santral: push cagrisi hala suruyor mu? bitti | hazir | red | null
+  Future<String?> _durumSor(String uuid) async {
+    String? d = _dahili;
+    String? s = _dahiliSifre;
+    if (d == null || s == null) {
+      final List<String>? k = await _kimlikOku();
+      if (k == null) return null;
+      d = k[0];
+      s = k[1];
+    }
+    try {
+      final http.Response r = await http
+          .post(
+            Uri.parse('$kSoftphoneApi/durum'),
+            headers: <String, String>{'Content-Type': 'application/json'},
+            body: jsonEncode(<String, dynamic>{'dahili': d, 'sifre': s, 'uuid': uuid}),
+          )
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return null;
+      final dynamic j = jsonDecode(r.body);
+      return j is Map ? j['durum']?.toString() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Santral cagrinin bittigini bildirdi: henuz baglanmamis gelen cagri
+  /// ekranini kapat. Baglanmis gorusmeye dokunmaz (onu SIP BYE bitirir).
+  Future<void> _pushIptal(String uuid, {bool arkaPlan = false}) async {
+    final String k = uuid.toLowerCase();
+    if (arkaPlan) {
+      // Arka plan isolate'i: bekleyen kayit bu cagriysa henuz baglanmadi.
+      final Map<String, dynamic>? b = await _androidBekleyenOku();
+      if (b != null && (b['uuid'] ?? '').toString().toLowerCase() == k) {
+        await _androidBekleyenSil();
+        await FlutterCallkitIncoming.endCall(uuid).catchError((_) {});
+      }
+      return;
+    }
+    final _PushCagri? p = _push;
+    if (p != null && p.uuid.toLowerCase() == k) {
+      if (p.bagli) return;
+      _push = null;
+      _pushZamanAsimi?.cancel();
+      IosPush.pushTuketildi();
+      _androidBekleyenSil();
+      FlutterCallkitIncoming.endCall(p.uuid).catchError((_) {});
+      if (pushBaglaniyor.value) {
+        bitisNedeni.value = 'Arama sonlandı';
+        _pushBaglantiBitti();
+      }
+      return;
+    }
+    // Bu cihazda bagli gorusme bu cagri ise dokunma.
+    if (activeCall.value != null && _currentCallkitId?.toLowerCase() == k) return;
+    final Map<String, dynamic>? b = await _androidBekleyenOku();
+    if (b != null && (b['uuid'] ?? '').toString().toLowerCase() == k) {
+      await _androidBekleyenSil();
+    }
+    await FlutterCallkitIncoming.endCall(uuid).catchError((_) {});
   }
 
   Future<void> _androidBekleyenSil() async {
