@@ -259,6 +259,31 @@ class SipService implements SipUaHelperListener {
     _cagriDurumunuSifirla();
   }
 
+  /// Arama butonu: kayitliysa hemen true. Dahili var ama kayit dusmusse
+  /// (arka planda soket kapandi vb.) temiz yeniden kayit dener, [bekle]
+  /// kadar REGISTERED bekler. Devam eden cagri varken yeniden baglanmaz.
+  Future<bool> aramayaHazir({Duration bekle = const Duration(seconds: 4)}) async {
+    if (_dahili == null || _dahiliSifre == null) return false;
+    if (_helper.registered) return true;
+    if (activeCall.value != null) return false;
+    if (_started) {
+      await _restart();
+    } else {
+      _start();
+    }
+    if (_helper.registered) return true;
+    final Completer<bool> c = Completer<bool>();
+    void dinle() {
+      if (kayitli.value && !c.isCompleted) c.complete(true);
+    }
+    kayitli.addListener(dinle);
+    try {
+      return await c.future.timeout(bekle, onTimeout: () => _helper.registered);
+    } finally {
+      kayitli.removeListener(dinle);
+    }
+  }
+
   // --- Giden cagri ---
   /// [hedef]: dis numara ('05xx...') ya da dahili. [gorunenAd] ekranda
   /// numara yerine gosterilir (musteri adi gibi).

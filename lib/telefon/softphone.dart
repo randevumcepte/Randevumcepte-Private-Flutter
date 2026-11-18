@@ -45,6 +45,12 @@ abstract class Softphone {
   /// Logout / sube degisimi / lisans bitimi.
   Future<void> kapat();
 
+  /// Arama butonu icin: softphone'dan aranabilir mi? Kayitliysa hemen true.
+  /// Dahili var ama baglanti kopmussa (uygulama arka plandan dondu vb.)
+  /// yeniden baglanmayi [bekle] kadar dener. false -> cagiran Bria'ya duser.
+  /// Kapaliyken her zaman false.
+  Future<bool> aramayaHazir({Duration bekle = const Duration(seconds: 4)});
+
   /// Uygulama icinden giden cagri; arama ekrani kendiliginden acilir.
   /// Kapaliyken veya kayitli degilken false.
   Future<bool> ara(String hedef, {String? gorunenAd});
@@ -80,6 +86,9 @@ class KapaliSoftphone implements Softphone {
       false;
   @override
   Future<void> kapat() async {}
+  @override
+  Future<bool> aramayaHazir({Duration bekle = const Duration(seconds: 4)}) async =>
+      false;
   @override
   Future<bool> ara(String hedef, {String? gorunenAd}) async => false;
   @override

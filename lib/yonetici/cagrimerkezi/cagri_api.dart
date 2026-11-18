@@ -117,7 +117,9 @@ class CagriApi {
   static Future<AramaBaslatSonuc> aramaBaslat(int aranacakMusteriId, String sube,
       {String? gorunenAd}) async {
     final sp = Softphone.instance;
-    final softphoneIle = sp.aktif && sp.kayitli.value;
+    // Softphone bagliysa (ya da birkac sn icinde yeniden baglanirsa) uygulama
+    // icinden, degilse Bria (santral originate).
+    final softphoneIle = sp.aktif && await sp.aramayaHazir();
     final j = await _post('arama-baslat', {
       'aranacak_musteri_id': aranacakMusteriId,
       'sube': sube,
@@ -190,7 +192,9 @@ class CagriApi {
       return AramaBaslatSonuc(success: false, message: 'Müşteri telefonu yok');
     }
     final sp = Softphone.instance;
-    final softphoneIle = sp.aktif && sp.kayitli.value;
+    // Softphone bagliysa (ya da birkac sn icinde yeniden baglanirsa) uygulama
+    // icinden, degilse Bria (santral originate).
+    final softphoneIle = sp.aktif && await sp.aramayaHazir();
     final j = await _post('arama-baslat-numara', {
       if (uid.isNotEmpty && uid != 'null' && uid != '0') 'user_id': uid,
       if (tel.isNotEmpty) 'numara': tel,

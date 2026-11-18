@@ -134,6 +134,10 @@ class _SipSoftphone implements Softphone {
   Future<void> kapat() => _sip.kapat();
 
   @override
+  Future<bool> aramayaHazir({Duration bekle = const Duration(seconds: 4)}) =>
+      _sip.aramayaHazir(bekle: bekle);
+
+  @override
   Future<bool> ara(String hedef, {String? gorunenAd}) =>
       _sip.cagriBaslat(hedef, gorunenAd: gorunenAd);
 
