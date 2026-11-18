@@ -629,11 +629,22 @@ class SipService implements SipUaHelperListener {
         case Event.actionCallTimeout:
           if (pushCagrisi) {
             p.red = true;
-            // Santral beklemeyi birakip cagriyi bu cihaza hic gondermesin.
-            _api('hazir', <String, dynamic>{'uuid': p.uuid, 'durum': 'red'});
+            // Reddet/kapat: santral aramayi tamamen sonlandirir ("red").
+            // Calma suresi dolduysa (timeout) bilincli red degil: sadece bu
+            // deneme biter, arayan kuyrukta bekler ("mesgul").
+            final bool zamanAsimi = event.event == Event.actionCallTimeout;
+            _api('hazir', <String, dynamic>{
+              'uuid': p.uuid,
+              'durum': zamanAsimi ? 'mesgul' : 'red',
+            });
             IosPush.pushTuketildi();
             bitisNedeni.value = 'Arama sonlandı';
             _pushBaglantiBitti();
+          } else if (activeCall.value == null &&
+              olayId != null &&
+              (p == null || olayId.toLowerCase() != p.uuid.toLowerCase())) {
+            // Eski bir cagri ekrani kapandi (kuyrugun onceki denemesi / iptal):
+            // su anki cagriyi reddetme.
           } else {
             kapatCagri();
           }
@@ -736,7 +747,9 @@ class SipService implements SipUaHelperListener {
       FlutterCallkitIncoming.endCall(uuid).catchError((_) {});
       IosPush.pushTuketildi();
       if (_dahili != null) {
-        _api('hazir', <String, dynamic>{'uuid': uuid, 'durum': 'red'});
+        // "mesgul": sadece bu deneme reddedilir, arayan kuyrukta bekler.
+        // ("red" kullanicinin Reddet'idir: santral aramayi tamamen sonlandirir.)
+        _api('hazir', <String, dynamic>{'uuid': uuid, 'durum': 'mesgul'});
       }
       return;
     }
