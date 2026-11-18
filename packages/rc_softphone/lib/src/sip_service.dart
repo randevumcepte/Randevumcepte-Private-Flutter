@@ -393,6 +393,12 @@ class SipService implements SipUaHelperListener {
 
   Future<void> hoparlorToggle([bool? deger]) async {
     final bool yeni = deger ?? !hoparlor.value;
+    if (!kIsWeb && Platform.isIOS) {
+      // iOS: CallKit ses oturumunu yeniden kurmadan sadece cikis yonu.
+      final bool? gercek = await IosSes.hoparlor(yeni);
+      hoparlor.value = gercek ?? yeni;
+      return;
+    }
     try {
       await Helper.setSpeakerphoneOn(yeni);
       hoparlor.value = yeni;
@@ -533,6 +539,10 @@ class SipService implements SipUaHelperListener {
       case CallStateEnum.ACCEPTED:
       case CallStateEnum.CONFIRMED:
         baglandiZamani.value ??= DateTime.now();
+        // Buton "kapali" diye baslamasin: gercek cikisi oku (iOS).
+        IosSes.hoparlorAcikMi().then((bool? h) {
+          if (h != null && activeCall.value != null) hoparlor.value = h;
+        });
         final String? ckId = _currentCallkitId;
         if (ckId != null) {
           // CallKit'e "baglandi" de (iOS sure/durum + ses kesintisi yonetimi).
@@ -599,6 +609,10 @@ class SipService implements SipUaHelperListener {
   void _kurCallkitListener() {
     if (_callkitListenerKuruldu) return;
     _callkitListenerKuruldu = true;
+    // iOS: hoparlor CallKit sistem ekranindan/kulaklikla degisirse buton da degissin.
+    IosSes.yonDinle((bool h) {
+      if (activeCall.value != null) hoparlor.value = h;
+    });
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       if (event == null) return;
       final dynamic govde = event.body;

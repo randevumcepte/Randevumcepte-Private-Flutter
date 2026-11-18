@@ -28,4 +28,36 @@ class IosSes {
 
   /// CallKit cagrisi bitti; giden aramalar icin WebRTC otomatik moda don.
   static Future<void> otomatikSeseDon() => _cagir('otomatikSeseDon');
+
+  /// Hoparlor ac/kapat (sadece cikis yonu; CallKit oturumuna dokunmaz).
+  /// Gercek durumu dondurur; hata/iOS disi: null.
+  static Future<bool?> hoparlor(bool ac) async {
+    if (kIsWeb || !Platform.isIOS) return null;
+    try {
+      return await _kanal.invokeMethod<bool>('hoparlor', ac);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[SIP] iOS hoparlor hatasi: $e');
+      return null;
+    }
+  }
+
+  /// Ses su an hoparlorden mi cikiyor? iOS disi: null.
+  static Future<bool?> hoparlorAcikMi() async {
+    if (kIsWeb || !Platform.isIOS) return null;
+    try {
+      return await _kanal.invokeMethod<bool>('hoparlorAcikMi');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Ses cikisi degisince (CallKit sistem ekrani, kulaklik vb.) cagrilir.
+  static void yonDinle(void Function(bool hoparlor) dinleyici) {
+    if (kIsWeb || !Platform.isIOS) return;
+    _kanal.setMethodCallHandler((MethodCall c) async {
+      if (c.method == 'hoparlorDegisti' && c.arguments is bool) {
+        dinleyici(c.arguments as bool);
+      }
+    });
+  }
 }

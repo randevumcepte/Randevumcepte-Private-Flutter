@@ -27,6 +27,7 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
   private static var ortak: RcSoftphonePlugin?
 
   private var sesAcik = false
+  private var sesKanal: FlutterMethodChannel?
   private var pushKanal: FlutterMethodChannel?
   private var registry: PKPushRegistry?
 
@@ -48,16 +49,34 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
     if ortak == nil {
       ortak = ornek
       ornek.pushKitKur()
+      ornek.sesYonuDinle()
     }
 
     let sesKanal = FlutterMethodChannel(
       name: "rc_softphone/ios_ses", binaryMessenger: registrar.messenger())
     registrar.addMethodCallDelegate(ornek, channel: sesKanal)
+    ornek.sesKanal = sesKanal
 
     let pushKanal = FlutterMethodChannel(
       name: "rc_softphone/ios_push", binaryMessenger: registrar.messenger())
     registrar.addMethodCallDelegate(ornek, channel: pushKanal)
     ornek.pushKanal = pushKanal
+  }
+
+  /// Ses cikisi degisti (uygulamadaki buton, CallKit sistem ekrani, kulaklik):
+  /// Dart'taki Hoparlor butonu gercek durumu gostersin.
+  private func sesYonuDinle() {
+    NotificationCenter.default.addObserver(
+      forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main
+    ) { [weak self] _ in
+      self?.sesKanal?.invokeMethod("hoparlorDegisti", arguments: RcSoftphonePlugin.hoparlorAcik())
+    }
+  }
+
+  private static func hoparlorAcik() -> Bool {
+    return AVAudioSession.sharedInstance().currentRoute.outputs.contains {
+      $0.portType == .builtInSpeaker
+    }
   }
 
   private func pushKitKur() {
@@ -104,6 +123,23 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
       rtc.useManualAudio = false
       rtc.isAudioEnabled = true
       result(nil)
+
+    case "hoparlor":
+      // Sadece cikis yonunu degistir. flutter_webrtc'nin setSpeakerphoneOn'u
+      // oturumu yeniden kurup setActive dener; CallKit oturumu yonettigi icin
+      // sessizce basarisiz oluyordu (uygulamadaki Hoparlor butonu calismiyordu).
+      let ac = (call.arguments as? Bool) ?? false
+      rtc.lockForConfiguration()
+      defer { rtc.unlockForConfiguration() }
+      do {
+        try rtc.overrideOutputAudioPort(ac ? .speaker : .none)
+      } catch {
+        NSLog("[rc_softphone] hoparlor degistirilemedi: \(error)")
+      }
+      result(RcSoftphonePlugin.hoparlorAcik())
+
+    case "hoparlorAcikMi":
+      result(RcSoftphonePlugin.hoparlorAcik())
 
     // ---- VoIP push ----
     case "voipToken":
