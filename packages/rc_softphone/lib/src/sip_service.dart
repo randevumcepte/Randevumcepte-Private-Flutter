@@ -393,6 +393,18 @@ class SipService implements SipUaHelperListener {
 
   Map<String, dynamic> _answerOptions() {
     return <String, dynamic>{
+      // sip_ua cevaplamada pcConfig verilmezse STUN'suz (bos iceServers)
+      // baglanti kurar: cevapta sadece yerel IP olur, NAT arkasindaki cihazin
+      // genel adresi santralin ICE listesine girmez ve Asterisk DTLS'i
+      // dusurur ("Source not in ICE active candidate list") -> iki yon sessiz.
+      // Giden aramadaki (sip_ua call) ayarin aynisi.
+      'pcConfig': <String, dynamic>{
+        'sdpSemantics': 'unified-plan',
+        'iceTransportPolicy': 'all',
+        'iceServers': <Map<String, String>>[
+          <String, String>{'urls': 'stun:stun.l.google.com:19302'},
+        ],
+      },
       'mediaConstraints': <String, dynamic>{
         'audio': true,
         'video': false,
