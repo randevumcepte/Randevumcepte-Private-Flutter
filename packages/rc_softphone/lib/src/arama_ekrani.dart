@@ -80,8 +80,8 @@ class _AramaEkraniState extends State<AramaEkrani> {
       return '$dk:$sn';
     }
     switch (_sip.callState.value) {
+      // Giden arama: karsi taraf cevaplayana kadar hep "Aranıyor...".
       case CallStateEnum.PROGRESS:
-        return 'Çalıyor...';
       case CallStateEnum.CONNECTING:
       case CallStateEnum.CALL_INITIATION:
         return 'Aranıyor...';

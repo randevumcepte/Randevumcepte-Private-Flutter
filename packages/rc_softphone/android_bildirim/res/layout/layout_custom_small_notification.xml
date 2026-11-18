@@ -33,14 +33,30 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tvNumber"
-                android:layout_width="wrap_content"
+            <!-- rc_softphone: "ariyor... · numara" -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:textAppearance="@style/TextAppearance.Compat.Notification.Line2"
-                android:textSize="12sp" />
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:text="arıyor...  · "
+                    android:textAppearance="@style/TextAppearance.Compat.Notification.Line2"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvNumber"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textAppearance="@style/TextAppearance.Compat.Notification.Line2"
+                    android:textSize="12sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <ImageView

@@ -13,6 +13,7 @@
 #   lib/telefon/softphone_kayit.dart      KapaliSoftphone <-> SipService adaptoru
 #   android/app/src/main/AndroidManifest.xml
 #                                         5 FGS/telefon izni: tools:node="remove" <-> normal
+#                                         MainActivity launchMode: singleTask <-> singleTop
 #   ios/Runner/Info.plist                 UIBackgroundModes: audio + voip ekle/cikar
 #   android/app/src/main/res/{layout,drawable}/
 #                                         gelen cagri bildirim tasarimi (rc_softphone/
@@ -186,6 +187,20 @@ for izin in izinler:
         m = desen.sub(yeni, m, count=1)
     else:
         print("UYARI: manifestte %s satiri yok, atlandi." % izin)
+# MainActivity tek kopya: CallKit "Cevapla" uygulamayi NEW_TASK'siz acar;
+# singleTop + taskAffinity="" iken arka planda acik uygulamanin USTUNE ikinci
+# MainActivity (ikinci Flutter motoru) acilir -> gorusme arkadaki motorda kalir,
+# onde normal uygulama gorunur. singleTask var olani one getirir (onNewIntent).
+ma = re.search(r'<activity\b[^>]*android:name="\.MainActivity"[^>]*>', m, flags=re.S)
+if ma:
+    blok = ma.group(0)
+    if ac:
+        yeni = blok.replace('android:launchMode="singleTop"', 'android:launchMode="singleTask"')
+    else:
+        yeni = blok.replace('android:launchMode="singleTask"', 'android:launchMode="singleTop"')
+    m = m[:ma.start()] + yeni + m[ma.end():]
+else:
+    print("UYARI: manifestte .MainActivity bulunamadi, launchMode atlandi.")
 open(manifest, "w", newline="").write(m)
 
 # --- Info.plist (UIBackgroundModes: audio + voip) ---
