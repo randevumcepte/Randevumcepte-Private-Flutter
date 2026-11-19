@@ -158,12 +158,12 @@ class _MenuState extends State<Menu> {
     if (mounted) setState(() {});
   }
 
-  // WhatsApp Asistani menusu: web'deki gibi yalniz asistani acik isletmede + yonetici (rol < 5)
+  // WhatsApp Asistani menusu: web'deki gibi yalniz asistani acik isletmede + yalniz rol 1, 2, 3 (isletme istegi 2026-11-19)
   bool _waAsistanAcik = false;
 
   Future<void> _waAsistanKontrol() async {
     try {
-      if (!(kullanicirolu >= 1 && kullanicirolu < 5)) return;
+      if (!(kullanicirolu >= 1 && kullanicirolu <= 3)) return;
       final r = await WaApi.al(widget.isletmebilgi['id'].toString(), '/durum');
       if (mounted && '${r['acik']}' == '1') setState(() => _waAsistanAcik = true);
     } catch (_) {}
@@ -578,7 +578,7 @@ class _MenuState extends State<Menu> {
                       );
                     },
                   ),
-                if (_waAsistanAcik)
+                if (_waAsistanAcik && kullanicirolu >= 1 && kullanicirolu <= 3)
                   _buildMenuButton(
                     icon: Icons.smart_toy_rounded,
                     label: 'WhatsApp Asistanı',

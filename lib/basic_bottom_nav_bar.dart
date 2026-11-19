@@ -266,7 +266,17 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         ));
         break;
       case NotificationIntent.adminWaAssistant:
-        // WhatsApp asistani talep bildirimi -> WhatsApp Asistani > ilgili sohbet
+        // WhatsApp asistani talep bildirimi -> WhatsApp Asistani > ilgili sohbet.
+        // Sayfa yalniz rol 1, 2, 3'e acik; digerleri Bildirimler ekranina gider.
+        if (!(kullanicirolu >= 1 && kullanicirolu <= 3)) {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => BildirimlerScreen(
+              isletmebilgi: widget.isletmebilgi,
+              kullanicirolu: kullanicirolu,
+            ),
+          ));
+          break;
+        }
         final waOturum = int.tryParse('${intent.params['oturum_id'] ?? ''}');
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => WaAsistanPage(
