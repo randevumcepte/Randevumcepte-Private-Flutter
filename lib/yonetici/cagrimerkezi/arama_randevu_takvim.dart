@@ -557,6 +557,8 @@ class _IslemSheetState extends State<_IslemSheet> {
         content: Text(r.message.isEmpty
             ? 'Telefonunuz (Bria) çalacak, açın.'
             : r.message),
+        backgroundColor: r.success ? null : Colors.redAccent,
+        duration: const Duration(seconds: 5),
       ));
     } catch (e) {
       _hataGoster(e);

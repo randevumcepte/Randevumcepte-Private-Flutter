@@ -15,8 +15,26 @@ import 'package:randevu_sistem/telefon/softphone.dart';
 import 'package:randevu_sistem/yonetici/santral/santralraporlari.dart';
 
 import 'arama_ekrani.dart';
+import 'cagri_api.dart';
 import 'arama_randevu_takvim.dart';
 import 'cagri_dashboard.dart';
+
+/// Tus takimi softphone'dan dogrudan arar (sunucudan gecmez); santral
+/// dakikasi bittiyse acilmadan once uyarilir.
+Future<void> _tusTakimiAc(BuildContext context) async {
+  final sube = CagriApi.aktifSube ?? '';
+  final uyari = await CagriApi.dakikaEngeli(sube);
+  if (!context.mounted) return;
+  if (uyari != null) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(uyari),
+      backgroundColor: Colors.redAccent,
+      duration: const Duration(seconds: 6),
+    ));
+    return;
+  }
+  await Softphone.instance.tusTakimiAc(context);
+}
 
 class CagriMerkeziSayfa extends StatelessWidget {
   final dynamic isletmebilgi;
@@ -99,7 +117,7 @@ class CagriMerkeziSayfa extends StatelessWidget {
                   tooltip: kayitli ? 'Tuş takımı' : 'Tuş takımı (santrale bağlı değil)',
                   icon: Icon(Icons.dialpad,
                       color: kayitli ? Colors.green : Colors.grey),
-                  onPressed: () => Softphone.instance.tusTakimiAc(context),
+                  onPressed: () => _tusTakimiAc(context),
                 ),
               ),
           ],

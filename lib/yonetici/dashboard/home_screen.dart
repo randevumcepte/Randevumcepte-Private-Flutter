@@ -610,6 +610,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(sonuc.message.isNotEmpty ? sonuc.message : 'Arama başlatıldı'),
+          backgroundColor: sonuc.success ? null : Colors.redAccent,
           duration: const Duration(seconds: 5),
         ));
       } catch (_) {}

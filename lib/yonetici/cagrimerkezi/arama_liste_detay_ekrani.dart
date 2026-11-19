@@ -629,6 +629,8 @@ class _MusteriDetaySheet extends StatelessWidget {
                                 content: Text(kayit.message.isNotEmpty
                                     ? kayit.message
                                     : 'Arama başlatıldı'),
+                                backgroundColor:
+                                    kayit.success ? null : Colors.redAccent,
                                 duration: const Duration(seconds: 5),
                               ),
                             );

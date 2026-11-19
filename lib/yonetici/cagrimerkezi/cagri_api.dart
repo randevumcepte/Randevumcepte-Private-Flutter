@@ -135,6 +135,20 @@ class CagriApi {
     return _uyariEkle(await _cihazdaAra(mod, sonuc, gorunenAd), uyari);
   }
 
+  /// Santral dakikasi bittiyse uyari metni, yoksa null. Sunucuya ulasilamazsa
+  /// null (aramayi engellemez; asil kontrol arama uclarinda sunucuda).
+  static Future<String?> dakikaEngeli(String sube) async {
+    if (sube.isEmpty) return null;
+    try {
+      final j = await _post('dakika-durum', {'sube': sube});
+      if (j is Map && j['engel'] == true) {
+        final m = (j['mesaj'] ?? '').toString();
+        return m.isNotEmpty ? m : 'Santral konuşma dakikanız bitti; arama başlatılamaz.';
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Yedek moda dusulduyse uyari, alt bantta (SnackBar) gosterilen mesajin basina eklenir.
   static AramaBaslatSonuc _uyariEkle(AramaBaslatSonuc s, String? uyari) {
     if (uyari == null) return s;
