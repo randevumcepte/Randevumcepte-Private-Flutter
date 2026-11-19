@@ -29,6 +29,10 @@ class Yetki {
   static const _prefsKeyPrefix = 'yetkilerim_v2';
 
   static Map<String, bool> _ayarlar = {};
+  /// Backend'in 'ayarlar' haritasindan (eski build zorla-cikis yemesin diye)
+  /// gizledigi anahtarlarin gercek degerleri ('gizli_ayarlar'). Degisiklik
+  /// kiyasina KATILMAZ; sadece varMi'de yedek olarak okunur.
+  static Map<String, bool> _gizliAyarlar = {};
   static bool _salonSahibi = true; // default tam yetki (geriye donuk)
   static bool _personelRolunde = false;
   static String _sablon = 'tam_yetki';
@@ -74,6 +78,9 @@ class Yetki {
       if (raw != null) {
         final json = jsonDecode(raw) as Map<String, dynamic>;
         _ayarlar = ((json['ayarlar'] as Map?) ?? const {}).map(
+          (k, v) => MapEntry(k.toString(), v == true),
+        );
+        _gizliAyarlar = ((json['gizli_ayarlar'] as Map?) ?? const {}).map(
           (k, v) => MapEntry(k.toString(), v == true),
         );
         _salonSahibi = json['salon_sahibi'] == true;
@@ -129,6 +136,7 @@ class Yetki {
         // Token yoksa auth gerektiren benimYetkilerim'i cagiramayiz.
         // Cache default'a duselim (tum yetkiler acik - geriye donuk).
         _ayarlar = {};
+        _gizliAyarlar = {};
         _salonSahibi = true;
         _personelRolunde = false;
         _sablon = 'tam_yetki';
@@ -161,6 +169,9 @@ class Yetki {
           _ayarlar = ((data['ayarlar'] as Map?) ?? const {}).map(
             (k, v) => MapEntry(k.toString(), v == true),
           );
+          _gizliAyarlar = ((data['gizli_ayarlar'] as Map?) ?? const {}).map(
+            (k, v) => MapEntry(k.toString(), v == true),
+          );
           _salonSahibi = data['salon_sahibi'] == true;
           _personelRolunde = data['personel_rolunde'] == true;
           _sablon = (data['sablon'] ?? 'tam_yetki').toString();
@@ -186,6 +197,7 @@ class Yetki {
             scope,
             jsonEncode({
               'ayarlar': _ayarlar,
+              'gizli_ayarlar': _gizliAyarlar,
               'salon_sahibi': _salonSahibi,
               'personel_rolunde': _personelRolunde,
               'sablon': _sablon,
@@ -207,6 +219,7 @@ class Yetki {
   /// kullanicilarin yetkileri dahil) silinir.
   static Future<void> temizle() async {
     _ayarlar = {};
+    _gizliAyarlar = {};
     _salonSahibi = true;
     _personelRolunde = false;
     _sablon = 'tam_yetki';
@@ -232,7 +245,10 @@ class Yetki {
   static bool varMi(String key) {
     if (!_yuklendi) return true; // henuz baslatilmadi - eski davranis
     if (_salonSahibi || !_personelRolunde) return true;
-    return _ayarlar[key] == true;
+    if (_ayarlar.containsKey(key)) return _ayarlar[key] == true;
+    // Backend'in mobilden gizledigi anahtar (or. randevu.onayla): gercek
+    // degeri 'gizli_ayarlar'dan oku. Kayitta aciksa buton gorunur.
+    return _gizliAyarlar[key] == true;
   }
 
   /// Telefon numarasini gosterilebilir hale getir.
