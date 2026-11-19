@@ -20,6 +20,7 @@ import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
 
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/asistanim/asistanpage.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/wa_asistan/wa_asistan_page.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show kullanicibilgimusteri;
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteridetaylar.dart';
@@ -261,6 +262,17 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
             geriAranacaklar: true,
             salonId: intent.params['salon_id']?.toString(),
             oturumId: int.tryParse('${intent.params['oturum_id'] ?? ''}'),
+          ),
+        ));
+        break;
+      case NotificationIntent.adminWaAssistant:
+        // WhatsApp asistani talep bildirimi -> WhatsApp Asistani > ilgili sohbet
+        final waOturum = int.tryParse('${intent.params['oturum_id'] ?? ''}');
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => WaAsistanPage(
+            isletmebilgi: widget.isletmebilgi,
+            salonId: intent.params['salon_id']?.toString(),
+            acilacakSohbetId: (waOturum != null && waOturum > 0) ? waOturum : null,
           ),
         ));
         break;

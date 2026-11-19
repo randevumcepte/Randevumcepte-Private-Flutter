@@ -44,6 +44,17 @@ class NotificationRouter {
         ));
         return;
       }
+      // WhatsApp asistani "isletmeye soruldu" talebi -> WhatsApp Asistani > ilgili sohbet
+      if (!isMusteri && (payload.deepLink ?? '').startsWith('wa_assistant')) {
+        NotificationNavigationBus.publish(NotificationIntent(
+          NotificationIntent.adminWaAssistant,
+          {
+            'salon_id': _deepLinkParam(payload.deepLink, 'salon_id'),
+            'oturum_id': _deepLinkParam(payload.deepLink, 'oturum_id'),
+          },
+        ));
+        return;
+      }
       switch (type) {
         // Fotograf yukleme bildirimleri:
         //  - isletme_resim_yuklendi: musteri kendi fotograf ekranina gider

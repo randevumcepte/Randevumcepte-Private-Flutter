@@ -37,6 +37,8 @@ class NotificationIntent {
   /// İşletme tarafı — Asistanım > Asistan Görüşmeleri (geri aranacak filtresi).
   /// "Geri aranacak müşteri" (santral asistanı) push'u. params: {'salon_id', 'oturum_id'}
   static const adminAssistantCalls = 'admin_assistant_calls';
+  // WhatsApp asistani talep bildirimi -> Diger > WhatsApp Asistani (ilgili sohbet)
+  static const adminWaAssistant = 'admin_wa_assistant';
 }
 
 /// Pub-sub. Router publish eder, altbar dinler ve consume eder.

@@ -54,6 +54,8 @@ import 'menu/senetler/senetlistesi.dart';
 import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
 import 'menu/musteri_yorumlari/musteri_yorumlari_yonetim.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
+import 'menu/wa_asistan/wa_asistan_page.dart';
+import 'menu/wa_asistan/wa_asistan_api.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_dashboard.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_merkezi_sayfa.dart';
 import 'package:randevu_sistem/yonetici/hesabim/hesabim_ekrani.dart';
@@ -156,11 +158,23 @@ class _MenuState extends State<Menu> {
     if (mounted) setState(() {});
   }
 
+  // WhatsApp Asistani menusu: web'deki gibi yalniz asistani acik isletmede + yonetici (rol < 5)
+  bool _waAsistanAcik = false;
+
+  Future<void> _waAsistanKontrol() async {
+    try {
+      if (!(kullanicirolu >= 1 && kullanicirolu < 5)) return;
+      final r = await WaApi.al(widget.isletmebilgi['id'].toString(), '/durum');
+      if (mounted && '${r['acik']}' == '1') setState(() => _waAsistanAcik = true);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
     // Yetki tazelendiginde menu listesi yeniden cizilsin.
     Yetki.versiyon.addListener(_yetkiDegisti);
+    _waAsistanKontrol();
   }
 
   @override
@@ -560,6 +574,21 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: AsistanimPage(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
+                if (_waAsistanAcik)
+                  _buildMenuButton(
+                    icon: Icons.smart_toy_rounded,
+                    label: 'WhatsApp Asistanı',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: WaAsistanPage(isletmebilgi: widget.isletmebilgi),
                         ),
                       );
                     },
