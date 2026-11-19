@@ -19,6 +19,7 @@ import 'package:randevu_sistem/yonetici/adisyonlar/adisyonpage.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
 
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/asistanim/asistanpage.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show kullanicibilgimusteri;
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteridetaylar.dart';
@@ -250,6 +251,18 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         // params: {user_id: String}. MusteriDetaylari 'md' (MusteriDanisan)
         // istiyor, once fetch et.
         _adminMusteriDetayAc(intent.params['user_id']?.toString());
+        break;
+      case NotificationIntent.adminAssistantCalls:
+        // Santral asistani "geri aranacak musteri" -> Asistanim > Asistan Gorusmeleri
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => AsistanimPage(
+            isletmebilgi: widget.isletmebilgi,
+            ilkSekme: 2,
+            geriAranacaklar: true,
+            salonId: intent.params['salon_id']?.toString(),
+            oturumId: int.tryParse('${intent.params['oturum_id'] ?? ''}'),
+          ),
+        ));
         break;
     }
   }

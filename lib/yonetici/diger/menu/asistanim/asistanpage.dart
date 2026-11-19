@@ -2,11 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/asistanim/yarinkigorevlerim.dart';
 
+import 'asistan_gorusmeleri.dart';
 import 'bugunkugorevlerim.dart';
 
 class AsistanimPage extends StatefulWidget {
   final dynamic isletmebilgi;
-  const AsistanimPage({Key? key, required this.isletmebilgi}) : super(key: key);
+  /// 0: Bugün, 1: Yarın, 2: Asistan Görüşmeleri
+  final int ilkSekme;
+  /// "Geri aranacak müşteri" push'undan açılış: görüşmeler sekmesi geri aranacak filtresiyle
+  final bool geriAranacaklar;
+  final String? salonId;
+  final int? oturumId;
+  const AsistanimPage({
+    Key? key,
+    required this.isletmebilgi,
+    this.ilkSekme = 0,
+    this.geriAranacaklar = false,
+    this.salonId,
+    this.oturumId,
+  }) : super(key: key);
 
   @override
   _AsistanimPageState createState() => _AsistanimPageState();
@@ -20,7 +34,8 @@ class _AsistanimPageState extends State<AsistanimPage> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: DefaultTabController(
-        length: 2,
+        length: 3,
+        initialIndex: widget.ilkSekme.clamp(0, 2),
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
@@ -38,6 +53,15 @@ class _AsistanimPageState extends State<AsistanimPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
                     child: YarinkiGorevler(isletmebilgi: widget.isletmebilgi),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+                    child: AsistanGorusmeleri(
+                      isletmebilgi: widget.isletmebilgi,
+                      salonId: widget.salonId,
+                      baslangictaGeriAra: widget.geriAranacaklar,
+                      acilacakOturumId: widget.oturumId,
+                    ),
                   ),
                 ],
               ),
@@ -97,7 +121,7 @@ class _AsistanimPageState extends State<AsistanimPage> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Bugün ve yarın için arama görevlerin',
+                              'Arama görevlerin ve AI asistan görüşmeleri',
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w500,
@@ -181,7 +205,7 @@ class _PremiumPillTabBar extends StatelessWidget {
               children: [
                 Icon(Icons.today_rounded, size: 16),
                 SizedBox(width: 6),
-                Text('Bugünkü Görevlerim'),
+                Text('Bugün'),
               ],
             ),
           ),
@@ -191,7 +215,17 @@ class _PremiumPillTabBar extends StatelessWidget {
               children: [
                 Icon(Icons.event_rounded, size: 16),
                 SizedBox(width: 6),
-                Text('Yarınki Görevlerim'),
+                Text('Yarın'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.support_agent_rounded, size: 16),
+                SizedBox(width: 6),
+                Text('Görüşmeler'),
               ],
             ),
           ),

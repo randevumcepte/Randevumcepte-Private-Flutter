@@ -33,6 +33,17 @@ class NotificationRouter {
             const NotificationIntent(NotificationIntent.groupClasses));
         return;
       }
+      // AI santral asistani "geri aranacak musteri" -> Asistanim > Asistan Gorusmeleri
+      if (!isMusteri && (payload.deepLink ?? '').startsWith('assistant_calls')) {
+        NotificationNavigationBus.publish(NotificationIntent(
+          NotificationIntent.adminAssistantCalls,
+          {
+            'salon_id': _deepLinkParam(payload.deepLink, 'salon_id'),
+            'oturum_id': _deepLinkParam(payload.deepLink, 'oturum_id'),
+          },
+        ));
+        return;
+      }
       switch (type) {
         // Fotograf yukleme bildirimleri:
         //  - isletme_resim_yuklendi: musteri kendi fotograf ekranina gider

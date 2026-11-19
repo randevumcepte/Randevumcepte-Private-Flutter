@@ -34,6 +34,9 @@ class NotificationIntent {
   /// İşletme tarafı — bir müşterinin detay/fotoğraf ekranı. Müşteri fotoğraf
   /// yükleyince gönderilen push tıklanınca açılır. params: {'user_id': String}
   static const adminCustomerDetail = 'admin_customer_detail';
+  /// İşletme tarafı — Asistanım > Asistan Görüşmeleri (geri aranacak filtresi).
+  /// "Geri aranacak müşteri" (santral asistanı) push'u. params: {'salon_id', 'oturum_id'}
+  static const adminAssistantCalls = 'admin_assistant_calls';
 }
 
 /// Pub-sub. Router publish eder, altbar dinler ve consume eder.
