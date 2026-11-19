@@ -1,5 +1,4 @@
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
-import 'package:randevu_sistem/config/ozellikler.dart' show kCagriMerkeziEnabled;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -157,7 +156,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
   }
 
   /// Uygulama geneli musteri "Ara" butonlarinin (MusteriAraButon) kapisi:
-  /// bayrak + uyelik turu 3. Arama sekli (CagriApi.AramaModu) dahililere gore:
+  /// lisans gecerliyse herkese acik (rol/uyelik ayrimi yok). Arama sekli (CagriApi.AramaModu) dahililere gore:
   /// mobil WebRTC dahilisi -> softphone, dahili_no -> Bria, hicbiri -> telefon.
   void _aramaKapisiniKur(bool lisansBitti) {
     String alan(String k) {
@@ -173,7 +172,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
     CagriApi.aramaKapisiAyarla(
       sube: widget.isletmebilgi['id'].toString(),
-      acik: !lisansBitti && kCagriMerkeziEnabled && widget.uyelikturu == 3,
+      acik: !lisansBitti,
       softphoneDahili: alan('dahili_no_webrtc_mobil').isNotEmpty &&
           alan('dahili_sifre_webrtc_mobil').isNotEmpty,
       briaDahili: alan('dahili_no').isNotEmpty,

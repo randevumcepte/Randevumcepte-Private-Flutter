@@ -121,10 +121,10 @@ class CagriApi {
 
   /// Musteri arama ([AramaModu]): softphone -> sunucu kaydi damgalar + numarayi
   /// dondurur, uygulama icinden aranir; bria -> santral originate; telefon ->
-  /// sunucu numarayi dondurur (telefon_gor yetkisi sart), cihaz telefonuyla aranir.
+  /// numara SUNUCUDAN gelir (ekrandaki maskeleme etkilemez), cihaz telefonuyla aranir.
   static Future<AramaBaslatSonuc> aramaBaslat(int aranacakMusteriId, String sube,
       {String? gorunenAd}) async {
-    final mod = await _modSec();
+    final (mod, uyari) = await _modSec();
     final j = await _post('arama-baslat', {
       'aranacak_musteri_id': aranacakMusteriId,
       'sube': sube,
@@ -132,7 +132,18 @@ class CagriApi {
       if (mod == AramaModu.telefon) 'telefon_ile': true,
     });
     final sonuc = AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
-    return _cihazdaAra(mod, sonuc, gorunenAd);
+    return _uyariEkle(await _cihazdaAra(mod, sonuc, gorunenAd), uyari);
+  }
+
+  /// Yedek moda dusulduyse uyari, alt bantta (SnackBar) gosterilen mesajin basina eklenir.
+  static AramaBaslatSonuc _uyariEkle(AramaBaslatSonuc s, String? uyari) {
+    if (uyari == null) return s;
+    return AramaBaslatSonuc(
+      success: s.success,
+      message: s.message.isEmpty ? uyari : '$uyari\n${s.message}',
+      aramaListeId: s.aramaListeId,
+      numaraAra: s.numaraAra,
+    );
   }
 
   /// Softphone / telefon modunda sunucunun dondurdugu numarayi cihazda arar.
@@ -164,16 +175,24 @@ class CagriApi {
     );
   }
 
-  /// Bu aramanin modu. Softphone dahilisi var ama santrale baglanamiyorsa
-  /// (birkac sn yeniden baglanma denemesinden sonra) Bria'ya, o da yoksa
-  /// normal telefona duser.
-  static Future<AramaModu> _modSec() async {
+  /// Bu aramanin modu + yedek moda dusulduyse kullaniciya gosterilecek uyari.
+  /// Softphone dahilisi var ama santrale baglanamiyorsa (birkac sn yeniden
+  /// baglanma denemesinden sonra) Bria'ya, o da yoksa normal telefona duser.
+  static Future<(AramaModu, String?)> _modSec() async {
     final sp = Softphone.instance;
-    if (sp.aktif && _softphoneDahili && await sp.aramayaHazir()) {
-      return AramaModu.softphone;
+    if (_softphoneDahili) {
+      if (sp.aktif && await sp.aramayaHazir()) return (AramaModu.softphone, null);
+      final neden = sp.aktif
+          ? 'Softphone santrale bağlanamadı'
+          : 'Uygulama içi softphone bu sürümde kapalı';
+      if (_briaDahili) {
+        return (AramaModu.bria, '⚠️ $neden; Bria dahilinizden aranıyor.');
+      }
+      return (AramaModu.telefon,
+          '⚠️ $neden; telefonunuzun kendi arama uygulamasıyla aranıyor.');
     }
-    if (_briaDahili) return AramaModu.bria;
-    return AramaModu.telefon;
+    if (_briaDahili) return (AramaModu.bria, null);
+    return (AramaModu.telefon, null);
   }
 
   /// Butonlarda gosterilen (beklenen) mod.
@@ -199,8 +218,8 @@ class CagriApi {
   /// Aktif sube (salon_id). Kapi kurulmadiysa null.
   static String? get aktifSube => _aktifSube;
 
-  /// Click-to-call kullanilabilir mi: Cagri Merkezi bayragi acik + uyelik
-  /// turu 3. Dahili yoksa da acik (normal telefon aramasi, [AramaModu]).
+  /// Click-to-call kullanilabilir mi: lisans gecerliyse her kullaniciya acik
+  /// (rol / uyelik turu ayrimi yok). Dahili yoksa normal telefon ([AramaModu]).
   static bool get aramaAcik => _aramaAcik && _aktifSube != null;
 
   /// [softphoneDahili]: dahili_no_webrtc_mobil + sifresi dolu.
@@ -246,7 +265,7 @@ class CagriApi {
     if ((uid.isEmpty || uid == 'null' || uid == '0') && tel.isEmpty) {
       return AramaBaslatSonuc(success: false, message: 'Müşteri telefonu yok');
     }
-    final mod = await _modSec();
+    final (mod, uyari) = await _modSec();
     final j = await _post('arama-baslat-numara', {
       if (uid.isNotEmpty && uid != 'null' && uid != '0') 'user_id': uid,
       if (tel.isNotEmpty) 'numara': tel,
@@ -255,7 +274,7 @@ class CagriApi {
       if (mod == AramaModu.telefon) 'telefon_ile': true,
     });
     final sonuc = AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
-    return _cihazdaAra(mod, sonuc, gorunenAd);
+    return _uyariEkle(await _cihazdaAra(mod, sonuc, gorunenAd), uyari);
   }
 
   /// Geriye donuk: eski imza. Artik dogru uca (arama-baslat-numara) gider.

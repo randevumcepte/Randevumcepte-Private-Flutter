@@ -696,7 +696,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 		// Duzenle — musteri.ekle_duzenle yetkisi varsa gorunur.
 		final duzenleYet = Yetki.varMi('musteri.ekle_duzenle');
 		final actions = <Widget>[];
-		// Ara — Cagri Merkezi click-to-call; santral/dahili yoksa gizli.
+		// Ara — lisans gecerliyse herkese acik; softphone / Bria / normal telefon (CagriApi.AramaModu).
 		if (CagriApi.aramaAcik) {
 			actions.add(Expanded(
 				child: _actionBtn(
