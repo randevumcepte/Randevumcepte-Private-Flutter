@@ -256,6 +256,19 @@ class _MenuState extends State<Menu> {
   /// Mevcut secili salondaki kullanicinin dahili numarasini bul.
   /// Personel rolu (5) icin bos degilse Santral menusu acilir ve CDR
   /// listesi bu dahiliye gore filtrelenir.
+  /// Bu subede uygulama softphone'u dahilisi (dahili_no_webrtc_mobil) var mi?
+  bool _mobilDahiliVar() {
+    try {
+      for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
+        if (e['salon_id'].toString() == widget.isletmebilgi['id'].toString()) {
+          final d = e['dahili_no_webrtc_mobil']?.toString() ?? '';
+          return d.isNotEmpty && d != 'null';
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
   String _mevcutDahili() {
     try {
       for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
@@ -1067,7 +1080,8 @@ class _MenuState extends State<Menu> {
                 // incelemesi icin false; dahili/santral aktif markada true yap.
                 if (kCagriMerkeziEnabled && widget.uyelikturu == 3 &&
                     ((kullanicirolu >= 1 && kullanicirolu <= 4) ||
-                        (kullanicirolu == 5 && _mevcutDahili().isNotEmpty)))
+                        (kullanicirolu == 5 &&
+                            (_mevcutDahili().isNotEmpty || _mobilDahiliVar()))))
                   _buildMenuButton(
                     icon: Icons.headset_mic_rounded,
                     label: 'Çağrı Merkezi',

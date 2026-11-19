@@ -513,7 +513,10 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                 'appointment_${b.id}',
                 context,
               );
+              return;
             }
+            // Gidilecek ekran yok: listede 3 satirda kesilen metnin tamami
+            _tamMetinGoster(b);
           },
           borderRadius: BorderRadius.circular(16),
           child: AnimatedContainer(
@@ -685,6 +688,71 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _tamMetinGoster(SistemBildirimleri b) {
+    final baslik = (b.baslik ?? '').trim();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.8),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                if (baslik.isNotEmpty) ...[
+                  Text(baslik,
+                      style: const TextStyle(
+                          fontSize: 16.5, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                ],
+                Text(_relativeTime(b.tarihsaat),
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.black.withValues(alpha: 0.55))),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: SelectableText(b.aciklama,
+                        style: const TextStyle(
+                            fontSize: 15, height: 1.45, color: Color(0xFF1A1A1A))),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Kapat'),
+                ),
+              ],
             ),
           ),
         ),

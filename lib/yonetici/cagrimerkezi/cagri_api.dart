@@ -8,10 +8,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:randevu_sistem/telefon/softphone.dart';
 
 import 'cagri_models.dart';
+
+/// Arama butonlarinin calisma sekli (kullanicinin bu subedeki dahililerine gore):
+///  - [softphone]: dahili_no_webrtc_mobil + dahili_sifre_webrtc_mobil dolu (ve bu build'de
+///    softphone modulu acik) -> uygulama icinden arar.
+///  - [bria]: dahili_no dolu -> santral once Bria (3. parti SIP uygulamasi) dahilisini caldirir.
+///  - [telefon]: ikisi de yok -> cihazin kendi telefon uygulamasi (normal GSM aramasi).
+enum AramaModu { softphone, bria, telefon }
 
 class CagriApi {
   static const String _base =
@@ -111,35 +119,72 @@ class CagriApi {
     return ListeDetay.fromJson(Map<String, dynamic>.from(j));
   }
 
-  /// Musteri arama. Softphone modulu acik ve santrale kayitliysa web'deki
-  /// softphone moduyla AYNI akis: sunucu kaydi damgalar + numarayi dondurur,
-  /// arama cihazdaki softphone'dan yapilir. Degilse santral originate (Bria).
+  /// Musteri arama ([AramaModu]): softphone -> sunucu kaydi damgalar + numarayi
+  /// dondurur, uygulama icinden aranir; bria -> santral originate; telefon ->
+  /// sunucu numarayi dondurur (telefon_gor yetkisi sart), cihaz telefonuyla aranir.
   static Future<AramaBaslatSonuc> aramaBaslat(int aranacakMusteriId, String sube,
       {String? gorunenAd}) async {
-    final sp = Softphone.instance;
-    // Softphone bagliysa (ya da birkac sn icinde yeniden baglanirsa) uygulama
-    // icinden, degilse Bria (santral originate).
-    final softphoneIle = sp.aktif && await sp.aramayaHazir();
+    final mod = await _modSec();
     final j = await _post('arama-baslat', {
       'aranacak_musteri_id': aranacakMusteriId,
       'sube': sube,
-      if (softphoneIle) 'softphone': true,
+      if (mod == AramaModu.softphone) 'softphone': true,
+      if (mod == AramaModu.telefon) 'telefon_ile': true,
     });
     final sonuc = AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
-    if (!softphoneIle || !sonuc.success || sonuc.numaraAra == null) return sonuc;
+    return _cihazdaAra(mod, sonuc, gorunenAd);
+  }
 
-    final basladi = await sp.ara(sonuc.numaraAra!, gorunenAd: gorunenAd);
+  /// Softphone / telefon modunda sunucunun dondurdugu numarayi cihazda arar.
+  /// Bria modunda (santral originate) sonuc aynen doner.
+  static Future<AramaBaslatSonuc> _cihazdaAra(
+      AramaModu mod, AramaBaslatSonuc sonuc, String? gorunenAd) async {
+    if (mod == AramaModu.bria || !sonuc.success || sonuc.numaraAra == null) {
+      return sonuc;
+    }
+    if (mod == AramaModu.softphone) {
+      final basladi = await Softphone.instance.ara(sonuc.numaraAra!, gorunenAd: gorunenAd);
+      return AramaBaslatSonuc(
+        success: basladi,
+        message: basladi
+            ? 'Aranıyor...'
+            : 'Softphone araması başlatılamadı (devam eden bir arama olabilir).',
+        aramaListeId: sonuc.aramaListeId,
+      );
+    }
+    var acildi = false;
+    try {
+      acildi = await launchUrl(Uri(scheme: 'tel', path: sonuc.numaraAra!),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {}
     return AramaBaslatSonuc(
-      success: basladi,
-      message: basladi
-          ? 'Aranıyor...'
-          : 'Softphone araması başlatılamadı (devam eden bir arama olabilir).',
+      success: acildi,
+      message: acildi ? 'Telefon ile aranıyor...' : 'Telefon uygulaması açılamadı.',
       aramaListeId: sonuc.aramaListeId,
     );
   }
 
-  /// Arama butonu etiketi: softphone acikken uygulama icinden, degilse Bria.
-  static String get araEtiketi => Softphone.instance.aktif ? 'Ara' : 'Ara (Bria)';
+  /// Bu aramanin modu. Softphone dahilisi var ama santrale baglanamiyorsa
+  /// (birkac sn yeniden baglanma denemesinden sonra) Bria'ya, o da yoksa
+  /// normal telefona duser.
+  static Future<AramaModu> _modSec() async {
+    final sp = Softphone.instance;
+    if (sp.aktif && _softphoneDahili && await sp.aramayaHazir()) {
+      return AramaModu.softphone;
+    }
+    if (_briaDahili) return AramaModu.bria;
+    return AramaModu.telefon;
+  }
+
+  /// Butonlarda gosterilen (beklenen) mod.
+  static AramaModu get aramaModu {
+    if (Softphone.instance.aktif && _softphoneDahili) return AramaModu.softphone;
+    if (_briaDahili) return AramaModu.bria;
+    return AramaModu.telefon;
+  }
+
+  /// Arama butonu etiketi: Bria modunda belirtilir, digerlerinde sade 'Ara'.
+  static String get araEtiketi => aramaModu == AramaModu.bria ? 'Ara (Bria)' : 'Ara';
 
   // ---------------------------------------------------------------------------
   // Uygulama geneli "Ara" kapisi (musteri listesi/detay, takvim, adisyon, ...).
@@ -148,25 +193,35 @@ class CagriApi {
   // ---------------------------------------------------------------------------
   static String? _aktifSube;
   static bool _aramaAcik = false;
+  static bool _softphoneDahili = false;
+  static bool _briaDahili = false;
 
   /// Aktif sube (salon_id). Kapi kurulmadiysa null.
   static String? get aktifSube => _aktifSube;
 
   /// Click-to-call kullanilabilir mi: Cagri Merkezi bayragi acik + uyelik
-  /// turu 3 + kullanicinin bu subede dahilisi (Bria) var ya da softphone acik.
+  /// turu 3. Dahili yoksa da acik (normal telefon aramasi, [AramaModu]).
   static bool get aramaAcik => _aramaAcik && _aktifSube != null;
 
+  /// [softphoneDahili]: dahili_no_webrtc_mobil + sifresi dolu.
+  /// [briaDahili]: dahili_no dolu.
   static void aramaKapisiAyarla({
     required String sube,
     required bool acik,
+    bool softphoneDahili = false,
+    bool briaDahili = false,
   }) {
     _aktifSube = sube.isEmpty ? null : sube;
     _aramaAcik = acik;
+    _softphoneDahili = softphoneDahili;
+    _briaDahili = briaDahili;
   }
 
   static void aramaKapisiKapat() {
     _aktifSube = null;
     _aramaAcik = false;
+    _softphoneDahili = false;
+    _briaDahili = false;
   }
 
   /// Musteriyi ara (cagri merkezi listesine bagli olmayan her ekran).
@@ -191,26 +246,16 @@ class CagriApi {
     if ((uid.isEmpty || uid == 'null' || uid == '0') && tel.isEmpty) {
       return AramaBaslatSonuc(success: false, message: 'Müşteri telefonu yok');
     }
-    final sp = Softphone.instance;
-    // Softphone bagliysa (ya da birkac sn icinde yeniden baglanirsa) uygulama
-    // icinden, degilse Bria (santral originate).
-    final softphoneIle = sp.aktif && await sp.aramayaHazir();
+    final mod = await _modSec();
     final j = await _post('arama-baslat-numara', {
       if (uid.isNotEmpty && uid != 'null' && uid != '0') 'user_id': uid,
       if (tel.isNotEmpty) 'numara': tel,
       'sube': s,
-      if (softphoneIle) 'softphone': true,
+      if (mod == AramaModu.softphone) 'softphone': true,
+      if (mod == AramaModu.telefon) 'telefon_ile': true,
     });
     final sonuc = AramaBaslatSonuc.fromJson(Map<String, dynamic>.from(j));
-    if (!softphoneIle || !sonuc.success || sonuc.numaraAra == null) return sonuc;
-
-    final basladi = await sp.ara(sonuc.numaraAra!, gorunenAd: gorunenAd);
-    return AramaBaslatSonuc(
-      success: basladi,
-      message: basladi
-          ? 'Aranıyor...'
-          : 'Softphone araması başlatılamadı (devam eden bir arama olabilir).',
-    );
+    return _cihazdaAra(mod, sonuc, gorunenAd);
   }
 
   /// Geriye donuk: eski imza. Artik dogru uca (arama-baslat-numara) gider.

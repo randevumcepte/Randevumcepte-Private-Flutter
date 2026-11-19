@@ -15,6 +15,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:randevu_sistem/theme/premium_components.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 
 class AsistanGorusmeApi {
   static const String _host = 'https://app.randevumcepte.com.tr';
@@ -132,6 +134,22 @@ class _AsistanGorusmeleriState extends State<AsistanGorusmeleri>
   List<Map<String, dynamic>> _liste = [];
   int _bekleyen = 0;
   bool _otomatikAcildi = false;
+  String _aranan = '';
+
+  /// Arama kutusu: musteri adi, telefon (rakamlar) ve konusma ozetinde arar.
+  List<Map<String, dynamic>> get _gorunen {
+    final q = _aranan.trim().toLowerCase();
+    if (q.isEmpty) return _liste;
+    final qRakam = q.replaceAll(RegExp(r'\D'), '');
+    return _liste.where((o) {
+      final ad = (o['musteri'] ?? '').toString().toLowerCase();
+      final tel = (o['telefon'] ?? '').toString().replaceAll(RegExp(r'\D'), '');
+      final metin = '${o['son_musteri'] ?? ''} ${o['sonuc'] ?? ''}'.toLowerCase();
+      return ad.contains(q) ||
+          metin.contains(q) ||
+          (qRakam.length >= 3 && tel.contains(qRakam));
+    }).toList();
+  }
 
   String get _sube =>
       (widget.salonId != null && widget.salonId!.isNotEmpty)
@@ -196,6 +214,26 @@ class _AsistanGorusmeleriState extends State<AsistanGorusmeleri>
         children: [
           _filtreler(scheme),
           const SizedBox(height: 10),
+          TextField(
+            onChanged: (v) => setState(() => _aranan = v),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Müşteri adı, telefon ya da konuşmada ara',
+              prefixIcon: const Icon(Icons.search_rounded),
+              isDense: true,
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.15)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.15)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
           if (_bekleyen > 0 && !_geriAra) _bekleyenBandi(scheme),
           if (_yukleniyor)
             const Padding(
@@ -212,8 +250,10 @@ class _AsistanGorusmeleriState extends State<AsistanGorusmeleri>
                   : 'Bu tarih aralığında asistan görüşmesi yok.',
               scheme,
             )
+          else if (_gorunen.isEmpty)
+            _bosDurum(Icons.search_off_rounded, 'Aramanızla eşleşen görüşme yok.', scheme)
           else
-            ..._liste.map((o) => _satir(o, scheme)),
+            ..._gorunen.map((o) => _satir(o, scheme)),
         ],
       ),
     );
@@ -416,10 +456,20 @@ class _GorusmeDetayState extends State<_GorusmeDetay> {
     return t.length >= 10 ? t : null;
   }
 
+  /// Uygulama geneli arama mantigi (CagriApi.AramaModu): mobil softphone
+  /// dahilisi varsa uygulama icinden, dahili_no varsa Bria (santral), hicbiri
+  /// yoksa cihazin telefon uygulamasi. Bu ekran zaten yalniz yoneticiye acik ve
+  /// numara ekranda gorundugu icin telefon modunda dogrudan cevrilir.
   Future<void> _ara() async {
     final t = _aranabilirTel;
     if (t == null) return;
-    await launchUrl(Uri(scheme: 'tel', path: t), mode: LaunchMode.externalApplication);
+    if (CagriApi.aramaModu == AramaModu.telefon) {
+      await launchUrl(Uri(scheme: 'tel', path: t), mode: LaunchMode.externalApplication);
+      return;
+    }
+    final musteri = (_k?['musteri'] ?? '').toString();
+    await MusteriAraButon.ara(context,
+        telefon: t, sube: widget.sube, gorunenAd: musteri.isNotEmpty ? musteri : null);
   }
 
   Future<void> _aradim() async {

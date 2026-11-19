@@ -126,8 +126,11 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     Yetki.yetkiAyarlariDegisti.addListener(_onYetkiAyarlariDegisti);
     WidgetsBinding.instance.addObserver(this);
     kullanicirolu = int.parse(widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["role_id"].toString());
-    dahili =  widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_no_webrtc"].toString();
-    dahiliSifre = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_sifre_webrtc"].toString();
+    dahili =  widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_no_webrtc_mobil"].toString();
+    dahiliSifre = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["dahili_sifre_webrtc_mobil"].toString();
+    // Uygulama softphone'u YALNIZ mobil WebRTC dahilisi + sifresi doluysa acilir
+    // (dahili_no_webrtc web paneldeki tarayici softphone'una ait).
+    if (dahiliSifre == 'null' || dahiliSifre.trim().isEmpty) dahili = '';
     personelId = widget.kullanici.yetkili_olunan_isletmeler.firstWhere((element) => element["salon_id"].toString() == widget.isletmebilgi["id"].toString())["id"].toString();
     _aramaKapisiniKur(lisansBitti);
     _pages = [
@@ -153,9 +156,9 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     }
   }
 
-  /// Uygulama geneli musteri "Ara" butonlarinin (MusteriAraButon) kapisi.
-  /// Cagri Merkezi menusuyle ayni kosul: bayrak + uyelik turu 3 + bu subede
-  /// Bria dahilisi (dahili_no) ya da acik softphone + WebRTC dahilisi.
+  /// Uygulama geneli musteri "Ara" butonlarinin (MusteriAraButon) kapisi:
+  /// bayrak + uyelik turu 3. Arama sekli (CagriApi.AramaModu) dahililere gore:
+  /// mobil WebRTC dahilisi -> softphone, dahili_no -> Bria, hicbiri -> telefon.
   void _aramaKapisiniKur(bool lisansBitti) {
     String alan(String k) {
       try {
@@ -168,14 +171,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       }
     }
 
-    final dahiliVar = alan('dahili_no').isNotEmpty ||
-        (Softphone.instance.aktif && alan('dahili_no_webrtc').isNotEmpty);
     CagriApi.aramaKapisiAyarla(
       sube: widget.isletmebilgi['id'].toString(),
-      acik: !lisansBitti &&
-          kCagriMerkeziEnabled &&
-          widget.uyelikturu == 3 &&
-          dahiliVar,
+      acik: !lisansBitti && kCagriMerkeziEnabled && widget.uyelikturu == 3,
+      softphoneDahili: alan('dahili_no_webrtc_mobil').isNotEmpty &&
+          alan('dahili_sifre_webrtc_mobil').isNotEmpty,
+      briaDahili: alan('dahili_no').isNotEmpty,
     );
   }
 

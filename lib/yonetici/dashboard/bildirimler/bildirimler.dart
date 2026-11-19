@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
 import 'package:randevu_sistem/Frontend/filedownload.dart';
 import '../../diger/menu/randvular/randevularmenu.dart';
+import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 
 class BildirimlerScreen extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -451,29 +452,10 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                 if (mounted) setState(() => b.okundu = '1');
               } catch (_) {}
             }
-
-            if (b.randevuid != 'null') {
-              if (!mounted) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RandevularMenu(
-                    kullanicirolu: widget.kullanicirolu,
-                    isletmebilgi: widget.isletmebilgi,
-                    personelid: '',
-                    cihazid: '',
-                    personel_adi: '',
-                    cihaz_adi: '',
-                  ),
-                ),
-              );
-            } else if (b.arsiv != null && b.arsiv['uzanti'] != null) {
-              await downloadPdf(
-                'https://app.randevumcepte.com.tr/${b.arsiv['uzanti']}',
-                'appointment_${b.id}',
-                context,
-              );
-            }
+            if (!mounted) return;
+            // Once bildirimin tamami okunur; gidilecek bir ekran varsa
+            // pencerede "... ekranına git" butonu cikar.
+            _detayGoster(b);
           },
           borderRadius: BorderRadius.circular(16),
           child: AnimatedContainer(
@@ -647,6 +629,199 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bildirim detayi + ilgili ekrana yonlendirme
+  // ---------------------------------------------------------------------------
+
+  Map<String, String> _dlParam(String? dl) {
+    final d = dl ?? '';
+    final i = d.indexOf('?');
+    if (i < 0) return const {};
+    try {
+      return Uri.splitQueryString(d.substring(i + 1));
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  bool _randevuVar(SistemBildirimleri b) =>
+      (b.randevuid.isNotEmpty && b.randevuid != 'null' && b.randevuid != '0') ||
+      (b.deepLink ?? '').startsWith('appointment_detail');
+
+  bool _pdfVar(SistemBildirimleri b) =>
+      b.arsiv != null && b.arsiv is Map && b.arsiv['uzanti'] != null;
+
+  bool _waBildirimi(SistemBildirimleri b) =>
+      (b.deepLink ?? '').startsWith('wa_assistant') ||
+      b.tip == 'wa_asistan_talep' ||
+      b.url.contains('whatsapp-asistan');
+
+  /// Bildirimin uygulamada gidebilecegi ekranin adi; yoksa null (yalniz metin).
+  String? _hedefAdi(SistemBildirimleri b) {
+    final dl = b.deepLink ?? '';
+    final rol = widget.kullanicirolu;
+    if (_waBildirimi(b)) {
+      // WhatsApp Asistani sayfasi yalniz rol 1-3'e acik
+      return (rol >= 1 && rol <= 3) ? 'WhatsApp Asistanı' : null;
+    }
+    if (dl.startsWith('assistant_calls')) {
+      return (rol >= 1 && rol <= 4) ? 'Asistan Görüşmeleri' : null;
+    }
+    if (dl.startsWith('customer_detail') &&
+        (_dlParam(dl)['user_id'] ?? '').isNotEmpty) {
+      return 'Müşteri Detayı';
+    }
+    if (_randevuVar(b)) return 'Randevular';
+    if (_pdfVar(b)) return 'PDF';
+    return null;
+  }
+
+  Future<void> _hedefeGit(SistemBildirimleri b) async {
+    final dl = b.deepLink ?? '';
+    final p = _dlParam(dl);
+    if (_waBildirimi(b)) {
+      // Eski kayitlarda deep_link yok: sohbet id'si web url'sinden (sohbet=)
+      final sohbet = p['oturum_id'] ??
+          RegExp(r'[?&]sohbet=(\d+)').firstMatch(b.url)?.group(1);
+      NotificationNavigationBus.publish(NotificationIntent(
+        NotificationIntent.adminWaAssistant,
+        {'salon_id': p['salon_id'] ?? _salonId, 'oturum_id': sohbet},
+      ));
+      return;
+    }
+    if (dl.startsWith('assistant_calls')) {
+      NotificationNavigationBus.publish(NotificationIntent(
+        NotificationIntent.adminAssistantCalls,
+        {'salon_id': p['salon_id'] ?? _salonId, 'oturum_id': p['oturum_id']},
+      ));
+      return;
+    }
+    if (dl.startsWith('customer_detail')) {
+      NotificationNavigationBus.publish(NotificationIntent(
+        NotificationIntent.adminCustomerDetail,
+        {'user_id': p['user_id']},
+      ));
+      return;
+    }
+    if (_randevuVar(b)) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RandevularMenu(
+            kullanicirolu: widget.kullanicirolu,
+            isletmebilgi: widget.isletmebilgi,
+            personelid: '',
+            cihazid: '',
+            personel_adi: '',
+            cihaz_adi: '',
+          ),
+        ),
+      );
+      return;
+    }
+    if (_pdfVar(b)) {
+      await downloadPdf(
+        'https://app.randevumcepte.com.tr/${b.arsiv['uzanti']}',
+        'appointment_${b.id}',
+        context,
+      );
+    }
+  }
+
+  void _detayGoster(SistemBildirimleri b) {
+    final scheme = Theme.of(context).colorScheme;
+    final hedef = _hedefAdi(b);
+    final baslik = (b.baslik ?? '').trim();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.8),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                if (baslik.isNotEmpty) ...[
+                  Text(baslik,
+                      style: const TextStyle(
+                          fontSize: 16.5, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                ],
+                Row(children: [
+                  Icon(Icons.access_time_rounded,
+                      size: 13, color: Colors.black.withValues(alpha: 0.45)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_relativeTime(b.tarihsaat)} · ${b.tarihsaat}',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.black.withValues(alpha: 0.55)),
+                  ),
+                ]),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      b.aciklama,
+                      style: const TextStyle(
+                          fontSize: 15, height: 1.45, color: Color(0xFF1A1A1A)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                if (hedef != null)
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _hedefeGit(b);
+                    },
+                    icon: Icon(hedef == 'PDF'
+                        ? Icons.download_rounded
+                        : Icons.arrow_forward_rounded),
+                    label: Text(hedef == 'PDF' ? 'PDF\'i indir' : '$hedef ekranına git'),
+                  )
+                else
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Kapat'),
+                  ),
+              ],
             ),
           ),
         ),
