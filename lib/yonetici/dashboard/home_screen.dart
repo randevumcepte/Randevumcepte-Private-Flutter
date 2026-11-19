@@ -56,6 +56,7 @@ import 'package:badges/badges.dart' as badges;
 import 'package:randevu_sistem/yonetici/hatirlatma/hatirlatma_overlay.dart';
 import 'package:randevu_sistem/yonetici/hatirlatma/hatirlatma_model.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/santral_dakika_karti.dart';
 
 class DashBoard extends StatefulWidget{
   final Kullanici kullanici;
@@ -489,6 +490,12 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                 _premiumSectionHeader(context, 'Santral Aktivitesi', null),
                 const SizedBox(height: 10),
                 _premiumSantralRow(context),
+                // Santral konusma dakikasi — yalniz santral_aktif = 1 isletmede
+                if (CagriApi.santralAktif(widget.isletmebilgi))
+                  SantralDakikaKarti(
+                    sube: '${widget.isletmebilgi['id']}',
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  ),
               ],
               // Bugunun Randevulari — rol 5 icin yetki bagimsiz goster.
               // Studyo modu: randevu yerine "Bugunun Dersleri" (grup dersi oturumlari).

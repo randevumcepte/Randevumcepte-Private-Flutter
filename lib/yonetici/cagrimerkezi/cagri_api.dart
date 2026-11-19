@@ -135,6 +135,28 @@ class CagriApi {
     return _uyariEkle(await _cihazdaAra(mod, sonuc, gorunenAd), uyari);
   }
 
+  /// Isletmenin santrali aktif mi (salonlar.santral_aktif = 1)? Cagri Merkezi
+  /// menusu ve santral dakika gosterimi yalniz bu durumda.
+  static bool santralAktif(dynamic isletmebilgi) {
+    try {
+      final v = isletmebilgi is Map ? isletmebilgi['santral_aktif'] : null;
+      return v == true || '$v' == '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Dashboard / Cagri Merkezi dakika karti verisi (bkz. SantralDakikaKarti).
+  /// Hata ya da gosterilmeyecekse {'goster': false}.
+  static Future<Map<String, dynamic>> dakikaOzet(String sube) async {
+    if (sube.isEmpty) return const {'goster': false};
+    try {
+      final j = await _post('dakika-ozet', {'sube': sube});
+      if (j is Map) return Map<String, dynamic>.from(j);
+    } catch (_) {}
+    return const {'goster': false};
+  }
+
   /// Santral dakikasi bittiyse uyari metni, yoksa null. Sunucuya ulasilamazsa
   /// null (aramayi engellemez; asil kontrol arama uclarinda sunucuda).
   static Future<String?> dakikaEngeli(String sube) async {

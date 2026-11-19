@@ -18,6 +18,7 @@ import 'arama_ekrani.dart';
 import 'cagri_api.dart';
 import 'arama_randevu_takvim.dart';
 import 'cagri_dashboard.dart';
+import 'widgets/santral_dakika_karti.dart';
 
 /// Tus takimi softphone'dan dogrudan arar (sunucudan gecmez); santral
 /// dakikasi bittiyse acilmadan once uyarilir.
@@ -160,7 +161,16 @@ class CagriMerkeziSayfa extends StatelessWidget {
             ),
           ),
         ),
-        body: TabBarView(children: views),
+        body: Column(children: [
+          // Santral dakikasi (yalniz santral_aktif = 1 isletmede; sunucu da kontrol eder)
+          if (CagriApi.santralAktif(isletmebilgi))
+            SantralDakikaKarti(
+              sube: '${isletmebilgi['id']}',
+              kompakt: true,
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+            ),
+          Expanded(child: TabBarView(children: views)),
+        ]),
       ),
     );
   }

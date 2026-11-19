@@ -58,6 +58,7 @@ import 'menu/wa_asistan/wa_asistan_page.dart';
 import 'menu/wa_asistan/wa_asistan_api.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_dashboard.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_merkezi_sayfa.dart';
+import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_api.dart';
 import 'package:randevu_sistem/yonetici/hesabim/hesabim_ekrani.dart';
 import 'package:http/http.dart' as http;
 
@@ -1066,7 +1067,10 @@ class _MenuState extends State<Menu> {
                 // Ek guvenlik: kCagriMerkeziEnabled flag (config/ozellikler.dart). Store
                 // incelemesi icin false; dahili/santral aktif markada true yap.
                 // Rol ayrimi yok: uyelik turu 3 olan isletmede herkes gorur.
-                if (kCagriMerkeziEnabled && widget.uyelikturu == 3)
+                // Santrali aktif olmayan isletmede (salonlar.santral_aktif != 1) gizli.
+                if (kCagriMerkeziEnabled &&
+                    widget.uyelikturu == 3 &&
+                    CagriApi.santralAktif(widget.isletmebilgi))
                   _buildMenuButton(
                     icon: Icons.headset_mic_rounded,
                     label: 'Çağrı Merkezi',
