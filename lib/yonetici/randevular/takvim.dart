@@ -794,7 +794,9 @@ class TakvimState extends State<Takvim> with RouteAware {
             icon: const Icon(Icons.refresh),
             iconSize: 24,
           ),
-          if (Yetki.varMi('randevu.olustur'))
+          // Kapanis/blok kendi yetkisine bagli (randevu.olustur DEGIL):
+          // personel varsayilaninda randevu ekler ama kapanis ekleyemez.
+          if (Yetki.varMi('randevu.kapanis_blok_ekle'))
             IconButton(
               tooltip: 'Saat Kapama',
               onPressed: _saatKapamaAc,

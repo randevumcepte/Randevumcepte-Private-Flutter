@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -329,14 +330,30 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
     }
   }
 
-  Widget _buildTakvim() => Takvim(
-        key: ValueKey('takvim_$_takvimRebuildCounter'),
-        selectedTab: _selectedTab,
-        isletmebilgi: widget.isletmebilgi,
-        kullanici: widget.kullanici,
-        kullanicirolu: kullanicirolu,
-        onGeriDon: () => _selectScreen(0),
-      );
+  // Randevular sekmesi: 'randevu.takvim_gor' yalnizca TAKVIM gorunumunu
+  // kapatir; randevu LISTESI hicbir zaman kapanmaz. Yetki kapaliysa sekmede
+  // takvim yerine liste acilir. Liste kendi icinde 'randevu.tum_personel_gor'
+  // kapali personeli sadece kendi randevulariyla sinirlar.
+  bool _randevuSekmesiTakvim = true;
+  Widget _buildTakvim() => (_randevuSekmesiTakvim = Yetki.varMi('randevu.takvim_gor'))
+      ? Takvim(
+          key: ValueKey('takvim_$_takvimRebuildCounter'),
+          selectedTab: _selectedTab,
+          isletmebilgi: widget.isletmebilgi,
+          kullanici: widget.kullanici,
+          kullanicirolu: kullanicirolu,
+          onGeriDon: () => _selectScreen(0),
+        )
+      : RandevularMenu(
+          key: ValueKey('randevuliste_$_takvimRebuildCounter'),
+          kullanicirolu: kullanicirolu,
+          isletmebilgi: widget.isletmebilgi,
+          personelid: personelId,
+          cihazid: "",
+          personel_adi: "",
+          cihaz_adi: "",
+          onGeriDon: () => _selectScreen(0),
+        );
 
   void _selectScreen(int index) {
     setState(() {
@@ -449,7 +466,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
   bool _tabGoster(int pos) {
     switch (pos) {
       case 0: return true;                                  // Ozet
-      case 1: return Yetki.varMi('randevu.takvim_gor');     // Randevular
+      case 1: return true;                                  // Randevular (takvim yetkisi yoksa liste)
       case 2: return true;                                  // FAB delik
       case 3:                                               // Satis Takibi / Ongorusmeler
         // Satis Takibi: satis akisina dahil olan herkes (adisyon olusturma /
@@ -467,6 +484,12 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
 
   void _onYetkiDegisti() {
     if (!mounted) return;
+    // Takvim yetkisi degistiyse Randevular sekmesini (takvim <-> liste) yeniden
+    // kur. Degismediyse dokunma (acik takvimin durumu sifirlanmasin).
+    if (Yetki.varMi('randevu.takvim_gor') != _randevuSekmesiTakvim) {
+      _takvimRebuildCounter++;
+      _pages[1] = _buildTakvim();
+    }
     // Mevcut tab gizlendiyse Ozet'e du.
     if (!_tabGoster(_selectedTab)) {
       setState(() => _selectedTab = 0);

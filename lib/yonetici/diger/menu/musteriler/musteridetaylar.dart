@@ -924,7 +924,9 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 
 	Widget _buildSectionsGrid() {
 		final items = <_ActionItem>[];
-		if (Yetki.varMi('randevu.takvim_gor')) {
+		// Randevu listesi takvim yetkisinden bagimsiz her zaman acik.
+		// (Kisitli personel filtresi RandevularMenu icinde uygulanir.)
+		{
 			items.add(_ActionItem(
 				'Randevular',
 				Icons.calendar_today_outlined,

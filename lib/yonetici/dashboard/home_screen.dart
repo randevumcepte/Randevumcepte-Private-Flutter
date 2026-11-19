@@ -442,10 +442,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               // Bugunun Ozeti — Personel (rol 5) icin yetki bakilmadan herkes
               // ayni layout'u gorur; icerideki kutular _premiumDailyGrid
               // icinde ayrica yetki kontrolu yapmiyor.
-              if (kullanicirolu == 5 ||
-                  Yetki.varMi('randevu.takvim_gor') ||
-                  Yetki.varMi('gorusme.liste_gor') ||
-                  Yetki.varMi('rapor.satis')) ...[
+              // Randevular kutusu (liste) her zaman var -> ozet her zaman gorunur.
+              ...[
                 _premiumSectionHeader(context, 'Bugünün Özeti', null),
                 const SizedBox(height: 10),
                 _premiumDailyGrid(context),
@@ -480,7 +478,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               ],
               // Saatlik yogunluk — parasal DEGIL; studyo modunda da GORUNUR.
               // (Performans blogunun DISINDA tutuldu ki !_studyo blogu bunu gizlemesin.)
-              if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
+              // Randevu verisi (liste) takvim yetkisinden bagimsiz gorunur.
+              ...[
                 const SizedBox(height: 18),
                 _hourlyDensityCard(context),
               ],
@@ -493,7 +492,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               ],
               // Bugunun Randevulari — rol 5 icin yetki bagimsiz goster.
               // Studyo modu: randevu yerine "Bugunun Dersleri" (grup dersi oturumlari).
-              if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) ...[
+              // Bugunun randevulari = liste; takvim yetkisinden bagimsiz.
+              ...[
                 const SizedBox(height: 18),
                 _premiumSectionHeader(context, _studyo ? 'Bugünün Dersleri' : 'Bugünün Randevuları', null),
                 const SizedBox(height: 10),
@@ -1147,11 +1147,11 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     final scheme = Theme.of(context).colorScheme;
     final ext = context.appTheme;
     // Her kutu kendi yetkisine bagli:
-    //  - Randevular   -> randevu.takvim_gor
+    //  - Randevular   -> her zaman (liste; takvim yetkisinden bagimsiz)
     //  - On Gorusme   -> gorusme.liste_gor
     //  - Paket/Urun S -> rapor.satis
     final items = <_DashItem>[];
-    if (kullanicirolu == 5 || Yetki.varMi('randevu.takvim_gor')) {
+    {
       items.add(_DashItem(
         icon: Icons.calendar_month_rounded,
         title: 'Randevular',
@@ -1177,7 +1177,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     // Studyo modu: Bugunku Grup Dersi + Katilimci sayisi. Tiklayinca TAKVIM acilir
     // (ders oturumlari takvime enjekte edilir; randevu listesine degil).
     if (_studyo) {
-      void takvimAc() => Navigator.push(
+      void takvimAc() => !Yetki.varMi('randevu.takvim_gor')
+          ? ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Takvimi görüntüleme yetkiniz bulunmuyor.')))
+          : Navigator.push(
             context,
             PageTransition(
               type: PageTransitionType.rightToLeft,
@@ -4098,7 +4101,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
             )),
       );
     }
-    void takvimAc() => Navigator.push(
+    void takvimAc() => !Yetki.varMi('randevu.takvim_gor')
+        ? ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Takvimi görüntüleme yetkiniz bulunmuyor.')))
+        : Navigator.push(
           context,
           PageTransition(
             type: PageTransitionType.rightToLeft,

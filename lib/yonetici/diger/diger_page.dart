@@ -767,7 +767,9 @@ class _MenuState extends State<Menu> {
                     },
                   ),
 
-                if (widget.uyelikturu > 2 && Yetki.varMi('randevu.takvim_gor'))
+                // Randevu LISTESI 'randevu.takvim_gor'a bagli DEGIL (o yetki
+                // yalniz takvim gorunumunu kapatir); liste her zaman acik.
+                if (widget.uyelikturu > 2)
                   _buildMenuButton(
                     icon: Icons.calendar_today_rounded,
                     label: 'Randevular',

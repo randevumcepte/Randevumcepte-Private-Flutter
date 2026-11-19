@@ -29,6 +29,9 @@ class RandevularMenu extends StatefulWidget {
   // Belirli bir musteriye gore filtrele (user_id). null/'' ise tum musteriler.
   // Musteri Detayi > Randevular kartindan acilirken doldurulur.
   final String? musteriId;
+  // Alt navigasyonda sekme olarak gosterildiginde (takvim yetkisi kapali)
+  // geri butonu route pop yerine bu callback'i cagirir.
+  final VoidCallback? onGeriDon;
 
   const RandevularMenu({
     Key? key,
@@ -39,6 +42,7 @@ class RandevularMenu extends StatefulWidget {
     required this.cihaz_adi,
     required this.personel_adi,
     this.musteriId,
+    this.onGeriDon,
   }) : super(key: key);
 
   @override
@@ -123,12 +127,52 @@ class _RandevularMenuState extends State<RandevularMenu> {
   // Yetki cache'e gore filtre personel_id'sini hesapla.
   // - Personel rolu + 'randevu.tum_personel_gor' KAPALI -> kendi id'si filtre
   // - Aksi durumda -> bos (filtre yok, tum randevular)
+  //
+  // Kisitli personelde id cagirandan gelmeyebilir (Musteri Detayi, Bildirimler
+  // personelid: '' gonderiyor) -> giris yapan kullanicinin bu salondaki
+  // personel id'si ekranin kendisi tarafindan cozulur (_kendiPersonelId).
+  // Boylece hangi girisden acilirsa acilsin yetkisiz personel tum randevulari
+  // goremez.
+  String _kendiPersonelId = '';
+
+  bool get _kisitli =>
+      widget.kullanicirolu == 5 && !Yetki.varMi('randevu.tum_personel_gor');
+
   String get _yetkiyeGorePersonelid {
-    if (widget.kullanicirolu == 5 &&
-        !Yetki.varMi('randevu.tum_personel_gor')) {
-      return widget.personelid;
+    if (_kisitli) {
+      return _kendiPersonelId.isNotEmpty ? _kendiPersonelId : widget.personelid;
     }
     return '';
+  }
+
+  /// Giris yapan kullanicinin [salonid] salonundaki personel id'si.
+  /// Once lokal 'user' JSON'u, yoksa kullanicibilgi API'si.
+  Future<String> _kendiPersonelIdCoz(String salonid) async {
+    String bul(dynamic liste) {
+      if (liste is List) {
+        for (final e in liste) {
+          if (e is Map && e['salon_id'].toString() == salonid) {
+            return (e['id'] ?? '').toString();
+          }
+        }
+      }
+      return '';
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('user');
+      if (raw == null || raw.isEmpty) return '';
+      final user = jsonDecode(raw);
+      final yerel = bul(user['yetkili_olunan_isletmeler']);
+      if (yerel.isNotEmpty) return yerel;
+      final userId = (user['id'] ?? '').toString();
+      if (userId.isEmpty) return '';
+      final k = await kullanicibilgi(userId);
+      return bul(k.yetkili_olunan_isletmeler);
+    } catch (_) {
+      return '';
+    }
   }
 
   Future<void> initialize() async {
@@ -137,6 +181,9 @@ class _RandevularMenuState extends State<RandevularMenu> {
     // Yetki cache'i hazir degilse tazele; sonra dogru personelid ile fetch.
     if (seciliisletme != null && seciliisletme!.isNotEmpty) {
       await Yetki.tazele(salonid: seciliisletme!);
+      if (_kisitli) {
+        _kendiPersonelId = await _kendiPersonelIdCoz(seciliisletme!);
+      }
     }
     if (!mounted) return;
     setState(() {
@@ -211,7 +258,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
         children: [
           PremiumCircleAction(
             icon: Icons.arrow_back_rounded,
-            onTap: () => Navigator.of(context).pop(),
+            onTap: widget.onGeriDon ?? () => Navigator.of(context).pop(),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -738,14 +785,18 @@ class _RandevularMenuState extends State<RandevularMenu> {
       'Detaylı Bilgi',
       Icons.info_outline_rounded,
     ));
-    if (widget.kullanicirolu != 5) {
+    // Aksiyonlar rol yerine yetki anahtarina bagli. Personel (rol 5) zaten
+    // 'tum_personel_gor' kapaliyken listede yalniz kendi randevularini gorur,
+    // dolayisiyla bu islemler sadece kendi randevulari icindir.
+    final duzenleIptal = Yetki.varMi('randevu.duzenle_iptal');
+    if (duzenleIptal) {
       items.add(_menuEntry(
         'randevuduzenle',
         'Düzenle',
         Icons.edit_outlined,
       ));
     }
-    if (r.durum == "0" && widget.kullanicirolu != 5) {
+    if (r.durum == "0" && Yetki.varMi('randevu.onayla')) {
       items.add(_menuEntry(
         'randevuonayla',
         'Onayla',
@@ -756,7 +807,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
     if (r.durum != "2" &&
         r.durum != "3" &&
         r.tahsilat_eklendi != "1" &&
-        widget.kullanicirolu != 5) {
+        duzenleIptal) {
       items.add(_menuEntry(
         'randevuiptalet',
         'İptal Et',
@@ -764,7 +815,8 @@ class _RandevularMenuState extends State<RandevularMenu> {
         tint: const Color(0xFFDC2626),
       ));
     }
-    if (r.durum != "0" && widget.kullanicirolu != 5) {
+    if (r.durum != "0" &&
+        (duzenleIptal || Yetki.varMi('satis.tahsilat_al'))) {
       items.add(_menuEntry(
         'randevuyageldi',
         'Geldi',
