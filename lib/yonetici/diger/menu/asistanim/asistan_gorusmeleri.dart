@@ -514,7 +514,10 @@ class _GorusmeDetayState extends State<_GorusmeDetay> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // expand: false -> sayfa yalniz kendi boyu kadar yer kaplar; ustteki karartiya dokununca kapanir
+    // (varsayilan expand: true tum ekrani kapliyor, bosluga dokunus engele ulasmiyordu).
     return DraggableScrollableSheet(
+        expand: false,
         initialChildSize: 0.88,
         minChildSize: 0.5,
         maxChildSize: 0.95,
