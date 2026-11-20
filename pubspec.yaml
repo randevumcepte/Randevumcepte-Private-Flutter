@@ -140,6 +140,7 @@ dependencies:
   kalender: ^0.15.0
   fl_chart: ^0.68.0  # veya 0.69.0
   signature: ^6.4.0
+  flutter_secure_storage: ^10.3.4
 
 
 dev_dependencies:

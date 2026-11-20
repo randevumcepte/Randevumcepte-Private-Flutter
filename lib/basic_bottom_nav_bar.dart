@@ -20,6 +20,7 @@ import 'package:randevu_sistem/yonetici/adisyonlar/satislar/yenisatisyap.dart';
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/asistanim/asistanpage.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/wa_asistan/wa_asistan_page.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/wa_asistan/wa_sohbet_merkezi.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show kullanicibilgimusteri;
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteridetaylar.dart';
@@ -266,18 +267,19 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         ));
         break;
       case NotificationIntent.adminWaAssistant:
-        // WhatsApp asistani talep bildirimi -> WhatsApp Asistani > ilgili sohbet.
-        // Sayfa yalniz rol 1, 2, 3'e acik; digerleri Bildirimler ekranina gider.
+        // WhatsApp asistani talep bildirimi -> ilgili sohbet. Bildirim yalniz "WhatsApp sohbetlerini gorsun"
+        // yetkililerine gider: yonetici (rol 1-3) tam WhatsApp Asistani sayfasi, digerleri WhatsApp Sohbetleri.
+        final waOturum = int.tryParse('${intent.params['oturum_id'] ?? ''}');
         if (!(kullanicirolu >= 1 && kullanicirolu <= 3)) {
           Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => BildirimlerScreen(
+            builder: (_) => WaSohbetMerkeziPage(
               isletmebilgi: widget.isletmebilgi,
-              kullanicirolu: kullanicirolu,
+              salonId: intent.params['salon_id']?.toString(),
+              acilacakSohbetId: (waOturum != null && waOturum > 0) ? waOturum : null,
             ),
           ));
           break;
         }
-        final waOturum = int.tryParse('${intent.params['oturum_id'] ?? ''}');
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => WaAsistanPage(
             isletmebilgi: widget.isletmebilgi,

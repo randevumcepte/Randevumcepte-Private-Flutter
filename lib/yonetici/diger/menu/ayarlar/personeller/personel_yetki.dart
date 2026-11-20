@@ -489,6 +489,7 @@ class _PersonelYetkiState extends State<PersonelYetki> {
       case 'account_balance_wallet': return Icons.account_balance_wallet;
       case 'campaign': return Icons.campaign;
       case 'phone_in_talk': return Icons.phone_in_talk;
+      case 'chat': return Icons.chat;
       case 'settings': return Icons.settings;
       default: return Icons.tune;
     }

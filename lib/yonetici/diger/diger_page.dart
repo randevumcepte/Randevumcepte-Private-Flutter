@@ -55,6 +55,7 @@ import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
 import 'menu/musteri_yorumlari/musteri_yorumlari_yonetim.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
 import 'menu/wa_asistan/wa_asistan_page.dart';
+import 'menu/wa_asistan/wa_sohbet_merkezi.dart';
 import 'menu/wa_asistan/wa_asistan_api.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_dashboard.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/cagri_merkezi_sayfa.dart';
@@ -161,12 +162,17 @@ class _MenuState extends State<Menu> {
 
   // WhatsApp Asistani menusu: web'deki gibi yalniz asistani acik isletmede + yalniz rol 1, 2, 3 (isletme istegi 2026-11-19)
   bool _waAsistanAcik = false;
+  // Yonetici olmayan ama "WhatsApp sohbetlerini gorsun" yetkisi acik personel: yalniz sohbetler sayfasi
+  bool _waSohbetGor = false;
 
   Future<void> _waAsistanKontrol() async {
     try {
-      if (!(kullanicirolu >= 1 && kullanicirolu <= 3)) return;
       final r = await WaApi.al(widget.isletmebilgi['id'].toString(), '/durum');
-      if (mounted && '${r['acik']}' == '1') setState(() => _waAsistanAcik = true);
+      if (!mounted || '${r['acik']}' != '1') return;
+      setState(() {
+        _waAsistanAcik = kullanicirolu >= 1 && kullanicirolu <= 3;
+        _waSohbetGor = '${r['gor']}' == '1';
+      });
     } catch (_) {}
   }
 
@@ -590,6 +596,21 @@ class _MenuState extends State<Menu> {
                           type: PageTransitionType.rightToLeft,
                           duration: Duration(milliseconds: 300),
                           child: WaAsistanPage(isletmebilgi: widget.isletmebilgi),
+                        ),
+                      );
+                    },
+                  ),
+                if (_waSohbetGor && !(kullanicirolu >= 1 && kullanicirolu <= 3))
+                  _buildMenuButton(
+                    icon: Icons.forum_rounded,
+                    label: 'WhatsApp Sohbetleri',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: WaSohbetMerkeziPage(isletmebilgi: widget.isletmebilgi),
                         ),
                       );
                     },

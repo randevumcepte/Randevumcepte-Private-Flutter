@@ -44,6 +44,20 @@ class WaDurum extends ChangeNotifier {
   /// Sohbet listesi yenilensin (devral/geri ver/cevapladım sonrası)
   final sohbetYenile = ValueNotifier<int>(0);
 
+  /// Personel yetkisi (backend /durum): yaz = "WhatsApp sohbetine katılsın" (mesaj kutusu, devral, cevapladım).
+  bool yaz = false;
+  /// Personel yazınca asistanın sustuğu dakika (cevap vermezse asistan devam eder).
+  int esikDk = 5;
+
+  Future<void> yetkiYukle() async {
+    final r = await WaApi.al(sube, '/durum');
+    if (okMu(r)) {
+      yaz = '${r['yaz']}' == '1';
+      esikDk = int.tryParse('${r['esik_dk'] ?? ''}') ?? 5;
+      notifyListeners();
+    }
+  }
+
   Future<void> baslangicYukle() async {
     final r = await WaApi.al(sube, '/baslangic');
     if (!okMu(r)) {
@@ -137,6 +151,7 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
     _d.sohbetAc = _sohbetAc;
     _d.baslangicYukle();
     _d.ozetYukle();
+    _d.yetkiYukle();
     if (widget.acilacakSohbetId != null) {
       _tab.index = 2;
       WidgetsBinding.instance.addPostFrameCallback((_) => _sohbetAc(widget.acilacakSohbetId!));

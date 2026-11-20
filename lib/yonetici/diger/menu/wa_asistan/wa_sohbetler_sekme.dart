@@ -1,5 +1,7 @@
 // WhatsApp Asistanı > Sohbetler (liste + detay). Web: sohbetListe / sohbetAc / talepSeridi.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'wa_asistan_api.dart';
@@ -23,6 +25,9 @@ class _WaSohbetlerSekmeState extends State<WaSohbetlerSekme> with AutomaticKeepA
   String? _hata;
   List<Map<String, dynamic>> _liste = [];
   Map<String, dynamic>? _numaraKontrol;
+  // Bekleyen = asistan işletmeye sordu ya da müşteri mesajı cevapsız; personel = personel yazdı/devraldı
+  String _filtre = 'tumu';
+  Timer? _zamanlayici;
 
   @override
   bool get wantKeepAlive => true;
@@ -32,22 +37,36 @@ class _WaSohbetlerSekmeState extends State<WaSohbetlerSekme> with AutomaticKeepA
     super.initState();
     _yukle();
     d.sohbetYenile.addListener(_yukle);
+    // Yeni mesajlar listeye kendiliğinden düşsün (sessiz yenileme)
+    _zamanlayici = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted && _ara.text.trim().isEmpty) _yukle(sessiz: true);
+    });
   }
 
   @override
   void dispose() {
+    _zamanlayici?.cancel();
     d.sohbetYenile.removeListener(_yukle);
     _ara.dispose();
     super.dispose();
   }
 
-  Future<void> _yukle() async {
+  bool _bekleyen(Map<String, dynamic> x) => '${x['bekleyen']}' == '1';
+  bool _personel(Map<String, dynamic> x) => x['devralindi'] == true;
+
+  List<Map<String, dynamic>> get _gorunen => _filtre == 'bekleyen'
+      ? _liste.where(_bekleyen).toList()
+      : (_filtre == 'personel' ? _liste.where(_personel).toList() : _liste);
+
+  Future<void> _yukle({bool sessiz = false}) async {
     if (!mounted) return;
-    setState(() {
-      _yukleniyor = true;
-      _hata = null;
-      _numaraKontrol = null;
-    });
+    if (!sessiz) {
+      setState(() {
+        _yukleniyor = true;
+        _hata = null;
+        _numaraKontrol = null;
+      });
+    }
     final q = _ara.text.trim();
     final r = await WaApi.al(d.sube, '/sohbetler', {'baslangic': isoGun(_bas), 'bitis': isoGun(_bit), if (q.isNotEmpty) 'q': q});
     if (!mounted) return;
@@ -55,10 +74,11 @@ class _WaSohbetlerSekmeState extends State<WaSohbetlerSekme> with AutomaticKeepA
       _yukleniyor = false;
       if (okMu(r)) {
         _liste = haritaListe(r['liste']);
-      } else {
+      } else if (!sessiz) {
         _hata = '${r['hata'] ?? 'Sohbetler yüklenemedi.'}';
       }
     });
+    if (sessiz) return;
     // Telefonla aranıp bulunamadıysa: neden? (hariç numara / mesaj hiç gelmedi / işlenemedi)
     final rak = q.replaceAll(RegExp(r'\D'), '');
     if (okMu(r) && _liste.isEmpty && rak.length >= 10) {
@@ -113,16 +133,41 @@ class _WaSohbetlerSekmeState extends State<WaSohbetlerSekme> with AutomaticKeepA
                 ),
                 onChanged: (_) => setState(() {}),
               ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  for (final f in [
+                    ('bekleyen', 'Bekleyen', Icons.priority_high_rounded, _liste.where(_bekleyen).length),
+                    ('tumu', 'Tümü', Icons.forum_rounded, _liste.length),
+                    ('personel', 'Personel yazdı', Icons.person_rounded, _liste.where(_personel).length),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        avatar: Icon(f.$3, size: 16, color: _filtre == f.$1 ? Colors.white : (f.$1 == 'bekleyen' && f.$4 > 0 ? const Color(0xFFDC2626) : Colors.grey.shade700)),
+                        label: Text('${f.$2} ${f.$4}'),
+                        selected: _filtre == f.$1,
+                        showCheckmark: false,
+                        selectedColor: f.$1 == 'bekleyen' ? const Color(0xFFDC2626) : Theme.of(context).colorScheme.primary,
+                        labelStyle: TextStyle(fontWeight: FontWeight.w600, color: _filtre == f.$1 ? Colors.white : null),
+                        onSelected: (_) => setState(() => _filtre = f.$1),
+                      ),
+                    ),
+                ]),
+              ),
             ]),
           ),
           if (_yukleniyor)
             const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
           else if (_hata != null)
             WaBos(_hata!)
-          else if (_liste.isEmpty)
+          else if (_gorunen.isEmpty)
             WaKart(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                WaBos(_ara.text.trim().isNotEmpty ? 'Bu aramayla sohbet bulunamadı.' : 'Bu tarihlerde sohbet yok.'),
+                WaBos(_liste.isNotEmpty
+                    ? (_filtre == 'bekleyen' ? 'Bekleyen sohbet yok. Asistan hepsiyle ilgileniyor.' : 'Personelin yazdığı sohbet yok.')
+                    : (_ara.text.trim().isNotEmpty ? 'Bu aramayla sohbet bulunamadı.' : 'Bu tarihlerde sohbet yok.')),
                 if (_numaraKontrol != null) _numaraKontrolKart(_numaraKontrol!),
               ]),
             )
@@ -131,9 +176,22 @@ class _WaSohbetlerSekmeState extends State<WaSohbetlerSekme> with AutomaticKeepA
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Column(
                 children: [
-                  for (var i = 0; i < _liste.length; i++) ...[
+                  for (var i = 0; i < _gorunen.length; i++) ...[
                     if (i > 0) Divider(height: 1, color: Colors.grey.shade200),
-                    WaKonusmaSatiri(x: _liste[i], sube: d.sube, onTap: () => d.sohbetAc?.call(sayiDeger(_liste[i]['id']).toInt())),
+                    if ('${_gorunen[i]['talep'] ?? ''}'.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(children: [
+                          const Icon(Icons.help_rounded, size: 15, color: Color(0xFFD97706)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text('Asistan size soruyor: ${_gorunen[i]['talep']}',
+                                maxLines: 2, overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB45309))),
+                          ),
+                        ]),
+                      ),
+                    WaKonusmaSatiri(x: _gorunen[i], sube: d.sube, onTap: () => d.sohbetAc?.call(sayiDeger(_gorunen[i]['id']).toInt())),
                   ],
                 ],
               ),
@@ -181,22 +239,44 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
   String? _hata;
   bool _islem = false;
   final _kaydir = ScrollController();
+  final _mesaj = TextEditingController();
+  bool _gonderiyor = false;
+  int _satirSayisi = -1;
+  Timer? _zamanlayici;
 
   @override
   void initState() {
     super.initState();
     _yukle();
+    // Açık sohbet kendiliğinden yenilenir: müşterinin / asistanın yeni mesajı birkaç saniyede düşer
+    _zamanlayici = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted && !_islem && !_gonderiyor) _yukle(sessiz: true);
+    });
   }
 
   @override
   void dispose() {
+    _zamanlayici?.cancel();
     _kaydir.dispose();
+    _mesaj.dispose();
     super.dispose();
   }
 
-  Future<void> _yukle() async {
+  bool get _altta => !_kaydir.hasClients || _kaydir.position.pixels >= _kaydir.position.maxScrollExtent - 120;
+
+  void _enAlta() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _kaydir.hasClients) {
+        _kaydir.animateTo(_kaydir.position.maxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      }
+    });
+  }
+
+  Future<void> _yukle({bool sessiz = false}) async {
     final r = await WaApi.al(widget.d.sube, '/sohbet/$_id');
     if (!mounted) return;
+    if (!okMu(r) && sessiz) return; // arka plan yenilemesi hata gösterip ekranı bozmasın
+    final altta = _altta;
     setState(() {
       if (okMu(r)) {
         _s = harita(r['sohbet']);
@@ -205,6 +285,27 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
         _hata = '${r['hata'] ?? 'Sohbet gösterilemedi.'}';
       }
     });
+    final n = haritaListe(_s?['satirlar']).length;
+    // ilk açılışta ve yeni mesaj geldiğinde (kullanıcı yukarıyı okumuyorsa) en son mesaja kay
+    if (n != _satirSayisi && (_satirSayisi < 0 || altta)) _enAlta();
+    _satirSayisi = n;
+  }
+
+  /// Personel uygulamadan müşteriye yazar (müşteriye salon numarasından, isimsiz gider). Asistan birkaç dakika susar.
+  Future<void> _gonder() async {
+    final t = _mesaj.text.trim();
+    if (t.isEmpty || _gonderiyor) return;
+    setState(() => _gonderiyor = true);
+    final r = await WaApi.gonder(widget.d.sube, '/sohbet/$_id/yaz', {'metin': t});
+    if (!mounted) return;
+    setState(() => _gonderiyor = false);
+    if (okMu(r)) {
+      _mesaj.clear();
+      await _yukle();
+      _enAlta();
+    } else {
+      waToast(context, '${r['hata'] ?? 'Mesaj gönderilemedi.'}');
+    }
   }
 
   Future<void> _post(String yol, String basarili, {String? hataVarsayilan}) async {
@@ -238,27 +339,121 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
                   ]),
                 ),
               ]),
-        actions: [IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh))],
+        actions: [
+          IconButton(onPressed: _yukle, icon: const Icon(Icons.refresh)),
+          if (s != null && widget.d.yaz)
+            PopupMenuButton<String>(
+              onSelected: (v) async {
+                if (v == 'yol') {
+                  if (!await waOnay(context, 'Salonun adresi ve Google Haritalar bağlantısı bu müşteriye WhatsApp\'tan gönderilsin mi?', evet: 'Gönder')) return;
+                  await _post('yol-tarifi', 'Yol tarifi gönderildi.', hataVarsayilan: 'Gönderilemedi.');
+                } else if (v == 'devral') {
+                  await _post('devral', 'Sohbeti uzun süre devraldınız; asistan 24 saat ya da siz geri verene kadar susacak.');
+                } else if (v == 'geri') {
+                  await _post('geri-ver', 'Sohbet asistana geri verildi.');
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'yol', child: ListTile(dense: true, leading: Icon(Icons.location_on), title: Text('Yol tarifi gönder'))),
+                if (s['devralindi'] == true)
+                  const PopupMenuItem(value: 'geri', child: ListTile(dense: true, leading: Icon(Icons.smart_toy), title: Text('Asistana geri ver')))
+                else
+                  const PopupMenuItem(value: 'devral', child: ListTile(dense: true, leading: Icon(Icons.person), title: Text('Uzun süre devral (24 saat)'))),
+              ],
+            ),
+        ],
       ),
       body: s == null
           ? Center(child: _hata != null ? WaBos(_hata!) : const CircularProgressIndicator())
-          : Stack(children: [
-              RefreshIndicator(
-                onRefresh: _yukle,
-                child: ListView(
-                  controller: _kaydir,
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 30),
-                  children: _icerik(s),
-                ),
+          : Column(children: [
+              Expanded(
+                child: Stack(children: [
+                  RefreshIndicator(
+                    onRefresh: _yukle,
+                    child: ListView(
+                      controller: _kaydir,
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+                      children: _icerik(s),
+                    ),
+                  ),
+                  if (_islem) const Positioned.fill(child: ColoredBox(color: Color(0x22000000), child: Center(child: CircularProgressIndicator()))),
+                ]),
               ),
-              if (_islem) const Positioned.fill(child: ColoredBox(color: Color(0x22000000), child: Center(child: CircularProgressIndicator()))),
+              _altCubuk(s),
             ]),
+    );
+  }
+
+  /// Alt çubuk: asistan durumu ("Yeşim yazdı · cevap vermezseniz asistan 4 dk sonra devam eder") + mesaj kutusu (yazma yetkisi varsa)
+  Widget _altCubuk(Map<String, dynamic> s) {
+    final ad = harita(s['asistan_durum']);
+    final kod = '${ad['kod'] ?? 'asistan'}';
+    final (IconData ikon, Color renk) = switch (kod) {
+      'personel' => (Icons.person_rounded, const Color(0xFFB45309)),
+      'devral' => (Icons.pan_tool_rounded, const Color(0xFFDC2626)),
+      'sessiz' || 'kapali' => (Icons.pause_circle_rounded, Colors.grey.shade700),
+      _ => (Icons.smart_toy_rounded, const Color(0xFF15803D)),
+    };
+    return Material(
+      color: Colors.white,
+      elevation: 8,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if ('${ad['metin'] ?? ''}'.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6, right: 4),
+                child: Row(children: [
+                  Icon(ikon, size: 16, color: renk),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text('${ad['metin']}', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: renk))),
+                ]),
+              ),
+            if (widget.d.yaz)
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Expanded(
+                  child: TextField(
+                    controller: _mesaj,
+                    minLines: 1,
+                    maxLines: 5,
+                    textCapitalization: TextCapitalization.sentences,
+                    enabled: !_gonderiyor,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Müşteriye yazın…',
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _gonderiyor
+                    ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4)))
+                    : IconButton.filled(
+                        onPressed: _gonder,
+                        style: IconButton.styleFrom(backgroundColor: waYesil),
+                        icon: const Icon(Icons.send_rounded, color: Colors.white),
+                      ),
+              ])
+            else
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text('Bu sohbete yazma yetkiniz yok. Salon sahibi Personel > Yetkiler\'den "WhatsApp sohbetine katılsın"ı açabilir.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              ),
+          ]),
+        ),
+      ),
     );
   }
 
   List<Widget> _icerik(Map<String, dynamic> s) {
     final scheme = Theme.of(context).colorScheme;
-    final devralindi = s['devralindi'] == true;
+    final yaz = widget.d.yaz;
     final w = <Widget>[];
 
     w.add(WaKart(
@@ -267,30 +462,12 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
           const Text('Durum: ', style: TextStyle(fontWeight: FontWeight.w600)),
           Flexible(child: WaHap('${s['durum'] ?? ''}')),
         ]),
-        const SizedBox(height: 10),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.location_on, size: 18),
-            label: const Text('Yol tarifi gönder'),
-            onPressed: () async {
-              if (!await waOnay(context, 'Salonun adresi ve Google Haritalar bağlantısı bu müşteriye WhatsApp\'tan gönderilsin mi?', evet: 'Gönder')) return;
-              await _post('yol-tarifi', 'Yol tarifi gönderildi.', hataVarsayilan: 'Gönderilemedi.');
-            },
-          ),
-          devralindi
-              ? FilledButton.icon(
-                  icon: const Icon(Icons.smart_toy, size: 18),
-                  label: const Text('Asistana geri ver'),
-                  onPressed: () => _post('geri-ver', 'Sohbet asistana geri verildi.'),
-                )
-              : OutlinedButton.icon(
-                  icon: const Icon(Icons.person, size: 18),
-                  label: const Text('Devral (asistan sussun)'),
-                  onPressed: () => _post('devral', 'Sohbeti devraldınız; asistan bu sohbette susacak.'),
-                ),
-        ]),
-        const SizedBox(height: 8),
-        const WaAlt('Devraldığınızda asistan bu sohbette 24 saat ya da siz geri verene kadar cevap vermez. Telefonunuzdan müşteriye yazdığınızda da asistan otomatik susar.'),
+        if (yaz) ...[
+          const SizedBox(height: 8),
+          WaAlt('Aşağıdan müşteriye yazdığınızda (ya da telefonunuzdan WhatsApp\'a yazdığınızda) asistan otomatik susar. '
+              '${widget.d.esikDk} dakika içinde tekrar yazmazsanız ve müşteri devam ederse asistan kaldığı yerden devam eder. '
+              'Uzun süre siz ilgilenecekseniz sağ üstten "Uzun süre devral"ı seçin.'),
+        ],
       ]),
     ));
 
@@ -314,12 +491,14 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
           const SizedBox(height: 4),
           Text('${yarimMetin['$yarim'] ?? 'Müşterinin son mesajı cevapsız kalmış.'} Asistan birkaç dakika içinde kendiliğinden tamamlar; beklemeden hemen tamamlatabilirsiniz.',
               style: const TextStyle(fontSize: 13, height: 1.4)),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            icon: const Icon(Icons.smart_toy, size: 18),
-            label: const Text('Asistan tamamlasın'),
-            onPressed: () => _post('devam', 'Asistan sohbeti tamamladı ve müşteriye yazdı.', hataVarsayilan: 'Yapılamadı.'),
-          ),
+          if (yaz) ...[
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              icon: const Icon(Icons.smart_toy, size: 18),
+              label: const Text('Asistan tamamlasın'),
+              onPressed: () => _post('devam', 'Asistan sohbeti tamamladı ve müşteriye yazdı.', hataVarsayilan: 'Yapılamadı.'),
+            ),
+          ],
         ]),
       ));
     }
@@ -457,7 +636,7 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
           final personel = rol == 'personel';
           final etiket = musteri
               ? 'Müşteri'
-              : (personel ? 'Personel' : (m['geri_kazanim'] == true ? 'Asistan · geri kazanma' : (m['hatirlatma'] == true ? 'Hatırlatma' : 'Asistan')));
+              : (personel ? '${m['yazan'] ?? 'Personel'}' : (m['geri_kazanim'] == true ? 'Asistan · geri kazanma' : (m['hatirlatma'] == true ? 'Hatırlatma' : 'Asistan')));
           final renk = musteri ? Colors.white : (personel ? const Color(0xFFFEF3C7) : const Color(0xFFDCF8C6));
           return Align(
             alignment: musteri ? Alignment.centerLeft : Alignment.centerRight,
@@ -540,13 +719,15 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
             Icons.hourglass_bottom,
             const Color(0xFFDC2626),
             '${t['sure'] ?? ''}dır dönüş bekliyor',
-            'Müşteriye WhatsApp\'tan yazın; telefonunuzdan yazınca burası kendiliğinden "cevaplandı" olur. Asistan bu arada müşteriyle ilgilenmeye devam ediyor.',
+            'Aşağıdan ya da telefonunuzdan müşteriye yazın; yazınca burası kendiliğinden "cevaplandı" olur. Asistan bu arada müşteriyle ilgilenmeye devam ediyor.',
             null,
-            sag: FilledButton.icon(
-              icon: const Icon(Icons.check, size: 18),
-              label: const Text('Cevapladım'),
-              onPressed: () => _post('cevaplandi', 'İşaretlendi: işletme cevapladı.'),
-            ),
+            sag: widget.d.yaz
+                ? FilledButton.icon(
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Cevapladım'),
+                    onPressed: () => _post('cevaplandi', 'İşaretlendi: işletme cevapladı.'),
+                  )
+                : null,
           ),
       ]),
     );
