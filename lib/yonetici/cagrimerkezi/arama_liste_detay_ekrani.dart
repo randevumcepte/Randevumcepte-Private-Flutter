@@ -330,7 +330,7 @@ class _AraButonState extends State<_AraButon> {
           content: Text(sonuc.message.isNotEmpty
               ? sonuc.message
               : (sonuc.success ? 'Arama başlatıldı' : 'Arama başlatılamadı')),
-          backgroundColor: sonuc.success ? null : Colors.redAccent,
+          backgroundColor: sonuc.kirmiziBant ? Colors.redAccent : null,
           duration: const Duration(seconds: 5),
         ),
       );
@@ -630,7 +630,7 @@ class _MusteriDetaySheet extends StatelessWidget {
                                     ? kayit.message
                                     : 'Arama başlatıldı'),
                                 backgroundColor:
-                                    kayit.success ? null : Colors.redAccent,
+                                    kayit.kirmiziBant ? Colors.redAccent : null,
                                 duration: const Duration(seconds: 5),
                               ),
                             );

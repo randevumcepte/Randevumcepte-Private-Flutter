@@ -9,6 +9,7 @@
 // Arama: WebRTC YOK — Bria (santral originate) uzerinden (alt ekranlarda).
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Models/user.dart';
 import 'package:randevu_sistem/telefon/softphone.dart';
@@ -21,17 +22,23 @@ import 'cagri_dashboard.dart';
 import 'widgets/santral_dakika_karti.dart';
 
 /// Tus takimi softphone'dan dogrudan arar (sunucudan gecmez); santral
-/// dakikasi bittiyse acilmadan once uyarilir.
+/// dakikasi yoksa (tanimli 0 / bitti) softphone tus takimi yerine telefonun
+/// kendi tus takimi acilir, alt kirmizi bantta uyarilir.
 Future<void> _tusTakimiAc(BuildContext context) async {
   final sube = CagriApi.aktifSube ?? '';
   final uyari = await CagriApi.dakikaEngeli(sube);
   if (!context.mounted) return;
   if (uyari != null) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(uyari),
+      content: Text('⚠️ $uyari Santral araması yapılamaz; '
+          'telefonunuzun kendi arama uygulamasını kullanın.'),
       backgroundColor: Colors.redAccent,
       duration: const Duration(seconds: 6),
     ));
+    try {
+      await launchUrl(Uri(scheme: 'tel', path: ''),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {}
     return;
   }
   await Softphone.instance.tusTakimiAc(context);

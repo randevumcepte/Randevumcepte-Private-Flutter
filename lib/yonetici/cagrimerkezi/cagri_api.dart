@@ -124,7 +124,7 @@ class CagriApi {
   /// numara SUNUCUDAN gelir (ekrandaki maskeleme etkilemez), cihaz telefonuyla aranir.
   static Future<AramaBaslatSonuc> aramaBaslat(int aranacakMusteriId, String sube,
       {String? gorunenAd}) async {
-    final (mod, uyari) = await _modSec();
+    final (mod, uyari) = await _modSec(sube);
     final j = await _post('arama-baslat', {
       'aranacak_musteri_id': aranacakMusteriId,
       'sube': sube,
@@ -157,19 +157,26 @@ class CagriApi {
     return const {'goster': false};
   }
 
-  /// Santral dakikasi bittiyse uyari metni, yoksa null. Sunucuya ulasilamazsa
-  /// null (aramayi engellemez; asil kontrol arama uclarinda sunucuda).
+  /// Santral (softphone / Bria) aramasi yapilamiyorsa gerekce metni, yoksa null.
+  /// Engel: isletmeye tanimli dakika yok (0) ya da dakika bitti. Sunucuya
+  /// ulasilamazsa null (aramayi engellemez; asil kontrol arama uclarinda sunucuda).
   static Future<String?> dakikaEngeli(String sube) async {
     if (sube.isEmpty) return null;
     try {
       final j = await _post('dakika-durum', {'sube': sube});
-      if (j is Map && j['engel'] == true) {
-        final m = (j['mesaj'] ?? '').toString();
-        return m.isNotEmpty ? m : 'Santral konuşma dakikanız bitti; arama başlatılamaz.';
+      if (j is Map) {
+        _dakikaEngelVar = j['engel'] == true;
+        if (_dakikaEngelVar) {
+          final m = (j['mesaj'] ?? '').toString();
+          return m.isNotEmpty ? m : 'Santral konuşma dakikanız yok.';
+        }
       }
     } catch (_) {}
     return null;
   }
+
+  /// Son dakika-durum sonucu (yalniz buton etiketi icin; arama aninda tazelenir).
+  static bool _dakikaEngelVar = false;
 
   /// Yedek moda dusulduyse uyari, alt bantta (SnackBar) gosterilen mesajin basina eklenir.
   static AramaBaslatSonuc _uyariEkle(AramaBaslatSonuc s, String? uyari) {
@@ -179,6 +186,7 @@ class CagriApi {
       message: s.message.isEmpty ? uyari : '$uyari\n${s.message}',
       aramaListeId: s.aramaListeId,
       numaraAra: s.numaraAra,
+      uyari: true,
     );
   }
 
@@ -212,9 +220,17 @@ class CagriApi {
   }
 
   /// Bu aramanin modu + yedek moda dusulduyse kullaniciya gosterilecek uyari.
-  /// Softphone dahilisi var ama santrale baglanamiyorsa (birkac sn yeniden
-  /// baglanma denemesinden sonra) Bria'ya, o da yoksa normal telefona duser.
-  static Future<(AramaModu, String?)> _modSec() async {
+  /// Santral dakikasi yoksa (tanimli 0 ya da bitti) softphone/Bria HIC denenmez,
+  /// normal telefona duser. Softphone dahilisi var ama santrale baglanamiyorsa
+  /// (birkac sn yeniden baglanma denemesinden sonra) Bria'ya, o da yoksa telefona.
+  static Future<(AramaModu, String?)> _modSec(String sube) async {
+    if (_softphoneDahili || _briaDahili) {
+      final engel = await dakikaEngeli(sube);
+      if (engel != null) {
+        return (AramaModu.telefon,
+            '⚠️ $engel Santral araması yapılamaz; telefonunuzun kendi arama uygulamasıyla aranıyor.');
+      }
+    }
     final sp = Softphone.instance;
     if (_softphoneDahili) {
       if (sp.aktif && await sp.aramayaHazir()) return (AramaModu.softphone, null);
@@ -239,7 +255,8 @@ class CagriApi {
   }
 
   /// Arama butonu etiketi: Bria modunda belirtilir, digerlerinde sade 'Ara'.
-  static String get araEtiketi => aramaModu == AramaModu.bria ? 'Ara (Bria)' : 'Ara';
+  static String get araEtiketi =>
+      aramaModu == AramaModu.bria && !_dakikaEngelVar ? 'Ara (Bria)' : 'Ara';
 
   // ---------------------------------------------------------------------------
   // Uygulama geneli "Ara" kapisi (musteri listesi/detay, takvim, adisyon, ...).
@@ -270,6 +287,11 @@ class CagriApi {
     _aramaAcik = acik;
     _softphoneDahili = softphoneDahili;
     _briaDahili = briaDahili;
+    _dakikaEngelVar = false;
+    // Etiket icin on bilgi (arka planda; asil kontrol her aramada).
+    if (acik && sube.isNotEmpty && (softphoneDahili || briaDahili)) {
+      dakikaEngeli(sube);
+    }
   }
 
   static void aramaKapisiKapat() {
@@ -277,6 +299,7 @@ class CagriApi {
     _aramaAcik = false;
     _softphoneDahili = false;
     _briaDahili = false;
+    _dakikaEngelVar = false;
   }
 
   /// Musteriyi ara (cagri merkezi listesine bagli olmayan her ekran).
@@ -301,7 +324,7 @@ class CagriApi {
     if ((uid.isEmpty || uid == 'null' || uid == '0') && tel.isEmpty) {
       return AramaBaslatSonuc(success: false, message: 'Müşteri telefonu yok');
     }
-    final (mod, uyari) = await _modSec();
+    final (mod, uyari) = await _modSec(s);
     final j = await _post('arama-baslat-numara', {
       if (uid.isNotEmpty && uid != 'null' && uid != '0') 'user_id': uid,
       if (tel.isNotEmpty) 'numara': tel,

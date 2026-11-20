@@ -444,7 +444,14 @@ class AramaBaslatSonuc {
   /// Softphone modunda (istekte softphone=true) sunucunun dondurdugu,
   /// cihazdaki softphone'un cevirecegi numara ('0<no>'). Originate'te null.
   final String? numaraAra;
-  AramaBaslatSonuc({required this.success, required this.message, this.aramaListeId, this.numaraAra});
+  /// Yedek moda dusuldu (orn. santral dakikasi yok -> normal telefon): arama
+  /// basarili olsa da mesaj kirmizi bantta uyari olarak gosterilir.
+  final bool uyari;
+  AramaBaslatSonuc({required this.success, required this.message, this.aramaListeId,
+      this.numaraAra, this.uyari = false});
+
+  /// SnackBar kirmizi mi: basarisiz ya da uyarili arama.
+  bool get kirmiziBant => !success || uyari;
   factory AramaBaslatSonuc.fromJson(Map<String, dynamic> j) => AramaBaslatSonuc(
         success: j['success'] == true,
         message: _toStr(j['message']),

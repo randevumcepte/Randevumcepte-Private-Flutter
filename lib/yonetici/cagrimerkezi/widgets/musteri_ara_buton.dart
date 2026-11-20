@@ -70,7 +70,7 @@ class MusteriAraButon extends StatefulWidget {
         content: Text(sonuc.message.isNotEmpty
             ? sonuc.message
             : (sonuc.success ? 'Arama başlatıldı' : 'Arama başlatılamadı')),
-        backgroundColor: sonuc.success ? null : Colors.redAccent,
+        backgroundColor: sonuc.kirmiziBant ? Colors.redAccent : null,
         duration: const Duration(seconds: 5),
       ));
     } on CagriApiException catch (e) {
