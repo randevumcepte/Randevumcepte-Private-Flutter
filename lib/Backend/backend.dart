@@ -3745,6 +3745,35 @@ Future<String> musteriDanisanTuru(String salonid, String musteriid) async{
   }
 }
 
+/// Giris yapan isletme kullanicisinin Bearer token'i ve yetkili id'si (prefs).
+Future<({String? token, String? yetkiliId})> _isletmeIstekKimligi() async {
+  String? token;
+  String? yetkiliId;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final rawToken = prefs.getString('token');
+    if (rawToken != null && rawToken.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawToken);
+        token = decoded is String ? decoded : decoded?.toString();
+      } catch (_) {
+        token = rawToken;
+      }
+    }
+    final userRaw = prefs.getString('user');
+    if (userRaw != null) {
+      final user = jsonDecode(userRaw);
+      if (user is Map) {
+        token ??= user['token']?.toString();
+        yetkiliId = user['id']?.toString();
+      }
+    }
+  } catch (_) {}
+  if (token != null && token.isEmpty) token = null;
+  if (yetkiliId != null && yetkiliId.isEmpty) yetkiliId = null;
+  return (token: token, yetkiliId: yetkiliId);
+}
+
 Future<Map<String, dynamic>> satislar(String Salonid , String currpage,String tarih1,String tarih2,String musteriid,String tur,String personel_id,bool musteriMi,String user_id,int acikKapali) async {
 
 
@@ -3762,11 +3791,21 @@ Future<Map<String, dynamic>> satislar(String Salonid , String currpage,String ta
     // Add other form fields
   };
 
+  // Istegi YAPAN isletme kullanicisi (personel_id / user_id filtresinden bagimsiz):
+  // backend 'personel.kapali_adisyon_gizle' yetkisini buna gore uygular (Hesap
+  // Sahibi istisna). Musteri uygulamasi ekranlarinda (musteriMi) gonderilmez.
+  final headers = <String, String>{'Content-Type': 'application/json'};
+  if (!musteriMi) {
+    final kimlik = await _isletmeIstekKimligi();
+    if (kimlik.token != null) headers['Authorization'] = 'Bearer ${kimlik.token}';
+    if (kimlik.yetkiliId != null) formData['istek_yapan_id'] = kimlik.yetkiliId;
+  }
+
   log('satış data filter '+jsonEncode(formData));
   final response = await http.post(
     Uri.parse('https://app.randevumcepte.com.tr/api/v1/satislar?page='+currpage.toString()),
 
-    headers: {'Content-Type': 'application/json'},
+    headers: headers,
     body: jsonEncode(formData),
   );
   log('satış verisi '+response.body);

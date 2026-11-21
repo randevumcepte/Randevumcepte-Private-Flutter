@@ -58,6 +58,8 @@ class _PersonelYetkiState extends State<PersonelYetki> {
   final Set<String> _acikKategoriler = {'randevu', 'musteri'};
   // Sayfa yuklendigindeki orijinal (degisti mi karsilastirmasi icin)
   Map<String, bool> _orijinalAyarlar = {};
+  // Duzenlenen kisi Hesap Sahibi mi (backend 'hesap_sahibi'; eski backend -> false)
+  bool _hesapSahibi = false;
   String _orijinalSablon = 'personel_sade';
 
   bool get _degisti =>
@@ -105,6 +107,7 @@ class _PersonelYetkiState extends State<PersonelYetki> {
 
       if (ayar != null && ayar['basarili'] == true) {
         _personelRolunde = ayar['personel_rolunde'] == true;
+        _hesapSahibi = ayar['hesap_sahibi'] == true;
         // Bu personel icin GERCEK kayitli yetki satiri var mi? Backend 'kayit_var'
         // doner. Yoksa butonlar yine default (personel sablonu) ile gelir AMA
         // hicbir sablon karti "secili" gosterilmez (_seciliSablon = '').
@@ -255,8 +258,8 @@ class _PersonelYetkiState extends State<PersonelYetki> {
                   children: [
                     _hero(),
                     const SizedBox(height: 14),
-                    if (!_personelRolunde) _personelRolDegilUyari(),
-                    if (!_personelRolunde) const SizedBox(height: 12),
+                    _rolBilgiNotu(),
+                    const SizedBox(height: 12),
                     _sablonBolumu(),
                     const SizedBox(height: 14),
                     _yetkilerBolumu(),
@@ -313,22 +316,32 @@ class _PersonelYetkiState extends State<PersonelYetki> {
     );
   }
 
-  Widget _personelRolDegilUyari() {
+  /// Kayitli ayarlar rolden BAGIMSIZ uygulanir; Hesap Sahibi istisnadir.
+  Widget _rolBilgiNotu() {
+    final sahip = _hesapSahibi;
+    final bg = sahip ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF);
+    final kenar = sahip ? const Color(0xFFFDE68A) : const Color(0xFFBFDBFE);
+    final ikon = sahip ? const Color(0xFFB45309) : const Color(0xFF1D4ED8);
+    final yazi = sahip ? const Color(0xFF92400E) : const Color(0xFF1E3A8A);
+    final metin = sahip
+        ? 'Bu kişi Hesap Sahibi. Buradaki ayarlar Hesap Sahibine uygulanmaz; kapalı adisyonlar dahil her şeyi her zaman görür.'
+        : 'Kaydettiğiniz ayarlar kişinin rolünden bağımsız uygulanır (Yönetici, Sekreter, Personel…). Hesap Sahibi istisnadır: hiçbir ayardan etkilenmez, her şeyi görür.';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7),
+        color: bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        border: Border.all(color: kenar),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.info_outline, color: Color(0xFFB45309), size: 20),
-          SizedBox(width: 10),
+          Icon(sahip ? Icons.workspace_premium_outlined : Icons.info_outline,
+              color: ikon, size: 20),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Bu personel "Personel" rolünde değil — Hesap Sahibi/Yönetici/Süpervizör/Sekreter rolleri otomatik tam yetkilidir. Buradaki ayarlar SADECE rol "Personel" yapıldığında uygulanır.',
-              style: TextStyle(color: Color(0xFF92400E), fontSize: 12.5, height: 1.4),
+              metin,
+              style: TextStyle(color: yazi, fontSize: 12.5, height: 1.4),
             ),
           ),
         ],
