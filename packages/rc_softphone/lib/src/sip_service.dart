@@ -143,12 +143,12 @@ class SipService implements SipUaHelperListener {
     final UaSettings settings = UaSettings();
     settings.webSocketUrl = kSipWssUrl;
     settings.webSocketSettings.allowBadCertificate = false;
-    settings.webSocketSettings.userAgent = 'RandevumcepteMobil (sip_ua)';
+    settings.webSocketSettings.userAgent = 'Ola NailMobil (sip_ua)';
     settings.uri = 'sip:$_dahili@$kSipDomain';
     settings.authorizationUser = _dahili;
     settings.password = _dahiliSifre;
     settings.displayName = _dahili;
-    settings.userAgent = 'RandevumcepteMobil';
+    settings.userAgent = 'Ola NailMobil';
     settings.dtmfMode = DtmfMode.RFC2833;
     settings.transportType = TransportType.WS;
     settings.register = true;
@@ -407,15 +407,19 @@ class SipService implements SipUaHelperListener {
     }
   }
 
-  void beklemeToggle() {
+  void beklemeToggle() => _beklemeAyarla(!beklemede.value);
+
+  /// Beklet/Devam. Ekrandaki durumu burada degistirmiyoruz: sip_ua'nin
+  /// HOLD/UNHOLD (local) olayi gunceller. sip_ua istegi reddederse (baska
+  /// re-INVITE suruyor, gorusme henuz kurulmadi vb.) ekran yanlis gostermez.
+  void _beklemeAyarla(bool beklet) {
     final Call? call = activeCall.value;
-    if (call == null) return;
-    if (beklemede.value) {
-      call.unhold();
-    } else {
-      call.hold();
+    if (call == null || beklet == beklemede.value) return;
+    final bool gonderildi =
+        beklet ? call.session.hold() : call.session.unhold();
+    if (kDebugMode && !gonderildi) {
+      debugPrint('[SIP] ${beklet ? 'hold' : 'unhold'} reddedildi');
     }
-    beklemede.value = !beklemede.value;
   }
 
   void dtmfGonder(String tus) {
@@ -551,11 +555,13 @@ class SipService implements SipUaHelperListener {
         // Gelen cagri CallKit'ten (ya da uygulamadan) cevaplandi.
         _ekraniAc();
         break;
+      // Sadece bizim bekletmemiz: santral/karsi taraf bizi beklemeye alirsa
+      // (remote) "Beklet" butonu degismez (unhold zaten reddedilirdi).
       case CallStateEnum.HOLD:
-        beklemede.value = true;
+        if (state.originator == 'local') beklemede.value = true;
         break;
       case CallStateEnum.UNHOLD:
-        beklemede.value = false;
+        if (state.originator == 'local') beklemede.value = false;
         break;
       case CallStateEnum.ENDED:
         bitisNedeni.value = 'Arama sonlandı';
@@ -661,6 +667,13 @@ class SipService implements SipUaHelperListener {
             // su anki cagriyi reddetme.
           } else {
             kapatCagri();
+          }
+          break;
+        case Event.actionCallToggleHold:
+          // iOS CallKit ekranindaki Beklet dugmesi.
+          final dynamic govdeHold = event.body;
+          if (govdeHold is Map && govdeHold['isOnHold'] is bool) {
+            _beklemeAyarla(govdeHold['isOnHold'] as bool);
           }
           break;
         case Event.actionCallToggleAudioSession:

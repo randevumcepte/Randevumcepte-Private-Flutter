@@ -1,5 +1,5 @@
 name: rc_softphone
-description: Randevumcepte SIP/WebRTC softphone modulu (sip_ua + flutter_webrtc + CallKit). Uygulamaya yalnizca `tool/softphone.sh ac` ile eklenir.
+description: Ola Nail SIP/WebRTC softphone modulu (sip_ua + flutter_webrtc + CallKit). Uygulamaya yalnizca `tool/softphone.sh ac` ile eklenir.
 publish_to: 'none'
 version: 1.0.0
 
@@ -10,7 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   # sip_ua 1.1.0 flutter_webrtc ^1.2 ister; 0.12.x iOS build gecmisi bilinen surum.
-  sip_ua: 1.0.1
+  # 1.0.1 yerel yamali kopya (hold/unhold re-INVITE hatasi) -> packages/sip_ua/YAMA.md
+  sip_ua:
+    path: ../sip_ua
   flutter_webrtc: ^0.12.12
   flutter_callkit_incoming: ^2.5.5
   uuid: ^4.4.0
