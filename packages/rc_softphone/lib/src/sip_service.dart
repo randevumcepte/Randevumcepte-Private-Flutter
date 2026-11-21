@@ -143,12 +143,12 @@ class SipService implements SipUaHelperListener {
     final UaSettings settings = UaSettings();
     settings.webSocketUrl = kSipWssUrl;
     settings.webSocketSettings.allowBadCertificate = false;
-    settings.webSocketSettings.userAgent = 'Ola NailMobil (sip_ua)';
+    settings.webSocketSettings.userAgent = 'RandevumcepteMobil (sip_ua)';
     settings.uri = 'sip:$_dahili@$kSipDomain';
     settings.authorizationUser = _dahili;
     settings.password = _dahiliSifre;
     settings.displayName = _dahili;
-    settings.userAgent = 'Ola NailMobil';
+    settings.userAgent = 'RandevumcepteMobil';
     settings.dtmfMode = DtmfMode.RFC2833;
     settings.transportType = TransportType.WS;
     settings.register = true;
