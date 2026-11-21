@@ -1,7 +1,7 @@
 name: randevu_sistem
-description: FizyoFLY Randevu Sistemi Uygulaması
+description: Ola Nail Randevu Sistemi Uygulaması
 publish_to: 'none'
-version: 1.0.1+3
+version: 1.0.5+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -157,8 +157,8 @@ flutter:
 
   assets:
     - images/
-    - images/fizyofly.png
-    - images/fizyofly.png
+    - images/olanail.png
+    - images/olanailicon.png
     - images/ring.mp3
     - images/bip6.wav
     - images/announcement.png
@@ -169,13 +169,13 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "images/fizyofly.png"
+  image_path: "images/olanailicon.png"
   remove_alpha_ios: true
-  background_color_ios: "#FFFFFF"  # <-- FizyoFLY logoya uygun renk kodu (örn: pembe #FFC0CB). Kendi logo rengini gir.
+  background_color_ios: "#FFFFFF"  # <-- Ola Nail logoya uygun renk kodu (örn: pembe #FFC0CB). Kendi logo rengini gir.
 
 flutter_native_splash:
   color: "#ffffff"
-  image: images/fizyofly.png
+  image: images/olanail.png
   android: true
   ios: true
   web: false

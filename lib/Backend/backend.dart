@@ -5364,7 +5364,7 @@ async {
 }
 String arayanBilgiVer(String phone){
 
-  dynamic musteriAdi = arayanbilgi(phone,'246');
+  dynamic musteriAdi = arayanbilgi(phone,'236');
   log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
   return musteriAdi["musteri_adi"];
 }
@@ -5386,7 +5386,7 @@ Future<String> appBundleAl() async {
 /// Musterinin portfoyundeki (musteri_olunan_salonlar) subelerden, bu uygulamanin
 /// markasina (app_bundle) ait olan subenin `salonlar` objesini dondurur.
 ///
-/// Onceden bu secim login_page / checklogin icinde SABIT salon_id ('432' / '20')
+/// Onceden bu secim login_page / checklogin icinde SABIT salon_id ('236' / '20')
 /// ile yapiliyordu; marka switch'te stale kaliyor, iki akis farkli subeyi okuyor
 /// ve firstWhere orElse'siz oldugu icin eslesme yoksa patliyordu. Artik marka
 /// app_bundle'dan cozulur: tutarli, marka-bagimsiz, crash-guvenli.

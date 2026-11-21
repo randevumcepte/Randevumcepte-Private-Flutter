@@ -3,9 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
@@ -31,8 +29,6 @@ class KayitOl extends StatefulWidget {
 class _KayitOlState extends State<KayitOl> {
   TextEditingController adsoyad = TextEditingController();
   TextEditingController ceptelefon = TextEditingController();
-  // Apple 1.2 UGC uyumu: kullanici sozlesmesi + KVKK onayi zorunlu
-  bool _sartlariKabul = false;
 
   @override
   void initState() {
@@ -83,21 +79,12 @@ class _KayitOlState extends State<KayitOl> {
           ],
         ),
       ),
-      const SizedBox(height: 16),
-      // Apple 1.2 UGC uyumu + KVKK: kullanici sozlesmesi onayi zorunlu
-      _sozlesmeOnayi(scheme),
-      const SizedBox(height: 12),
+      const SizedBox(height: 20),
       _anaButon(scheme, 'Kaydol', () {
         bool isValid = true;
 
         if (ceptelefon.text == '' || ceptelefon.text == '0') isValid = false;
         if (adsoyad.text == '') isValid = false;
-
-        if (!_sartlariKabul) {
-          formWarningDialogs(context, 'UYARI',
-              'Kayıt olabilmek için Kullanım Şartları ve Gizlilik Politikasını okuyup kabul etmeniz gereklidir.');
-          return;
-        }
 
         if (isValid) {
           musteridanisankaydi(
@@ -178,14 +165,14 @@ class _KayitOlState extends State<KayitOl> {
               child: Padding(
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(
-                  'images/fizyofly.png',
+                  'images/salooncaddeicon.png',
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             const SizedBox(height: 18),
             Image.asset(
-              'images/fizyofly.png',
+              'images/salooncaddeicon.png',
               height: 28,
               fit: BoxFit.contain,
             ),
@@ -206,70 +193,6 @@ class _KayitOlState extends State<KayitOl> {
   }
 
   // Giris Yap ekranindaki gradyanli ana aksiyon butonu
-  Widget _sozlesmeOnayi(ColorScheme scheme) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 24,
-          width: 24,
-          child: Checkbox(
-            value: _sartlariKabul,
-            onChanged: (v) => setState(() => _sartlariKabul = v ?? false),
-            visualDensity: VisualDensity.compact,
-            activeColor: scheme.primary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _sartlariKabul = !_sartlariKabul),
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: scheme.onSurface.withValues(alpha: 0.75),
-                  height: 1.4,
-                ),
-                children: [
-                  const TextSpan(text: 'Uygulamayı kullanarak '),
-                  TextSpan(
-                    text: 'Kullanım Şartları',
-                    style: TextStyle(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w700,
-                      decoration: TextDecoration.underline,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () => launchUrl(
-                            Uri.parse('https://randevumcepte.com.tr/kullanim-kosullari/'),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                  ),
-                  const TextSpan(text: ' ve '),
-                  TextSpan(
-                    text: 'Gizlilik Politikası',
-                    style: TextStyle(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w700,
-                      decoration: TextDecoration.underline,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () => launchUrl(
-                            Uri.parse('https://randevumcepte.com.tr/gizlilik-politikasi-ve-guvenlik'),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                  ),
-                  const TextSpan(text: 'nı okuyup kabul ediyorum.'),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _anaButon(ColorScheme scheme, String yazi, VoidCallback onTap) {
     return Material(
       color: Colors.transparent,
@@ -462,10 +385,10 @@ class _KayitOlState extends State<KayitOl> {
         'name':adsoyad,
         'sms_baslik' : '',
         'sms_apikey' : '',
-        'salonidler' : '432',
+        'salonidler' : '236',
         'sms_username':'',
         'sms_secret':'',
-        'isletmeadi': 'FizyoFLY',
+        'isletmeadi': 'Saloon Cadde',
         'appBundle': appBundle
       };
 

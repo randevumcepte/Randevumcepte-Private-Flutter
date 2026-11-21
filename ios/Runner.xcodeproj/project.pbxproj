@@ -486,7 +486,7 @@
 				);
 				MARKETING_VERSION = 1.0.1;
 				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.fizyofly;
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.olanail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FizyoFLY2026;
@@ -678,7 +678,7 @@
 				);
 				MARKETING_VERSION = 1.0.1;
 				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.fizyofly;
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.olanail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FizyoFLY2026;
@@ -713,7 +713,7 @@
 				);
 				MARKETING_VERSION = 1.0.1;
 				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.fizyofly;
+				PRODUCT_BUNDLE_IDENTIFIER = com.randevumcepte.olanail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FizyoFLY2026;

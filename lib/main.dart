@@ -390,7 +390,7 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 3),
           opacity: _opacity,
           child: Image.asset(
-            "images/fizyoflyic.png",
+            "images/olanail.icon",
             height: 200,
           ),
         ),
