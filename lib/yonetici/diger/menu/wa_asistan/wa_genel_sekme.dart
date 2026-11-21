@@ -140,7 +140,7 @@ class _WaGenelSekmeState extends State<WaGenelSekme> with AutomaticKeepAliveClie
 
   Future<void> _sonYukle() async {
     final b = DateTime.now();
-    final o = b.subtract(const Duration(days: 30));
+    final o = b.subtract(const Duration(days: 6)); // yalnız son 5 konuşma gösteriliyor: 30 günlük liste gereksiz yüktü
     final r = await WaApi.al(d.sube, '/sohbetler', {'baslangic': isoGun(o), 'bitis': isoGun(b)});
     if (!mounted) return;
     setState(() => _son = okMu(r) ? haritaListe(r['liste']).take(5).toList() : []);

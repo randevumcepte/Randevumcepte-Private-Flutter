@@ -196,7 +196,9 @@ class WaAvatar extends StatelessWidget {
         color: _avatarRenk[h % _avatarRenk.length],
         child: src == null
             ? harf
-            : Image.network(src, headers: hdr, fit: BoxFit.cover, errorBuilder: (_, __, ___) => harf),
+            // gösterildiği boyutta çöz (tam çözünürlüklü fotoğraf listede kasma yapar)
+            : Image.network(src, headers: hdr, fit: BoxFit.cover, cacheWidth: (boyut * MediaQuery.devicePixelRatioOf(context)).round(),
+                errorBuilder: (_, __, ___) => harf),
       ),
     );
   }

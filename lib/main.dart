@@ -390,7 +390,7 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 3),
           opacity: _opacity,
           child: Image.asset(
-            "images/olanail.icon",
+            "images/olanailicon.png",
             height: 200,
           ),
         ),

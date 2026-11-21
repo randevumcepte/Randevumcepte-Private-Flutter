@@ -19,7 +19,7 @@ class WaDurum extends ChangeNotifier {
   final String sube;
   WaDurum(this.sube);
 
-  String donem = '30g';
+  String donem = '7g';
   bool baslangicYuklendi = false;
   String? baslangicHata;
   bool acik = true;
@@ -43,6 +43,33 @@ class WaDurum extends ChangeNotifier {
 
   /// Sohbet listesi yenilensin (devral/geri ver/cevapladım sonrası)
   final sohbetYenile = ValueNotifier<int>(0);
+
+  /// Sohbet detayı önbelleği (id → /sohbet/{id} cevabındaki 'sohbet') + listedeki son mesaj zamanı.
+  /// Liste ilk sohbetleri arka planda doldurur; dokununca detay beklemeden açılır, arkadan tazelenir.
+  final sohbetOnbellek = <int, Map<String, dynamic>>{};
+  final _onbellekZaman = <int, String>{};
+  bool _onYukluyor = false;
+
+  Future<void> sohbetleriOnYukle(List<Map<String, dynamic>> liste, {int adet = 10}) async {
+    if (_onYukluyor) return;
+    _onYukluyor = true;
+    try {
+      for (final x in liste.take(adet)) {
+        final id = sayiDeger(x['id']).toInt();
+        final zaman = '${x['tarih'] ?? ''}';
+        if (sohbetOnbellek.containsKey(id) && _onbellekZaman[id] == zaman) continue; // değişmemiş
+        final r = await WaApi.al(sube, '/sohbet/$id');
+        if (okMu(r)) sohbetOnbellegeYaz(id, harita(r['sohbet']), zaman: zaman);
+      }
+    } finally {
+      _onYukluyor = false;
+    }
+  }
+
+  void sohbetOnbellegeYaz(int id, Map<String, dynamic> s, {String? zaman}) {
+    sohbetOnbellek[id] = s;
+    if (zaman != null) _onbellekZaman[id] = zaman;
+  }
 
   /// Personel yetkisi (backend /durum): yaz = "WhatsApp sohbetine katılsın" (mesaj kutusu, devral, cevapladım).
   bool yaz = false;
