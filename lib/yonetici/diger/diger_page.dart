@@ -688,7 +688,8 @@ class _MenuState extends State<Menu> {
 
                 // Reklam Yonetimi gecici olarak gizli — ekran bitmedi; derleme atmak icin kapali.
                 // Yeniden acmak icin 'false &&' kismini sil.
-                if (false && widget.uyelikturu == 3)
+                // Gorunurluk kurali Bildirim Reklamlari ile ayni: yalniz rol 1-2-3 (2026-11-21).
+                if (false && widget.uyelikturu == 3 && kullanicirolu >= 1 && kullanicirolu <= 3)
                   _buildMenuButton(
                     icon: Icons.ads_click_rounded,
                     label: 'Reklam Yönetimi',
@@ -1025,7 +1026,9 @@ class _MenuState extends State<Menu> {
                         Yetki.varMi('finans.kasa_giris_cikis') ||
                         Yetki.varMi('finans.masraf_gor') ||
                         Yetki.varMi('finans.masraf_ekle') ||
-                        Yetki.varMi('finans.alacak_yonet')) && widget.isletmebilgi["studyo_modu"].toString() != "1")
+                        Yetki.varMi('finans.alacak_yonet')) && widget.isletmebilgi["studyo_modu"].toString() != "1"
+                    // Yetki kaydi olmayan Sekreter kasa raporunu gormez (2026-11-21)
+                    && !Yetki.kayitsizRolde(const [4]))
                   _buildMenuButton(
                     icon: Icons.account_balance_wallet_rounded,
                     label: 'Kasa Raporu',
@@ -1138,12 +1141,13 @@ class _MenuState extends State<Menu> {
                 // Sistem Ayarlari menusu: ayarlar sayfasinda gosterilen
                 // herhangi bir kutu icin yetki acikken gorulur. Icerde her
                 // kutu kendi yetkisine gore filtrelenir.
-                if (Yetki.varMi('ayar.salon_bilgi') ||
+                // Yetki kaydi olmayan Sekreter/Personel (rol 4-5) icin kapali (2026-11-21).
+                if (!Yetki.kayitsizRolde(const [4, 5]) && (Yetki.varMi('ayar.salon_bilgi') ||
                     Yetki.varMi('ayar.cihaz_oda_yonet') ||
                     Yetki.varMi('randevu.online_ayar') ||
                     Yetki.varMi('hizmet.tanim_olustur') ||
                     Yetki.varMi('hizmet.kategori_yonet') ||
-                    Yetki.varMi('satis.indirim_uygula'))
+                    Yetki.varMi('satis.indirim_uygula')))
                   _buildMenuButton(
                     icon: Icons.settings_rounded,
                     label: 'Sistem Ayarları',

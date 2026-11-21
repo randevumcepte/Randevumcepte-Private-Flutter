@@ -37,6 +37,24 @@ class Yetki {
   static bool _personelRolunde = false;
   static String _sablon = 'tam_yetki';
   static bool _yuklendi = false;
+  /// Backend'in dondugu rol (model_has_roles) ve ozel yetki kaydi var mi.
+  /// Eski backend bu alanlari yollamazsa null kalir -> rol bazli varsayilan
+  /// kisit UYGULANMAZ (eski davranis). Degisiklik kiyasina KATILMAZ.
+  static int? _rol;
+  static bool? _kayitVar;
+
+  /// Yetki kaydi YOKKEN Sekreter (rol 4) icin kapali anahtarlar (2026-11-21):
+  /// rakamsal satis / isletme / kasa raporlari ve ayarlar. Kayit varsa anahtar
+  /// karar verir; bu liste devreye girmez.
+  static const Set<String> _sekreterKayitsizKapali = {
+    'rapor.satis',
+    'rapor.kasa',
+    'rapor.ciro_kar_gor',
+    'ayar.salon_bilgi',
+    'ayar.sube_yonet',
+    'ayar.cihaz_oda_yonet',
+    'randevu.online_ayar',
+  };
   static String? _scopeKey; // bellekteki ayarin scope'u (kullanici+sube)
 
   /// Yetki her degistiginde (tazele/temizle) artan versiyon.
@@ -86,6 +104,7 @@ class Yetki {
         _salonSahibi = json['salon_sahibi'] == true;
         _personelRolunde = json['personel_rolunde'] == true;
         _sablon = (json['sablon'] ?? 'tam_yetki').toString();
+        _rolKayitOku(json);
         _scopeKey = scope;
       }
     } catch (e) {
@@ -140,6 +159,8 @@ class Yetki {
         _salonSahibi = true;
         _personelRolunde = false;
         _sablon = 'tam_yetki';
+        _rol = null;
+        _kayitVar = null;
         if (_scopeKey != null) {
           await prefs.remove(_scopeKey!);
           _scopeKey = null;
@@ -175,6 +196,7 @@ class Yetki {
           _salonSahibi = data['salon_sahibi'] == true;
           _personelRolunde = data['personel_rolunde'] == true;
           _sablon = (data['sablon'] ?? 'tam_yetki').toString();
+          _rolKayitOku(data);
 
           // Degisiklik tespiti (sadece ilk yukleme/login disinda)
           if (!ilkYukleme) {
@@ -201,6 +223,8 @@ class Yetki {
               'salon_sahibi': _salonSahibi,
               'personel_rolunde': _personelRolunde,
               'sablon': _sablon,
+              'kullanici_rolu': _rol,
+              'yetki_kaydi_var': _kayitVar,
             }),
           );
         }
@@ -223,6 +247,8 @@ class Yetki {
     _salonSahibi = true;
     _personelRolunde = false;
     _sablon = 'tam_yetki';
+    _rol = null;
+    _kayitVar = null;
     _scopeKey = null;
     _yuklendi = false;
     try {
@@ -244,6 +270,10 @@ class Yetki {
   /// Cache hic yuklenmediyse (henuz tazele cagirilmadi): true (defansif).
   static bool varMi(String key) {
     if (!_yuklendi) return true; // henuz baslatilmadi - eski davranis
+    // Yetki kaydi olmayan Sekreter: rapor/kasa/ayar anahtarlari kapali.
+    if (kayitsizRolde(const [4]) && _sekreterKayitsizKapali.contains(key)) {
+      return false;
+    }
     if (_salonSahibi || !_personelRolunde) return true;
     if (_ayarlar.containsKey(key)) return _ayarlar[key] == true;
     // Backend'in mobilden gizledigi anahtar (or. randevu.onayla): gercek
@@ -265,6 +295,14 @@ class Yetki {
     return '****';
   }
 
+  /// Yetki kaydi YOK ve kullanicinin rolu [roller] icinde mi?
+  /// Rol bazli varsayilan ekran kisitlari icin (or. Sistem Ayarlari rol 4-5'e
+  /// kapali). Kayit varsa ya da backend rol bilgisini yollamadiysa false.
+  static bool kayitsizRolde(List<int> roller) {
+    if (!_yuklendi || _kayitVar != false || _rol == null) return false;
+    return roller.contains(_rol);
+  }
+
   // === Getter'lar (UI'da ozel goruntu icin) ===
   static bool get salonSahibi => _salonSahibi;
   static bool get personelRolunde => _personelRolunde;
@@ -273,6 +311,13 @@ class Yetki {
   static Map<String, bool> get tumAyarlar => Map.unmodifiable(_ayarlar);
 
   // ═════════════════════ Helpers ═════════════════════
+
+  static void _rolKayitOku(Map json) {
+    final r = json['kullanici_rolu'];
+    _rol = r == null ? null : int.tryParse(r.toString());
+    final k = json['yetki_kaydi_var'];
+    _kayitVar = k is bool ? k : null;
+  }
 
   static String _scope(String yetkiliId, String salonid) =>
       '${_prefsKeyPrefix}_${yetkiliId}_$salonid';

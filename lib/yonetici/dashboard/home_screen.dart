@@ -453,17 +453,22 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
               //  - Rol 5 (Personel): personel.kendi_ciro_gor yetkisi açıksa görür.
               //  - Diger roller: rapor.satis yetkisiyle gate.
               //  - Studyo modu: parasal/karsilastirma yok -> tum blok gizli.
+              //  - Yetki kaydi olmayan Sekreter (rol 4): SADECE Alacak karti
+              //    (Kasa, Ciro/Karsilastirma, Zirvedekiler, sube performansi gizli).
               if (!_studyo &&
                   ((kullanicirolu == 5 && Yetki.varMi('personel.kendi_ciro_gor')) ||
-                  (kullanicirolu != 5 && Yetki.varMi('rapor.satis')))) ...[
+                  (kullanicirolu != 5 &&
+                      (Yetki.varMi('rapor.satis') || _sadeceAlacak)))) ...[
                 const SizedBox(height: 18),
                 _periodChips(context),
                 const SizedBox(height: 10),
                 _premiumPerformanceRow(context),
+                if (!_sadeceAlacak) ...[
                 const SizedBox(height: 12),
                 _comparisonCard(context),
+                ],
                 // Zirvedekiler — Personel (rol 5) icin gizli.
-                if (kullanicirolu != 5 && Yetki.varMi('rapor.personel_performans')) ...[
+                if (!_sadeceAlacak && kullanicirolu != 5 && Yetki.varMi('rapor.personel_performans')) ...[
                   const SizedBox(height: 12),
                   _topPerformersCard(context),
                 ],
@@ -472,7 +477,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   _emptySlotOpportunitiesCard(context),
                 ],
-                if (widget.kullanici.yetkili_olunan_isletmeler.length > 1) ...[
+                if (!_sadeceAlacak && widget.kullanici.yetkili_olunan_isletmeler.length > 1) ...[
                   const SizedBox(height: 12),
                   _branchPerformanceCard(context),
                 ],
@@ -940,7 +945,8 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     }
     // WhatsApp durum gostergesi: profil ikonunun altinda (top bar'da) — burada degil.
     // Studyo modu: parasal veri yok -> Bugunku Kasa pill'i gosterilmez.
-    if (!_studyo) {
+    // Yetki kaydi olmayan Sekreter (rol 4) Bugunku Kasa'yi gormez (2026-11-21).
+    if (!_studyo && !Yetki.kayitsizRolde(const [4])) {
       if (pills.isNotEmpty) pills.add(const SizedBox(width: 10));
       pills.add(Expanded(
         child: _quickPill(
@@ -1235,7 +1241,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
         ),
       ));
     }
-    if (kullanicirolu == 5 || Yetki.varMi('rapor.satis')) {
+    // Adet kutulari (tutar degil): kayitsiz Sekreter de gormeye devam eder.
+    if (kullanicirolu == 5 ||
+        Yetki.varMi('rapor.satis') ||
+        Yetki.kayitsizRolde(const [4])) {
       items.add(_DashItem(
         icon: Icons.shopping_bag_outlined,
         title: 'Paket Satışı',
@@ -1553,6 +1562,10 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
     );
   }
 
+  /// Yetki kaydi olmayan Sekreter (rol 4): performans blogunda yalniz Alacak.
+  bool get _sadeceAlacak =>
+      kullanicirolu != 5 && Yetki.kayitsizRolde(const [4]);
+
   Widget _premiumPerformanceRow(BuildContext context) {
     final ext = context.appTheme;
 
@@ -1594,6 +1607,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
+          if (!_sadeceAlacak) ...[
           Expanded(
             child: _premiumPerfCard(
               context,
@@ -1617,6 +1631,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(width: 12),
+          ],
           Expanded(
             child: _premiumPerfCard(
               context,
