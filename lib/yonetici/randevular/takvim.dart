@@ -573,8 +573,7 @@ class TakvimState extends State<Takvim> with RouteAware {
     // Personel rolundeki kullanici 'randevu.tum_personel_gor' yetkisi YOKSA
     // kendi randevulari filtrelenir. Yetki acikken filtre uygulanmaz (tum
     // randevular gelir). Yetkili rollerde de filtre yok.
-    if (widget.kullanicirolu == 5 &&
-        !Yetki.varMi('randevu.tum_personel_gor')) {
+    if (Yetki.kisitli('randevu.tum_personel_gor')) {
       widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
         if (element["salon_id"].toString() == widget.isletmebilgi["id"].toString()) {
           setState(() {

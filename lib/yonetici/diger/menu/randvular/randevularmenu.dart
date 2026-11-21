@@ -136,7 +136,7 @@ class _RandevularMenuState extends State<RandevularMenu> {
   String _kendiPersonelId = '';
 
   bool get _kisitli =>
-      widget.kullanicirolu == 5 && !Yetki.varMi('randevu.tum_personel_gor');
+      Yetki.kisitli('randevu.tum_personel_gor');
 
   String get _yetkiyeGorePersonelid {
     if (_kisitli) {

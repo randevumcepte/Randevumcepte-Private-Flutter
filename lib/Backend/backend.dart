@@ -1283,6 +1283,9 @@ Future <Map<String, dynamic>>   randevularigetir(String musteri_id,String Saloni
     'appBundle':await appBundleAl(),
     'musteriMi':musteriMi,
     'salonId':Salonid.toString(),
+    // Istegi yapan isletme kullanicisi (yalniz isletme ekranlari): backend
+    // "sadece kendi randevulari" kisitini rolden bagimsiz buna gore uygular.
+    if (!musteriMi && usertype == '1') 'istek_yapan_id': user['id'].toString(),
 
 
     // Add other form fields
@@ -2311,6 +2314,9 @@ Future<dynamic>fetchRandevular(String seciliisletme,String personelid,String tar
   Map<String, dynamic> formData = {
     'personel_id': personelid,
     'user_id': _callerUserId,
+    // Yeni build isareti: backend "sadece kendi randevulari" kisitini rolden
+    // bagimsiz istek yapana gore uygular (eski build yollamaz -> eski mantik).
+    if (_callerUserId.isNotEmpty) 'istek_yapan_id': _callerUserId,
     'tarih1': tarih1,
     'tarih2': tarih2,
     'takvim_turu':takvimTuru,

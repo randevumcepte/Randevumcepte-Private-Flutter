@@ -302,8 +302,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
       // YOKSA: sadece kendi personel_id'sine ait randevular listelenir.
       // Salon sahibi / yonetici / yetkili personel ise '' (filtre yok).
       String personelidFiltre = '';
-      if (widget.kullanicirolu == 5 &&
-          !Yetki.varMi('randevu.tum_personel_gor')) {
+      if (Yetki.kisitli('randevu.tum_personel_gor')) {
         for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
           if (e['salon_id'].toString() ==
               widget.isletmebilgi['id'].toString()) {
@@ -1083,7 +1082,7 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   /// Role-5 personel 'randevu.tum_personel_gor' yetkisi yoksa sadece kendi
   /// randevularini gormeli; diger roller icin filtre yok ('').
   String _randevuPersonelIdFiltre() {
-    if (kullanicirolu == 5 && !Yetki.varMi('randevu.tum_personel_gor')) {
+    if (Yetki.kisitli('randevu.tum_personel_gor')) {
       for (final e in widget.kullanici.yetkili_olunan_isletmeler) {
         if (e['salon_id'].toString() ==
             widget.isletmebilgi['id'].toString()) {

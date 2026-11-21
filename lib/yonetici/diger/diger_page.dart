@@ -830,8 +830,7 @@ class _MenuState extends State<Menu> {
                       // Personel rolu + 'tum_personel_gor' KAPALI ise kendi id'si
                       // gonderilir (sadece kendi randevular). Yetki acikken bos
                       // gonderilir (backend tum randevular doner).
-                      if (kullanicirolu == 5 &&
-                          !Yetki.varMi('randevu.tum_personel_gor')) {
+                      if (Yetki.kisitli('randevu.tum_personel_gor')) {
                         widget.kullanici.yetkili_olunan_isletmeler.forEach((element) {
                           if (element["salon_id"].toString() == widget.isletmebilgi["id"].toString())
                             personelid = element["id"].toString();

@@ -270,6 +270,10 @@ class Yetki {
   /// Cache hic yuklenmediyse (henuz tazele cagirilmadi): true (defansif).
   static bool varMi(String key) {
     if (!_yuklendi) return true; // henuz baslatilmadi - eski davranis
+    // Hesap Sahibi (rol 1) ISTISNA: personel kaydina yetki satiri dusmus olsa
+    // bile hic kisitlanmaz (backend ile ayni). Rol bilgisi yalniz yeni backend'den
+    // gelir; yoksa eski davranis.
+    if (_rol == 1) return true;
     // Yetki kaydi olmayan Sekreter: rapor/kasa/ayar anahtarlari kapali.
     if (kayitsizRolde(const [4]) && _sekreterKayitsizKapali.contains(key)) {
       return false;
@@ -293,6 +297,18 @@ class Yetki {
   static String tutarGoster(String tutar, String key) {
     if (varMi(key)) return tutar;
     return '****';
+  }
+
+  /// "Sadece kendi kayitlari" kisiti ROLDEN BAGIMSIZ (2026-11-21): kisi
+  /// kisitlamaya tabiyse (Personel rolu YA DA yetki kaydi olan herhangi bir rol;
+  /// Hesap Sahibi haric) ve [tumYetki] (or. 'randevu.tum_personel_gor',
+  /// 'satis.tum_satis_gor') kapaliysa true. Eski `kullanicirolu == 5 && !varMi(x)`
+  /// kontrolunun yerine; rol 5'te sonuc birebir aynidir.
+  static bool kisitli(String tumYetki) {
+    if (!_yuklendi || _rol == 1 || _salonSahibi || !_personelRolunde) {
+      return false;
+    }
+    return !varMi(tumYetki);
   }
 
   /// Yetki kaydi YOK ve kullanicinin rolu [roller] icinde mi?

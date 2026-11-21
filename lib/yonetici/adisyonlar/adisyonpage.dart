@@ -130,8 +130,7 @@ import 'dart:convert';
     // yoksa personel kendi user_id'si ile filtrelenir. Yetkili roller
     // (kullanicirolu != 5) zaten varMi=true doner.
     String get _satisFiltreUserId {
-      if (widget.kullanicirolu == 5 &&
-          !Yetki.varMi('satis.tum_satis_gor')) {
+      if (Yetki.kisitli('satis.tum_satis_gor')) {
         return widget.kullanici.id;
       }
       return '';
