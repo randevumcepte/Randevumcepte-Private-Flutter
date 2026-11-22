@@ -158,13 +158,33 @@ class _BildirimlerimPageState extends State<BildirimlerimPage> {
           Container(
             width: 110,
             height: 110,
+            // Cam efekti: beyaz parlak kenar + açık mor → lavanta geçiş + zilin arkasında mor parıltı
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [Colors.white.withValues(alpha: 0.95), Colors.white.withValues(alpha: 0.35)]),
-              boxShadow: [BoxShadow(color: PT.mor.withValues(alpha: 0.10), blurRadius: 30, offset: const Offset(0, 12))],
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFFFFF), Color(0xFFF1E9FE), Color(0xFFDCCBFA)],
+                stops: [0, 0.45, 1],
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.95), width: 3),
+              boxShadow: [
+                BoxShadow(color: PT.mor.withValues(alpha: 0.16), blurRadius: 24, offset: const Offset(0, 10)),
+                BoxShadow(color: Colors.white.withValues(alpha: 0.8), blurRadius: 10, spreadRadius: -2, offset: const Offset(-3, -3)),
+              ],
             ),
-            padding: const EdgeInsets.all(10),
-            child: Image.asset('images/bildirim_zil.png', fit: BoxFit.contain),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(0.1, 0.15),
+                  radius: 0.62,
+                  colors: [const Color(0xFFB794F6).withValues(alpha: 0.38), const Color(0xFFB794F6).withValues(alpha: 0)],
+                ),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Image.asset('images/bildirim_zil.png', fit: BoxFit.contain),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
