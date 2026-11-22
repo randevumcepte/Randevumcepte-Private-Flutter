@@ -2,7 +2,7 @@
 // Web paneldeki "Reklamlarım" sekmesinin mobil karşılığı: kampanya listesi (durum, indirim, 30 günlük
 // gönderim/açılma/randevu), yeni kampanya / düzenle (hizmet seçimi, zorunlu indirim, tarih, afiş, yayın),
 // yayına al / durdur, sil. Backend: /api/v1/wa-asistan/reklamlar | reklam | reklam/{id}/sil.
-// Sekme yalnız reklam özelliği açık işletmede görünür (ayar['reklam'] == 1), web ile aynı.
+// Sekme her işletmede görünür; özellik kapalıysa içinde uyarı çıkar (asistan özellik açılınca gönderir).
 
 import 'dart:io';
 
