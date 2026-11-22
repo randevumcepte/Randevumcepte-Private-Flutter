@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'wa_asistan_api.dart';
 import 'wa_asistan_page.dart';
+import 'wa_reklam_detay.dart';
 import 'wa_widgets.dart';
 
 // Web'deki RK_SABLONLAR ile aynı
@@ -22,42 +23,68 @@ const _sablonlar = [
   (e: '👭', i: 10, b: 'Arkadaşını getir', m: 'Arkadaşınızla birlikte gelin, ikinize de %10 indirim.', k: 'Tavsiye ile büyüyün'),
 ];
 
-// Şablon ikonları (sırayla _sablonlar)
-const _sablonIkon = [Icons.percent_rounded, Icons.card_giftcard_rounded, Icons.star_rounded, Icons.sell_rounded]; // sekme listesi
+// Form şablon ikonları (sırayla _sablonlar)
 const _formSablonIkon = [Icons.card_giftcard_outlined, Icons.calendar_month_outlined, Icons.star_rounded, Icons.sell_outlined]; // form listesi
 
 /// Üst kartın arka planındaki açık mor dalga
+/// Banner arka plan efektleri (ornek gorseldeki gibi belirgin): sag ustte acik mor genis alan,
+/// altta katmanli dalgalar, megafonun arkasinda yumusak isik.
 class _DalgaPainter extends CustomPainter {
   @override
   void paint(Canvas c, Size s) {
-    final p1 = Paint()..color = Colors.white.withValues(alpha: 0.08);
+    final w = s.width, h = s.height;
+    // 1) Sag ust: acik mor genis bolge (kivrimli sinirla)
+    final sagUst = Path()
+      ..moveTo(w * 0.48, 0)
+      ..cubicTo(w * 0.62, h * 0.30, w * 0.80, h * 0.10, w * 0.86, h * 0.48)
+      ..cubicTo(w * 0.90, h * 0.70, w * 0.96, h * 0.80, w, h * 0.78)
+      ..lineTo(w, 0)
+      ..close();
+    c.drawPath(
+        sagUst,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Colors.white.withValues(alpha: 0.30), Colors.white.withValues(alpha: 0.06)],
+          ).createShader(Rect.fromLTWH(w * 0.45, 0, w * 0.55, h)));
+    // Sinir cizgisi: efekt net secilsin
     c.drawPath(
         Path()
-          ..moveTo(0, s.height * 0.72)
-          ..quadraticBezierTo(s.width * 0.3, s.height * 0.52, s.width * 0.62, s.height * 0.78)
-          ..quadraticBezierTo(s.width * 0.85, s.height * 0.95, s.width, s.height * 0.7)
-          ..lineTo(s.width, s.height)
-          ..lineTo(0, s.height)
+          ..moveTo(w * 0.48, 0)
+          ..cubicTo(w * 0.62, h * 0.30, w * 0.80, h * 0.10, w * 0.86, h * 0.48)
+          ..cubicTo(w * 0.90, h * 0.70, w * 0.96, h * 0.80, w, h * 0.78),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4
+          ..color = Colors.white.withValues(alpha: 0.30));
+    // 2) Alt dalgalar (iki katman)
+    c.drawPath(
+        Path()
+          ..moveTo(0, h * 0.70)
+          ..cubicTo(w * 0.22, h * 0.52, w * 0.42, h * 0.92, w * 0.66, h * 0.74)
+          ..cubicTo(w * 0.82, h * 0.62, w * 0.92, h * 0.80, w, h * 0.72)
+          ..lineTo(w, h)
+          ..lineTo(0, h)
           ..close(),
-        p1);
-    c.drawCircle(Offset(s.width * 0.95, s.height * 0.05), s.height * 0.45, Paint()..color = Colors.white.withValues(alpha: 0.07));
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Megafonun yanındaki sarı ses çizgileri
-class _SesCizgiPainter extends CustomPainter {
-  @override
-  void paint(Canvas c, Size s) {
-    final p = Paint()
-      ..color = const Color(0xFFFBBF24)
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    c.drawLine(Offset(s.width * 0.15, s.height * 0.55), Offset(s.width * 0.35, s.height * 0.05), p);
-    c.drawLine(Offset(s.width * 0.45, s.height * 0.7), Offset(s.width * 0.85, s.height * 0.35), p);
-    c.drawLine(Offset(s.width * 0.5, s.height * 1.0), Offset(s.width * 0.95, s.height * 0.92), p);
+        Paint()..color = Colors.white.withValues(alpha: 0.13));
+    c.drawPath(
+        Path()
+          ..moveTo(0, h * 0.86)
+          ..cubicTo(w * 0.28, h * 0.74, w * 0.52, h * 1.02, w * 0.78, h * 0.86)
+          ..cubicTo(w * 0.90, h * 0.80, w * 0.96, h * 0.90, w, h * 0.88)
+          ..lineTo(w, h)
+          ..lineTo(0, h)
+          ..close(),
+        Paint()..color = const Color(0xFF3B0A8C).withValues(alpha: 0.22));
+    // 3) Megafonun arkasinda yumusak isik
+    c.drawCircle(
+        Offset(w * 0.16, h * 0.48),
+        h * 0.46,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [Colors.white.withValues(alpha: 0.22), Colors.white.withValues(alpha: 0)],
+          ).createShader(Rect.fromCircle(center: Offset(w * 0.16, h * 0.48), radius: h * 0.46)));
   }
 
   @override
@@ -67,67 +94,35 @@ class _SesCizgiPainter extends CustomPainter {
 const _morDegrade = LinearGradient(colors: [Color(0xFF6D28D9), Color(0xFF8B5CF6)], begin: Alignment.centerLeft, end: Alignment.centerRight);
 
 /// Görseldeki geniş mor degrade düğme
-Widget _degradeButon({required String yazi, required IconData ikon, VoidCallback? onTap, bool yukleniyor = false}) => Container(
+Widget _degradeButon(
+        {required String yazi,
+        required IconData ikon,
+        VoidCallback? onTap,
+        bool yukleniyor = false,
+        double radius = 18,
+        double? yukseklik,
+        double yaziBoyut = 16.5,
+        Gradient gradient = _morDegrade}) =>
+    Container(
+      height: yukseklik,
       decoration: BoxDecoration(
-        gradient: _morDegrade,
-        borderRadius: BorderRadius.circular(18),
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(radius),
         boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.22), blurRadius: 14, offset: const Offset(0, 5))],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(radius),
           onTap: yukleniyor ? null : onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(vertical: yukseklik == null ? 16 : 0),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               yukleniyor
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Icon(ikon, color: Colors.white, size: 24),
               const SizedBox(width: 10),
-              Text(yazi, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16.5)),
-            ]),
-          ),
-        ),
-      ),
-    );
-
-/// Bilgi kartı (yeşil indirim / turuncu kapalı): yuvarlak ikon + kalın başlık + açıklama + ok
-Widget _bilgiKart(BuildContext context, {required IconData ikon, required Color renk, required Color zemin, required String baslik, required String alt, required String detay}) =>
-    Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: zemin, borderRadius: BorderRadius.circular(18), border: Border.all(color: renk.withValues(alpha: 0.35))),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => showDialog(
-            context: context,
-            builder: (c) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              title: Text(baslik, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              content: Text(detay, style: const TextStyle(height: 1.45)),
-              actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Tamam'))],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
-            child: Row(children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: renk, shape: BoxShape.circle),
-                child: Icon(ikon, color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(baslik, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF111827), height: 1.3)),
-                  const SizedBox(height: 3),
-                  Text(alt, style: const TextStyle(fontSize: 12.5, color: Color(0xFF374151), height: 1.35)),
-                ]),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: Color(0xFF374151)),
+              Text(yazi, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: yaziBoyut)),
             ]),
           ),
         ),
@@ -147,18 +142,33 @@ String _durum(Map<String, dynamic> x) {
   return 'yayinda';
 }
 
+/// Filtre grubu: yayinda | bekliyor | bitti (durdurulan da "Bitti" sayılır)
+String _grup(Map<String, dynamic> x) {
+  final d = _durum(x);
+  return d == 'kapali' ? 'bitti' : d;
+}
+
+/// Sayfadaki dönem seçimi -> reklam-kazanc ?gun=
+int _donemGun(String d) {
+  final n = DateTime.now();
+  return switch (d) {
+    '7g' => 7,
+    '30g' => 30,
+    '90g' => 90,
+    'bu_ay' => n.day,
+    'gecen_ay' => DateTime(n.year, n.month, n.day).difference(DateTime(n.year, n.month - 1, 1)).inDays + 1,
+    _ => 30,
+  };
+}
+
+/// "₺18.450" (binlik ayraçlı)
+String _para(dynamic x) => '₺${sayi(x)}';
+
 String _trTarih(dynamic s) {
   final t = '${s ?? ''}';
   if (t.length < 10) return t;
   final p = t.substring(0, 10).split('-');
   return '${p[2]}.${p[1]}.${p[0]}';
-}
-
-int _gunFark(dynamic s) {
-  final d = DateTime.tryParse('${s ?? ''}'.length >= 10 ? '$s'.substring(0, 10) : '');
-  if (d == null) return 0;
-  final b = DateTime.now();
-  return DateTime(d.year, d.month, d.day).difference(DateTime(b.year, b.month, b.day)).inDays;
 }
 
 /// WaReklam::tl ile aynı biçim
@@ -177,8 +187,6 @@ String _indirimEtiket(dynamic tur, dynamic deger) {
   return '';
 }
 
-const _durumAd = {'yayinda': '● Yayında', 'bekliyor': 'Başlamadı', 'kapali': 'Durduruldu', 'bitti': 'Süresi bitti'};
-const _durumSinif = {'yayinda': 'y', 'bekliyor': 's', 'kapali': 'g', 'bitti': 'k'};
 
 class WaReklamSekme extends StatefulWidget {
   final WaDurum d;
@@ -195,18 +203,69 @@ class _WaReklamSekmeState extends State<WaReklamSekme> with AutomaticKeepAliveCl
   String _filtre = 'tumu';
   final _isleniyor = <int>{};
 
+  // Kazanç (reklam-kazanc): null = yüklenemedi -> kazanç alanları gizlenir
+  Map<String, dynamic>? _kazanc;
+  late String _sonDonem;
+
+  // Örnek (demo) veri: yalnız bellekte, sunucuya yazılmaz
+  bool _demo = false;
+
+  void _demoAc() {
+    final v = waReklamDemo();
+    setState(() {
+      _demo = true;
+      _filtre = 'tumu';
+      _liste = haritaListe(v['liste']);
+      _kazanc = harita(v['kazanc']);
+    });
+  }
+
+  void _demoKapat() {
+    setState(() {
+      _demo = false;
+      _filtre = 'tumu';
+      _liste = null;
+      _kazanc = null;
+    });
+    _yukle();
+  }
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    _sonDonem = widget.d.donem;
+    widget.d.addListener(_durumDegisti);
     _yukle();
   }
 
-  Future<void> _yukle() async {
-    final r = await WaApi.al(widget.d.sube, '/reklamlar');
+  @override
+  void dispose() {
+    widget.d.removeListener(_durumDegisti);
+    super.dispose();
+  }
+
+  void _durumDegisti() {
+    if (widget.d.donem == _sonDonem) return;
+    _sonDonem = widget.d.donem;
+    _kazancYukle();
+  }
+
+  Future<void> _kazancYukle() async {
+    if (_demo) return;
+    final r = await WaApi.al(widget.d.sube, '/reklam-kazanc', {'gun': '${_donemGun(widget.d.donem)}'});
     if (!mounted) return;
+    setState(() => _kazanc = okMu(r) ? r : null);
+  }
+
+  Future<void> _yukle() async {
+    if (_demo) return;
+    final kz = _kazancYukle();
+    final r = await WaApi.al(widget.d.sube, '/reklamlar');
+    await kz;
+    if (!mounted || _demo) return;
     setState(() {
       if (okMu(r)) {
         _hata = null;
@@ -220,14 +279,23 @@ class _WaReklamSekmeState extends State<WaReklamSekme> with AutomaticKeepAliveCl
     });
   }
 
-  Future<void> _formAc([Map<String, dynamic>? x]) async {
+  Future<List<Map<String, dynamic>>?> _formAc([Map<String, dynamic>? x]) async {
+    if (_demo) {
+      _demoUyari();
+      return null;
+    }
     final yeni = await Navigator.of(context).push<List<Map<String, dynamic>>>(MaterialPageRoute(
       builder: (_) => WaReklamForm(d: widget.d, reklam: x, populer: _populer),
     ));
-    if (yeni != null && mounted) setState(() => _liste = yeni);
+    if (yeni != null && mounted) {
+      setState(() => _liste = yeni);
+      _kazancYukle();
+    }
+    return yeni;
   }
 
   Future<void> _yayinDegistir(Map<String, dynamic> x) async {
+    if (_demo) return _demoUyari();
     final aktif = sayiDeger(x['aktif']) != 0;
     if (!aktif && '${x['indirim_tur'] ?? ''}'.isEmpty) {
       waToast(context, 'Yayına almadan önce kampanya indirimini girin.');
@@ -260,6 +328,7 @@ class _WaReklamSekmeState extends State<WaReklamSekme> with AutomaticKeepAliveCl
   }
 
   Future<void> _sil(Map<String, dynamic> x) async {
+    if (_demo) return _demoUyari();
     if (!await waOnay(context, '"${x['baslik']}" kampanyası silinsin mi?', evet: 'Sil')) return;
     final r = await WaApi.gonder(widget.d.sube, '/reklam/${sayiDeger(x['id']).toInt()}/sil');
     if (!mounted) return;
@@ -286,33 +355,17 @@ class _WaReklamSekmeState extends State<WaReklamSekme> with AutomaticKeepAliveCl
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            if (_demo) _demoSerit(),
             _hero(),
-            _bilgiKart(context,
-                ikon: Icons.check_rounded,
-                renk: const Color(0xFF16A34A),
-                zemin: const Color(0xFFECFDF3),
-                baslik: 'İndirim tanımladığınız kampanyada, asistanın oluşturduğu randevuya indirim otomatik işlenir.',
-                alt: 'Tahsilat da indirimli tutardan açılır ve randevuya yansır.',
-                detay:
-                    'Asistan kampanyalı müşteriye randevu oluşturduğunda indirim, kampanyaya seçtiğiniz hizmetlerin randevu fiyatından otomatik düşülür; tahsilat indirimli tutardan açılır ve randevuya "🎁 WhatsApp kampanyası" notu eklenir.\n\nKampanyalı müşterinin randevusunu siz açıyorsanız (telefon, elden) indirimi randevu fiyatında kendiniz uygulayın; aksi halde kasa ve raporlarınız tutmaz.'),
-            if (!_ozellikAcik)
-              _bilgiKart(context,
-                  ikon: Icons.priority_high_rounded,
-                  renk: const Color(0xFFF97316),
-                  zemin: const Color(0xFFFFF4EC),
-                  baslik: 'Reklam özelliği bu işletmede kapalı.',
-                  alt: 'Kampanyalarınızı şimdiden hazırlayabilirsiniz; özellik açılınca asistan göndermeye başlar.',
-                  detay: 'Kampanyalarınızı şimdiden oluşturup düzenleyebilirsiniz. Özellik açılana kadar asistan bunları müşterilere göndermez. Açtırmak için bizimle iletişime geçin.'),
-            if (_hata != null) WaBilgi(_hata!, renk: const Color(0xFFDC2626)),
+            if (l != null && (l.isNotEmpty || _kazanc != null)) _filtreler(l),
+            if (_kazanc != null) _kpiSerit() else if (l != null && l.isNotEmpty) _ozet(l),
+            if (_hata != null && !_demo) WaBilgi(_hata!, renk: const Color(0xFFDC2626)),
             if (l == null)
               const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
             else if (l.isEmpty)
               _bos()
-            else ...[
-              _ozet(l),
-              _filtreler(l),
-              ...l.where((x) => _filtre == 'tumu' || _durum(x) == _filtre).map(_kart),
-            ],
+            else
+              ...l.where((x) => _filtre == 'tumu' || _grup(x) == _filtre).map(_kart),
           ],
         ),
       ),
@@ -320,164 +373,230 @@ class _WaReklamSekmeState extends State<WaReklamSekme> with AutomaticKeepAliveCl
         left: 16,
         right: 16,
         bottom: 14,
-        child: _degradeButon(yazi: 'Yeni kampanya', ikon: Icons.add_rounded, onTap: () => _formAc()),
+        child: _degradeButon(
+          yazi: 'Yeni kampanya',
+          ikon: Icons.add_rounded,
+          onTap: () => _formAc(),
+          radius: 16,
+          yukseklik: 52,
+          yaziBoyut: 16,
+          gradient: const LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFF8B5CF6)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+        ),
       ),
     ]);
   }
 
   Widget _hero() {
     Widget adim(String m) => Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
-            const SizedBox(width: 5),
-            Flexible(child: Text(m, style: const TextStyle(color: Colors.white, fontSize: 11.5, height: 1.25))),
+          padding: const EdgeInsets.only(top: 5),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
+            const SizedBox(width: 6),
+            Text(m, maxLines: 1, softWrap: false, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600, height: 1.2)),
           ]),
         );
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: const Color(0xFFE9E2FA), borderRadius: BorderRadius.circular(22)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 4))],
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFF9F67FA)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
-          ),
-          child: CustomPaint(
-            painter: _DalgaPainter(),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 16, 12, 16),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                // megafon + ses cizgileri
-                SizedBox(
-                  width: 86,
-                  height: 86,
-                  child: Stack(clipBehavior: Clip.none, children: [
-                    Positioned(
-                      left: 0,
-                      top: 10,
-                      child: Transform.rotate(angle: -0.35, child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 72)),
-                    ),
-                    Positioned(right: -2, top: 0, width: 26, height: 30, child: CustomPaint(painter: _SesCizgiPainter())), // ses cizgileri
-                  ]),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Kampanyalarınızı\nasistan anlatsın',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 19, height: 1.2)),
-                    const SizedBox(height: 6),
-                    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          adim('1. Kampanyayı bir kez girin'),
-                          adim('2. Müşteri ilgili hizmeti sorar'),
-                          adim('3. Asistan afişle birlikte gönderir'),
-                        ]),
-                      ),
-                      const SizedBox(width: 6),
-                      Material(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: _nasilCalisir,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.play_arrow_rounded, size: 16, color: Color(0xFF4C1D95)),
-                              SizedBox(width: 2),
-                              Text('Nasıl çalışır?', style: TextStyle(color: Color(0xFF4C1D95), fontWeight: FontWeight.w700, fontSize: 11)),
-                            ]),
+        // Mor degrade bant (genis dikdortgen)
+        SizedBox(
+          height: 156,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFF8B5CF6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            ),
+            child: CustomPaint(
+              painter: _DalgaPainter(),
+              child: Stack(children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 12, 14, 12),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                    // 3B megafon
+                    SizedBox(width: 92, height: 92, child: Image.asset('images/wa_reklam_megafon.png', fit: BoxFit.contain)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        // Sag ustteki (i) ile cakismasin diye basliga sag bosluk
+                        const Padding(
+                          padding: EdgeInsets.only(right: 26),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text('Kampanyalarınızı\nasistan anlatsın',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, height: 1.18)),
                           ),
                         ),
-                      ),
-                    ]),
+                        const SizedBox(height: 7),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            adim('1. Kampanyayı bir kez girin'),
+                            adim('2. Müşteri ilgili hizmeti sorar'),
+                            adim('3. Asistan afişle birlikte gönderir'),
+                          ]),
+                        ),
+                      ]),
+                    ),
                   ]),
+                ),
+                // Sag ust (i): "Nasil calisir?" bilgilendirmesi
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Material(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _nasilCalisir,
+                      child: const Padding(
+                        padding: EdgeInsets.all(5),
+                        child: Icon(Icons.info_outline_rounded, color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ),
                 ),
               ]),
             ),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 10, 14, 12),
-          child: Row(children: [
-            Icon(Icons.info_outline_rounded, color: Color(0xFF6D28D9), size: 20),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text('Sohbet başına en fazla bir kez gider • İlgisiz hizmette gönderilmez\n"kampanya istemiyorum" diyene bir daha gitmez.',
-                  style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF3F3D56), height: 1.4)),
-            ),
-          ]),
-        ),
       ]),
     );
   }
 
+  // Bilgilendirme penceresi: icerik uzun olabilir -> kaydirilabilir, ekranin %85'ini gecmez (tasma olmasin)
   void _nasilCalisir() => showModalBottomSheet(
         context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-        builder: (c) => const SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 24),
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Nasıl çalışır?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-              SizedBox(height: 12),
-              Text(
-                '1. Kampanyanızı başlık, açıklama, ilgili hizmetler, indirim ve isterseniz afişle bir kez girin.\n\n'
-                '2. Müşteri WhatsApp\'tan bu hizmetlerden birini sorduğunda asistan kampanyayı afiş ve kampanya sayfası bağlantısıyla gönderir.\n\n'
-                '3. Müşteri "evet" derse asistan randevuyu oluşturur; indirim randevu fiyatına otomatik işlenir.\n\n'
-                'Kampanya her sohbette en fazla bir kez gider, ilgisiz hizmette gönderilmez, "kampanya istemiyorum" diyene bir daha gitmez. Gönderim, açılma ve randevu sayılarını kartlarda görürsünüz.',
-                style: TextStyle(height: 1.45, fontSize: 14),
-              ),
-            ]),
-          ),
-        ),
-      );
-
-  Widget _bos() => WaKart(
-        padding: const EdgeInsets.fromLTRB(14, 20, 14, 8),
-        child: Column(children: [
-          const Icon(Icons.campaign_rounded, size: 46, color: Color(0xFF6D28D9)),
-          const SizedBox(height: 6),
-          const Text('Henüz kampanyanız yok', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF111827))),
-          const SizedBox(height: 6),
-          const Text('Hazır bir şablonla başlayın ya da "Yeni kampanya" ile kendinizinkini yazın.',
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 13.5, color: Color(0xFF374151), height: 1.4)),
-          const SizedBox(height: 14),
-          for (var i = 0; i < _sablonlar.length; i++)
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(color: const Color(0xFFF1ECFC), borderRadius: BorderRadius.circular(16)),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _formAc({'aktif': 1, 'hizmetler': [], 'baslik': _sablonlar[i].b, 'metin': _sablonlar[i].m, 'indirim_tur': 'yuzde', 'indirim_deger': _sablonlar[i].i}),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-                    child: Row(children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: const BoxDecoration(color: Color(0xFF6D28D9), shape: BoxShape.circle),
-                        child: Icon(_sablonIkon[i], color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(_sablonlar[i].b, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF111827))),
-                          const SizedBox(height: 2),
-                          Text(_sablonlar[i].k, style: const TextStyle(fontSize: 13, color: Color(0xFF374151))),
-                        ]),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, color: Color(0xFF4C1D95)),
+        builder: (c) {
+          Widget adim(String no, String baslik, String metin) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(color: Color(0xFFEFE9FD), shape: BoxShape.circle),
+                    child: Text(no, style: const TextStyle(color: Color(0xFF6D28D9), fontWeight: FontWeight.w800, fontSize: 13.5)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(baslik, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5, color: Color(0xFF1F1633))),
+                      const SizedBox(height: 2),
+                      Text(metin, style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.grey.shade700)),
                     ]),
                   ),
-                ),
+                ]),
+              );
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(c).size.height * 0.85),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
+                  const Row(children: [
+                    Icon(Icons.info_outline_rounded, color: Color(0xFF6D28D9), size: 22),
+                    SizedBox(width: 8),
+                    Text('Nasıl çalışır?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                  ]),
+                  const SizedBox(height: 16),
+                  if (!_ozellikAcik)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF4E5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFCD9A8)),
+                      ),
+                      child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFFEA580C)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Reklam özelliği bu işletmede kapalı. Kampanyalarınızı hazırlayabilirsiniz; özellik açılınca asistan göndermeye başlar.',
+                            style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFFB45309), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  adim('1', 'Kampanyayı bir kez girin', 'Başlık, açıklama, ilgili hizmetler, indirim ve isterseniz afiş.'),
+                  adim('2', 'Müşteri ilgili hizmeti sorar', 'Müşteri WhatsApp\'tan bu hizmetlerden birini sorduğunda asistan kampanyayı afiş ve kampanya sayfası bağlantısıyla gönderir.'),
+                  adim('3', 'Müşteri "evet" derse randevu açılır', 'Asistan randevuyu oluşturur; indirim randevu fiyatına otomatik işlenir.'),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: const Color(0xFFF5F2FC), borderRadius: BorderRadius.circular(12)),
+                    child: Text(
+                      'Kampanya her sohbette en fazla bir kez gider, ilgisiz hizmette gönderilmez, "kampanya istemiyorum" diyene bir daha gitmez. '
+                      'Gönderim, açılma ve randevu sayılarını kartlarda görürsünüz.',
+                      style: TextStyle(fontSize: 13, height: 1.45, color: Colors.grey.shade800),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF6D28D9),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      onPressed: () => Navigator.of(c).pop(),
+                      child: const Text('Anladım', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    ),
+                  ),
+                ]),
               ),
             ),
+          );
+        },
+      );
+
+  // Bos durum: yalniz kisa bilgi. Hazir sablonlar "Yeni kampanya" formunda ("Hazır şablon").
+  Widget _bos() => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFEDE7F6)),
+        ),
+        child: Column(children: [
+          const Icon(Icons.campaign_rounded, size: 34, color: Color(0xFF6D28D9)),
+          const SizedBox(height: 6),
+          const Text('Henüz kampanyanız yok', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5, color: Color(0xFF111827))),
+          const SizedBox(height: 4),
+          const Text('"Yeni kampanya" ile oluşturun; hazır şablonlar da orada.',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Color(0xFF4B5563), height: 1.4)),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: waMorKoyu,
+              side: const BorderSide(color: waMorKoyu),
+              visualDensity: VisualDensity.compact,
+              shape: const StadiumBorder(),
+            ),
+            onPressed: _demoAc,
+            icon: const Icon(Icons.visibility_outlined, size: 18),
+            label: const Text('Örnekle göster', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
         ]),
       );
 
@@ -513,151 +632,279 @@ class _WaReklamSekmeState extends State<WaReklamSekme> with AutomaticKeepAliveCl
     );
   }
 
+  /// Filtre çipleri (Tümü / Yayında / Bekleyen / Bitti); kazanç alttaki KPI şeridinde
   Widget _filtreler(List<Map<String, dynamic>> l) {
-    final say = <String, int>{'tumu': l.length, 'yayinda': 0, 'bekliyor': 0, 'kapali': 0, 'bitti': 0};
+    final say = <String, int>{'tumu': l.length, 'yayinda': 0, 'bekliyor': 0, 'bitti': 0};
     for (final x in l) {
-      say[_durum(x)] = (say[_durum(x)] ?? 0) + 1;
+      final g = _grup(x);
+      say[g] = (say[g] ?? 0) + 1;
     }
     if (_filtre != 'tumu' && (say[_filtre] ?? 0) == 0) _filtre = 'tumu';
-    const adlar = [('tumu', 'Tümü'), ('yayinda', 'Yayında'), ('bekliyor', 'Başlamadı'), ('kapali', 'Durduruldu'), ('bitti', 'Süresi bitti')];
-    return SizedBox(
-      height: 42,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: adlar
-            .where((f) => f.$1 == 'tumu' || (say[f.$1] ?? 0) > 0)
-            .map((f) => Padding(
-                  padding: const EdgeInsets.only(right: 6, bottom: 6),
-                  child: ChoiceChip(
-                    label: Text('${f.$2} (${say[f.$1]})'),
-                    selected: _filtre == f.$1,
-                    selectedColor: waMor.withValues(alpha: 0.15),
-                    onSelected: (_) => setState(() => _filtre = f.$1),
-                  ),
-                ))
-            .toList(),
+    const adlar = [('tumu', 'Tümü'), ('yayinda', 'Yayında'), ('bekliyor', 'Bekleyen'), ('bitti', 'Bitti')];
+    Widget cip((String, String) f) {
+      final secili = _filtre == f.$1;
+      final bos = (say[f.$1] ?? 0) == 0 && f.$1 != 'tumu';
+      return Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: Material(
+          color: secili ? waMorKoyu : Colors.white,
+          shape: StadiumBorder(side: BorderSide(color: secili ? waMorKoyu : const Color(0xFFE4DDF5))),
+          child: InkWell(
+            customBorder: const StadiumBorder(),
+            onTap: bos ? null : () => setState(() => _filtre = f.$1),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(text: f.$2),
+                  TextSpan(
+                      text: ' ${say[f.$1]}',
+                      style: TextStyle(color: secili ? Colors.white70 : Colors.grey.shade500, fontWeight: FontWeight.w700)),
+                ]),
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: secili ? Colors.white : (bos ? Colors.grey.shade400 : const Color(0xFF3B2A63))),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (l.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SizedBox(
+        height: 34,
+        child: ListView(scrollDirection: Axis.horizontal, children: adlar.map(cip).toList()),
       ),
     );
   }
 
+  /// Kazanç KPI şeridi: Ulaşılan · Randevu · Gelen · Kazanç (dönem seçimine göre)
+  Widget _kpiSerit() {
+    final o = harita(_kazanc?['ozet']);
+    Widget kutu(String ad, String deger, Color renk, Color zemin, {String? alt}) => Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 6),
+            decoration: BoxDecoration(color: zemin, borderRadius: BorderRadius.circular(12)),
+            child: Column(children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(deger, maxLines: 1, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: renk)),
+              ),
+              const SizedBox(height: 1),
+              Text(ad, maxLines: 1, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: renk.withValues(alpha: 0.8))),
+              if (alt != null)
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(alt, maxLines: 1, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                ),
+            ]),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        kutu('Ulaşılan', sayi(o['ulasilan']), const Color(0xFF6D28D9), const Color(0xFFF1EBFE)),
+        kutu('Randevu', sayi(o['randevu']), const Color(0xFFDB2777), const Color(0xFFFDEDF5)),
+        kutu('Gelen', sayi(o['gelen']), const Color(0xFF0D9488), const Color(0xFFE6F7F5)),
+        kutu('Kazanç', _para(o['kazanc']), const Color(0xFF15803D), const Color(0xFFE8F8EE),
+            alt: sayiDeger(o['indirim']) > 0 ? 'İndirim ${_para(o['indirim'])}' : null),
+      ]),
+    );
+  }
+
+  void _demoUyari() => waToast(context, 'Örnek veride işlem yapılamaz');
+
+  Future<void> _detayAc(Map<String, dynamic> x) async {
+    final id = sayiDeger(x['id']).toInt();
+    final demoKz = _demo ? _kazanc : null;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => WaReklamDetay(
+        d: widget.d,
+        reklam: x,
+        demoVeri: demoKz == null ? null : waReklamDemoTek(demoKz, id),
+        onDuzenle: _demo
+            ? null
+            : (r) async {
+                final yeni = await _formAc(r);
+                if (yeni == null) return null;
+                final b = yeni.where((e) => sayiDeger(e['id']).toInt() == id);
+                return b.isEmpty ? null : b.first;
+              },
+      ),
+    ));
+  }
+
+  /// Örnek veri uyarı şeridi
+  Widget _demoSerit() => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF4E5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFF59E0B)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.science_outlined, size: 18, color: Color(0xFFB45309)),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text('Örnek veri — kaydedilmez, gönderilmez',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFFB45309))),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFB45309), visualDensity: VisualDensity.compact),
+            onPressed: _demoKapat,
+            child: const Text('Kapat', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ]),
+      );
+
   Widget _kart(Map<String, dynamic> x) {
-    final d = _durum(x);
+    final d = waReklamDurum(x);
     final id = sayiDeger(x['id']).toInt();
     final aktif = sayiDeger(x['aktif']) != 0;
     final gorsel = '${x['gorsel'] ?? ''}';
-    final ind = _indirimEtiket(x['indirim_tur'], x['indirim_deger']);
-    final adlar = {for (final h in widget.d.hizmetler) sayiDeger(h['id']).toInt(): '${h['ad']}'};
-    final hz = liste(x['hizmetler']).map((e) => sayiDeger(e).toInt()).toList();
-    final g = sayiDeger(x['gosterim']).toInt(), t = sayiDeger(x['tiklama']).toInt(), r = sayiDeger(x['randevu']).toInt();
-    String kalan = '';
-    if (d == 'yayinda' && '${x['bitis'] ?? ''}'.length >= 10) {
-      final f = _gunFark(x['bitis']);
-      kalan = f == 0 ? 'Son gün bugün' : '$f gün kaldı';
-    }
-    if (d == 'bekliyor') kalan = '${_trTarih(x['baslangic'])} başlar';
+    final renk = waReklamDurumRenk[d]!;
+    final kz = harita(harita(_kazanc?['reklamlar'])['$id']);
+    final rdv = sayiDeger(kz['randevu']), kazandi = sayiDeger(kz['kazanc']);
     final pasif = d == 'kapali' || d == 'bitti';
 
     return Opacity(
-      opacity: pasif ? 0.75 : 1,
+      opacity: pasif ? 0.8 : 1,
       child: WaKart(
         padding: EdgeInsets.zero,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          // afis + rozetler
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Stack(children: [
-              AspectRatio(
-                aspectRatio: 16 / 8,
-                child: gorsel.isNotEmpty
-                    ? Image.network(gorsel.startsWith('http') ? gorsel : '${WaApi.host}$gorsel',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: waAcikMor, child: const Icon(Icons.image_outlined, size: 40, color: waMor)))
-                    : Container(color: waAcikMor, child: const Icon(Icons.image_outlined, size: 40, color: waMor)),
-              ),
-              Positioned(
-                left: 8,
-                top: 8,
-                right: 8,
-                child: Wrap(spacing: 6, runSpacing: 6, children: [
-                  _rozet(_durumAd[d]!, _sinifRenk(_durumSinif[d]!)),
-                  ind.isNotEmpty ? _rozet('🏷️ $ind indirim', const Color(0xFF16A34A)) : _rozet('⚠️ İndirim girilmedi', const Color(0xFFF59E0B)),
-                  if (kalan.isNotEmpty) _rozet(kalan, const Color(0xFF334155)),
-                ]),
-              ),
-            ]),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text('${x['baslik']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
-              if ('${x['metin'] ?? ''}'.trim().isNotEmpty)
-                Padding(padding: const EdgeInsets.only(top: 4), child: WaAlt('${x['metin']}')),
-              const SizedBox(height: 8),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                ...hz.take(3).map((i) => _etiket(adlar[i] ?? '#$i')),
-                if (hz.length > 3) _etiket('+${hz.length - 3}'),
-                if (hz.isEmpty) _etiket('Hizmet seçilmedi', renk: const Color(0xFF92400E), zemin: const Color(0xFFFEF3C7)),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _detayAc(x),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 4, 10),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: gorsel.isNotEmpty
+                        ? Image.network(gorsel.startsWith('http') ? gorsel : '${WaApi.host}$gorsel',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Container(color: waAcikMor, child: const Icon(Icons.campaign_rounded, size: 28, color: waMor)))
+                        : Container(color: waAcikMor, child: const Icon(Icons.campaign_rounded, size: 28, color: waMor)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Text(waReklamKod(id), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: renk.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                        child: Text('● ${waReklamDurumAd[d]}', style: TextStyle(color: renk, fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 8),
+                    ]),
+                    const SizedBox(height: 3),
+                    Text('${x['baslik']}',
+                        maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      Icon(Icons.calendar_month_outlined, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text('${waReklamTarihAraligi(x)} · ${waReklamKalan(x)}',
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700)),
+                      ),
+                    ]),
+                    if (rdv > 0 || kazandi > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text.rich(
+                          TextSpan(children: [
+                            TextSpan(text: '${sayi(rdv)} randevu · '),
+                            TextSpan(
+                                text: '${_para(kazandi)} kazandırdı',
+                                style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.w700)),
+                          ]),
+                          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      const Spacer(),
+                      if (_isleniyor.contains(id))
+                        const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: waMorKoyu,
+                          side: const BorderSide(color: waMorKoyu),
+                          visualDensity: VisualDensity.compact,
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.only(left: 14, right: 8),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: const StadiumBorder(),
+                        ),
+                        onPressed: () => _detayAc(x),
+                        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text('Detay', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+                          Icon(Icons.chevron_right_rounded, size: 18),
+                        ]),
+                      ),
+                      PopupMenuButton<String>(
+                        tooltip: 'İşlemler',
+                        icon: Icon(Icons.more_vert_rounded, color: Colors.grey.shade700),
+                        onSelected: (v) {
+                          if (_demo) return _demoUyari();
+                          switch (v) {
+                            case 'duzenle':
+                              _formAc(x);
+                            case 'yayin':
+                              _yayinDegistir(x);
+                            case 'sayfa':
+                              _sayfaAc(x);
+                            case 'sil':
+                              _sil(x);
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                              value: 'duzenle', child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Düzenle'), dense: true)),
+                          PopupMenuItem(
+                              value: 'yayin',
+                              child: ListTile(
+                                  leading: Icon(aktif ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                                  title: Text(aktif ? 'Durdur' : 'Yayına al'),
+                                  dense: true)),
+                          const PopupMenuItem(
+                              value: 'sayfa',
+                              child: ListTile(leading: Icon(Icons.open_in_new_rounded), title: Text('Müşterinin gördüğü sayfa'), dense: true)),
+                          const PopupMenuItem(
+                              value: 'sil',
+                              child: ListTile(
+                                  leading: Icon(Icons.delete_outline, color: Color(0xFFDC2626)),
+                                  title: Text('Sil', style: TextStyle(color: Color(0xFFDC2626))),
+                                  dense: true)),
+                        ],
+                      ),
+                    ]),
+                  ]),
+                ),
               ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                _huni(sayi(g), 'gönderildi'),
-                _huni(sayi(t), g > 0 ? 'açtı · %${(t * 100 / g).round()}' : 'açtı'),
-                _huni(sayi(r), 'randevu', renk: const Color(0xFFDB2777)),
-              ]),
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text('son 30 gün${'${x['bitis'] ?? ''}'.length >= 10 && d != 'bekliyor' && kalan.isEmpty ? ' · son gün ${_trTarih(x['bitis'])}' : ''}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-              ),
-            ]),
+            ),
           ),
-          const Divider(height: 16),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
-            child: Row(children: [
-              TextButton.icon(onPressed: () => _formAc(x), icon: const Icon(Icons.edit_outlined, size: 18), label: const Text('Düzenle')),
-              _isleniyor.contains(id)
-                  ? const Padding(padding: EdgeInsets.symmetric(horizontal: 18), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
-                  : TextButton.icon(
-                      onPressed: () => _yayinDegistir(x),
-                      icon: Icon(aktif ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 18),
-                      label: Text(aktif ? 'Durdur' : 'Yayına al'),
-                    ),
-              const Spacer(),
-              IconButton(tooltip: 'Müşterinin gördüğü sayfa', onPressed: () => _sayfaAc(x), icon: const Icon(Icons.open_in_new_rounded, size: 20)),
-              IconButton(tooltip: 'Sil', onPressed: () => _sil(x), icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626))),
-            ]),
-          ),
-        ]),
+        ),
       ),
     );
   }
-
-  Color _sinifRenk(String s) => switch (s) {
-        'y' => const Color(0xFF16A34A),
-        's' => const Color(0xFFD97706),
-        'k' => const Color(0xFFDC2626),
-        _ => const Color(0xFF64748B),
-      };
-
-  Widget _rozet(String m, Color c) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(20)),
-        child: Text(m, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-      );
-
-  Widget _etiket(String m, {Color renk = waMorKoyu, Color zemin = waAcikMor}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: zemin, borderRadius: BorderRadius.circular(8)),
-        child: Text(m, style: TextStyle(color: renk, fontSize: 11.5, fontWeight: FontWeight.w600)),
-      );
-
-  Widget _huni(String deger, String ad, {Color? renk}) => Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(deger, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: renk)),
-          Text(ad, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-        ]),
-      );
 }
 
 String _kes10(dynamic s) {
