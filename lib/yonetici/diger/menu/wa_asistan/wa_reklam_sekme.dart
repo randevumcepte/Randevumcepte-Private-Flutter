@@ -23,7 +23,46 @@ const _sablonlar = [
 ];
 
 // Şablon ikonları (sırayla _sablonlar)
-const _sablonIkon = [Icons.percent_rounded, Icons.calendar_month_rounded, Icons.star_rounded, Icons.sell_rounded];
+const _sablonIkon = [Icons.percent_rounded, Icons.card_giftcard_rounded, Icons.star_rounded, Icons.sell_rounded]; // sekme listesi
+const _formSablonIkon = [Icons.card_giftcard_outlined, Icons.calendar_month_outlined, Icons.star_rounded, Icons.sell_outlined]; // form listesi
+
+/// Üst kartın arka planındaki açık mor dalga
+class _DalgaPainter extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final p1 = Paint()..color = Colors.white.withValues(alpha: 0.08);
+    c.drawPath(
+        Path()
+          ..moveTo(0, s.height * 0.72)
+          ..quadraticBezierTo(s.width * 0.3, s.height * 0.52, s.width * 0.62, s.height * 0.78)
+          ..quadraticBezierTo(s.width * 0.85, s.height * 0.95, s.width, s.height * 0.7)
+          ..lineTo(s.width, s.height)
+          ..lineTo(0, s.height)
+          ..close(),
+        p1);
+    c.drawCircle(Offset(s.width * 0.95, s.height * 0.05), s.height * 0.45, Paint()..color = Colors.white.withValues(alpha: 0.07));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Megafonun yanındaki sarı ses çizgileri
+class _SesCizgiPainter extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final p = Paint()
+      ..color = const Color(0xFFFBBF24)
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(Offset(s.width * 0.15, s.height * 0.55), Offset(s.width * 0.35, s.height * 0.05), p);
+    c.drawLine(Offset(s.width * 0.45, s.height * 0.7), Offset(s.width * 0.85, s.height * 0.35), p);
+    c.drawLine(Offset(s.width * 0.5, s.height * 1.0), Offset(s.width * 0.95, s.height * 0.92), p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 const _morDegrade = LinearGradient(colors: [Color(0xFF6D28D9), Color(0xFF8B5CF6)], begin: Alignment.centerLeft, end: Alignment.centerRight);
 
@@ -32,7 +71,7 @@ Widget _degradeButon({required String yazi, required IconData ikon, VoidCallback
       decoration: BoxDecoration(
         gradient: _morDegrade,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.22), blurRadius: 14, offset: const Offset(0, 5))],
       ),
       child: Material(
         color: Colors.transparent,
@@ -288,73 +327,87 @@ class _WaReklamSekmeState extends State<WaReklamSekme> with AutomaticKeepAliveCl
 
   Widget _hero() {
     Widget adim(String m) => Padding(
-          padding: const EdgeInsets.only(top: 5),
+          padding: const EdgeInsets.only(top: 4),
           child: Row(children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 15),
-            const SizedBox(width: 6),
-            Expanded(child: Text(m, style: const TextStyle(color: Colors.white, fontSize: 12.5))),
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+            const SizedBox(width: 5),
+            Flexible(child: Text(m, style: const TextStyle(color: Colors.white, fontSize: 11.5, height: 1.25))),
           ]),
         );
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEDE7FB),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.12), blurRadius: 18, offset: const Offset(0, 6))],
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFE9E2FA), borderRadius: BorderRadius.circular(22)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Container(
-          padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
           decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFF8B5CF6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+            gradient: LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFF9F67FA)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
           ),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            Container(
-              width: 74,
-              height: 74,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.95), shape: BoxShape.circle),
-              child: const Icon(Icons.campaign_rounded, color: Color(0xFF6D28D9), size: 46),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Kampanyalarınızı\nasistan anlatsın',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18.5, height: 1.2)),
-                const SizedBox(height: 4),
-                adim('1. Kampanyayı bir kez girin'),
-                adim('2. Müşteri ilgili hizmeti sorar'),
-                adim('3. Asistan afişle birlikte gönderir'),
-                const SizedBox(height: 10),
-                Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: _nasilCalisir,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.play_arrow_rounded, size: 18, color: Color(0xFF4C1D95)),
-                        SizedBox(width: 4),
-                        Text('Nasıl çalışır?', style: TextStyle(color: Color(0xFF4C1D95), fontWeight: FontWeight.w700, fontSize: 12.5)),
-                      ]),
+          child: CustomPaint(
+            painter: _DalgaPainter(),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 16, 12, 16),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                // megafon + ses cizgileri
+                SizedBox(
+                  width: 86,
+                  height: 86,
+                  child: Stack(clipBehavior: Clip.none, children: [
+                    Positioned(
+                      left: 0,
+                      top: 10,
+                      child: Transform.rotate(angle: -0.35, child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 72)),
                     ),
-                  ),
+                    Positioned(right: -2, top: 0, width: 26, height: 30, child: CustomPaint(painter: _SesCizgiPainter())), // ses cizgileri
+                  ]),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Kampanyalarınızı\nasistan anlatsın',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 19, height: 1.2)),
+                    const SizedBox(height: 6),
+                    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          adim('1. Kampanyayı bir kez girin'),
+                          adim('2. Müşteri ilgili hizmeti sorar'),
+                          adim('3. Asistan afişle birlikte gönderir'),
+                        ]),
+                      ),
+                      const SizedBox(width: 6),
+                      Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: _nasilCalisir,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.play_arrow_rounded, size: 16, color: Color(0xFF4C1D95)),
+                              SizedBox(width: 2),
+                              Text('Nasıl çalışır?', style: TextStyle(color: Color(0xFF4C1D95), fontWeight: FontWeight.w700, fontSize: 11)),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ]),
                 ),
               ]),
             ),
-          ]),
+          ),
         ),
         const Padding(
-          padding: EdgeInsets.fromLTRB(14, 10, 14, 12),
+          padding: EdgeInsets.fromLTRB(16, 10, 14, 12),
           child: Row(children: [
-            Icon(Icons.info_outline_rounded, color: Color(0xFF6D28D9), size: 22),
+            Icon(Icons.info_outline_rounded, color: Color(0xFF6D28D9), size: 20),
             SizedBox(width: 10),
             Expanded(
-              child: Text('Sohbet başına en fazla bir kez gider • İlgisiz hizmette gönderilmez • "kampanya istemiyorum" diyene bir daha gitmez.',
-                  style: TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic, color: Color(0xFF3F3D56), height: 1.4)),
+              child: Text('Sohbet başına en fazla bir kez gider • İlgisiz hizmette gönderilmez\n"kampanya istemiyorum" diyene bir daha gitmez.',
+                  style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF3F3D56), height: 1.4)),
             ),
           ]),
         ),
@@ -830,7 +883,7 @@ class _WaReklamFormState extends State<WaReklamForm> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 15, 12, 15),
               child: Row(children: [
-                Icon(_sablonIkon[i], color: const Color(0xFF6D28D9), size: 28),
+                Icon(_formSablonIkon[i], color: const Color(0xFF6D28D9), size: 28),
                 const SizedBox(width: 18),
                 Expanded(child: Text(_sablonlar[i].b, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF111827)))),
                 const Icon(Icons.chevron_right_rounded, color: Color(0xFF4C1D95)),
@@ -896,8 +949,7 @@ class _WaReklamFormState extends State<WaReklamForm> {
         ),
       TextField(controller: _ara, decoration: _dek('Hizmet ara (ör. manikür, protez)', ikon: Icons.sell_outlined)),
       const SizedBox(height: 6),
-      Text(q.isEmpty ? '🔥 En çok satanlar · diğerleri için arayın' : (gorunen.isEmpty ? 'Bu adla hizmet bulunamadı.' : 'Arama sonucu · ${gorunen.length} hizmet'),
-          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+      if (q.isNotEmpty && gorunen.isEmpty) Text('Bu adla hizmet bulunamadı.', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
       const SizedBox(height: 6),
       Wrap(
         spacing: 6,
