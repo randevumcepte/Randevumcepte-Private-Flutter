@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
+import '../../bildirim_ayarlari/bildirim_ayarlari_page.dart';
 import '../sms_yonetimi_state.dart';
 
 class SmsAyarlariTab extends StatefulWidget {
@@ -265,6 +266,37 @@ class _SmsAyarlariTabState extends State<SmsAyarlariTab>
     );
   }
 
+  /// Yeni Bildirim Ayarları ekranına giriş (SMS / WhatsApp / Uygulama ayrı ayrı).
+  Widget _bildirimAyarlariGiris() {
+    return Card(
+      margin: EdgeInsets.only(bottom: 12),
+      color: Colors.deepPurple.shade50,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.deepPurple.shade100),
+      ),
+      child: ListTile(
+        leading: Icon(Icons.notifications_active_outlined,
+            color: Colors.deepPurple),
+        title: Text('Bildirim Ayarları',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(
+            'SMS, WhatsApp ve uygulama bildirimlerini ayrı ayrı yönetin'),
+        trailing: Icon(Icons.chevron_right, color: Colors.deepPurple),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  BildirimAyarlariPage(salonId: widget.state.salonId),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -279,6 +311,7 @@ class _SmsAyarlariTabState extends State<SmsAyarlariTab>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    _bildirimAyarlariGiris(),
                     _hatirlatmaSaatiKarti(),
                     ..._kartlar.map(_ayarKarti).toList(),
                     SizedBox(height: 80),

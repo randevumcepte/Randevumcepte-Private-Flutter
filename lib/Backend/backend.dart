@@ -7700,3 +7700,60 @@ Future<Map<String, dynamic>> sesliYeniMusteri({
     return {'ok': false, 'hata': 'Baglanti hatasi'};
   }
 }
+// ============================================================
+// BILDIRIM AYARLARI (mobil) — web Ayarlar > Bildirim Ayarlari ile ayni uclar.
+// SMS / WhatsApp / Uygulama (push) her bildirim x alici icin ayri anahtar.
+// Yalniz Hesap Sahibi (rol 1); degilse sunucu 403 {ok:0, hata} doner.
+// ============================================================
+Map<String, dynamic> _bildirimAyarCevap(http.Response res) {
+  try {
+    final body = json.decode(res.body);
+    if (body is Map) {
+      final m = Map<String, dynamic>.from(body);
+      if (res.statusCode != 200 && m['hata'] == null) {
+        m['ok'] = 0;
+        m['hata'] = 'İşlem başarısız (${res.statusCode}).';
+      }
+      return m;
+    }
+  } catch (_) {}
+  return {'ok': 0, 'hata': 'Sunucudan geçersiz yanıt (${res.statusCode}).'};
+}
+
+/// {ok:1, gruplar:[...], wa_yedek_sms, durum:{sms_hesabi, sms_bakiye, wa_bagli, uygulama_musteri}}
+Future<Map<String, dynamic>> bildirimAyarlariVeri(String salonId) async {
+  try {
+    final token = await _dgBearerToken();
+    if (token == null) return {'ok': 0, 'hata': 'Oturum bulunamadı.'};
+    final res = await http.get(
+      Uri.parse('$_apiBase/bildirim-ayarlari/veri?sube=$salonId'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 20));
+    return _bildirimAyarCevap(res);
+  } catch (e) {
+    log('bildirimAyarlariVeri: $e');
+  }
+  return {'ok': 0, 'hata': 'Sunucuya bağlanılamadı.'};
+}
+
+/// govde: {kod, alici, kanal, deger} | {toplu:1, kanal, alici?, deger} | {wa_yedek_sms}
+Future<Map<String, dynamic>> bildirimAyarKaydet(
+    String salonId, Map<String, dynamic> govde) async {
+  try {
+    final token = await _dgBearerToken();
+    if (token == null) return {'ok': 0, 'hata': 'Oturum bulunamadı.'};
+    final res = await http.post(
+      Uri.parse('$_apiBase/bildirim-ayarlari/kaydet?sube=$salonId'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({...govde, 'sube': salonId}),
+    ).timeout(const Duration(seconds: 20));
+    return _bildirimAyarCevap(res);
+  } catch (e) {
+    log('bildirimAyarKaydet: $e');
+  }
+  return {'ok': 0, 'hata': 'Sunucuya bağlanılamadı.'};
+}

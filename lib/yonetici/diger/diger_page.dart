@@ -52,6 +52,7 @@ import 'menu/seanstakibi/seanstakibi.dart';
 import 'menu/seanstakibi/seanstakibiyeni.dart';
 import 'menu/senetler/senetlistesi.dart';
 import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
+import 'menu/bildirim_ayarlari/bildirim_ayarlari_page.dart';
 import 'menu/musteri_yorumlari/musteri_yorumlari_yonetim.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
 import 'menu/wa_asistan/wa_asistan_page.dart';
@@ -1123,6 +1124,26 @@ class _MenuState extends State<Menu> {
                           child: SmsYonetimiPage(
                             kullanicirolu: kullanicirolu,
                             isletmebilgi: widget.isletmebilgi,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                // Bildirim Ayarlari (SMS / WhatsApp / Uygulama ayri ayri).
+                // Sunucu yalniz Hesap Sahibi'ne (rol 1) izin verir.
+                if (kullanicirolu == 1)
+                  _buildMenuButton(
+                    icon: Icons.notifications_active_rounded,
+                    label: 'Bildirim Ayarları',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          duration: Duration(milliseconds: 300),
+                          child: BildirimAyarlariPage(
+                            salonId: widget.isletmebilgi['id'].toString(),
                           ),
                         ),
                       );
