@@ -1,32 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler.dart';
+import 'package:randevu_sistem/yonetici/profil/profil_tema.dart';
 
-/// Diğer > Bildirimlerim: giriş yapan kişi (her rol) kendi uygulama bildirimlerini tür bazında
-/// sesli / sessiz yapar. Sessiz bildirim yine gelir ve zil listesinde görünür; yalnız ses ve
-/// titreşim yapmaz. Hangi bildirimin gideceğine işletme sahibi karar verir (Bildirim Ayarları);
-/// işletmenin kapattığı türler gri ve kilitli görünür. Uçlar: /api/v1/bildirimlerim/veri + /kaydet.
+/// Bildirimlerim: giriş yapan kişi (her rol) kendi uygulama bildirimlerini tür bazında
+/// sesli / sessiz yapar (anahtar açık = sesli, kapalı = sessiz). Sessiz bildirim yine gelir ve zil
+/// listesinde görünür; yalnız ses ve titreşim yapmaz. Hangi bildirimin gideceğine işletme karar verir;
+/// işletmenin kapattığı türler kilitli görünür. Uçlar: /api/v1/bildirimlerim/veri + /kaydet.
 class BildirimlerimPage extends StatefulWidget {
   final String salonId;
-  const BildirimlerimPage({super.key, required this.salonId});
+  /// Verilirse sağ üstte zil (bildirim listesi) düğmesi görünür.
+  final dynamic isletmebilgi;
+  final int? kullanicirolu;
+  const BildirimlerimPage({super.key, required this.salonId, this.isletmebilgi, this.kullanicirolu});
 
   @override
   State<BildirimlerimPage> createState() => _BildirimlerimPageState();
 }
 
 class _BildirimlerimPageState extends State<BildirimlerimPage> {
-  static const Color _mor = Color(0xFF5C008E);
-  static const Color _mor2 = Color(0xFF7B2FB8);
-  static const Color _yesil = Color(0xFF16A34A);
-  static const Color _gri = Color(0xFF94A3B8);
-  static const Color _zemin = Color(0xFFF7F5FB);
-
   static const Map<String, IconData> _ikonlar = {
     'event_available': Icons.event_available_rounded,
     'edit_calendar': Icons.edit_calendar_rounded,
     'event_busy': Icons.event_busy_rounded,
     'alarm': Icons.alarm_rounded,
-    'people': Icons.people_alt_rounded,
-    'chat': Icons.chat_rounded,
+    'people': Icons.groups_rounded,
+    'chat': Icons.sms_rounded,
     'campaign': Icons.campaign_rounded,
   };
 
@@ -44,217 +44,274 @@ class _BildirimlerimPageState extends State<BildirimlerimPage> {
   bool _ok(Map r) => r['ok'] == 1 || r['ok'] == true || r['ok'] == '1';
 
   void _al(Map r) {
-    _liste = (r['kategoriler'] as List? ?? [])
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
+    _liste = (r['kategoriler'] as List? ?? []).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  List<Map<String, dynamic>> get _acilabilir => _liste.where((k) => k['kilitli'] != true).toList();
+  bool get _hepsiSesli => _acilabilir.isNotEmpty && _acilabilir.every((k) => k['sessiz'] != true);
+
   Future<void> _yukle() async {
-    setState(() {
-      _yukleniyor = true;
-      _hata = null;
-    });
     final r = await bildirimlerimVeri(widget.salonId);
     if (!mounted) return;
     setState(() {
       _yukleniyor = false;
       if (_ok(r)) {
         _al(r);
+        _hata = null;
       } else {
         _hata = (r['hata'] ?? 'Bildirimler yüklenemedi.').toString();
       }
     });
   }
 
-  Future<void> _degistir(Map<String, dynamic> k, bool sessiz) async {
-    final kod = k['kod'].toString();
+  /// kod = kategori kodu ya da 'tumu'
+  Future<void> _degistir(String kod, bool sesli, String ad) async {
     if (_kaydediliyor.contains(kod)) return;
-    final eski = k['sessiz'] == true;
+    final yedek = _liste.map((e) => Map<String, dynamic>.from(e)).toList();
     setState(() {
-      k['sessiz'] = sessiz;
       _kaydediliyor.add(kod);
+      for (final k in _liste) {
+        if (k['kilitli'] == true) continue;
+        if (kod == 'tumu' || k['kod'] == kod) k['sessiz'] = !sesli;
+      }
     });
-    final r = await bildirimlerimKaydet(widget.salonId, kod, sessiz);
+    final r = await bildirimlerimKaydet(widget.salonId, kod, !sesli);
     if (!mounted) return;
     setState(() {
       _kaydediliyor.remove(kod);
       if (_ok(r)) {
         _al(r);
       } else {
-        k['sessiz'] = eski;
+        _liste = yedek;
       }
     });
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: _ok(r) ? const Color(0xFF1E293B) : Colors.red.shade700,
-        content: Text(_ok(r)
-            ? '"${k['ad']}" ${sessiz ? 'sessize alındı' : 'sesli yapıldı'}'
-            : (r['hata'] ?? 'Kaydedilemedi.').toString()),
-        duration: const Duration(seconds: 2),
-      ));
+    ptMesaj(
+        context,
+        _ok(r)
+            ? (kod == 'tumu'
+                ? (sesli ? 'Tüm bildirimler sesli yapıldı' : 'Tüm bildirimler sessize alındı')
+                : '"$ad" ${sesli ? 'sesli yapıldı' : 'sessize alındı'}')
+            : (r['hata'] ?? 'Kaydedilemedi.').toString(),
+        hata: !_ok(r));
   }
 
   @override
   Widget build(BuildContext context) {
-    final aktif = _liste.where((k) => k['kilitli'] != true).toList();
-    final kilitli = _liste.where((k) => k['kilitli'] == true).toList();
-    return Scaffold(
-      backgroundColor: _zemin,
-      appBar: AppBar(
-        title: const Text('Bildirimlerim',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-              gradient: LinearGradient(colors: [_mor, _mor2])),
-        ),
-      ),
-      body: _yukleniyor
-          ? const Center(child: CircularProgressIndicator(color: _mor))
-          : _hata != null
-              ? _hataGorunumu()
-              : RefreshIndicator(
-                  color: _mor,
-                  onRefresh: _yukle,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
-                    children: [
-                      _bilgiKarti(),
-                      const SizedBox(height: 14),
-                      ...aktif.map(_satir),
-                      if (kilitli.isNotEmpty) ...[
-                        const SizedBox(height: 18),
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4, bottom: 8),
-                          child: Text('İşletme kapattığı için gelmeyenler',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF64748B))),
-                        ),
-                        ...kilitli.map(_satir),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: PT.zemin,
+        body: Stack(children: [
+          const PTZemin(),
+          SafeArea(
+            child: _yukleniyor
+                ? Column(children: [_ustBar(), const Expanded(child: Center(child: CircularProgressIndicator(color: PT.mor)))])
+                : RefreshIndicator(
+                    color: PT.mor,
+                    onRefresh: _yukle,
+                    child: ListView(
+                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 28),
+                      children: [
+                        _ustBar(),
+                        _hero(),
+                        const SizedBox(height: 14),
+                        if (_hata != null)
+                          PTBos(Icons.cloud_off_rounded, _hata!)
+                        else ...[
+                          _tumu(),
+                          const SizedBox(height: 22),
+                          _bolumBaslik('BİLDİRİM TERCİHLERİ'),
+                          const SizedBox(height: 12),
+                          ..._liste.map(_satir),
+                          const SizedBox(height: 8),
+                          _bilgi(),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
+          ),
+        ]),
+      ),
     );
   }
 
-  Widget _hataGorunumu() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.cloud_off_rounded, size: 46, color: _gri),
-            const SizedBox(height: 10),
-            Text(_hata!, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _mor),
-              onPressed: _yukle,
-              child: const Text('Tekrar dene'),
+  Widget _ustBar() => Padding(
+        padding: const EdgeInsets.only(top: 0, bottom: 4),
+        child: Row(children: [
+          PTDaireDugme(ikon: Icons.arrow_back_rounded, onTap: () => Navigator.pop(context)),
+          const Spacer(),
+          if (widget.isletmebilgi != null && widget.kullanicirolu != null)
+            PTDaireDugme(
+              ikon: Icons.notifications_none_rounded,
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => BildirimlerScreen(isletmebilgi: widget.isletmebilgi, kullanicirolu: widget.kullanicirolu!))),
             ),
-          ]),
-        ),
+        ]),
       );
 
-  Widget _bilgiKarti() => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF3E8FF),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE9D5FF)),
-        ),
-        child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(Icons.info_outline_rounded, color: _mor2, size: 22),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Bildirimler yine gelir ve zil listesinde görünür; sessize aldıklarınız ses ve titreşim yapmaz. '
-              'Hangi bildirimin size gönderileceğine işletme karar verir.',
-              style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF4C1D95)),
+  Widget _hero() => SizedBox(
+        height: 176,
+        child: Row(children: [
+          Container(
+            width: 142,
+            height: 142,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [Colors.white.withValues(alpha: 0.95), Colors.white.withValues(alpha: 0.35)]),
+              boxShadow: [BoxShadow(color: PT.mor.withValues(alpha: 0.10), blurRadius: 30, offset: const Offset(0, 12))],
             ),
+            padding: const EdgeInsets.all(14),
+            child: Image.asset('images/bildirim_zil.png', fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text('Bildirimlerim',
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Color(0xFF1B1464), letterSpacing: -0.8)),
+              ),
+              const SizedBox(height: 8),
+              const Text('Size gelen bildirimleri dilediğiniz gibi yönetin.',
+                  style: TextStyle(fontSize: 14.5, height: 1.35, color: Color(0xFF2E2A4F))),
+              const SizedBox(height: 10),
+              SizedBox(height: 18, width: double.infinity, child: CustomPaint(painter: _Kavis())),
+            ]),
           ),
         ]),
       );
+
+  Widget _anahtar(bool deger, ValueChanged<bool>? degisti) => Transform.scale(
+        scale: 1.08,
+        child: Switch(
+          value: deger,
+          onChanged: degisti,
+          thumbColor: const WidgetStatePropertyAll(Colors.white),
+          trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? PT.mor : const Color(0xFFE2E3EA)),
+          trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+        ),
+      );
+
+  Widget _tumu() {
+    final mesgul = _kaydediliyor.contains('tumu');
+    return PTKart(
+      padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+      child: Row(children: [
+        const PTIkon(Icons.notifications_rounded, boyut: 60),
+        const SizedBox(width: 14),
+        const Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text('Tüm Bildirimler Sesli', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700, color: PT.koyu)),
+            ),
+            SizedBox(height: 3),
+            Text('Kapatırsanız tüm bildirimler sessiz gelir.', style: TextStyle(fontSize: 12.5, height: 1.3, color: PT.gri)),
+          ]),
+        ),
+        _anahtar(_hepsiSesli, mesgul || _acilabilir.isEmpty ? null : (v) => _degistir('tumu', v, '')),
+      ]),
+    );
+  }
+
+  Widget _bolumBaslik(String m) => Row(children: [
+        Container(width: 4, height: 20, decoration: BoxDecoration(color: const Color(0xFFA78BFA), borderRadius: BorderRadius.circular(3))),
+        const SizedBox(width: 12),
+        Text(m, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: PT.koyu, letterSpacing: 3.2)),
+      ]);
 
   Widget _satir(Map<String, dynamic> k) {
     final kilitli = k['kilitli'] == true;
-    final sessiz = k['sessiz'] == true;
-    final kaydediliyor = _kaydediliyor.contains(k['kod'].toString());
-    final renk = kilitli ? _gri : (sessiz ? const Color(0xFF64748B) : _mor2);
-    return Opacity(
-      opacity: kilitli ? 0.6 : 1,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEDE9F6)),
-        ),
-        child: Row(children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-                color: renk.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: Icon(_ikonlar[k['ikon']] ?? Icons.notifications_rounded,
-                color: renk, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(k['ad'].toString(),
-                  maxLines: 1,
+    final sesli = k['sessiz'] != true;
+    final kod = k['kod'].toString();
+    final mesgul = _kaydediliyor.contains(kod) || _kaydediliyor.contains('tumu');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Opacity(
+        opacity: kilitli ? 0.55 : 1,
+        child: PTKart(
+          padding: const EdgeInsets.fromLTRB(12, 13, 10, 13),
+          child: Row(children: [
+            PTIkon(_ikonlar[k['ikon']] ?? Icons.notifications_rounded, boyut: 58),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(k['ad'].toString(), maxLines: 1, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: PT.koyu)),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  kilitli ? 'İşletme bu bildirimleri kapattı.' : (sesli ? k['aciklama'].toString() : 'Sessiz · ${k['aciklama']}'),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 14.5, fontWeight: FontWeight.w700, color: Color(0xFF1E1B2E))),
-              const SizedBox(height: 2),
-              Text(
-                kilitli ? 'İşletme bu bildirimleri kapattı' : k['aciklama'].toString(),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, height: 1.3, color: Color(0xFF64748B)),
-              ),
-            ]),
-          ),
-          const SizedBox(width: 8),
-          kilitli
-              ? const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.lock_rounded, color: _gri, size: 20),
-                )
-              : _secici(k, sessiz, kaydediliyor),
-        ]),
+                  style: const TextStyle(fontSize: 12.5, height: 1.3, color: PT.gri),
+                ),
+              ]),
+            ),
+            const SizedBox(width: 4),
+            kilitli
+                ? const Padding(padding: EdgeInsets.all(12), child: Icon(Icons.lock_rounded, color: Color(0xFF94A3B8), size: 22))
+                : _anahtar(sesli, mesgul ? null : (v) => _degistir(kod, v, k['ad'].toString())),
+          ]),
+        ),
       ),
     );
   }
 
-  /// Tek dokunuşla Sesli <-> Sessiz değişen hap
-  Widget _secici(Map<String, dynamic> k, bool sessiz, bool kaydediliyor) {
-    final renk = sessiz ? const Color(0xFF64748B) : _yesil;
-    return GestureDetector(
-      onTap: kaydediliyor ? null : () => _degistir(k, !sessiz),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: 92,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: renk.withValues(alpha: sessiz ? 0.12 : 1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(sessiz ? Icons.notifications_off_rounded : Icons.notifications_active_rounded,
-              size: 16, color: sessiz ? renk : Colors.white),
-          const SizedBox(width: 5),
-          Text(sessiz ? 'Sessiz' : 'Sesli',
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w700, color: sessiz ? renk : Colors.white)),
+  Widget _bilgi() => Container(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        decoration: BoxDecoration(color: PT.lila.withValues(alpha: 0.75), borderRadius: BorderRadius.circular(20)),
+        child: Stack(children: [
+          Positioned(
+            right: -6,
+            top: -8,
+            bottom: -8,
+            child: Icon(Icons.notifications_rounded, size: 76, color: PT.mor.withValues(alpha: 0.08)),
+          ),
+          Row(children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.75), shape: BoxShape.circle),
+              child: const Icon(Icons.info_rounded, color: PT.mor, size: 26),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Sessize aldığınız bildirimler yine gelir ve zil listesinde görünür; yalnızca ses ve titreşim yapmaz. '
+                'Hangi bildirimin size gönderileceğine işletme karar verir.',
+                style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF3B3561)),
+              ),
+            ),
+          ]),
         ]),
-      ),
-    );
+      );
+}
+
+/// Başlık altındaki mor kavis
+class _Kavis extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final p = Path()
+      ..moveTo(s.width * 0.12, s.height * 0.95)
+      ..quadraticBezierTo(s.width * 0.45, s.height * 0.05, s.width * 0.95, s.height * 0.2);
+    c.drawPath(
+        p,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..strokeCap = StrokeCap.round
+          ..shader = const LinearGradient(colors: [Color(0xFF6A1FD0), Color(0x336A1FD0)])
+              .createShader(Rect.fromLTWH(0, 0, s.width, s.height)));
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

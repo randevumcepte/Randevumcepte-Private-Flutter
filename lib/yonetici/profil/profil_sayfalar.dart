@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/hakedislerim.dart';
@@ -1088,33 +1087,13 @@ class _CihazlarSayfasiState extends _ListeDurum<CihazlarSayfasi> {
   }
 }
 
-// ═══════════════════════════════════════════════ Destek + Hakkında
+// ═══════════════════════════════════════════════ Uygulama Hakkında + yasal metinler
 
-class DestekSayfasi extends StatelessWidget {
-  const DestekSayfasi({super.key});
-
-  Future<void> _ac(BuildContext context, String url) async {
-    final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    if (!ok && context.mounted) ptMesaj(context, 'Açılamadı.', hata: true);
-  }
-
-  @override
-  Widget build(BuildContext context) => PTAltSayfa(
-        baslik: 'Yardım & Destek',
-        govde: ListView(padding: const EdgeInsets.fromLTRB(16, 6, 16, 28), children: [
-          PTSatir(
-              ikon: Icons.chat_rounded,
-              baslik: 'WhatsApp destek',
-              alt: '0541 294 81 44 · hızlı yanıt',
-              onTap: () => _ac(context, 'https://wa.me/905412948144?text=${Uri.encodeComponent('Merhaba, RandevumCepte uygulaması hakkında destek almak istiyorum.')}')),
-          PTSatir(ikon: Icons.call_rounded, baslik: 'Bizi arayın', alt: '0850 380 10 35', onTap: () => _ac(context, 'tel:+908503801035')),
-          PTSatir(ikon: Icons.mail_rounded, baslik: 'E-posta', alt: 'info@randevumcepte.com.tr', onTap: () => _ac(context, 'mailto:info@randevumcepte.com.tr')),
-        ]),
-      );
-}
-
+/// İşletmenin kendi bilgileri (ad, logo, adres, telefon) + sürüm + uygulama içi yasal metinler.
+/// Metinler sunucuda her işletme için kendi bilgileriyle otomatik üretilir (/api/v1/profil/hakkinda).
 class HakkindaSayfasi extends StatefulWidget {
-  const HakkindaSayfasi({super.key});
+  final String sube;
+  const HakkindaSayfasi({super.key, required this.sube});
   static String surum = '';
   static Future<String> surumAl() async {
     if (surum.isNotEmpty) return surum;
@@ -1128,7 +1107,7 @@ class HakkindaSayfasi extends StatefulWidget {
   State<HakkindaSayfasi> createState() => _HakkindaSayfasiState();
 }
 
-class _HakkindaSayfasiState extends State<HakkindaSayfasi> {
+class _HakkindaSayfasiState extends _ListeDurum<HakkindaSayfasi> {
   String _yapi = '';
 
   @override
@@ -1140,30 +1119,100 @@ class _HakkindaSayfasiState extends State<HakkindaSayfasi> {
   }
 
   @override
-  Widget build(BuildContext context) => PTAltSayfa(
-        baslik: 'Uygulama Hakkında',
-        govde: ListView(padding: const EdgeInsets.fromLTRB(16, 6, 16, 28), children: [
-          PTKart(
-            child: Row(children: [
-              PTIkon(Icons.event_available_rounded),
-              const SizedBox(width: 14),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('RandevumCepte', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: PT.koyu)),
-                Text(_yapi.isEmpty ? 'Sürüm' : 'Sürüm $_yapi', style: const TextStyle(fontSize: 13, color: PT.gri)),
+  Future<Map<String, dynamic>> getir() => ProfilApi.get('hakkinda', widget.sube);
+
+  static const Map<String, IconData> _ikon = {
+    'kullanim': Icons.description_rounded,
+    'gizlilik': Icons.privacy_tip_rounded,
+    'kvkk': Icons.verified_user_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final i = veri['isletme'] is Map ? veri['isletme'] as Map : const {};
+    final metinler = (veri['metinler'] as List? ?? []).cast<Map>();
+    final ad = (i['ad'] ?? '').toString();
+    final logo = (i['logo'] ?? '').toString();
+    return PTAltSayfa(
+      baslik: 'Uygulama Hakkında',
+      govde: kaydirma([
+        PTKart(
+          padding: const EdgeInsets.all(18),
+          child: Column(children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(color: PT.lila, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4), boxShadow: [
+                BoxShadow(color: PT.mor.withValues(alpha: 0.14), blurRadius: 16, offset: const Offset(0, 6)),
               ]),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          PTSatir(
-              ikon: Icons.description_rounded,
-              baslik: 'Kullanım koşulları',
-              alt: 'randevumcepte.com.tr',
-              onTap: () => launchUrl(Uri.parse('https://randevumcepte.com.tr/kullanim-kosullari/'), mode: LaunchMode.externalApplication)),
-          PTSatir(
-              ikon: Icons.privacy_tip_rounded,
-              baslik: 'Gizlilik ve KVKK',
-              alt: 'Kişisel verilerin korunması',
-              onTap: () => launchUrl(Uri.parse('https://randevumcepte.com.tr/gizlilik-politikasi-ve-guvenlik/'), mode: LaunchMode.externalApplication)),
-        ]),
-      );
+              clipBehavior: Clip.antiAlias,
+              child: logo.isNotEmpty
+                  ? Image.network(logo, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded, color: PT.mor, size: 40))
+                  : const Icon(Icons.storefront_rounded, color: PT.mor, size: 40),
+            ),
+            const SizedBox(height: 12),
+            Text(ad, textAlign: TextAlign.center, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: PT.koyu, letterSpacing: -0.3)),
+            const SizedBox(height: 4),
+            Text(_yapi.isEmpty ? '' : 'Sürüm $_yapi', style: const TextStyle(fontSize: 13, color: PT.gri)),
+            if ((i['adres'] ?? '').toString().isNotEmpty || (i['telefon'] ?? '').toString().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: PT.cizgi),
+              const SizedBox(height: 12),
+              if ((i['adres'] ?? '').toString().isNotEmpty)
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(Icons.location_on_rounded, size: 18, color: PT.mor),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(i['adres'].toString(), style: const TextStyle(fontSize: 13.5, height: 1.35, color: PT.koyu))),
+                ]),
+              if ((i['telefon'] ?? '').toString().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  const Icon(Icons.call_rounded, size: 18, color: PT.mor),
+                  const SizedBox(width: 8),
+                  Text(i['telefon'].toString(), style: const TextStyle(fontSize: 13.5, color: PT.koyu)),
+                ]),
+              ],
+            ],
+          ]),
+        ),
+        const SizedBox(height: 14),
+        ...metinler.map((m) => PTSatir(
+              ikon: _ikon[m['kod']] ?? Icons.article_rounded,
+              baslik: m['baslik'].toString(),
+              alt: 'Son güncelleme: ${m['guncelleme'] ?? ''}',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => YasalMetinSayfasi(metin: m, isletme: ad))),
+            )),
+      ]),
+    );
+  }
+}
+
+/// Uygulama içi yasal metin okuma sayfası
+class YasalMetinSayfasi extends StatelessWidget {
+  final Map metin;
+  final String isletme;
+  const YasalMetinSayfasi({super.key, required this.metin, required this.isletme});
+
+  @override
+  Widget build(BuildContext context) {
+    final bolumler = (metin['bolumler'] as List? ?? []).cast<Map>();
+    return PTAltSayfa(
+      baslik: metin['baslik'].toString(),
+      govde: ListView(padding: const EdgeInsets.fromLTRB(16, 6, 16, 28), children: [
+        PTKart(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(isletme, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: PT.mor)),
+            Text('Son güncelleme: ${metin['guncelleme'] ?? ''}', style: const TextStyle(fontSize: 12.5, color: PT.gri)),
+            for (var n = 0; n < bolumler.length; n++) ...[
+              const SizedBox(height: 16),
+              Text('${n + 1}. ${bolumler[n]['baslik']}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: PT.koyu)),
+              const SizedBox(height: 5),
+              Text(bolumler[n]['metin'].toString(), style: const TextStyle(fontSize: 14, height: 1.55, color: Color(0xFF3B3561))),
+            ],
+          ]),
+        ),
+      ]),
+    );
+  }
 }

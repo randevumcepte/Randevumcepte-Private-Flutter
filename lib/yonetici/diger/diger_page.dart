@@ -1264,6 +1264,8 @@ class _MenuState extends State<Menu> {
                         duration: Duration(milliseconds: 300),
                         child: BildirimlerimPage(
                           salonId: widget.isletmebilgi['id'].toString(),
+                          isletmebilgi: widget.isletmebilgi,
+                          kullanicirolu: kullanicirolu,
                         ),
                       ),
                     );

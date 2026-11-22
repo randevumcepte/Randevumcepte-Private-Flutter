@@ -481,7 +481,7 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
             ikon: Icons.notifications_rounded,
             baslik: 'Bildirimlerim',
             alt: 'Hangi bildirimlerin sesli geleceğini seçin',
-            onTap: () => _ac(BildirimlerimPage(salonId: _sube))),
+            onTap: () => _ac(BildirimlerimPage(salonId: _sube, isletmebilgi: widget.isletmebilgi, kullanicirolu: widget.kullanicirolu))),
       PTSatir(
           ikon: Icons.lock_rounded,
           baslik: 'Şifre Değiştir',
@@ -553,55 +553,43 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
           rozet: (_o['cihaz_sayisi'] ?? 0) > 0 ? '${_o['cihaz_sayisi']}' : null,
           onTap: () => _ac(CihazlarSayfasi(sube: _sube))),
       PTSatir(
-          ikon: Icons.headset_mic_rounded,
-          baslik: 'Yardım & Destek',
-          alt: 'Sorularınız için bize ulaşın',
-          onTap: () => _ac(const DestekSayfasi())),
-      PTSatir(
           ikon: Icons.info_rounded,
           baslik: 'Uygulama Hakkında',
-          alt: 'Sürüm bilgisi ve kullanım koşulları',
+          alt: 'Kullanım koşulları ve KVKK',
           rozet: HakkindaSayfasi.surum.isEmpty ? null : 'v${HakkindaSayfasi.surum}',
-          onTap: () => _ac(const HakkindaSayfasi())),
+          onTap: () => _ac(HakkindaSayfasi(sube: _sube))),
     ];
   }
 
-  Widget _cikis() => Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        decoration: BoxDecoration(
-          color: PT.lila.withValues(alpha: 0.7),
+  /// Tek eylem: kartın tamamına dokununca çıkış (onay penceresi Menüdeki ile aynı)
+  Widget _cikis() => Material(
+        color: PT.lila.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white),
-        ),
-        child: Row(children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.7), shape: BoxShape.circle),
-            child: const Icon(Icons.logout_rounded, color: PT.mor, size: 25),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text('Oturumu Kapat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: PT.koyu)),
+          onTap: widget.onCikis,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white)),
+            child: Row(children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.75), shape: BoxShape.circle),
+                child: const Icon(Icons.logout_rounded, color: PT.mor, size: 25),
               ),
-              SizedBox(height: 2),
-              Text('Güvenli çıkış', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: PT.gri)),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Güvenli Çıkış', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: PT.koyu)),
+                  SizedBox(height: 2),
+                  Text('Oturumunuzu kapatır',
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: PT.gri)),
+                ]),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: PT.mor, size: 28),
             ]),
           ),
-          const SizedBox(width: 8),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: PT.mor,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            onPressed: widget.onCikis,
-            icon: const Icon(Icons.logout_rounded, size: 18),
-            label: const Text('Çıkış Yap', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
-          ),
-        ]),
+        ),
       );
 }
