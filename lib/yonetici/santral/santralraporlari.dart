@@ -39,6 +39,7 @@ import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/asistanim/asistan_gorusmeleri.dart';
 
 class CDRRaporlari extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -92,6 +93,10 @@ class _CDRState extends State<CDRRaporlari> {
   DateTime? endDate;
   List<String> dahililer = [];
   String _searchQuery = '';
+  /// Santral Raporlari icinde AI asistan gorusmeleri sekmesi (Asistanim ile ayni kayitlar)
+  bool _asistanSekme = false;
+  /// Asistan gorusmeleri yalniz yonetici/sekreter (rol < 5) icin; personelin kendi dahili gorunumunde yok
+  bool get _asistanGoster => widget.kullanicirolu < 5 && widget.sadeceDahili.isEmpty;
 
   TextEditingController baslangictarihi = TextEditingController();
   TextEditingController bitistarihi = TextEditingController();
@@ -312,7 +317,7 @@ class _CDRState extends State<CDRRaporlari> {
 
     return Scaffold(
       // Gomulu (Cagri Merkezi sekmesi) modunda filtreye AppBar yerine FAB'tan erisilir.
-      floatingActionButton: widget.gomulu
+      floatingActionButton: widget.gomulu && !_asistanSekme
           ? FloatingActionButton(
               onPressed: _showFilterBottomSheet,
               backgroundColor: const Color(0xFF6D28D9),
@@ -344,11 +349,12 @@ class _CDRState extends State<CDRRaporlari> {
                   child: YukseltButonu(isletme_bilgi: widget.isletmebilgi)
               ),
             ),
-          _buildActionButton(
-              icon: Icons.filter_list_alt,
-              onPressed: _showFilterBottomSheet,
-              tooltip: 'Filtrele'
-          ),
+          if (!_asistanSekme)
+            _buildActionButton(
+                icon: Icons.filter_list_alt,
+                onPressed: _showFilterBottomSheet,
+                tooltip: 'Filtrele'
+            ),
         ],
       ),
       body: Container(
@@ -358,7 +364,17 @@ class _CDRState extends State<CDRRaporlari> {
             // Arama ve Filtre Bilgisi
             //_buildSearchAndFilterSection(isDark),
 
+            if (_asistanGoster) _buildSekmeSecici(isDark),
+
             // İçerik
+            if (_asistanSekme)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+                  child: AsistanGorusmeleri(isletmebilgi: widget.isletmebilgi),
+                ),
+              )
+            else
             Expanded(
                 child: _isLoading
                     ? _buildLoadingState()
@@ -369,6 +385,56 @@ class _CDRState extends State<CDRRaporlari> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Cagri Kayitlari | Asistan Gorusmeleri secici
+  Widget _buildSekmeSecici(bool isDark) {
+    const mor = Color(0xFF6D28D9);
+    Widget secenek(String yazi, IconData ikon, bool asistan) {
+      final secili = _asistanSekme == asistan;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _asistanSekme = asistan),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: secili ? mor : Colors.transparent,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(ikon, size: 17, color: secili ? Colors.white : (isDark ? Colors.grey[300] : mor)),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(yazi,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: secili ? Colors.white : (isDark ? Colors.grey[300] : mor),
+                      )),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[800] : const Color(0xFFF1ECFA),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(children: [
+        secenek('Çağrı Kayıtları', Icons.call_rounded, false),
+        secenek('Asistan Görüşmeleri', Icons.smart_toy_outlined, true),
+      ]),
     );
   }
 
