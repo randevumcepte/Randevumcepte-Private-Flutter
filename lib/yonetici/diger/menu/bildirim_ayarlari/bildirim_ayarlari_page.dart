@@ -20,6 +20,7 @@ class _BildirimAyarlariPageState extends State<BildirimAyarlariPage> {
   static const Map<String, String> _aliciAd = {
     'musteri': 'Müşteriye',
     'personel': 'Personele',
+    'yonetici': 'Yöneticiye',
   };
 
   bool _yukleniyor = true;
@@ -386,7 +387,7 @@ class _BildirimAyarlariPageState extends State<BildirimAyarlariPage> {
     final alicilar = b['alicilar'];
     if (alicilar is! Map) return null;
     final satirlar = <Widget>[];
-    for (final alici in const ['musteri', 'personel']) {
+    for (final alici in _aliciAd.keys) {
       final k = alicilar[alici];
       if (k is! Map || !k.containsKey(kanal)) continue;
       final anahtar = '${b['kod']}|$alici|$kanal';
@@ -395,7 +396,9 @@ class _BildirimAyarlariPageState extends State<BildirimAyarlariPage> {
           Icon(
               alici == 'musteri'
                   ? Icons.person_outline
-                  : Icons.badge_outlined,
+                  : alici == 'yonetici'
+                      ? Icons.admin_panel_settings_outlined
+                      : Icons.badge_outlined,
               size: 18,
               color: Colors.grey.shade600),
           const SizedBox(width: 8),
