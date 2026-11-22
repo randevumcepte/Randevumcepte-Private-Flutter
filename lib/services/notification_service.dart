@@ -135,6 +135,16 @@ class NotificationService {
   Timer? _retryTimer;
   int _retryAttempt = 0;
 
+  /// Bu cihazin FCM token'i (Profil > Cihazlarim'da "Bu cihaz" isareti icin).
+  Future<String?> mevcutToken() async {
+    if (_currentToken != null) return _currentToken;
+    try {
+      return await _fcm.getToken();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// main() içinde Firebase.initializeApp()'den SONRA çağır.
   /// Kullanıcı login değilse bile token alınıp local'e yazılır;
   /// login sonrası registerForUser() ile backend'e bağlanır.

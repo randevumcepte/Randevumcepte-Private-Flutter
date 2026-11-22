@@ -13,7 +13,9 @@ import 'package:randevu_sistem/Models/user.dart';
 
 class ProfilBilgileri extends StatefulWidget {
   final Kullanici kullanici;
-  const ProfilBilgileri({super.key, required this.kullanici});
+  /// 'tumu' (eski görünüm) | 'bilgi' (Bilgilerimi Düzenle) | 'sifre' (Şifre Değiştir)
+  final String mod;
+  const ProfilBilgileri({super.key, required this.kullanici, this.mod = 'tumu'});
 
   @override
   State<ProfilBilgileri> createState() => _ProfilBilgileriPageState();
@@ -183,6 +185,12 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     _formKey.currentState!.save();
+    if (widget.mod == 'sifre' && _sifre.text.trim().length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Yeni şifre en az 6 karakter olmalı.')),
+      );
+      return;
+    }
     setState(() => _isSaving = true);
     await submitForm(
       context,
@@ -250,7 +258,11 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'Profil Bilgileri',
+            widget.mod == 'sifre'
+                ? 'Şifre Değiştir'
+                : widget.mod == 'bilgi'
+                    ? 'Bilgilerimi Düzenle'
+                    : 'Profil Bilgileri',
             style: TextStyle(
               color: scheme.onSurface,
               fontSize: 17,
@@ -293,17 +305,23 @@ class _ProfilBilgileriPageState extends State<ProfilBilgileri> {
                             parent: AlwaysScrollableScrollPhysics()),
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                         children: [
-                          _heroHeader(context),
-                          const SizedBox(height: 22),
-                          _sectionTitle(context, 'Kişisel Bilgiler',
-                              Icons.person_outline_rounded),
-                          const SizedBox(height: 10),
-                          _personalCard(context),
-                          const SizedBox(height: 18),
-                          _sectionTitle(context, 'Güvenlik',
-                              Icons.lock_outline_rounded),
-                          const SizedBox(height: 10),
-                          _securityCard(context),
+                          if (widget.mod == 'tumu') ...[
+                            _heroHeader(context),
+                            const SizedBox(height: 22),
+                          ],
+                          if (widget.mod != 'sifre') ...[
+                            _sectionTitle(context, 'Kişisel Bilgiler',
+                                Icons.person_outline_rounded),
+                            const SizedBox(height: 10),
+                            _personalCard(context),
+                            const SizedBox(height: 18),
+                          ],
+                          if (widget.mod != 'bilgi') ...[
+                            _sectionTitle(context, 'Güvenlik',
+                                Icons.lock_outline_rounded),
+                            const SizedBox(height: 10),
+                            _securityCard(context),
+                          ],
                         ],
                       ),
                     ),

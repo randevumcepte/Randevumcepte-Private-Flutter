@@ -54,6 +54,7 @@ import 'menu/senetler/senetlistesi.dart';
 import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
 import 'menu/bildirim_ayarlari/bildirim_ayarlari_page.dart';
 import 'menu/bildirim_ayarlari/bildirimlerim_page.dart';
+import 'package:randevu_sistem/yonetici/profil/profil_sayfasi.dart';
 import 'menu/musteri_yorumlari/musteri_yorumlari_yonetim.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
 import 'menu/wa_asistan/wa_asistan_page.dart';
@@ -1241,7 +1242,11 @@ class _MenuState extends State<Menu> {
                       PageTransition(
                         type: PageTransitionType.rightToLeft,
                         duration: Duration(milliseconds: 300),
-                        child: ProfilBilgileri(kullanici: _kullanici),
+                        child: ProfilSayfasi(
+                          isletmebilgi: widget.isletmebilgi,
+                          kullanicirolu: kullanicirolu,
+                          onCikis: () => _logout(context),
+                        ),
                       ),
                     );
                   },
