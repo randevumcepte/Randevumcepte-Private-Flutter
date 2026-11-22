@@ -7736,7 +7736,8 @@ Future<Map<String, dynamic>> bildirimAyarlariVeri(String salonId) async {
   return {'ok': 0, 'hata': 'Sunucuya bağlanılamadı.'};
 }
 
-/// govde: {kod, alici, kanal, deger} | {toplu:1, kanal, alici?, deger} | {wa_yedek_sms}
+/// govde: {degisiklikler: jsonEncode([{kod, alici, kanal, deger}]), wa_yedek_sms?, hatirlatma_saat?}
+/// (toplu kayit; yanit tam veri) | {kod, alici, kanal, deger} | {toplu:1, kanal, alici?, deger}
 Future<Map<String, dynamic>> bildirimAyarKaydet(
     String salonId, Map<String, dynamic> govde) async {
   try {
