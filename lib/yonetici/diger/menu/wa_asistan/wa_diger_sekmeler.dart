@@ -78,28 +78,14 @@ class _WaGeriKazanimSekmeState extends State<WaGeriKazanimSekme> with AutomaticK
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 30),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              WaKart(
-                baslik: 'Kaçan müşteriler',
-                ikon: Icons.person_add_alt,
-                ikonRenk: const Color(0xFFF97316),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  const WaAlt('Asistandan fiyat, bilgi, müsait saat ya da fotoğrafa fiyat alıp randevu oluşturmayan müşteriler. Asistan ayarlardaki süre dolunca bu müşterilere bir kez nazikçe yazar.'),
-                  const SizedBox(height: 8),
-                  if (d.ozetCevap == null)
-                    const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
-                  else if (kacan.isEmpty)
-                    const WaBos('Bu dönemde kaçan müşteri yok.')
-                  else
-                    ...kacan.map((x) => _satir(
-                          ad: '${x['ad'] ?? ''}'.isEmpty ? 'Müşteri' : '${x['ad']}',
-                          alt: '${x['telefon'] ?? ''}'.isEmpty ? 'gizli numara' : '${x['telefon']}',
-                          ust: '${x['hizmet'] ?? ''}'.isEmpty ? '—' : '${x['hizmet']}',
-                          hap: WaHap('${x['neden']}${sayiDeger(x['ret']) > 0 ? ' · yazılmaz' : ''}', sinif: sayiDeger(x['ret']) > 0 ? 'k' : 'm'),
-                          sag: tarihSaat(x['tarih']),
-                          onTap: x['oturum_id'] != null ? () => d.sohbetAc?.call(sayiDeger(x['oturum_id']).toInt()) : null,
-                        )),
-                ]),
-              ),
+              _kacanBaslik(),
+              if (d.ozetCevap == null)
+                const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
+              else if (kacan.isEmpty)
+                const WaKart(child: WaBos('Bu dönemde kaçan müşteri yok.'))
+              else
+                ...kacan.map(_kacanKart),
+              const SizedBox(height: 8),
               WaKart(
                 baslik: 'Geri kazanma mesajları',
                 ikon: Icons.autorenew,
@@ -129,6 +115,146 @@ class _WaGeriKazanimSekmeState extends State<WaGeriKazanimSekme> with AutomaticK
           ),
         );
       },
+    );
+  }
+
+  // ---------------------------------------------------------------- Kaçan müşteriler (kart tasarımı)
+  static const _kacanMor = Color(0xFF5B21B6);
+
+  /// neden etiketi -> (ikon, avatar rengi)
+  static (IconData, Color) _nedenStil(String n) {
+    if (n.contains('Fotoğraf')) return (Icons.photo_camera_rounded, const Color(0xFFF97316));
+    if (n.contains('Fiyat')) return (Icons.sell_rounded, const Color(0xFFEC4899));
+    if (n.contains('Saat')) return (Icons.calendar_month_rounded, const Color(0xFF16A34A));
+    return (Icons.person_add_alt_1_rounded, const Color(0xFF6366F1));
+  }
+
+  Widget _kacanBaslik() => Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFFF3EEFF), Color(0xFFE9E3FB)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFDCD3F5)),
+        ),
+        child: Row(children: [
+          Stack(clipBehavior: Clip.none, children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: const BoxDecoration(color: _kacanMor, shape: BoxShape.circle),
+              child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 28),
+            ),
+            const Positioned(right: -6, top: -8, child: Icon(Icons.auto_awesome, size: 18, color: Color(0xFF7C3AED))),
+          ]),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Kaçan müşteriler', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF1E1B4B))),
+              SizedBox(height: 4),
+              Text(
+                'Asistan\'dan fiyat, bilgi, müsait saat ya da fotoğraf fiyat alıp randevu oluşturamayan müşteriler. Asistan ayarlardaki süre dolunca bu müşterilere bir kez nazikçe yazar.',
+                style: TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF3F3D56)),
+              ),
+            ]),
+          ),
+        ]),
+      );
+
+  Widget _kacanKart(Map<String, dynamic> x) {
+    final neden = '${x['neden'] ?? ''}';
+    final (ikon, renk) = _nedenStil(neden);
+    final ret = sayiDeger(x['ret']) > 0;
+    final ad = '${x['ad'] ?? ''}'.trim().isEmpty ? 'Müşteri' : '${x['ad']}'.trim();
+    final tel = '${x['telefon'] ?? ''}'.trim();
+    final hizmet = '${x['hizmet'] ?? ''}'.trim();
+    final id = x['oturum_id'] != null ? sayiDeger(x['oturum_id']).toInt() : 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: const Color(0xFF5B21B6).withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: id > 0 ? () => d.sohbetAc?.call(id) : null,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // avatar + durum rozeti (! = asistan yazmayacak, saat = geri kazanma mesajı bekliyor)
+              Stack(clipBehavior: Clip.none, children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(color: renk.withValues(alpha: 0.16), shape: BoxShape.circle),
+                  child: Icon(Icons.person_rounded, color: renk, size: 30),
+                ),
+                Positioned(
+                  right: -3,
+                  bottom: -3,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: ret ? const Color(0xFFEA580C) : const Color(0xFF64748B),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: Icon(ret ? Icons.priority_high_rounded : Icons.schedule_rounded, size: 12, color: Colors.white),
+                  ),
+                ),
+              ]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(
+                      child: Text(ad, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF111827))),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.schedule_rounded, size: 15, color: _kacanMor),
+                    const SizedBox(width: 4),
+                    Text(tarihSaat(x['tarih']), style: const TextStyle(fontSize: 12.5, color: Color(0xFF374151))),
+                    if (id > 0) const Icon(Icons.chevron_right_rounded, size: 22, color: Color(0xFF374151)),
+                  ]),
+                  const SizedBox(height: 2),
+                  Text(tel.isEmpty ? 'gizli numara' : tel, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                  const SizedBox(height: 6),
+                  Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Expanded(
+                      child: Text(
+                        hizmet.isEmpty ? 'Hizmet belirtilmedi' : hizmet,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13.5, fontStyle: FontStyle.italic, color: hizmet.isEmpty ? Colors.grey : const Color(0xFF1F2937)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xFFE8EDFF), borderRadius: BorderRadius.circular(20)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(ikon, size: 15, color: const Color(0xFF3730A3)),
+                        const SizedBox(width: 5),
+                        Text(neden, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF3730A3))),
+                      ]),
+                    ),
+                  ]),
+                  if (ret)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Text('Mesaj istemedi · asistan tekrar yazmaz', style: TextStyle(fontSize: 11.5, color: Color(0xFFEA580C), fontWeight: FontWeight.w600)),
+                    ),
+                ]),
+              ),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 
