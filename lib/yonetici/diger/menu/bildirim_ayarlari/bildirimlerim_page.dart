@@ -115,14 +115,14 @@ class _BildirimlerimPageState extends State<BildirimlerimPage> {
                       children: [
                         _ustBar(),
                         _hero(),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
                         if (_hata != null)
                           PTBos(Icons.cloud_off_rounded, _hata!)
                         else ...[
                           _tumu(),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 16),
                           _bolumBaslik('BİLDİRİM TERCİHLERİ'),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           ..._liste.map(_satir),
                           const SizedBox(height: 8),
                           _bilgi(),
@@ -153,17 +153,17 @@ class _BildirimlerimPageState extends State<BildirimlerimPage> {
       );
 
   Widget _hero() => SizedBox(
-        height: 176,
+        height: 116,
         child: Row(children: [
           Container(
-            width: 142,
-            height: 142,
+            width: 110,
+            height: 110,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [Colors.white.withValues(alpha: 0.95), Colors.white.withValues(alpha: 0.35)]),
               boxShadow: [BoxShadow(color: PT.mor.withValues(alpha: 0.10), blurRadius: 30, offset: const Offset(0, 12))],
             ),
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(10),
             child: Image.asset('images/bildirim_zil.png', fit: BoxFit.contain),
           ),
           const SizedBox(width: 16),
@@ -173,13 +173,13 @@ class _BildirimlerimPageState extends State<BildirimlerimPage> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text('Bildirimlerim',
-                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Color(0xFF1B1464), letterSpacing: -0.8)),
+                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: Color(0xFF1B1464), letterSpacing: -0.6)),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               const Text('Size gelen bildirimleri dilediğiniz gibi yönetin.',
-                  style: TextStyle(fontSize: 14.5, height: 1.35, color: Color(0xFF2E2A4F))),
-              const SizedBox(height: 10),
-              SizedBox(height: 18, width: double.infinity, child: CustomPaint(painter: _Kavis())),
+                  style: TextStyle(fontSize: 13.5, height: 1.3, color: Color(0xFF2E2A4F))),
+              const SizedBox(height: 6),
+              SizedBox(height: 12, width: double.infinity, child: CustomPaint(painter: _Kavis())),
             ]),
           ),
         ]),
@@ -199,9 +199,9 @@ class _BildirimlerimPageState extends State<BildirimlerimPage> {
   Widget _tumu() {
     final mesgul = _kaydediliyor.contains('tumu');
     return PTKart(
-      padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+      padding: const EdgeInsets.fromLTRB(12, 11, 8, 11),
       child: Row(children: [
-        const PTIkon(Icons.notifications_rounded, boyut: 60),
+        const PTIkon(Icons.notifications_rounded, boyut: 52),
         const SizedBox(width: 14),
         const Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -231,13 +231,13 @@ class _BildirimlerimPageState extends State<BildirimlerimPage> {
     final kod = k['kod'].toString();
     final mesgul = _kaydediliyor.contains(kod) || _kaydediliyor.contains('tumu');
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Opacity(
         opacity: kilitli ? 0.55 : 1,
         child: PTKart(
-          padding: const EdgeInsets.fromLTRB(12, 13, 10, 13),
+          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
           child: Row(children: [
-            PTIkon(_ikonlar[k['ikon']] ?? Icons.notifications_rounded, boyut: 58),
+            PTIkon(_ikonlar[k['ikon']] ?? Icons.notifications_rounded, boyut: 50),
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
