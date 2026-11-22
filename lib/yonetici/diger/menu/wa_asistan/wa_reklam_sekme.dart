@@ -24,6 +24,8 @@ const _sablonlar = [
 ];
 
 // Form şablon ikonları (sırayla _sablonlar)
+/// Form giris alanlarinda yazilan metin (biraz kucuk)
+const _girdiYazi = TextStyle(fontSize: 13.5, color: Color(0xFF111827));
 const _formSablonIkon = [Icons.card_giftcard_outlined, Icons.calendar_month_outlined, Icons.star_rounded, Icons.sell_outlined]; // form listesi
 
 /// Üst kartın arka planındaki açık mor dalga
@@ -1089,51 +1091,60 @@ class _WaReklamFormState extends State<WaReklamForm> {
     return out;
   }
 
+  // Ornek gorseldeki gibi: mor->pembe degrade, dalga efektleri, 3B hedef tahtasi
   Widget _sablonBaslik() => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+        margin: const EdgeInsets.only(bottom: 10),
+        height: 104,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF6D28D9), Color(0xFFA855F7)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: const LinearGradient(
+              colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFFC026D3)], begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
+          boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.28), blurRadius: 16, offset: const Offset(0, 6))],
         ),
-        child: Row(children: [
-          Container(
-            width: 62,
-            height: 62,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: const Icon(Icons.track_changes_rounded, color: Color(0xFF6D28D9), size: 40),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Hazır şablon', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
-              SizedBox(height: 4),
-              Text('dokununca doldurur, sonra düzenlersiniz', style: TextStyle(color: Colors.white, fontSize: 13)),
+        child: CustomPaint(
+          painter: _DalgaPainter(),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+            child: Row(children: [
+              SizedBox(width: 88, height: 88, child: Image.asset('images/wa_reklam_hedef.png', fit: BoxFit.contain)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Hazır şablon', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                  SizedBox(height: 3),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text('dokununca doldurur, sonra düzenlersiniz', style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                  ),
+                ]),
+              ),
             ]),
           ),
-        ]),
+        ),
       );
 
+  // Ince sablon satiri (form alanlari yukari ciksin)
   Widget _sablonSatir(int i) => Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 7),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 3))],
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFEDE7F6)),
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             onTap: () => _sablonUygula(i),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 15, 12, 15),
+              padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
               child: Row(children: [
-                Icon(_formSablonIkon[i], color: const Color(0xFF6D28D9), size: 28),
-                const SizedBox(width: 18),
-                Expanded(child: Text(_sablonlar[i].b, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF111827)))),
-                const Icon(Icons.chevron_right_rounded, color: Color(0xFF4C1D95)),
+                Icon(_formSablonIkon[i], color: const Color(0xFF6D28D9), size: 22),
+                const SizedBox(width: 14),
+                Expanded(child: Text(_sablonlar[i].b, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: Color(0xFF111827)))),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF4C1D95), size: 20),
               ]),
             ),
           ),
@@ -1141,26 +1152,26 @@ class _WaReklamFormState extends State<WaReklamForm> {
       );
 
   Widget _etiketBaslik(String m, [String? alt]) => Padding(
-        padding: const EdgeInsets.only(bottom: 8, top: 6),
+        padding: const EdgeInsets.only(bottom: 6, top: 4),
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(m, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: Color(0xFF111827))),
+          Text(m, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF111827))),
           if (alt != null) ...[const SizedBox(width: 6), Flexible(child: Text(alt, style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)))],
         ]),
       );
 
   InputDecoration _dek(String ipucu, {String? sonEk, IconData? ikon}) => InputDecoration(
         hintText: ipucu,
-        hintStyle: TextStyle(color: Colors.grey.shade500),
+        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12.5),
         isDense: true,
         filled: true,
         fillColor: Colors.white,
         suffixText: sonEk,
-        prefixIcon: ikon == null ? null : Padding(padding: const EdgeInsets.only(left: 12, right: 8), child: Icon(ikon, color: const Color(0xFF6D28D9), size: 22)),
+        prefixIcon: ikon == null ? null : Padding(padding: const EdgeInsets.only(left: 12, right: 8), child: Icon(ikon, color: const Color(0xFF6D28D9), size: 19)),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4DDF5))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4DDF5))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 1.4)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE4DDF5))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE4DDF5))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 1.4)),
       );
 
   Widget _hizmetSecim() {
@@ -1176,7 +1187,7 @@ class _WaReklamFormState extends State<WaReklamForm> {
     }
     gorunen = gorunen.where((h) => !_secili.contains(sayiDeger(h['id']).toInt())).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      _etiketBaslik('Hangi hizmet sorulunca gönderilsin?', _secili.isEmpty ? 'en az bir hizmet seçin' : '${_secili.length} seçili'),
+      _etiketBaslik('Hangi hizmet sorulunca gönderilsin?', _secili.isEmpty ? null : '${_secili.length} seçili'),
       if (_secili.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -1194,7 +1205,7 @@ class _WaReklamFormState extends State<WaReklamForm> {
                 .toList(),
           ),
         ),
-      TextField(controller: _ara, decoration: _dek('Hizmet ara (ör. manikür, protez)', ikon: Icons.sell_outlined)),
+      TextField(controller: _ara, style: _girdiYazi, decoration: _dek('Hizmet ara (ör. manikür, protez)', ikon: Icons.sell_outlined)),
       const SizedBox(height: 6),
       if (q.isNotEmpty && gorunen.isEmpty) Text('Bu adla hizmet bulunamadı.', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
       const SizedBox(height: 6),
@@ -1270,6 +1281,7 @@ class _WaReklamFormState extends State<WaReklamForm> {
           child: TextField(
             controller: _indDeger,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: _girdiYazi,
             decoration: _dek(_indTur == 'yuzde' ? 'ör. 15' : 'ör. 250', sonEk: _indTur == 'yuzde' ? '%' : 'TL'),
           ),
         ),
@@ -1414,7 +1426,7 @@ class _WaReklamFormState extends State<WaReklamForm> {
             const SizedBox(height: 8),
           ],
           _etiketBaslik('Başlık', '${_baslik.text.length}/120'),
-          TextField(controller: _baslik, maxLength: 120, decoration: _dek('Örn. Kasım\'a özel protez tırnak + manikür 950 TL', ikon: Icons.sell_outlined).copyWith(counterText: '')),
+          TextField(controller: _baslik, maxLength: 120, style: _girdiYazi, decoration: _dek('Örn. Kasım\'a özel protez tırnak + manikür 950 TL', ikon: Icons.sell_outlined).copyWith(counterText: '')),
           const SizedBox(height: 10),
           _etiketBaslik('Açıklama', '${_metin.text.length}/700 · her satır mesajda ayrı madde olur'),
           TextField(
@@ -1422,6 +1434,7 @@ class _WaReklamFormState extends State<WaReklamForm> {
             maxLength: 700,
             minLines: 3,
             maxLines: 6,
+            style: _girdiYazi,
             decoration: _dek('Örn. 1.200 TL yerine 950 TL. Ay sonuna kadar geçerli.', ikon: Icons.description_outlined).copyWith(counterText: ''),
           ),
           const SizedBox(height: 14),

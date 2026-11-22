@@ -129,36 +129,73 @@ class _WaGeriKazanimSekmeState extends State<WaGeriKazanimSekme> with AutomaticK
     return (Icons.person_add_alt_1_rounded, const Color(0xFF6366F1));
   }
 
+  // Kisa baslik bandi (Reklamlarim bannerindaki gibi mor degrade + efekt); uzun aciklama sag ustteki (i)'de
   Widget _kacanBaslik() => Container(
         margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
+        height: 92,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFFF3EEFF), Color(0xFFE9E3FB)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFDCD3F5)),
+          gradient: const LinearGradient(
+              colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFF8B5CF6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.22), blurRadius: 14, offset: const Offset(0, 5))],
         ),
-        child: Row(children: [
-          Stack(clipBehavior: Clip.none, children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: const BoxDecoration(color: _kacanMor, shape: BoxShape.circle),
-              child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 28),
+        child: CustomPaint(
+          painter: _BantEfekt(),
+          child: Stack(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 44, 12),
+              child: Row(children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
+                  child: const Icon(Icons.person_search_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Kaçan müşteriler', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white)),
+                    SizedBox(height: 3),
+                    Text('Randevuya dönmeyenler · asistan bir kez yazar',
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: Color(0xE6FFFFFF))),
+                  ]),
+                ),
+              ]),
             ),
-            const Positioned(right: -6, top: -8, child: Icon(Icons.auto_awesome, size: 18, color: Color(0xFF7C3AED))),
-          ]),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Kaçan müşteriler', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF1E1B4B))),
-              SizedBox(height: 4),
-              Text(
-                'Asistan\'dan fiyat, bilgi, müsait saat ya da fotoğraf fiyat alıp randevu oluşturamayan müşteriler. Asistan ayarlardaki süre dolunca bu müşterilere bir kez nazikçe yazar.',
-                style: TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF3F3D56)),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.white.withValues(alpha: 0.22),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _kacanBilgi,
+                  child: const Padding(padding: EdgeInsets.all(5), child: Icon(Icons.info_outline_rounded, color: Colors.white, size: 21)),
+                ),
               ),
-            ]),
+            ),
+          ]),
+        ),
+      );
+
+  void _kacanBilgi() => showDialog(
+        context: context,
+        builder: (c) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(children: [
+            Icon(Icons.info_outline_rounded, color: Color(0xFF6D28D9)),
+            SizedBox(width: 8),
+            Text('Kaçan müşteriler', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ]),
+          content: const Text(
+            'Asistan\'dan fiyat, bilgi, müsait saat ya da fotoğrafla fiyat alıp randevu oluşturamayan müşteriler burada listelenir.\n\n'
+            'Asistan, Ayarlar\'daki bekleme süresi dolunca bu müşterilere bir kez nazikçe yazar. Müşteri dönüp randevu alırsa "Geri kazanılan" olarak görünür.',
+            style: TextStyle(height: 1.45, fontSize: 14),
           ),
-        ]),
+          actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Anladım'))],
+        ),
       );
 
   Widget _kacanKart(Map<String, dynamic> x) {
@@ -186,12 +223,8 @@ class _WaGeriKazanimSekmeState extends State<WaGeriKazanimSekme> with AutomaticK
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // avatar + durum rozeti (! = asistan yazmayacak, saat = geri kazanma mesajı bekliyor)
               Stack(clipBehavior: Clip.none, children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(color: renk.withValues(alpha: 0.16), shape: BoxShape.circle),
-                  child: Icon(Icons.person_rounded, color: renk, size: 30),
-                ),
+                // WhatsApp profil fotografi (Sohbetler sekmesiyle ayni); yoksa bas harfler
+                WaAvatar(ad: ad, id: id > 0 ? id : null, sube: d.sube, boyut: 54),
                 Positioned(
                   right: -3,
                   bottom: -3,
@@ -892,10 +925,6 @@ class _WaAyarlarSekmeState extends State<WaAyarlarSekme> with AutomaticKeepAlive
         '"Protez tırnak ne kadar?" gibi sorulara hizmet listenizdeki fiyatla cevap verir. Kapalıysa fiyat soran müşteriye fiyatı işletmeye sorduğunu söyler ve size bildirir.'),
     ('gorsel_fiyat', 'Fotoğraftan fiyat versin', 'Müşterinin gönderdiği model fotoğrafına, "Fotoğraftan Fiyat" sekmesindeki eşleşmelerle fiyat verir.'),
     ('memnuniyet_sor', 'Randevudan sonra memnuniyet sorsun', 'Randevu oluşturulunca tek satırlık 👍 / 👎 sorusu eklenir.'),
-    ('denetci', 'Gece denetçisi sohbetleri incelesin',
-        'Her gece biten sohbetleri inceler, sorunları ve "doğrusu buydu" cevabını "Asistan Gelişimi" sekmesine yazar. (Paketinizden düşmez.)'),
-    ('denetci_oto', 'Test edilen dersleri kendisi uygulasın',
-        'Denetçinin önerdiği davranış dersi, geçmiş sohbetlerde yeniden denenip daha iyi sonuç verirse asistan hemen uygular. Kapalıysa her ders sizin onayınızı bekler. Fiyat, kampanya ve kurallarınız asla kendiliğinden değişmez.'),
     ('geri_kazanim', 'Kaçan müşteriye tekrar yazsın',
         'Fiyat/bilgi alıp randevu oluşturmayan müşteriye belirlediğiniz süre sonunda, mesai saatinde bir kez yazar ve gerçek boş saatlerinizi önerir. Müşteri "dur" yazarsa bir daha yazılmaz.'),
   ];
@@ -1040,4 +1069,38 @@ class _WaAyarlarSekmeState extends State<WaAyarlarSekme> with AutomaticKeepAlive
       const WaAlt('Panelin sağ üstündeki zilde de görünür.'),
     ]);
   }
+}
+
+/// Baslik bandi efektleri: sag ustte acik genis bolge, altta dalga (Reklamlarim bannerindaki gibi)
+class _BantEfekt extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final w = s.width, h = s.height;
+    final sagUst = Path()
+      ..moveTo(w * 0.52, 0)
+      ..cubicTo(w * 0.66, h * 0.34, w * 0.82, h * 0.12, w * 0.88, h * 0.52)
+      ..cubicTo(w * 0.92, h * 0.74, w * 0.97, h * 0.82, w, h * 0.8)
+      ..lineTo(w, 0)
+      ..close();
+    c.drawPath(
+        sagUst,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Colors.white.withValues(alpha: 0.26), Colors.white.withValues(alpha: 0.05)],
+          ).createShader(Rect.fromLTWH(w * 0.5, 0, w * 0.5, h)));
+    c.drawPath(
+        Path()
+          ..moveTo(0, h * 0.74)
+          ..cubicTo(w * 0.24, h * 0.56, w * 0.44, h * 0.96, w * 0.68, h * 0.78)
+          ..cubicTo(w * 0.84, h * 0.66, w * 0.93, h * 0.84, w, h * 0.76)
+          ..lineTo(w, h)
+          ..lineTo(0, h)
+          ..close(),
+        Paint()..color = Colors.white.withValues(alpha: 0.12));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

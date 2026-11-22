@@ -1,7 +1,7 @@
 // Diğer > WhatsApp Asistanı
 // Web paneldeki /isletmeyonetim/whatsapp-asistan sayfasının mobil karşılığı (9 sekme):
 // Genel Bakış, Kazandırdıkları, Sohbetler, Kaçan & Geri Kazanılan, Fotoğraftan Fiyat,
-// Asistan Gelişimi, Öğrenilen Cevaplar, Reklamlarım, Ayarlar.
+// Öğrenilen Cevaplar, Reklamlarım, Ayarlar.
 // Yalnız salon yöneticileri (rol < 5) — backend aynı kapıyı uygular.
 // "WhatsApp Asistanı" talep push'una tıklanınca ilgili sohbet doğrudan açılır (acilacakSohbetId).
 
@@ -161,7 +161,7 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
   /// Reklamlarim sekmesi her zaman gorunur (Ayarlar'dan once; onceki sekmelerin sirasi degismez). Ozellik kapaliysa
   /// sekme icinde "Reklam özelliği bu işletmede kapalı" uyarisi cikar; kampanya hazirlanir, asistan ozellik acilinca gonderir.
   static final _sekmeler = <(IconData, String)>[
-    ..._temelSekmeler.take(7),
+    ..._temelSekmeler.take(6),
     (Icons.campaign_rounded, 'Reklamlarım'),
     _temelSekmeler.last,
   ];
@@ -172,7 +172,6 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
     (Icons.chat_rounded, 'Sohbetler'),
     (Icons.autorenew_rounded, 'Kaçan & Geri Kazanılan'),
     (Icons.photo_camera_rounded, 'Fotoğraftan Fiyat'),
-    (Icons.school_rounded, 'Asistan Gelişimi'),
     (Icons.lightbulb_outline_rounded, 'Öğrenilen Cevaplar'),
     (Icons.settings_rounded, 'Ayarlar'),
   ];
@@ -183,8 +182,9 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
     final sube = (widget.salonId != null && widget.salonId!.isNotEmpty) ? widget.salonId! : '${widget.isletmebilgi['id']}';
     _d = WaDurum(sube);
     _tab = TabController(length: _sekmeler.length, vsync: this);
-    // "Ayarlar" (7) cagrilari Reklamlarim sekmesi yuzunden bir kaydirilir
-    _d.sekmeAc = (i) => _tab.animateTo(i == 7 ? 8 : i);
+    // Sekme sirasi: 0 Genel, 1 Kazandirdiklari, 2 Sohbetler, 3 Kacan, 4 Fotograf, 5 Ogrenilen, 6 Reklamlarim, 7 Ayarlar.
+    // (Asistan Gelisimi / Gece Denetcisi 2026-11-23 kaldirildi; Ayarlar cagrilari zaten 7.)
+    _d.sekmeAc = (i) => _tab.animateTo(i.clamp(0, _sekmeler.length - 1));
     _d.sohbetAc = _sohbetAc;
     _d.baslangicYukle();
     _d.ozetYukle();
@@ -284,7 +284,6 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
                 WaSohbetlerSekme(d: _d),
                 WaGeriKazanimSekme(d: _d),
                 WaGorselFiyatSekme(d: _d),
-                WaGelisimSekme(d: _d),
                 WaOgrenilenSekme(d: _d),
                 WaReklamSekme(d: _d),
                 WaAyarlarSekme(d: _d),
