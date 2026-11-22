@@ -115,6 +115,8 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         widget.isletmebilgi is Map ? widget.isletmebilgi['uyelik_bitis_tarihi'] : null);
     giderleriGetir();
     _isPageBuilt.setAll(0, [true, false, false, false, false]);
+    // "Diğer" menusunde WhatsApp Asistani dugmesi ilk karede gorunsun: durum simdiden (disk + sunucu) yuklenir
+    WaMenuDurum.onYukle(widget.isletmebilgi['id'].toString());
     // Yetki cache'i ekran acilirken bir kez daha tazele. Login/SubeSecimi'nde
     // zaten cagriliyor; burada idempotent guvence. Tazele bitince notifier
     // sayesinde nav otomatik yeniden build olur.

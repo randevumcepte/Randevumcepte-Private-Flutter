@@ -67,6 +67,40 @@ bool menu_sayfasindayiz = false;
 late Kullanici _kullanici;
 late int kullanicirolu;
 
+/// WhatsApp Asistani menu durumu (acik / sohbet gor) — menu ilk karede dogru cizilsin diye onbellek.
+/// Uygulama acilisinda (alt menu) [onYukle] ile once diskten okunur, sonra sunucudan tazelenir.
+class WaMenuDurum {
+  static final Map<String, Map<String, bool>> _bellek = {};
+  static final ValueNotifier<int> versiyon = ValueNotifier(0);
+
+  static Map<String, bool>? al(String sube) => _bellek[sube];
+
+  static Future<void> onYukle(String sube) async {
+    if (sube.isEmpty) return;
+    try {
+      if (!_bellek.containsKey(sube)) {
+        final prefs = await SharedPreferences.getInstance();
+        final ham = prefs.getString('wa_menu_durum_$sube');
+        if (ham != null) {
+          final p = ham.split(',');
+          _bellek[sube] = {'acik': p[0] == '1', 'gor': p.length > 1 && p[1] == '1'};
+          versiyon.value++;
+        }
+      }
+    } catch (_) {}
+    try {
+      final r = await WaApi.al(sube, '/durum');
+      if (r['acik'] == null && r['ok'] != null && '${r['ok']}' == '0') return; // baglanti hatasi: eskisi kalsin
+      final yeni = {'acik': '${r['acik']}' == '1', 'gor': '${r['acik']}' == '1' && '${r['gor']}' == '1'};
+      final eski = _bellek[sube];
+      _bellek[sube] = yeni;
+      if (eski == null || eski['acik'] != yeni['acik'] || eski['gor'] != yeni['gor']) versiyon.value++;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('wa_menu_durum_$sube', '${yeni['acik']! ? 1 : 0},${yeni['gor']! ? 1 : 0}');
+    } catch (_) {}
+  }
+}
+
 class DigerPage extends StatefulWidget {
   final Kullanici kullanici;
   final int uyelikturu;
@@ -165,15 +199,23 @@ class _MenuState extends State<Menu> {
   // Yonetici olmayan ama "WhatsApp sohbetlerini gorsun" yetkisi acik personel: yalniz sohbetler sayfasi
   bool _waSohbetGor = false;
 
+  String get _waSube => widget.isletmebilgi['id'].toString();
+
+  /// Onbellekteki durumu alanlara yazar (ilk build'den once de cagrilir: menu gecikmeli belirmesin)
+  void _waDurumUygula() {
+    final d = WaMenuDurum.al(_waSube);
+    _waAsistanAcik = d?['acik'] ?? false; // rol (1-3) kosulu build'de
+    _waSohbetGor = d?['gor'] ?? false;
+  }
+
+  void _waDurumDegisti() {
+    if (!mounted) return;
+    setState(_waDurumUygula);
+  }
+
   Future<void> _waAsistanKontrol() async {
-    try {
-      final r = await WaApi.al(widget.isletmebilgi['id'].toString(), '/durum');
-      if (!mounted || '${r['acik']}' != '1') return;
-      setState(() {
-        _waAsistanAcik = kullanicirolu >= 1 && kullanicirolu <= 3;
-        _waSohbetGor = '${r['gor']}' == '1';
-      });
-    } catch (_) {}
+    // Alt menu acilista zaten cekiyor; burada tazelenir (degisirse notifier yeniden cizer)
+    await WaMenuDurum.onYukle(_waSube);
   }
 
   @override
@@ -181,12 +223,15 @@ class _MenuState extends State<Menu> {
     super.initState();
     // Yetki tazelendiginde menu listesi yeniden cizilsin.
     Yetki.versiyon.addListener(_yetkiDegisti);
+    WaMenuDurum.versiyon.addListener(_waDurumDegisti);
+    _waDurumUygula();
     _waAsistanKontrol();
   }
 
   @override
   void dispose() {
     Yetki.versiyon.removeListener(_yetkiDegisti);
+    WaMenuDurum.versiyon.removeListener(_waDurumDegisti);
     super.dispose();
   }
 
