@@ -158,13 +158,19 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
   late final WaDurum _d;
   late final TabController _tab;
 
-  /// Reklamlarim sekmesi her zaman gorunur (Ayarlar'dan once; onceki sekmelerin sirasi degismez). Ozellik kapaliysa
+  /// Reklamlarim sekmesi her zaman gorunur (Genel Bakis.in hemen yaninda, 2026-11-23). Ozellik kapaliysa
   /// sekme icinde "Reklam özelliği bu işletmede kapalı" uyarisi cikar; kampanya hazirlanir, asistan ozellik acilinca gonderir.
   static final _sekmeler = <(IconData, String)>[
-    ..._temelSekmeler.take(6),
+    _temelSekmeler[0], // Genel Bakış
+    _temelSekmeler[2], // Sohbetler
     (Icons.campaign_rounded, 'Reklamlarım'),
-    _temelSekmeler.last,
+    _temelSekmeler[1], // Kazandırdıkları
+    ..._temelSekmeler.skip(3), // Kaçan, Fotoğraftan Fiyat, Öğrenilen, Ayarlar
   ];
+
+  /// Cagiranlarin kullandigi _temelSekmeler sirasi (0 Genel, 1 Kazandirdiklari, 2 Sohbetler, 3 Kacan, 4 Fotograf,
+  /// 5 Ogrenilen, 6/7 Ayarlar) -> ekrandaki sekme yeri (Genel, Sohbetler, Reklamlarim, Kazandirdiklari, Kacan, Fotograf, Ogrenilen, Ayarlar)
+  static const _sekmeYeri = [0, 3, 1, 4, 5, 6, 7, 7];
 
   static const _temelSekmeler = <(IconData, String)>[
     (Icons.bar_chart_rounded, 'Genel Bakış'),
@@ -184,13 +190,14 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
     _tab = TabController(length: _sekmeler.length, vsync: this);
     // Sekme sirasi: 0 Genel, 1 Kazandirdiklari, 2 Sohbetler, 3 Kacan, 4 Fotograf, 5 Ogrenilen, 6 Reklamlarim, 7 Ayarlar.
     // (Asistan Gelisimi / Gece Denetcisi 2026-11-23 kaldirildi; Ayarlar cagrilari zaten 7.)
-    _d.sekmeAc = (i) => _tab.animateTo(i.clamp(0, _sekmeler.length - 1));
+    // Cagiranlar _temelSekmeler sirasini kullanir (2 Sohbetler, 3 Kacan, 4 Fotograf, 7/6 Ayarlar); Reklamlarim 1. sirada oldugu icin +1
+    _d.sekmeAc = (i) => _tab.animateTo(_sekmeYeri[i.clamp(0, _sekmeYeri.length - 1)]);
     _d.sohbetAc = _sohbetAc;
     _d.baslangicYukle();
     _d.ozetYukle();
     _d.yetkiYukle();
     if (widget.acilacakSohbetId != null) {
-      _tab.index = 2;
+      _tab.index = 1; // Sohbetler
       WidgetsBinding.instance.addPostFrameCallback((_) => _sohbetAc(widget.acilacakSohbetId!));
     }
   }
@@ -280,12 +287,12 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
             Expanded(
               child: TabBarView(controller: _tab, children: [
                 WaGenelSekme(d: _d),
-                WaKazandirdiklariSekme(d: _d),
                 WaSohbetlerSekme(d: _d),
+                WaReklamSekme(d: _d),
+                WaKazandirdiklariSekme(d: _d),
                 WaGeriKazanimSekme(d: _d),
                 WaGorselFiyatSekme(d: _d),
                 WaOgrenilenSekme(d: _d),
-                WaReklamSekme(d: _d),
                 WaAyarlarSekme(d: _d),
               ]),
             ),
