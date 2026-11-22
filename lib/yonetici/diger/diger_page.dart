@@ -53,6 +53,7 @@ import 'menu/seanstakibi/seanstakibiyeni.dart';
 import 'menu/senetler/senetlistesi.dart';
 import 'menu/sms_yonetimi/sms_yonetimi_page.dart';
 import 'menu/bildirim_ayarlari/bildirim_ayarlari_page.dart';
+import 'menu/bildirim_ayarlari/bildirimlerim_page.dart';
 import 'menu/musteri_yorumlari/musteri_yorumlari_yonetim.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/arama_ekrani.dart';
 import 'menu/wa_asistan/wa_asistan_page.dart';
@@ -1241,6 +1242,24 @@ class _MenuState extends State<Menu> {
                         type: PageTransitionType.rightToLeft,
                         duration: Duration(milliseconds: 300),
                         child: ProfilBilgileri(kullanici: _kullanici),
+                      ),
+                    );
+                  },
+                ),
+
+                // Bildirimlerim: herkes (her rol) kendi uygulama bildirimlerini sesli/sessiz yapar
+                _buildMenuButton(
+                  icon: Icons.notifications_rounded,
+                  label: 'Bildirimlerim',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.rightToLeft,
+                        duration: Duration(milliseconds: 300),
+                        child: BildirimlerimPage(
+                          salonId: widget.isletmebilgi['id'].toString(),
+                        ),
                       ),
                     );
                   },

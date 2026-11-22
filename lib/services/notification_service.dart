@@ -57,6 +57,16 @@ const _channelPromo     = AndroidNotificationChannel(
   playSound: true,
   sound: _ringSound,
 );
+/// Bildirimlerim'de sessize alınan türler: bildirim gelir, ses/titreşim yapmaz.
+/// Sunucu (NotificationService) bu kanal id'sini gönderir.
+const _channelSessiz    = AndroidNotificationChannel(
+  'rmc_sessiz_v1',
+  'Sessiz Bildirimler',
+  description: 'Bildirimlerim ekranında sessize aldığınız bildirimler',
+  importance: Importance.defaultImportance,
+  playSound: false,
+  enableVibration: false,
+);
 
 /// Arka planda gelen FCM mesajları için top-level handler.
 /// Burada UI çizilmez; sadece data işlenir / log atılır.
@@ -240,6 +250,7 @@ class NotificationService {
     await plugin?.createNotificationChannel(_channelDefault);
     await plugin?.createNotificationChannel(_channelImportant);
     await plugin?.createNotificationChannel(_channelPromo);
+    await plugin?.createNotificationChannel(_channelSessiz);
   }
 
   Future<void> _initLocalPlugin() async {
@@ -719,8 +730,11 @@ class NotificationService {
     final n = message.notification;
     final title = payload.title ?? n?.title ?? 'Bildirim';
     final body  = payload.body  ?? n?.body  ?? '';
+    final sessiz = message.data['sessiz']?.toString() == '1';
 
-    final channelId = NotificationTypes.isPopup(payload.type)
+    final channelId = sessiz
+        ? _channelSessiz.id
+        : NotificationTypes.isPopup(payload.type)
         ? _channelPromo.id
         : NotificationTypes.isHighPriority(payload.type)
             ? _channelImportant.id
@@ -731,15 +745,18 @@ class NotificationService {
       // BigPictureStyle — resimli notification
       androidDetails = AndroidNotificationDetails(
         channelId,
-        channelId == _channelImportant.id
+        sessiz
+            ? _channelSessiz.name
+            : channelId == _channelImportant.id
             ? 'Önemli Bildirimler'
             : channelId == _channelPromo.id
                 ? 'Kampanya ve İndirimler'
                 : 'Genel Bildirimler',
-        importance: Importance.high,
-        priority: Priority.high,
-        playSound: true,
-        sound: _ringSound,
+        importance: sessiz ? Importance.defaultImportance : Importance.high,
+        priority: sessiz ? Priority.defaultPriority : Priority.high,
+        playSound: !sessiz,
+        enableVibration: !sessiz,
+        sound: sessiz ? null : _ringSound,
         styleInformation: BigPictureStyleInformation(
           await _resolveBigPicture(payload.image!),
           contentTitle: title,
@@ -749,15 +766,18 @@ class NotificationService {
     } else {
       androidDetails = AndroidNotificationDetails(
         channelId,
-        channelId == _channelImportant.id
+        sessiz
+            ? _channelSessiz.name
+            : channelId == _channelImportant.id
             ? 'Önemli Bildirimler'
             : channelId == _channelPromo.id
                 ? 'Kampanya ve İndirimler'
                 : 'Genel Bildirimler',
-        importance: Importance.high,
-        priority: Priority.high,
-        playSound: true,
-        sound: _ringSound,
+        importance: sessiz ? Importance.defaultImportance : Importance.high,
+        priority: sessiz ? Priority.defaultPriority : Priority.high,
+        playSound: !sessiz,
+        enableVibration: !sessiz,
+        sound: sessiz ? null : _ringSound,
         styleInformation: BigTextStyleInformation(body, contentTitle: title),
       );
     }
@@ -765,8 +785,8 @@ class NotificationService {
     final iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
-      presentSound: true,
-      sound: 'ring.caf',
+      presentSound: !sessiz,
+      sound: sessiz ? null : 'ring.caf',
       attachments: payload.image != null
           ? [DarwinNotificationAttachment(payload.image!)]
           : null,

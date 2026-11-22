@@ -7758,3 +7758,41 @@ Future<Map<String, dynamic>> bildirimAyarKaydet(
   }
   return {'ok': 0, 'hata': 'Sunucuya bağlanılamadı.'};
 }
+
+/// Bildirimlerim: {ok:1, alici, kategoriler:[{kod, ad, aciklama, ikon, sessiz, kilitli, acik_olanlar}]}
+Future<Map<String, dynamic>> bildirimlerimVeri(String salonId) async {
+  try {
+    final token = await _dgBearerToken();
+    if (token == null) return {'ok': 0, 'hata': 'Oturum bulunamadı.'};
+    final res = await http.get(
+      Uri.parse('$_apiBase/bildirimlerim/veri?sube=$salonId'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 20));
+    return _bildirimAyarCevap(res);
+  } catch (e) {
+    log('bildirimlerimVeri: $e');
+  }
+  return {'ok': 0, 'hata': 'Sunucuya bağlanılamadı.'};
+}
+
+/// Bir türü sesli/sessiz yapar; yanıt tam veri.
+Future<Map<String, dynamic>> bildirimlerimKaydet(
+    String salonId, String kategori, bool sessiz) async {
+  try {
+    final token = await _dgBearerToken();
+    if (token == null) return {'ok': 0, 'hata': 'Oturum bulunamadı.'};
+    final res = await http.post(
+      Uri.parse('$_apiBase/bildirimlerim/kaydet?sube=$salonId'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'kategori': kategori, 'sessiz': sessiz ? 1 : 0, 'sube': salonId}),
+    ).timeout(const Duration(seconds: 20));
+    return _bildirimAyarCevap(res);
+  } catch (e) {
+    log('bildirimlerimKaydet: $e');
+  }
+  return {'ok': 0, 'hata': 'Sunucuya bağlanılamadı.'};
+}
