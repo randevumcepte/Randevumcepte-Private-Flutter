@@ -1,7 +1,7 @@
 // Diğer > WhatsApp Asistanı
-// Web paneldeki /isletmeyonetim/whatsapp-asistan sayfasının mobil karşılığı (8 sekme):
+// Web paneldeki /isletmeyonetim/whatsapp-asistan sayfasının mobil karşılığı (8-9 sekme):
 // Genel Bakış, Kazandırdıkları, Sohbetler, Kaçan & Geri Kazanılan, Fotoğraftan Fiyat,
-// Asistan Gelişimi, Öğrenilen Cevaplar, Ayarlar.
+// Asistan Gelişimi, Öğrenilen Cevaplar, (Reklamlarım: reklam özelliği açıksa), Ayarlar.
 // Yalnız salon yöneticileri (rol < 5) — backend aynı kapıyı uygular.
 // "WhatsApp Asistanı" talep push'una tıklanınca ilgili sohbet doğrudan açılır (acilacakSohbetId).
 
@@ -13,6 +13,7 @@ import 'wa_genel_sekme.dart';
 import 'wa_sohbetler_sekme.dart';
 import 'wa_gorsel_fiyat_sekme.dart';
 import 'wa_diger_sekmeler.dart';
+import 'wa_reklam_sekme.dart';
 
 /// Sekmeler arası paylaşılan durum (web sayfasındaki global AYAR/SEKTORLER/... değişkenleri).
 class WaDurum extends ChangeNotifier {
@@ -155,9 +156,20 @@ class WaAsistanPage extends StatefulWidget {
 
 class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProviderStateMixin {
   late final WaDurum _d;
-  late final TabController _tab;
+  late TabController _tab;
 
-  static const _sekmeler = <(IconData, String)>[
+  /// Reklamlarim sekmesi: web gibi yalniz reklam ozelligi acik isletmede (ayar['reklam'] == 1). Ayarlar'dan once
+  /// eklenir; onceki sekmelerin sirasi (sohbetler = 2 vb.) degismez.
+  bool _reklam = false;
+  bool get _reklamAcik => _d.ayar['reklam'] == true || '${_d.ayar['reklam']}' == '1';
+
+  List<(IconData, String)> get _sekmeler => [
+        ..._temelSekmeler.take(7),
+        if (_reklam) (Icons.campaign_rounded, 'Reklamlarım'),
+        _temelSekmeler.last,
+      ];
+
+  static const _temelSekmeler = <(IconData, String)>[
     (Icons.bar_chart_rounded, 'Genel Bakış'),
     (Icons.trending_up_rounded, 'Kazandırdıkları'),
     (Icons.chat_rounded, 'Sohbetler'),
@@ -174,7 +186,9 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
     final sube = (widget.salonId != null && widget.salonId!.isNotEmpty) ? widget.salonId! : '${widget.isletmebilgi['id']}';
     _d = WaDurum(sube);
     _tab = TabController(length: _sekmeler.length, vsync: this);
-    _d.sekmeAc = (i) => _tab.animateTo(i);
+    // "Ayarlar" (7) cagrilari reklam sekmesi varken bir kaydirilir
+    _d.sekmeAc = (i) => _tab.animateTo(i == 7 && _reklam ? 8 : i);
+    _d.addListener(_reklamKontrol);
     _d.sohbetAc = _sohbetAc;
     _d.baslangicYukle();
     _d.ozetYukle();
@@ -185,8 +199,22 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
     }
   }
 
+  /// Baslangic verisi gelince (ya da ayar degisince) Reklamlarim sekmesi eklenir/kaldirilir: TabController yeniden kurulur
+  void _reklamKontrol() {
+    final yeni = _reklamAcik;
+    if (yeni == _reklam || !mounted) return;
+    final eski = _tab;
+    setState(() {
+      _reklam = yeni;
+      _tab = TabController(length: _sekmeler.length, vsync: this, initialIndex: eski.index.clamp(0, _sekmeler.length - 1));
+    });
+    // Eski controller TabBar/TabBarView yeni controller'a gecince (sonraki kare) kapatilir
+    WidgetsBinding.instance.addPostFrameCallback((_) => eski.dispose());
+  }
+
   @override
   void dispose() {
+    _d.removeListener(_reklamKontrol);
     _tab.dispose();
     _d.dispose();
     super.dispose();
@@ -276,6 +304,7 @@ class _WaAsistanPageState extends State<WaAsistanPage> with SingleTickerProvider
                 WaGorselFiyatSekme(d: _d),
                 WaGelisimSekme(d: _d),
                 WaOgrenilenSekme(d: _d),
+                if (_reklam) WaReklamSekme(d: _d),
                 WaAyarlarSekme(d: _d),
               ]),
             ),

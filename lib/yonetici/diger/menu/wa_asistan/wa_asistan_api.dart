@@ -86,6 +86,22 @@ class WaApi {
     }
   }
 
+  /// Form + dosya (multipart). Dizi alanlar "ad[0]", "ad[1]" biçiminde gönderilir (PHP dizi olarak okur).
+  static Future<Map<String, dynamic>> gonderForm(String sube, String yol, Map<String, String> alanlar,
+      {String? dosyaYolu, String dosyaAlan = 'gorsel'}) async {
+    try {
+      final h = await headers();
+      final istek = http.MultipartRequest('POST', uri(sube, yol))
+        ..headers.addAll(h)
+        ..fields.addAll(alanlar);
+      if (dosyaYolu != null) istek.files.add(await http.MultipartFile.fromPath(dosyaAlan, dosyaYolu));
+      final r = await http.Response.fromStream(await istek.send().timeout(const Duration(seconds: 90)));
+      return _coz(r);
+    } catch (e) {
+      return {'ok': 0, 'hata': 'Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.'};
+    }
+  }
+
   static String avatarUrl(String sube, int id) => uri(sube, '/avatar/$id').toString();
   static String gorselUrl(String sube, int id) => uri(sube, '/gorsel/$id').toString();
 }
