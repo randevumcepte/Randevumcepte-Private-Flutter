@@ -111,14 +111,12 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
     return 0;
   }
 
-  /// Hizmet adına göre kampanya görseli (tasarımdaki üç fotoğraf)
-  String _foto(String hizmet) {
-    final h = hizmet.toLowerCase();
-    const tirnak = ['tırnak', 'tirnak', 'oje', 'manikür', 'manikur', 'pedikür', 'pedikur', 'nail', 'jel', 'protez', 'kalıcı'];
-    const cilt = ['cilt', 'yüz', 'yuz', 'bakım', 'bakim', 'hydra', 'facial', 'peeling', 'kirpik', 'kaş', 'kas', 'dudak', 'makyaj', 'liner', 'lazer', 'epilasyon', 'ağda', 'agda'];
-    if (tirnak.any(h.contains)) return 'images/ikram_foto_tirnak.png';
-    if (cilt.any(h.contains)) return 'images/ikram_foto_cilt.png';
-    return 'images/ikram_foto_spa.png';
+  /// Kampanya kartı görseli: işletmenin yüklediği fotoğraf, yoksa hizmete uygun hazır görsel.
+  Widget _foto(Map<String, dynamic> k, String hizmet) {
+    final hazir = Image.asset(ikramHazirGorsel(hizmet), fit: BoxFit.cover);
+    final g = (k['gorsel'] ?? '').toString();
+    if (g.isEmpty) return hazir;
+    return Image.network('https://app.randevumcepte.com.tr$g', fit: BoxFit.cover, errorBuilder: (_, __, ___) => hazir);
   }
 
   // ---------------------------------------------------------------- build
@@ -530,7 +528,7 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                     width: 84,
                     height: 84,
                     child: Stack(children: [
-                      Positioned.fill(child: Image.asset(_foto(hizmet), fit: BoxFit.cover)),
+                      Positioned.fill(child: _foto(k, hizmet)),
                       Positioned(
                         left: 0,
                         top: 0,

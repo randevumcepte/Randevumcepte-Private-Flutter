@@ -6991,6 +6991,27 @@ Future<Map<String, dynamic>?> carkAdminDamgaKartiSil(String salonId, int id) =>
 Future<Map<String, dynamic>?> ikramHizmetYonetimGetir(String salonId, {int donem = 30}) =>
     _carkAdminGetJson('carkAdmin/damga-karti/$salonId?musteriler=1&ozet=1&donem=$donem');
 
+/// Ikram kampanya gorseli: dosyaYolu verilirse yukler, sil=true ise kaldirir.
+/// { basarili, gorsel: '/public/kampanya_gorselleri/...' | null, mesaj? }
+Future<Map<String, dynamic>?> ikramKampanyaGorsel(String salonId, int kuralId,
+    {String? dosyaYolu, bool sil = false}) async {
+  try {
+    final kimlik = await _isletmeIstekKimligi();
+    final req = http.MultipartRequest('POST', Uri.parse('$_apiBase/carkAdmin/damga-karti-gorsel/$salonId'))
+      ..headers['Accept'] = 'application/json'
+      ..fields['id'] = '$kuralId';
+    if (kimlik.token != null) req.headers['Authorization'] = 'Bearer ${kimlik.token}';
+    if (sil) req.fields['sil'] = '1';
+    if (dosyaYolu != null) req.files.add(await http.MultipartFile.fromPath('dosya', dosyaYolu));
+    final res = await http.Response.fromStream(await req.send().timeout(const Duration(seconds: 90)));
+    final b = json.decode(res.body);
+    if (b is Map) return Map<String, dynamic>.from(b);
+  } catch (e) {
+    log('ikramKampanyaGorsel: $e');
+  }
+  return null;
+}
+
 /// Musteri: Ikram Hizmetlerim { basarili, toplam_hak, toplam_kazanilan, kartlar: [...] }
 Future<Map<String, dynamic>?> musteriIkramHizmetleri(String salonId, String userId) =>
     _carkAdminGetJson('musteri/ikram-hizmetleri?salon_id=$salonId&user_id=$userId');

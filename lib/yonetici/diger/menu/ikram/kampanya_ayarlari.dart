@@ -1,7 +1,22 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
+
+/// Kampanya kartı hazır görseli (işletme fotoğraf yüklemediyse), hizmet adına göre.
+/// Ayak/pedikür ve uygun görseli olmayan hizmetlerde nötr spa görseli: yanlış görsel gösterilmez.
+String ikramHazirGorsel(String hizmet) {
+  final h = hizmet.toLowerCase();
+  const ayak = ['ayak', 'pedikür', 'pedikur', 'topuk', 'nasır', 'nasir', 'batık', 'batik', 'mantar'];
+  const el = ['tırnak', 'tirnak', 'oje', 'manikür', 'manikur', 'nail', 'jel', 'protez', 'french'];
+  const yuz = ['cilt', 'yüz', 'yuz', 'hydra', 'facial', 'peeling', 'leke', 'akne', 'inci tozu'];
+  if (ayak.any(h.contains)) return 'images/ikram_foto_spa.png';
+  if (el.any(h.contains)) return 'images/ikram_foto_tirnak.png';
+  if (yuz.any(h.contains)) return 'images/ikram_foto_cilt.png';
+  return 'images/ikram_foto_spa.png';
+}
 
 /// İkram Hizmet kampanya ekle/düzenle ("Kampanya Ayarları" tasarımı).
 /// Tür: X + 1 (hediye hizmet) | İndirim (%). Kayıt: /carkAdmin/damga-karti (web ile aynı kural).
@@ -34,6 +49,9 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
   late String _sureBirim;
   late bool _aktif;
   bool _kaydediyor = false;
+  String? _mevcutGorsel; // sunucudaki: /public/kampanya_gorselleri/...
+  String? _yeniGorsel; // galeriden seçilen yerel dosya
+  bool _gorselKaldir = false;
 
   late final List<Map<String, dynamic>> _hizmetler;
 
@@ -50,6 +68,8 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
     _sureDeger = n('gecerlilik_deger', 0);
     _sureBirim = m?['gecerlilik_birim'] == 'gun' ? 'gun' : 'ay';
     _aktif = n('aktif', 1) == 1;
+    final g = (m?['gorsel'] ?? '').toString();
+    _mevcutGorsel = g.isEmpty ? null : g;
     // Kuraldaki hizmet artık aktif listede değilse de seçili görünsün
     _hizmetler = List<Map<String, dynamic>>.from(widget.hizmetler);
     if (_hizmetId != null && !_hizmetler.any((h) => (h['id'] as num).toInt() == _hizmetId)) {
@@ -115,6 +135,8 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
                       child: Column(children: [
                         const SizedBox(height: 10),
                         _detayKarti(),
+                        const SizedBox(height: 12),
+                        _gorselKarti(),
                         const SizedBox(height: 12),
                         _gecerlilikKarti(),
                         const SizedBox(height: 12),
@@ -368,6 +390,103 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
           ]),
         ),
       );
+
+  // Kampanya Görseli: işletmenin kendi fotoğrafı; yoksa hizmet adına göre hazır görsel
+  Widget _gorselKarti() {
+    final ad = _hizmetId == null ? '' : _hizmetAdi;
+    Widget onizleme;
+    String aciklama;
+    if (_yeniGorsel != null) {
+      onizleme = Image.file(File(_yeniGorsel!), fit: BoxFit.cover);
+      aciklama = 'Seçtiğiniz fotoğraf kaydedince yüklenecek.';
+    } else if (_mevcutGorsel != null && !_gorselKaldir) {
+      onizleme = Image.network('https://app.randevumcepte.com.tr$_mevcutGorsel', fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Image.asset(ikramHazirGorsel(ad), fit: BoxFit.cover));
+      aciklama = 'Kendi fotoğrafınız kullanılıyor.';
+    } else {
+      onizleme = Image.asset(ikramHazirGorsel(ad), fit: BoxFit.cover);
+      aciklama = 'Otomatik: hizmete uygun hazır görsel. Kendi fotoğrafınızı da yükleyebilirsiniz.';
+    }
+    final kendi = _yeniGorsel != null || (_mevcutGorsel != null && !_gorselKaldir);
+    return _kart(
+      child: Column(children: [
+        _kartBaslik(Icons.image_rounded, 'Kampanya Görseli', 'Kampanya kartında görünecek fotoğraf.'),
+        const SizedBox(height: 12),
+        Row(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              width: 92,
+              height: 92,
+              // Kampanya kartındaki gibi köşede "N+1" etiketi
+              child: Stack(children: [
+                Positioned.fill(child: onizleme),
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)]),
+                      borderRadius: BorderRadius.only(bottomRight: Radius.circular(14), topLeft: Radius.circular(16)),
+                    ),
+                    child: Text('$_adet+$_hediye',
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(aciklama, style: const TextStyle(fontSize: 12, height: 1.35, color: _soluk)),
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, runSpacing: 6, children: [
+                _kucukDugme(Icons.photo_library_rounded, kendi ? 'Değiştir' : 'Fotoğraf Seç', _gorselSec, dolu: true),
+                if (kendi)
+                  _kucukDugme(Icons.close_rounded, 'Kaldır', () => setState(() {
+                        _yeniGorsel = null;
+                        _gorselKaldir = true;
+                      })),
+              ]),
+            ]),
+          ),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _kucukDugme(IconData ikon, String yazi, VoidCallback onTap, {bool dolu = false}) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: dolu ? _mor : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: dolu ? _mor : const Color(0xFFE2D4F8)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(ikon, size: 16, color: dolu ? Colors.white : _morKoyu),
+            const SizedBox(width: 5),
+            Text(yazi, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: dolu ? Colors.white : _morKoyu)),
+          ]),
+        ),
+      );
+
+  Future<void> _gorselSec() async {
+    try {
+      final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1400, imageQuality: 85);
+      if (f != null && mounted) {
+        setState(() {
+          _yeniGorsel = f.path;
+          _gorselKaldir = false;
+        });
+      }
+    } catch (_) {
+      _mesaj('Fotoğraf seçilemedi', hata: true);
+    }
+  }
 
   // Geçerlilik Süresi
   Widget _gecerlilikKarti() {
@@ -711,11 +830,22 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
       r = await carkAdminDamgaKartiKaydet(widget.salonId, {...veri, 'onay': 1});
       if (!mounted) return;
     }
-    setState(() => _kaydediyor = false);
     if (r != null && r['basarili'] == true) {
+      // Görsel: kural kaydedildikten sonra (yeni kuralda id yanıttan gelir)
+      final id = (r['id'] as num?)?.toInt() ?? (widget.mevcut?['id'] as num?)?.toInt();
+      if (id != null && (_yeniGorsel != null || (_gorselKaldir && _mevcutGorsel != null))) {
+        final g = await ikramKampanyaGorsel(widget.salonId, id, dosyaYolu: _yeniGorsel, sil: _yeniGorsel == null);
+        if (!mounted) return;
+        if (g == null || g['basarili'] != true) {
+          _mesaj('Kampanya kaydedildi ama görsel yüklenemedi: ${g?['mesaj'] ?? 'bağlantı hatası'}', hata: true);
+        }
+      }
+      if (!mounted) return;
+      setState(() => _kaydediyor = false);
       Navigator.pop(context, true);
-    } else {
-      _mesaj(r?['mesaj']?.toString() ?? 'Kaydedilemedi', hata: true);
+      return;
     }
+    setState(() => _kaydediyor = false);
+    _mesaj(r?['mesaj']?.toString() ?? 'Kaydedilemedi', hata: true);
   }
 }
