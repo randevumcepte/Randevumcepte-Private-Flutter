@@ -1442,7 +1442,8 @@ class _AtamaRaporuSayfasiState extends _ListeDurum<AtamaRaporuSayfasi> {
           decoration: BoxDecoration(color: PT.lila.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(14)),
           child: Text(
             'Müşteri uzman seçmediğinde WhatsApp ve telefon asistanı ile online "fark etmez" randevusu, o saatte boş olanlar arasından '
-            'o gün en az çalışan uzmana verilir. Bu dönemde asistan $toplamAs randevu verdi.',
+            'o gün çalışma süresine oranla en az dolu olan uzmana verilir (4 saat çalışan biri 2 saat doluysa %50 sayılır). '
+            'Bu dönemde asistan $toplamAs randevu verdi.',
             style: const TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF3B3561)),
           ),
         ),
