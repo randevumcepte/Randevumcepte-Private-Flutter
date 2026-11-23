@@ -881,6 +881,13 @@ class _EkipSayfasiState extends _ListeDurum<EkipSayfasi> {
     return PTAltSayfa(
       baslik: 'Ekibim',
       govde: kaydirma([
+        PTSatir(
+          ikon: Icons.balance_rounded,
+          baslik: 'Randevu Dağılımı',
+          alt: 'Kim ne kadar randevu aldı · otomatik atama ayarı',
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AtamaRaporuSayfasi(sube: widget.sube))),
+        ),
+        const SizedBox(height: 6),
         if (molalar.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(left: 4, bottom: 8),
@@ -1356,6 +1363,126 @@ class YasalMetinSayfasi extends StatelessWidget {
             ],
           ]),
         ),
+      ]),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════ Randevu dağılımı (yönetici)
+
+/// Personel başına randevu ve çalışılan dakika (tümü + WhatsApp/santral asistanının verdiği).
+/// Her satırda "Otomatik atama" anahtarı: kapalıysa asistan ve online "fark etmez" o kişiye randevu vermez.
+class AtamaRaporuSayfasi extends StatefulWidget {
+  final String sube;
+  const AtamaRaporuSayfasi({super.key, required this.sube});
+  @override
+  State<AtamaRaporuSayfasi> createState() => _AtamaRaporuSayfasiState();
+}
+
+class _AtamaRaporuSayfasiState extends _ListeDurum<AtamaRaporuSayfasi> {
+  String _donem = 'ay';
+  final Set<int> _kaydediliyor = {};
+
+  @override
+  Future<Map<String, dynamic>> getir() => ProfilApi.get('atama-raporu', widget.sube, {'donem': _donem});
+
+  String _sure(int dk) => dk >= 60 ? '${dk ~/ 60} sa ${dk % 60 > 0 ? '${dk % 60} dk' : ''}'.trim() : '$dk dk';
+
+  Future<void> _otoDegistir(Map p, bool dahil) async {
+    final id = _i(p['id']);
+    setState(() {
+      _kaydediliyor.add(id);
+      p['oto_haric'] = !dahil;
+    });
+    final r = await ProfilApi.post('oto-atama', widget.sube, {'personel_id': id, 'haric': dahil ? 0 : 1});
+    if (!mounted) return;
+    setState(() {
+      _kaydediliyor.remove(id);
+      if (!ProfilApi.ok(r)) p['oto_haric'] = dahil;
+    });
+    ptMesaj(
+        context,
+        ProfilApi.ok(r)
+            ? '${p['ad']} ${dahil ? 'otomatik randevu atamasına dahil edildi' : 'otomatik atamadan çıkarıldı'}'
+            : (r['hata'] ?? 'Kaydedilemedi.').toString(),
+        hata: !ProfilApi.ok(r));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = (veri['personeller'] as List? ?? []).cast<Map>().toList();
+    l.sort((a, b) => _i(b['dakika']).compareTo(_i(a['dakika'])));
+    final enCok = l.isEmpty ? 1 : l.map((e) => _i(e['dakika'])).fold<int>(1, (a, b) => b > a ? b : a);
+    final toplamAs = l.fold<int>(0, (a, e) => a + _i(e['asistan_adet']));
+    return PTAltSayfa(
+      baslik: 'Randevu Dağılımı',
+      govde: kaydirma([
+        Row(children: [
+          for (final d in const [['bugun', 'Bugün'], ['hafta', 'Bu hafta'], ['ay', 'Bu ay']])
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(d[1]),
+                selected: _donem == d[0],
+                selectedColor: PT.mor,
+                labelStyle: TextStyle(fontWeight: FontWeight.w700, color: _donem == d[0] ? Colors.white : PT.koyu),
+                onSelected: (_) {
+                  setState(() {
+                    _donem = d[0];
+                    yukleniyor = true;
+                  });
+                  yukle();
+                },
+              ),
+            ),
+        ]),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: PT.lila.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(14)),
+          child: Text(
+            'Müşteri uzman seçmediğinde WhatsApp ve telefon asistanı ile online "fark etmez" randevusu, o saatte boş olanlar arasından '
+            'o gün en az çalışan uzmana verilir. Bu dönemde asistan $toplamAs randevu verdi.',
+            style: const TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF3B3561)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...l.map((p) {
+          final dk = _i(p['dakika']);
+          final haric = p['oto_haric'] == true;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: PTKart(
+              padding: const EdgeInsets.fromLTRB(14, 10, 8, 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(p['ad'].toString(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: PT.koyu)),
+                      Text('${_i(p['adet'])} randevu · ${_sure(dk)} · asistan: ${_i(p['asistan_adet'])}',
+                          style: const TextStyle(fontSize: 12.5, color: PT.gri)),
+                    ]),
+                  ),
+                  Column(children: [
+                    Switch(
+                      value: !haric,
+                      onChanged: _kaydediliyor.contains(_i(p['id'])) ? null : (v) => _otoDegistir(p, v),
+                      thumbColor: const WidgetStatePropertyAll(Colors.white),
+                      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? PT.mor : const Color(0xFFE2E3EA)),
+                      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+                    ),
+                    Text(haric ? 'Atama kapalı' : 'Otomatik atama', style: TextStyle(fontSize: 10.5, color: haric ? Colors.red.shade400 : PT.gri)),
+                  ]),
+                ]),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(value: dk / enCok, minHeight: 7, backgroundColor: PT.lila, color: haric ? const Color(0xFFCBD5E1) : PT.mor),
+                ),
+              ]),
+            ),
+          );
+        }),
       ]),
     );
   }
