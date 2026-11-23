@@ -466,44 +466,95 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
         ),
       );
 
+  /// Kampanya Bilgileri: tasarım ölçüleri (941 px genişlik) ekran genişliğine oranlanır.
   Widget _bilgilerKarti() {
+    final w = MediaQuery.of(context).size.width;
+    double x(num px) => w * px / 941;
     final bas = ikramTarih(_kural['baslangic']?.toString());
     final bit = ikramTarih(_kural['bitis_tarihi']?.toString());
     final tarih = bas.isEmpty ? 'Açılınca başlar' : '$bas – ${bit.isEmpty ? 'Süresiz' : bit}';
-    return _cam(
-      child: Column(children: [
-        _kartBaslik(Icons.card_giftcard_rounded, 'Kampanya Bilgileri'),
-        const SizedBox(height: 10),
-        Container(
-          decoration: _icKutu,
-          child: IntrinsicHeight(
-            child: Row(children: [
-              _bilgi(Icons.sell_outlined, 'Hizmet Adedi', '$_adet'),
-              _dikCizgi(),
-              _bilgi(Icons.card_giftcard_rounded, 'Hediye Hizmet', '$_hediye'),
-              _dikCizgi(),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-                  child: Column(children: [
-                    const Icon(Icons.calendar_month_rounded, color: _mor, size: 22),
-                    const SizedBox(height: 4),
-                    const Text('Geçerlilik Tarihi', style: TextStyle(fontSize: 11.5, color: _morKoyu, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(tarih, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _koyu)),
-                    ),
-                    if ((_kural['gecerlilik'] ?? '').toString().isNotEmpty)
-                      Text('Hak ${_kural['gecerlilik']} geçerli', style: const TextStyle(fontSize: 10, color: _soluk)),
-                  ]),
-                ),
-              ),
-            ]),
+    final hakSuresi = (_kural['gecerlilik'] ?? '').toString();
+
+    Widget sutun(IconData ikon, String etiket, String deger, double degerBoyut) => Padding(
+          padding: EdgeInsets.symmetric(vertical: x(16), horizontal: x(8)),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(ikon, color: _mor, size: x(30)),
+            SizedBox(height: x(10)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(etiket, maxLines: 1, style: TextStyle(fontSize: x(22), color: _morKoyu, fontWeight: FontWeight.w500)),
+            ),
+            SizedBox(height: x(6)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(deger, maxLines: 1, style: TextStyle(fontSize: degerBoyut, fontWeight: FontWeight.w800, color: _koyu, height: 1.1)),
+            ),
+          ]),
+        );
+    Widget cizgi() => Container(width: 1, margin: EdgeInsets.symmetric(vertical: x(18)), color: const Color(0xFFE4D7F7));
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(x(36)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(x(17), x(10), x(17), x(12)),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(x(36)),
+            border: Border.all(color: Colors.white, width: 1.2),
+            boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 6))],
           ),
+          child: Column(children: [
+            Row(children: [
+              SizedBox(width: x(12)),
+              Container(
+                width: x(66),
+                height: x(60),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(x(20)),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFF3E8FF), Color(0xFFDCCBF8)],
+                  ),
+                  boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.16), blurRadius: 10, offset: const Offset(0, 3))],
+                ),
+                child: Icon(Icons.card_giftcard_rounded, color: _morKoyu, size: x(36)),
+              ),
+              SizedBox(width: x(28)),
+              Text('Kampanya Bilgileri', style: TextStyle(fontSize: x(30), fontWeight: FontWeight.w700, color: _koyu)),
+            ]),
+            SizedBox(height: x(10)),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(x(30)),
+                border: Border.all(color: const Color(0xFFE6DAF8)),
+              ),
+              child: IntrinsicHeight(
+                child: Row(children: [
+                  Expanded(flex: 272, child: sutun(Icons.sell_outlined, 'Hizmet Adedi', '$_adet', x(40))),
+                  cizgi(),
+                  Expanded(flex: 258, child: sutun(Icons.card_giftcard_rounded, 'Hediye Hizmet', '$_hediye', x(40))),
+                  cizgi(),
+                  Expanded(
+                    flex: 310,
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      sutun(Icons.calendar_month_rounded, 'Geçerlilik Tarihi', tarih, x(25)),
+                      if (hakSuresi.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: x(10)),
+                          child: Text('Hak $hakSuresi geçerli', style: TextStyle(fontSize: x(17), color: _soluk)),
+                        ),
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+          ]),
         ),
-      ]),
+      ),
     );
   }
 
