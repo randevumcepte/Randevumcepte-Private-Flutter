@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:randevu_sistem/marka.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -38,7 +39,7 @@ class _OnBoardingPageState extends State<OnBoardingPage>
 
   // Logo yolu — beyaz etiket build'de salon logosuna göre bu tek satır değişir.
   // Palet ve ekrandaki logo aynı görselden gelir.
-  static const String _logoYolu = 'images/fizyoflyic.png';
+  static String get _logoYolu => Marka.logo;
   LogoPalet _palet = LogoPalet.varsayilan; // logodan türetilen renkler
 
   @override
@@ -82,7 +83,7 @@ class _OnBoardingPageState extends State<OnBoardingPage>
 
   /// Logodan renk paletini çıkar; animasyon salon renklerine boyanır.
   Future<void> _renkleriYukle() async {
-    final palet = await LogoPalet.logodanUret(const AssetImage(_logoYolu));
+    final palet = await LogoPalet.logodanUret(AssetImage(_logoYolu));
     if (!mounted) return;
     setState(() => _palet = palet);
   }

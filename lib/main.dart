@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:randevu_sistem/marka.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -31,6 +32,7 @@ void main() async {
 
   // 1) SharedPreferences MUST come first
   prefs = await SharedPreferences.getInstance();
+  await Marka.yukle();
 
   // 2) Firebase init
   await Firebase.initializeApp();
@@ -390,7 +392,7 @@ class _MyHomePageState extends State<MyHomePage> {
           duration: Duration(seconds: 3),
           opacity: _opacity,
           child: Image.asset(
-            "images/olanailicon.png",
+            Marka.logo,
             height: 200,
           ),
         ),

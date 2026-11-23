@@ -1,5 +1,6 @@
 
 import 'dart:convert';
+import 'package:randevu_sistem/marka.dart';
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
@@ -173,14 +174,14 @@ TextEditingController ceptelefon = TextEditingController();
               child: Padding(
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(
-                  'images/salooncaddeicon.png',
+                  Marka.logo,
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             const SizedBox(height: 18),
             Image.asset(
-              'images/salooncaddeicon.png',
+              Marka.logo,
               height: 28,
               fit: BoxFit.contain,
             ),

@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'package:randevu_sistem/marka.dart';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
@@ -165,14 +166,14 @@ class _KayitOlState extends State<KayitOl> {
               child: Padding(
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(
-                  'images/salooncaddeicon.png',
+                  Marka.logo,
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             const SizedBox(height: 18),
             Image.asset(
-              'images/salooncaddeicon.png',
+              Marka.logo,
               height: 28,
               fit: BoxFit.contain,
             ),

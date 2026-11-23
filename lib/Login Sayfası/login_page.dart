@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:randevu_sistem/marka.dart';
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
 import 'package:provider/provider.dart';
@@ -162,14 +163,14 @@ class _HomeState extends State<LoginPage> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(10),
                                   child: Image.asset(
-                                    'images/salooncaddeicon.png',
+                                    Marka.logo,
                                     fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 18),
                               Image.asset(
-                                'images/salooncaddeicon.png',
+                                Marka.logo,
                                 height: 28,
                                 fit: BoxFit.contain,
                               ),
