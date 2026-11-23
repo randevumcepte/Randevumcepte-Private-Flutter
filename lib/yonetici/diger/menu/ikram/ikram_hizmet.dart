@@ -155,20 +155,25 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                         color: _mor,
                         onRefresh: _yukle,
                         child: ListView(
-                          padding: EdgeInsets.fromLTRB(16, 4, 16, 110 + alt),
+                          padding: EdgeInsets.fromLTRB(0, 0, 0, 110 + alt),
                           children: [
                             _hero(),
-                            const SizedBox(height: 14),
-                            _turKarti(),
-                            const SizedBox(height: 18),
-                            _listeBaslik(),
-                            const SizedBox(height: 10),
-                            if (gorunen.isEmpty)
-                              _bos(_kurallar.isEmpty
-                                  ? 'Henüz kampanya yok.\nYukarıdan bir tür seçip "Yeni Kampanya" ile başlayın.'
-                                  : 'Bu filtrede kampanya yok.')
-                            else
-                              ...gorunen.map(_kampanyaKart),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                const SizedBox(height: 8),
+                                _turKarti(),
+                                const SizedBox(height: 18),
+                                _listeBaslik(),
+                                const SizedBox(height: 10),
+                                if (gorunen.isEmpty)
+                                  _bos(_kurallar.isEmpty
+                                      ? 'Henüz kampanya yok.\nYukarıdan bir tür seçip "Yeni Kampanya" ile başlayın.'
+                                      : 'Bu filtrede kampanya yok.')
+                                else
+                                  ...gorunen.map(_kampanyaKart),
+                              ]),
+                            ),
                           ],
                         ),
                       ),
@@ -212,116 +217,113 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
 
   // ---------------------------------------------------------------- üst kart
 
+  /// Tasarımın üst kartı birebir görsel (kart + hediye kutusu + etiketler/ikonlar).
+  /// Görseldeki değişen yazılar (dönem, tutar, artış, üç rakam) silindi; canlı değerler
+  /// aynı konumlara oturtulur. Ölçüler görselin pikselleri (941 x 382) üzerinden oranlanır.
   Widget _hero() {
     final toplam = (_ozet['toplam'] as num?) ?? 0;
     final artis = (_ozet['artis_yuzde'] as num?)?.toDouble();
     final oran = (_ozet['kullanim_orani'] as num?)?.toInt();
-    return SizedBox(
-      height: 232,
-      child: Stack(clipBehavior: Clip.none, children: [
-        // Sağda hediye kutusu (kartın arkasından taşar)
-        Positioned(
-          right: -16,
-          top: 0,
-          bottom: 6,
-          width: 175,
-          child: ShaderMask(
-            shaderCallback: (r) => const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Colors.transparent, Colors.black],
-              stops: [0, 0.22],
-            ).createShader(r),
-            blendMode: BlendMode.dstIn,
-            child: Image.asset('images/ikram_hediye_kutu.png', fit: BoxFit.cover, alignment: Alignment.centerLeft),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          right: 96,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF7C3AED), Color(0xFF5B21B6), Color(0xFF3B0764)],
-              ),
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [BoxShadow(color: _morKoyu.withValues(alpha: 0.35), blurRadius: 22, offset: const Offset(0, 10))],
+    return LayoutBuilder(builder: (c, k) {
+      final w = k.maxWidth;
+      final h = w * 382 / 941;
+      double x(num px) => w * px / 941;
+      double y(num px) => h * (px - 118) / 382; // tasarım y koordinatı (kesim 118'den başlar)
+      Widget rakam(num sol, num sag, String deger) => Positioned(
+            left: x(sol),
+            top: y(421),
+            width: x(sag - sol),
+            height: y(452) - y(421),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(deger, style: TextStyle(color: Colors.white, fontSize: w * 0.03, fontWeight: FontWeight.w800)),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text('Toplam Kazancınız',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
-                ),
-              ]),
-              const SizedBox(height: 6),
-              _donemSecici(),
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                  Text(ikramTl(toplam),
-                      style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1, height: 1.05)),
-                  const SizedBox(width: 6),
-                  const Text('TL', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-                ]),
-              ),
-              const SizedBox(height: 6),
-              if (artis != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: artis >= 0 ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(artis >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                        size: 14, color: artis >= 0 ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D)),
-                    const SizedBox(width: 3),
-                    Text('%${artis.abs().toStringAsFixed(artis.abs() < 10 && artis % 1 != 0 ? 1 : 0)} ${artis >= 0 ? 'artış' : 'azalış'}',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: artis >= 0 ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D))),
-                  ]),
-                )
-              else
-                Text('Önceki dönemle kıyas yok', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
-              const Spacer(),
-              IntrinsicHeight(
-                child: Row(children: [
-                  _istat(Icons.people_alt_rounded, '${(_ozet['kullanim'] as num?)?.toInt() ?? 0}', 'Kampanya\nKullanımı'),
-                  _dikCizgi(),
-                  _istat(Icons.savings_rounded, '${ikramTl(_ozet['ek_kazanc'] as num?)} TL', 'Ek\nKazanç'),
-                  _dikCizgi(),
-                  _istat(Icons.star_rounded, oran == null ? '—' : '%$oran', 'Kullanım\nOranı'),
-                ]),
-              ),
-            ]),
+          );
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Stack(children: [
+          Positioned.fill(
+            child: ShaderMask(
+              shaderCallback: (r) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+                stops: [0, 0.04, 0.96, 1],
+              ).createShader(r),
+              blendMode: BlendMode.dstIn,
+              child: Image.asset('images/ikram_hero_tam.png', fit: BoxFit.fill),
+            ),
           ),
-        ),
-      ]),
-    );
+          // Dönem seçici (görseldeki hapın içine)
+          Positioned(
+            left: x(405),
+            top: y(155),
+            width: x(572 - 405),
+            height: y(198) - y(155),
+            child: _donemSecici(w),
+          ),
+          // Toplam tutar
+          Positioned(
+            left: x(86),
+            top: y(206),
+            width: x(478 - 86),
+            height: y(298) - y(206),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+                Text(ikramTl(toplam),
+                    style: TextStyle(color: Colors.white, fontSize: w * 0.105, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1)),
+                SizedBox(width: w * 0.015),
+                Text('TL', style: TextStyle(color: Colors.white, fontSize: w * 0.064, fontWeight: FontWeight.w900)),
+              ]),
+            ),
+          ),
+          // Artış hapı
+          Positioned(
+            left: x(86),
+            top: y(307),
+            height: y(350) - y(307),
+            child: artis == null
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Önceki dönemle kıyas yok',
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: w * 0.026)),
+                  )
+                : Container(
+                    padding: EdgeInsets.symmetric(horizontal: x(18)),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: artis >= 0 ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(artis >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                          size: w * 0.03, color: artis >= 0 ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D)),
+                      SizedBox(width: x(6)),
+                      Text('%${artis.abs().toStringAsFixed(artis.abs() < 10 && artis % 1 != 0 ? 1 : 0)} ${artis >= 0 ? 'artış' : 'azalış'}',
+                          style: TextStyle(
+                              fontSize: w * 0.027,
+                              fontWeight: FontWeight.w700,
+                              color: artis >= 0 ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D))),
+                    ]),
+                  ),
+          ),
+          // Alt üç rakam (etiket ve ikonlar görselde)
+          rakam(122, 272, '${(_ozet['kullanim'] as num?)?.toInt() ?? 0}'),
+          rakam(306, 448, '${ikramTl(_ozet['ek_kazanc'] as num?)} TL'),
+          rakam(480, 610, oran == null ? '—' : '%$oran'),
+        ]),
+      );
+    });
   }
 
-  Widget _donemSecici() {
+  Widget _donemSecici(double w) {
     const secenekler = {7: 'Son 7 Gün', 30: 'Son 30 Gün', 90: 'Son 90 Gün', 365: 'Son 1 Yıl'};
     return PopupMenuButton<int>(
+      padding: EdgeInsets.zero,
       onSelected: (v) {
         setState(() => _donem = v);
         _yukle();
@@ -335,39 +337,18 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                     style: TextStyle(color: _koyu, fontWeight: e.key == _donem ? FontWeight.w800 : FontWeight.w500)),
               ))
           .toList(),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(secenekler[_donem] ?? 'Son $_donem Gün',
+                style: TextStyle(color: Colors.white, fontSize: w * 0.022, fontWeight: FontWeight.w500)),
+          ),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(secenekler[_donem] ?? 'Son $_donem Gün',
-              style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
-          const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 18),
-        ]),
-      ),
+        Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: w * 0.035),
+      ]),
     );
   }
-
-  Widget _istat(IconData ikon, String deger, String etiket) => Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(ikon, color: Colors.white.withValues(alpha: 0.85), size: 18),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(deger, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
-          ),
-          Text(etiket, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 9.5, height: 1.15)),
-        ]),
-      );
-
-  Widget _dikCizgi() => Container(
-        width: 1,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        color: Colors.white.withValues(alpha: 0.22),
-      );
 
   // ---------------------------------------------------------------- kartlar
 
