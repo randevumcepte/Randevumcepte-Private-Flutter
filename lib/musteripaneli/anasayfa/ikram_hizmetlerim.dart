@@ -271,7 +271,6 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
         ]),
         const SizedBox(height: 12),
         Row(children: [
-          istat('${n('ucretli')}', 'Ücretli\nalım'),
           istat('${n('kazanilan')}', 'Kazanılan\nikram'),
           istat('${n('kullanilan')}', 'Kullanılan\nikram'),
           istat('$hak', 'Kalan\nikram', vurgu: true),
