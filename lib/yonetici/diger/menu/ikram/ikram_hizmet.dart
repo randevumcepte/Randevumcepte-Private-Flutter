@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
-import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
+import 'kampanya_ayarlari.dart';
 
 /// İkram Hizmet ("bir hizmeti N kez alana M ikram") — Çarkıfelek'ten bağımsız
 /// yönetim sayfası. Web /isletmeyonetim/ikramhizmet ile aynı API ve kurallar
@@ -77,7 +77,7 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                   OutlinedButton.icon(
                     onPressed: () => _kuralDuzenle(null),
                     icon: const Icon(Icons.add),
-                    label: const Text('Yeni İkram Kuralı'),
+                    label: const Text('Yeni Kampanya'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _mor,
                       side: BorderSide(color: _mor.withValues(alpha: 0.5)),
@@ -166,6 +166,8 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
     final ikram = (k['ucretsiz_adet'] as num?)?.toInt() ?? 0;
     final gDeger = (k['gecerlilik_deger'] as num?)?.toInt() ?? 0;
     final gecerlilik = gDeger > 0 ? '$gDeger ${k['gecerlilik_birim'] == 'gun' ? 'gün' : 'ay'} geçerli' : 'Süresiz';
+    final indirim = k['tur'] == 'indirim';
+    final tarihler = (k['tarih_araligi'] ?? '').toString();
     return _kart(
       soluk: !aktif,
       child: Row(children: [
@@ -176,11 +178,11 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(children: [
-            Text('$gereken+$ikram',
+            Text(indirim ? '%${k['indirim_orani']}' : '$gereken+$ikram',
                 style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF3B0764), height: 1)),
             const SizedBox(height: 1),
-            const Text('İKRAM',
-                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF3B0764), letterSpacing: 0.4)),
+            Text(indirim ? 'İNDİRİM' : 'İKRAM',
+                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF3B0764), letterSpacing: 0.4)),
           ]),
         ),
         const SizedBox(width: 12),
@@ -188,7 +190,9 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text((k['hizmet_adi'] ?? '-').toString(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
             const SizedBox(height: 2),
-            Text('$gereken kez alana $ikram ikram · $gecerlilik', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            Text('${k['kural_yazi'] ?? '$gereken kez alana $ikram ikram'} · kullanım: $gecerlilik', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            if (tarihler.isNotEmpty)
+              Text('Kampanya: $tarihler', style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
             const SizedBox(height: 6),
             aktif
                 ? _rozet('AÇIK', const Color(0xFFDCFCE7), const Color(0xFF166534))
@@ -239,171 +243,16 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
   }
 
   Future<void> _kuralDuzenle(Map<String, dynamic>? mevcut) async {
-    int? hizmetId = (mevcut?['hizmet_id'] as num?)?.toInt();
-    final gerekenCtrl = TextEditingController(text: ((mevcut?['gereken_adet'] as num?)?.toInt() ?? 4).toString());
-    final ikramCtrl = TextEditingController(text: ((mevcut?['ucretsiz_adet'] as num?)?.toInt() ?? 1).toString());
-    final mevcutSure = (mevcut?['gecerlilik_deger'] as num?)?.toInt() ?? 0;
-    final sureCtrl = TextEditingController(text: mevcutSure > 0 ? '$mevcutSure' : '');
-    String sureBirim = mevcut?['gecerlilik_birim'] == 'gun' ? 'gun' : 'ay';
-    bool aktif = ((mevcut?['aktif'] as num?)?.toInt() ?? 1) == 1;
-    bool kaydediyor = false;
-
-    // Kuraldaki hizmet artik aktif listede degilse de secili gorunsun
-    final hizmetler = List<Map<String, dynamic>>.from(_hizmetler);
-    if (hizmetId != null && !hizmetler.any((h) => (h['id'] as num).toInt() == hizmetId)) {
-      hizmetler.insert(0, {'id': hizmetId, 'hizmet_adi': mevcut?['hizmet_adi'] ?? 'Hizmet #$hizmetId'});
-    }
-
-    await showDialog(
-      context: context,
-      builder: (c) => StatefulBuilder(builder: (c, setSt) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(mevcut == null ? 'Yeni İkram Kuralı' : 'İkram Kuralını Düzenle'),
-          content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              AramaliDropdownFormField<int>(
-                value: hizmetId,
-                isExpanded: true,
-                hint: const Text('Hizmet ara veya seçin'),
-                decoration: const InputDecoration(labelText: 'Hizmet', border: OutlineInputBorder()),
-                items: hizmetler
-                    .map((h) => DropdownMenuItem<int>(
-                          value: (h['id'] as num).toInt(),
-                          child: Text((h['hizmet_adi'] ?? '').toString(), overflow: TextOverflow.ellipsis),
-                        ))
-                    .toList(),
-                onChanged: (v) => setSt(() => hizmetId = v),
-              ),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: gerekenCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Kaç kez alana', suffixText: 'kez', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: ikramCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'İkram', suffixText: 'seans', border: OutlineInputBorder()),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: sureCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Kullanım süresi',
-                      hintText: 'Boş = süresiz',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 96,
-                  child: DropdownButtonFormField<String>(
-                    value: sureBirim,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: const [
-                      DropdownMenuItem(value: 'ay', child: Text('ay')),
-                      DropdownMenuItem(value: 'gun', child: Text('gün')),
-                    ],
-                    onChanged: (v) => setSt(() => sureBirim = v ?? 'ay'),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 4),
-              Text('İkram, kazanıldığı günden itibaren bu süre içinde kullanılmazsa düşer.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-              const SizedBox(height: 8),
-              Text(
-                '"Geldi" işaretli ücretli randevular sayılır; paket/seanslı satış seansları sayılmaz. '
-                'Müşteri ikramını istediği zaman kullanır.',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.35),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Aktif'),
-                subtitle: const Text('Sayım açıldığı andan itibaren başlar', style: TextStyle(fontSize: 11)),
-                value: aktif,
-                activeColor: _mor,
-                onChanged: (v) => setSt(() => aktif = v),
-              ),
-            ]),
-          ),
-          actions: [
-            TextButton(onPressed: kaydediyor ? null : () => Navigator.pop(c), child: const Text('İptal')),
-            ElevatedButton(
-              onPressed: kaydediyor
-                  ? null
-                  : () async {
-                      if (hizmetId == null) {
-                        _bilgi('Lütfen bir hizmet seçin', hata: true);
-                        return;
-                      }
-                      setSt(() => kaydediyor = true);
-                      final veri = <String, dynamic>{
-                        if (mevcut != null) 'id': mevcut['id'],
-                        'hizmet_id': hizmetId,
-                        'gereken_adet': int.tryParse(gerekenCtrl.text.trim()) ?? 0,
-                        'ucretsiz_adet': int.tryParse(ikramCtrl.text.trim()) ?? 0,
-                        'aktif': aktif ? 1 : 0,
-                        'gecerlilik_deger': int.tryParse(sureCtrl.text.trim()) ?? 0,
-                        'gecerlilik_birim': sureBirim,
-                      };
-                      var r = await carkAdminDamgaKartiKaydet(_salonId, veri);
-                      if (!mounted) return;
-                      // Sayilmis ziyareti olan kuralda adet/hizmet degisiyor: etkisini gosterip onay al
-                      if (r != null && r['onay_gerekli'] == true) {
-                        final evet = await showDialog<bool>(
-                          context: c,
-                          builder: (d) => AlertDialog(
-                            title: const Text('Müşteriler etkilenecek'),
-                            content: Text(r!['mesaj']?.toString() ?? ''),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Vazgeç')),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(d, true),
-                                style: ElevatedButton.styleFrom(backgroundColor: _mor, foregroundColor: Colors.white),
-                                child: const Text('Evet, kaydet'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (!mounted) return;
-                        if (evet != true) {
-                          setSt(() => kaydediyor = false);
-                          return;
-                        }
-                        r = await carkAdminDamgaKartiKaydet(_salonId, {...veri, 'onay': 1});
-                        if (!mounted) return;
-                      }
-                      setSt(() => kaydediyor = false);
-                      if (r != null && r['basarili'] == true) {
-                        Navigator.pop(c);
-                        _yukle();
-                        _bilgi('İkram kuralı kaydedildi');
-                      } else {
-                        _bilgi(r?['mesaj']?.toString() ?? 'Kaydedilemedi', hata: true);
-                      }
-                    },
-              style: ElevatedButton.styleFrom(backgroundColor: _mor, foregroundColor: Colors.white),
-              child: kaydediyor
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text(mevcut == null ? 'Ekle' : 'Güncelle'),
-            ),
-          ],
-        );
-      }),
+    final kaydedildi = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => KampanyaAyarlariSayfasi(salonId: _salonId, mevcut: mevcut, hizmetler: _hizmetler),
+      ),
     );
+    if (kaydedildi == true && mounted) {
+      _yukle();
+      _bilgi('Kampanya kaydedildi');
+    }
   }
 
   Future<void> _kuralSil(Map<String, dynamic> k) async {

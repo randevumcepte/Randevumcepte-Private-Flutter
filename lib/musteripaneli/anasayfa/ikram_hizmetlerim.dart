@@ -254,7 +254,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               Text((k['hizmet_adi'] ?? '').toString(),
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
               const SizedBox(height: 2),
-              Text('$gereken alana ${n('ucretsiz_adet')} ikram${gecerlilik.isNotEmpty ? ' · $gecerlilik geçerli' : ''}',
+              Text('${(k['kural_yazi'] ?? '$gereken alana ${n('ucretsiz_adet')} ikram')}${gecerlilik.isNotEmpty ? ' · $gecerlilik geçerli' : ''}',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _mor)),
             ]),
           ),

@@ -1055,18 +1055,25 @@ class _TahsilatState extends State<TahsilatEkrani> {
     });
   }
 
+  /// Indirim kampanyasi ('tur'=='indirim') ise "%20", ikramda bos.
+  String _damgaIndirim(Map<String, dynamic> d) =>
+      d['tur'] == 'indirim' ? '%${d['indirim_orani']}' : '';
+
   Future<void> _damgaIslem(Map<String, dynamic> d, {required bool geriAl}) async {
-    final tutar = tryformat.format((d['kalan'] as num?)?.toDouble() ?? 0);
+    final tutar = tryformat.format(((d['uygulanacak'] ?? d['kalan']) as num?)?.toDouble() ?? 0);
+    final ind = _damgaIndirim(d);
     final hizmet = (d['hizmet_adi'] ?? '').toString();
     final onay = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(geriAl ? 'İkram geri alınsın mı?' : 'İkram kullanılsın mı?'),
+        title: Text(geriAl ? 'İkram geri alınsın mı?' : (ind.isNotEmpty ? 'İndirim kullanılsın mı?' : 'İkram kullanılsın mı?')),
         content: Text(
           geriAl
               ? 'İndirim kaldırılır, 0 TL tahsilat kaydı silinir.\nMüşterinin ikram hakkı geri gelir.'
-              : 'Müşteri $hizmet ikram hakkını kullanmak istiyor mu?\n\nİkram ${_damgaKalemEtiket(d).split(' · ').first.toLowerCase()} kalemine uygulanır: $tutar ₺ indirim (%100), 0 TL tahsilat kaydı.',
+              : ind.isNotEmpty
+                  ? 'Müşteri $hizmet $ind indirim hakkını kullanmak istiyor mu?\n\nİndirim ${_damgaKalemEtiket(d).split(' · ').first.toLowerCase()} kalemine uygulanır: $tutar ₺ indirim ($ind); kalan tutar normal tahsil edilir.'
+                  : 'Müşteri $hizmet ikram hakkını kullanmak istiyor mu?\n\nİkram ${_damgaKalemEtiket(d).split(' · ').first.toLowerCase()} kalemine uygulanır: $tutar ₺ indirim (%100), 0 TL tahsilat kaydı.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text('Vazgeç')),
@@ -1197,13 +1204,13 @@ class _TahsilatState extends State<TahsilatEkrani> {
     final gecerliler = (hakDurum['gecerli_ikramlar'] as List?) ?? const [];
 
     final satirlar = <Widget>[
-      Text('${d['hizmet_adi']} ikram hizmet (${d['gereken']} alana ${d['ucretsiz']} ikram)',
+      Text('${d['hizmet_adi']} ikram hizmet (${d['kural_yazi'] ?? '${d['gereken']} alana ${d['ucretsiz']} ikram'})',
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF374151))),
       const SizedBox(height: 2),
     ];
     if (hak > 0) {
       satirlar.addAll([
-        Text('Müşterinin $hak ikram hakkı var',
+        Text(_damgaIndirim(d).isNotEmpty ? 'Müşterinin $hak adet ${_damgaIndirim(d)} indirim hakkı var' : 'Müşterinin $hak ikram hakkı var',
             style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF5C008E))),
         Text('Müşteri isterse bu seansta kullanır; istemezse hakkı saklanır.',
             style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
@@ -1220,7 +1227,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                 child: Icon(i < ilerleme ? Icons.circle : Icons.circle_outlined, size: 11, color: const Color(0xFF8B5CF6)),
               )),
         ]),
-        Text('(bu ziyaret dahil; $gereken ücretli alımda ${d['ucretsiz']} ikram kazanılır)',
+        Text('(bu ziyaret dahil; $gereken ücretli alımda ${_damgaIndirim(d).isNotEmpty ? '${_damgaIndirim(d)} indirim' : '${d['ucretsiz']} ikram'} kazanılır)',
             style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
       ]);
     }
