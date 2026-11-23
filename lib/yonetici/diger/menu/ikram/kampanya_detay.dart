@@ -416,56 +416,6 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
     );
   }
 
-  Widget _kartBaslik(IconData ikon, String yazi, {Widget? sag}) => Row(children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(colors: [Color(0xFFF3E8FF), Color(0xFFDDD0FB)]),
-            boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.16), blurRadius: 8, offset: const Offset(0, 3))],
-          ),
-          child: Icon(ikon, color: _morKoyu, size: 22),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(yazi, maxLines: 1, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _koyu)),
-          ),
-        ),
-        if (sag != null) const SizedBox(width: 6),
-        if (sag != null) sag,
-      ]);
-
-  BoxDecoration get _icKutu => BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEDE4FA)),
-      );
-
-  Widget _dikCizgi() => Container(width: 1, margin: const EdgeInsets.symmetric(vertical: 6), color: const Color(0xFFE6DAF8));
-
-  Widget _bilgi(IconData ikon, String etiket, String deger, {double degerBoyut = 22}) => Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-          child: Column(children: [
-            Icon(ikon, color: _mor, size: 22),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(etiket, maxLines: 1, style: const TextStyle(fontSize: 11.5, color: _morKoyu, fontWeight: FontWeight.w500)),
-            ),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(deger, style: TextStyle(fontSize: degerBoyut, fontWeight: FontWeight.w800, color: _koyu)),
-            ),
-          ]),
-        ),
-      );
-
   /// Kampanya Bilgileri: tasarım ölçüleri (941 px genişlik) ekran genişliğine oranlanır.
   Widget _bilgilerKarti() {
     final w = MediaQuery.of(context).size.width;
@@ -558,7 +508,7 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
     );
   }
 
-  Widget _donemSecici() {
+  Widget _donemSecici(double Function(num) x) {
     const secenekler = {7: 'Son 7 Gün', 30: 'Son 30 Gün', 90: 'Son 90 Gün', 365: 'Son 1 Yıl'};
     return PopupMenuButton<int>(
       padding: EdgeInsets.zero,
@@ -575,63 +525,139 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
               ))
           .toList(),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+        height: x(56),
+        padding: EdgeInsets.fromLTRB(x(26), 0, x(14), 0),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1E9FD),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(x(28)),
           border: Border.all(color: const Color(0xFFDCCBF6)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(secenekler[_donem] ?? 'Son $_donem Gün', style: const TextStyle(color: _koyu, fontSize: 12, fontWeight: FontWeight.w600)),
-          const Icon(Icons.keyboard_arrow_down_rounded, color: _koyu, size: 18),
+          Text(secenekler[_donem] ?? 'Son $_donem Gün',
+              style: TextStyle(color: _koyu, fontSize: x(24), fontWeight: FontWeight.w600)),
+          SizedBox(width: x(10)),
+          Icon(Icons.keyboard_arrow_down_rounded, color: _koyu, size: x(32)),
         ]),
       ),
     );
   }
 
+  /// Kampanya Performansı: tasarım ölçüleri (941 px genişlik) ekran genişliğine oranlanır.
   Widget _performansKarti() {
+    final w = MediaQuery.of(context).size.width;
+    double x(num px) => w * px / 941;
     final oran = (_perf['kullanim_orani'] as num?)?.toInt();
-    return _cam(
-      child: Column(children: [
-        _kartBaslik(Icons.bar_chart_rounded, 'Kampanya Performansı', sag: _donemSecici()),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(
-            flex: 5,
-            child: Container(
-              decoration: _icKutu,
+
+    Widget sutun(IconData ikon, String etiket, String deger) => Padding(
+          padding: EdgeInsets.symmetric(vertical: x(16), horizontal: x(10)),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(ikon, color: _mor, size: x(42)),
+            SizedBox(height: x(12)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(etiket, maxLines: 1, style: TextStyle(fontSize: x(25), color: _morKoyu, fontWeight: FontWeight.w500)),
+            ),
+            SizedBox(height: x(4)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(deger, maxLines: 1, style: TextStyle(fontSize: x(44), fontWeight: FontWeight.w800, color: _koyu, height: 1.1)),
+            ),
+          ]),
+        );
+    Widget cizgi() => Container(width: 1, margin: EdgeInsets.symmetric(vertical: x(20)), color: const Color(0xFFE4D7F7));
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(x(36)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(x(17), x(14), x(17), x(14)),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(x(36)),
+            border: Border.all(color: Colors.white, width: 1.2),
+            boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 6))],
+          ),
+          child: Column(children: [
+            Row(children: [
+              SizedBox(width: x(12)),
+              Container(
+                width: x(66),
+                height: x(60),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(x(20)),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFF3E8FF), Color(0xFFDCCBF8)],
+                  ),
+                  boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.16), blurRadius: 10, offset: const Offset(0, 3))],
+                ),
+                child: Icon(Icons.bar_chart_rounded, color: _morKoyu, size: x(38)),
+              ),
+              SizedBox(width: x(28)),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('Kampanya Performansı', style: TextStyle(fontSize: x(30), fontWeight: FontWeight.w700, color: _koyu)),
+                ),
+              ),
+              _donemSecici(x),
+              SizedBox(width: x(6)),
+            ]),
+            SizedBox(height: x(12)),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(x(30)),
+                border: Border.all(color: const Color(0xFFE6DAF8)),
+              ),
               child: IntrinsicHeight(
                 child: Row(children: [
-                  _bilgi(Icons.people_alt_rounded, 'Katılan Müşteri',
-                      _yukleniyor ? '…' : '${(_perf['donem_katilan'] as num?)?.toInt() ?? 0}', degerBoyut: 24),
-                  _dikCizgi(),
-                  _bilgi(Icons.volunteer_activism_rounded, 'Elde Edilen Kazanç',
-                      _yukleniyor ? '…' : '${ikramTl(_perf['donem_kazanc'] as num?)} TL', degerBoyut: 20),
+                  Expanded(
+                    flex: 287,
+                    child: sutun(Icons.people_alt_rounded, 'Katılan Müşteri',
+                        _yukleniyor ? '…' : '${(_perf['donem_katilan'] as num?)?.toInt() ?? 0}'),
+                  ),
+                  cizgi(),
+                  Expanded(
+                    flex: 303,
+                    child: sutun(Icons.volunteer_activism_rounded, 'Elde Edilen Kazanç',
+                        _yukleniyor ? '…' : '${ikramTl(_perf['donem_kazanc'] as num?)} TL'),
+                  ),
+                  cizgi(),
+                  Expanded(
+                    flex: 250,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: x(14)),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        SizedBox(
+                          width: x(124),
+                          height: x(124),
+                          child: CustomPaint(
+                            painter: _HalkaBoyaci(oran == null ? 0 : oran / 100, kalinlik: x(18)),
+                            child: Center(
+                              child: Text(oran == null ? '—' : '%$oran',
+                                  style: TextStyle(fontSize: x(34), fontWeight: FontWeight.w800, color: _koyu)),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: x(8)),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Kullanım Oranı',
+                              maxLines: 1, style: TextStyle(fontSize: x(24), color: _morKoyu, fontWeight: FontWeight.w500)),
+                        ),
+                      ]),
+                    ),
+                  ),
                 ]),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: Column(children: [
-              SizedBox(
-                width: 76,
-                height: 76,
-                child: CustomPaint(
-                  painter: _HalkaBoyaci(oran == null ? 0 : oran / 100),
-                  child: Center(
-                    child: Text(oran == null ? '—' : '%$oran',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _koyu)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text('Kullanım Oranı', style: TextStyle(fontSize: 11.5, color: _morKoyu, fontWeight: FontWeight.w500)),
-            ]),
-          ),
-        ]),
-      ]),
+          ]),
+        ),
+      ),
     );
   }
 
@@ -1157,28 +1183,29 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
 /// Kullanım oranı halkası (mor, yuvarlak uçlu)
 class _HalkaBoyaci extends CustomPainter {
   final double oran;
-  _HalkaBoyaci(this.oran);
+  final double kalinlik;
+  _HalkaBoyaci(this.oran, {this.kalinlik = 10});
 
   @override
   void paint(Canvas canvas, Size size) {
     final merkez = size.center(Offset.zero);
-    final r = size.shortestSide / 2 - 6;
+    final r = size.shortestSide / 2 - kalinlik / 2 - 1;
     final zemin = Paint()
       ..color = const Color(0xFFEDE3FD)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 10;
+      ..strokeWidth = kalinlik;
     canvas.drawCircle(merkez, r, zemin);
     if (oran <= 0) return;
     final yay = Paint()
       ..shader = const SweepGradient(colors: [Color(0xFFA855F7), Color(0xFF5B21B6)]).createShader(Rect.fromCircle(center: merkez, radius: r))
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 10;
+      ..strokeWidth = kalinlik;
     canvas.drawArc(Rect.fromCircle(center: merkez, radius: r), -math.pi / 2, 2 * math.pi * oran.clamp(0, 1), false, yay);
   }
 
   @override
-  bool shouldRepaint(covariant _HalkaBoyaci eski) => eski.oran != oran;
+  bool shouldRepaint(covariant _HalkaBoyaci eski) => eski.oran != oran || eski.kalinlik != kalinlik;
 }
 
 /// Kampanya üst bölümünde alttan geçen, uçları sönen ışıklı kavis (tasarımdaki parıltı çizgisi)
