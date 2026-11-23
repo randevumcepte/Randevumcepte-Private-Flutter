@@ -260,9 +260,9 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
         width: w,
         height: h,
         child: Stack(children: [
-          // Fotoğraf: sağ %55, sol ve alt kenarı zemine erir
+          // Fotoğraf: panelin altına kadar uzanır; sol ve alt kenarı zemine erir
           Positioned(
-            left: x(400),
+            left: x(350),
             right: 0,
             top: 0,
             bottom: 0,
@@ -271,7 +271,7 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [Colors.transparent, Colors.black],
-                stops: [0, 0.22],
+                stops: [0, 0.32],
               ).createShader(r),
               blendMode: BlendMode.dstIn,
               child: ShaderMask(
@@ -286,29 +286,30 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
               ),
             ),
           ),
-          // Mor panel (sağ kenarı yarı saydam: fotoğraf hafifçe görünür)
+          // Mor panel: sağa doğru koyu mordan leylaka erir, kenar çizgisi olmadan fotoğrafa karışır
           Positioned(
             left: x(28),
             top: x(6),
-            width: x(490 - 28),
+            width: x(650 - 28),
             height: x(394),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(x(56)),
+                borderRadius: BorderRadius.horizontal(left: Radius.circular(x(56))),
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
                     const Color(0xFF4C1D95),
-                    const Color(0xFF5B21B6).withValues(alpha: 0.96),
-                    const Color(0xFF6D28D9).withValues(alpha: 0.72),
+                    const Color(0xFF5B21B6).withValues(alpha: 0.98),
+                    const Color(0xFF7C3AED).withValues(alpha: 0.62),
+                    const Color(0xFFA78BFA).withValues(alpha: 0.22),
+                    const Color(0xFFC4B5FD).withValues(alpha: 0),
                   ],
-                  stops: const [0, 0.65, 1],
+                  stops: const [0, 0.52, 0.7, 0.86, 1],
                 ),
-                boxShadow: [BoxShadow(color: _morKoyu.withValues(alpha: 0.30), blurRadius: 24, offset: const Offset(0, 10))],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(x(56)),
+                borderRadius: BorderRadius.horizontal(left: Radius.circular(x(56))),
                 child: Stack(children: [
                   // Üstte hafif ışık parıltısı
                   Positioned(
@@ -324,7 +325,7 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.fromLTRB(x(34), x(24), x(18), x(14)),
+                    padding: EdgeInsets.fromLTRB(x(34), x(24), x(180), x(14)),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Container(
                         height: x(44),
@@ -372,6 +373,23 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
               ),
             ),
           ),
+          // Panel ile fotoğrafın birleştiği yerde yumuşak leylak ışıltı
+          Positioned(
+            left: x(330),
+            top: x(40),
+            width: x(320),
+            height: x(320),
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [const Color(0xFFC4B5FD).withValues(alpha: 0.30), Colors.transparent]),
+                ),
+              ),
+            ),
+          ),
+          // Alttan geçen kavisli ışık çizgisi
+          Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _IsikCizgisi(x(5))))),
         ]),
       );
     });
@@ -1110,4 +1128,41 @@ class _HalkaBoyaci extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _HalkaBoyaci eski) => eski.oran != oran;
+}
+
+/// Kampanya üst bölümünde alttan geçen, uçları sönen ışıklı kavis (tasarımdaki parıltı çizgisi)
+class _IsikCizgisi extends CustomPainter {
+  final double kalinlik;
+  _IsikCizgisi(this.kalinlik);
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final yol = Path()
+      ..moveTo(s.width * 0.22, s.height * 0.99)
+      ..quadraticBezierTo(s.width * 0.62, s.height * 1.03, s.width * 1.02, s.height * 0.6);
+    final renk = LinearGradient(colors: [
+      Colors.white.withValues(alpha: 0),
+      Colors.white.withValues(alpha: 0.9),
+      const Color(0xFFE9D5FF).withValues(alpha: 0.8),
+      Colors.white.withValues(alpha: 0),
+    ], stops: const [0, 0.45, 0.75, 1]).createShader(Offset.zero & s);
+    // Önce geniş bulanık parıltı, üstüne ince parlak çizgi
+    canvas.drawPath(
+        yol,
+        Paint()
+          ..shader = renk
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = kalinlik * 3
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, kalinlik * 2));
+    canvas.drawPath(
+        yol,
+        Paint()
+          ..shader = renk
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = kalinlik * 0.6);
+  }
+
+  @override
+  bool shouldRepaint(covariant _IsikCizgisi eski) => eski.kalinlik != kalinlik;
 }
