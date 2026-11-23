@@ -6932,9 +6932,17 @@ Future<bool> carkAdminPuanOdulSil(String salonId, int id) async {
 
 // ----- Puan Kazanim Kurali + Damga Karti (admin tarafi) -----
 
+/// Giris token'i ekli JSON basliklari (sunucu salon sahipligini token'dan dogrular).
+Future<Map<String, String>> _tokenliJsonHeaders() async {
+  final h = _jsonHeaders();
+  final kimlik = await _isletmeIstekKimligi();
+  if (kimlik.token != null) h['Authorization'] = 'Bearer ${kimlik.token}';
+  return h;
+}
+
 Future<Map<String, dynamic>?> _carkAdminGetJson(String yol) async {
   try {
-    final res = await http.get(Uri.parse('$_apiBase/$yol'), headers: _jsonHeaders())
+    final res = await http.get(Uri.parse('$_apiBase/$yol'), headers: await _tokenliJsonHeaders())
         .timeout(const Duration(seconds: 10));
     if (res.statusCode == 200) {
       return Map<String, dynamic>.from(json.decode(res.body) as Map);
@@ -6947,7 +6955,7 @@ Future<Map<String, dynamic>?> _carkAdminGetJson(String yol) async {
 
 Future<Map<String, dynamic>?> _carkAdminPostJson(String yol, Map<String, dynamic> data) async {
   try {
-    final res = await http.post(Uri.parse('$_apiBase/$yol'), headers: _jsonHeaders(), body: jsonEncode(data))
+    final res = await http.post(Uri.parse('$_apiBase/$yol'), headers: await _tokenliJsonHeaders(), body: jsonEncode(data))
         .timeout(const Duration(seconds: 10));
     if (res.statusCode == 200) {
       return Map<String, dynamic>.from(json.decode(res.body) as Map);

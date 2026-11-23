@@ -350,7 +350,7 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                         return;
                       }
                       setSt(() => kaydediyor = true);
-                      final r = await carkAdminDamgaKartiKaydet(_salonId, {
+                      final veri = <String, dynamic>{
                         if (mevcut != null) 'id': mevcut['id'],
                         'hizmet_id': hizmetId,
                         'gereken_adet': int.tryParse(gerekenCtrl.text.trim()) ?? 0,
@@ -358,8 +358,34 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                         'aktif': aktif ? 1 : 0,
                         'gecerlilik_deger': int.tryParse(sureCtrl.text.trim()) ?? 0,
                         'gecerlilik_birim': sureBirim,
-                      });
+                      };
+                      var r = await carkAdminDamgaKartiKaydet(_salonId, veri);
                       if (!mounted) return;
+                      // Sayilmis ziyareti olan kuralda adet/hizmet degisiyor: etkisini gosterip onay al
+                      if (r != null && r['onay_gerekli'] == true) {
+                        final evet = await showDialog<bool>(
+                          context: c,
+                          builder: (d) => AlertDialog(
+                            title: const Text('Müşteriler etkilenecek'),
+                            content: Text(r!['mesaj']?.toString() ?? ''),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Vazgeç')),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(d, true),
+                                style: ElevatedButton.styleFrom(backgroundColor: _mor, foregroundColor: Colors.white),
+                                child: const Text('Evet, kaydet'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (!mounted) return;
+                        if (evet != true) {
+                          setSt(() => kaydediyor = false);
+                          return;
+                        }
+                        r = await carkAdminDamgaKartiKaydet(_salonId, {...veri, 'onay': 1});
+                        if (!mounted) return;
+                      }
                       setSt(() => kaydediyor = false);
                       if (r != null && r['basarili'] == true) {
                         Navigator.pop(c);
