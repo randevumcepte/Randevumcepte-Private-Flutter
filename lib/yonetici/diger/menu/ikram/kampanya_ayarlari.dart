@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// İkram Hizmet kampanya ekle/düzenle ("Kampanya Ayarları" tasarımı).
@@ -106,19 +105,24 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
               _ustBar(),
               Expanded(
                 child: ListView(
-                  padding: EdgeInsets.fromLTRB(16, 4, 16, 24 + alt),
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, 24 + alt),
                   children: [
                     _hero(),
-                    const SizedBox(height: 14),
-                    _turKarti(),
-                    const SizedBox(height: 12),
-                    _detayKarti(),
-                    const SizedBox(height: 12),
-                    _gecerlilikKarti(),
-                    const SizedBox(height: 12),
-                    _aktifKarti(),
-                    const SizedBox(height: 18),
-                    _kaydetDugmesi(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(children: [
+                        const SizedBox(height: 10),
+                        _turKarti(),
+                        const SizedBox(height: 12),
+                        _detayKarti(),
+                        const SizedBox(height: 12),
+                        _gecerlilikKarti(),
+                        const SizedBox(height: 12),
+                        _aktifKarti(),
+                        const SizedBox(height: 18),
+                        _kaydetDugmesi(),
+                      ]),
+                    ),
                   ],
                 ),
               ),
@@ -160,106 +164,41 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
 
   // ---------------------------------------------------------------- hero
 
+  /// Tasarımın üst bölümü birebir görsel (kart + fotoğraf + başlık). Görseldeki alt yazı
+  /// silindi; yerine hediye adedine göre değişen yazı aynı konuma oturtulur.
+  /// Ölçüler tasarım görselinin pikselleri (941 x 362) üzerinden oranlanır.
   Widget _hero() {
-    return SizedBox(
-      height: 196,
-      child: Stack(clipBehavior: Clip.none, children: [
-        // Sağda fotoğraf (sol ve alt kenarı zemine erir)
-        Positioned(
-          right: -16,
-          top: -8,
-          bottom: 0,
-          width: 214,
-          child: ShaderMask(
-            shaderCallback: (r) => const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Colors.transparent, Colors.black, Colors.black],
-              stops: [0, 0.16, 1],
-            ).createShader(r),
-            blendMode: BlendMode.dstIn,
+    return LayoutBuilder(builder: (c, k) {
+      final w = k.maxWidth;
+      final h = w * 362 / 941;
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Stack(children: [
+          // Üst/alt kenar sayfa zeminine erir (görselin kendi zemini çizgi gibi görünmesin)
+          Positioned.fill(
             child: ShaderMask(
               shaderCallback: (r) => const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.black, Colors.black, Colors.transparent],
-                stops: [0, 0.85, 1],
+                colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+                stops: [0, 0.06, 0.93, 1],
               ).createShader(r),
               blendMode: BlendMode.dstIn,
-              child: Image.asset('images/kampanya_hero.png', fit: BoxFit.cover, alignment: Alignment.topLeft),
+              child: Image.asset('images/kampanya_hero_tam.png', fit: BoxFit.fill),
             ),
           ),
-        ),
-        // Solda mor kart
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 4,
-          right: 150,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF6D28D9), Color(0xFF4C1D95), Color(0xFF3B0764)],
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(26),
-                bottomLeft: Radius.circular(26),
-                bottomRight: Radius.circular(26),
-                topRight: Radius.circular(60),
-              ),
-              boxShadow: [BoxShadow(color: _morKoyu.withValues(alpha: 0.35), blurRadius: 22, offset: const Offset(0, 10))],
+          Positioned(
+            left: w * 95 / 941,
+            top: h * 256 / 362,
+            child: Text(
+              'Belirlediğin adetlerde\n$_hediye hizmet hediye et.',
+              style: TextStyle(color: Colors.white, fontSize: w * 0.0262, height: 1.3, fontWeight: FontWeight.w500),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.star_rounded, color: Colors.white, size: 14),
-                    SizedBox(width: 4),
-                    Text('En Popüler Kampanya', style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w600)),
-                  ]),
-                ),
-              ),
-              const Spacer(),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('İstediğin Sayıda',
-                      style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800, height: 1.1)),
-                  Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    const Text('Hizmet Al, ',
-                        style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800, height: 1.1)),
-                    Text('Kazan!',
-                        style: GoogleFonts.dancingScript(
-                            color: const Color(0xFFFBCFB0), fontSize: 30, fontWeight: FontWeight.w700, height: 1)),
-                  ]),
-                ]),
-              ),
-              const SizedBox(height: 6),
-              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Expanded(
-                  child: Text(
-                    'Belirlediğin adetlerde\n$_hediye hizmet hediye et.',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 12, height: 1.3),
-                  ),
-                ),
-                const Icon(Icons.favorite_border_rounded, color: Color(0xFFFBCFB0), size: 22),
-              ]),
-            ]),
           ),
-        ),
-      ]),
-    );
+        ]),
+      );
+    });
   }
 
   // ---------------------------------------------------------------- kartlar
