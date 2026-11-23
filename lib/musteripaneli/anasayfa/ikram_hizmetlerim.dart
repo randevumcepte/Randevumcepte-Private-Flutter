@@ -422,8 +422,10 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
   Widget _ilerlemeKarti(Map<String, dynamic> k) {
     final gereken = math.max(1, _n(k, 'gereken_adet'));
     final hediye = _n(k, 'ucretsiz_adet');
-    final ilerleme = _n(k, 'ilerleme').clamp(0, gereken);
     final hak = _n(k, 'hak');
+    // Hak kullanılana kadar kart dolu (5/5) görünür; sonraki alımlar "Yeni kartınız" olarak ayrı yazılır
+    final yeniKart = _n(k, 'ilerleme');
+    final ilerleme = hak > 0 ? gereken : yeniKart.clamp(0, gereken);
     final acik = _kampanyaAcik(k);
 
     Widget nokta(bool dolu) => Container(
@@ -497,10 +499,15 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           Icon(Icons.redeem_rounded, color: const Color(0xFF15803D), size: _x(26)),
                           SizedBox(width: _x(8)),
-                          Text('$hak ikram hakkınız var',
+                          Text('$hak ücretsiz hakkınız var',
                               style: TextStyle(fontSize: _x(21), fontWeight: FontWeight.w700, color: const Color(0xFF15803D))),
                         ]),
                       ),
+                      if (acik && yeniKart > 0) ...[
+                        SizedBox(height: _x(8)),
+                        Text('Yeni kartınız: $yeniKart/$gereken',
+                            style: TextStyle(fontSize: _x(20), fontWeight: FontWeight.w500, color: const Color(0xFF5B21B6))),
+                      ],
                     ],
                   ]),
                 ),
@@ -593,12 +600,18 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               padding: EdgeInsets.fromLTRB(_x(42), _x(6), _x(36), _x(22)),
               child: Column(children: [
                 if (_kampanyaAcik(k))
-                  not(Icons.trending_up_rounded, 'Sonraki ikrama ${gereken - ilerleme} ücretli alım kaldı.', _morKoyu),
+                  not(
+                      Icons.trending_up_rounded,
+                      hak > 0
+                          ? 'Kartınız doldu: $hak ücretsiz hakkınızı kullanabilirsiniz.'
+                          : 'Ücretsiz hakkınıza ${gereken - ilerleme} ücretli alım kaldı.',
+                      _morKoyu),
                 ...gecerliler.map((t) => not(Icons.hourglass_bottom_rounded, '1 ikram · ${_tarih(t)} tarihine kadar kullanılabilir',
                     const Color(0xFF92400E))),
                 if (gecerliler.isEmpty && gecerlilik.isNotEmpty)
                   not(Icons.hourglass_bottom_rounded, 'Kazandığınız ikram $gecerlilik geçerlidir.', _soluk),
                 if (dolan > 0) not(Icons.timer_off_rounded, '$dolan ikramın kullanım süresi doldu.', const Color(0xFFDC2626)),
+                not(Icons.info_outline_rounded, 'Paket seanslarınız bu kampanyaya sayılmaz.', _soluk),
               ]),
             ),
           ]),
@@ -825,7 +838,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('İkram kampanyası nasıl işler?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _baslik)),
             const SizedBox(height: 8),
-            satir(Icons.event_available_rounded, 'Kampanyalı hizmetleri ücretli aldıkça ikram kazanırsınız; gelinen her randevu sayılır.'),
+            satir(Icons.event_available_rounded, 'Yalnızca kampanyadaki hizmeti ücretli aldığınızda sayılır; paket seansları ve diğer hizmetler sayılmaz.'),
             satir(Icons.card_giftcard_rounded,
                 'Kazandığınız ikramı dilediğiniz bir seansınızda kullanırsınız; ödeme sırasında salona söylemeniz yeterli.'),
             satir(Icons.savings_rounded,

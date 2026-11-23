@@ -163,11 +163,12 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     for (final k in _ikramKartlari) {
       if ((k['aktif'] as num?)?.toInt() != 1) continue;
       final g = math.max(1, (k['gereken_adet'] as num?)?.toInt() ?? 1);
-      final o = ((k['ilerleme'] as num?)?.toInt() ?? 0) / g;
+      // Kullanılmamış hak varsa kart dolu sayılır (Kampanyalarım ekranıyla aynı)
+      final o = ((k['hak'] as num?)?.toInt() ?? 0) > 0 ? 1.0 : ((k['ilerleme'] as num?)?.toInt() ?? 0) / g;
       if (o > oran) { oran = o; yakin = k; }
     }
     final g = math.max(1, (yakin?['gereken_adet'] as num?)?.toInt() ?? 1);
-    final il = (yakin?['ilerleme'] as num?)?.toInt() ?? 0;
+    final il = ((yakin?['hak'] as num?)?.toInt() ?? 0) > 0 ? g : (yakin?['ilerleme'] as num?)?.toInt() ?? 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
