@@ -208,7 +208,26 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: _koyu, letterSpacing: -0.3)),
           ),
-          _daireDugme(const Text('i', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _koyu)), _bilgiGoster),
+          // Bilgi: küçük, ince çizgili ikon (başlık ortada kalsın diye geri düğmesi genişliğinde alan)
+          SizedBox(
+            width: 46,
+            child: Center(
+              child: GestureDetector(
+                onTap: _bilgiGoster,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.7),
+                    border: Border.all(color: const Color(0xFFE4D7F7)),
+                    boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.10), blurRadius: 10, offset: const Offset(0, 3))],
+                  ),
+                  child: const Icon(Icons.info_outline_rounded, color: _morKoyu, size: 19),
+                ),
+              ),
+            ),
+          ),
         ]),
       );
 
@@ -226,16 +245,29 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
       final h = w * 382 / 941;
       double x(num px) => w * px / 941;
       double y(num px) => h * (px - 118) / 382; // tasarım y koordinatı (kesim 118'den başlar)
-      Widget rakam(num sol, num sag, String deger) => Positioned(
+      // Alt üç sütun: ikon + rakam + etiket (görseldeki küçük yazılar silindi, burada büyük yazılır)
+      Widget rakam(num sol, num sag, IconData ikon, String deger, String etiket) => Positioned(
             left: x(sol),
-            top: y(421),
+            top: y(370),
             width: x(sag - sol),
-            height: y(452) - y(421),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(deger, style: TextStyle(color: Colors.white, fontSize: w * 0.03, fontWeight: FontWeight.w800)),
-            ),
+            height: y(494) - y(370),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+              Row(children: [
+                Icon(ikon, color: Colors.white.withValues(alpha: 0.9), size: w * 0.042),
+                SizedBox(width: x(10)),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(deger, style: TextStyle(color: Colors.white, fontSize: w * 0.044, fontWeight: FontWeight.w800, height: 1.1)),
+                  ),
+                ),
+              ]),
+              SizedBox(height: x(4)),
+              Text(etiket,
+                  maxLines: 2,
+                  style: TextStyle(color: Colors.white, fontSize: w * 0.029, fontWeight: FontWeight.w600, height: 1.15)),
+            ]),
           );
       return SizedBox(
         width: w,
@@ -308,10 +340,10 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                     ]),
                   ),
           ),
-          // Alt üç rakam (etiket ve ikonlar görselde)
-          rakam(122, 272, '${(_ozet['kullanim'] as num?)?.toInt() ?? 0}'),
-          rakam(306, 448, '${ikramTl(_ozet['ek_kazanc'] as num?)} TL'),
-          rakam(480, 610, oran == null ? '—' : '%$oran'),
+          // Alt üç sütun
+          rakam(104, 270, Icons.people_alt_rounded, '${(_ozet['kullanim'] as num?)?.toInt() ?? 0}', 'Kampanya\nKullanımı'),
+          rakam(292, 446, Icons.savings_rounded, '${ikramTl(_ozet['ek_kazanc'] as num?)} TL', 'Ek\nKazanç'),
+          rakam(466, 606, Icons.star_rounded, oran == null ? '—' : '%$oran', 'Kullanım\nOranı'),
         ]),
       );
     });

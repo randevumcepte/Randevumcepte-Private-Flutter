@@ -180,7 +180,26 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _koyu, letterSpacing: -0.3)),
           ),
-          _daireDugme(const Text('i', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _koyu)), _bilgiGoster),
+          // Bilgi: küçük, ince çizgili ikon (başlık ortada kalsın diye geri düğmesi genişliğinde alan)
+          SizedBox(
+            width: 46,
+            child: Center(
+              child: GestureDetector(
+                onTap: _bilgiGoster,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.7),
+                    border: Border.all(color: const Color(0xFFE4D7F7)),
+                    boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.10), blurRadius: 10, offset: const Offset(0, 3))],
+                  ),
+                  child: const Icon(Icons.info_outline_rounded, color: _morKoyu, size: 19),
+                ),
+              ),
+            ),
+          ),
         ]),
       );
 
