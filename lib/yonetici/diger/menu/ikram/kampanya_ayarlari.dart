@@ -10,8 +10,10 @@ class KampanyaAyarlariSayfasi extends StatefulWidget {
   final String salonId;
   final Map<String, dynamic>? mevcut;
   final List<Map<String, dynamic>> hizmetler;
+  /// Yeni kampanyada şablondan gelen alım adedi (5+1, 3+1...)
+  final int? varsayilanAdet;
 
-  const KampanyaAyarlariSayfasi({super.key, required this.salonId, this.mevcut, required this.hizmetler});
+  const KampanyaAyarlariSayfasi({super.key, required this.salonId, this.mevcut, required this.hizmetler, this.varsayilanAdet});
 
   @override
   State<KampanyaAyarlariSayfasi> createState() => _KampanyaAyarlariSayfasiState();
@@ -41,7 +43,7 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
     final m = widget.mevcut;
     int n(String a, int v) => (m?[a] as num?)?.toInt() ?? v;
     _hizmetId = (m?['hizmet_id'] as num?)?.toInt();
-    _adet = n('gereken_adet', 5);
+    _adet = n('gereken_adet', widget.varsayilanAdet ?? 5);
     _hediye = n('ucretsiz_adet', 1);
     _bas = DateTime.tryParse((m?['baslangic'] ?? '').toString());
     _bit = DateTime.tryParse((m?['bitis_tarihi'] ?? '').toString());

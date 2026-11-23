@@ -6988,8 +6988,8 @@ Future<Map<String, dynamic>?> carkAdminDamgaKartiSil(String salonId, int id) =>
     _carkAdminPostJson('carkAdmin/damga-karti-sil/$salonId', {'id': id});
 
 /// Ikram Hizmet yonetim sayfasi: kurallar + hizmetler + ikram kazanan musteriler.
-Future<Map<String, dynamic>?> ikramHizmetYonetimGetir(String salonId) =>
-    _carkAdminGetJson('carkAdmin/damga-karti/$salonId?musteriler=1');
+Future<Map<String, dynamic>?> ikramHizmetYonetimGetir(String salonId, {int donem = 30}) =>
+    _carkAdminGetJson('carkAdmin/damga-karti/$salonId?musteriler=1&ozet=1&donem=$donem');
 
 /// Musteri: Ikram Hizmetlerim { basarili, toplam_hak, toplam_kazanilan, kartlar: [...] }
 Future<Map<String, dynamic>?> musteriIkramHizmetleri(String salonId, String userId) =>
