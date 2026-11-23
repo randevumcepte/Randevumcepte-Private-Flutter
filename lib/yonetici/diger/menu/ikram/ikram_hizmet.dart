@@ -50,7 +50,6 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
   List<Map<String, dynamic>> _musteriler = [];
   Map<String, dynamic> _ozet = {};
   int _donem = 30;
-  int _sablon = 5; // Kampanya Türü: 5+1 | 3+1
   String _filtre = 'tumu'; // tumu | aktif | pasif
 
   @override
@@ -166,7 +165,7 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
                                 const SizedBox(height: 10),
                                 if (gorunen.isEmpty)
                                   _bos(_kurallar.isEmpty
-                                      ? 'Henüz kampanya yok.\nYukarıdan bir tür seçip "Yeni Kampanya" ile başlayın.'
+                                      ? 'Henüz kampanya yok.\n"Yeni Kampanya" ile ilk kampanyanızı oluşturun.'
                                       : 'Bu filtrede kampanya yok.')
                                 else
                                   ...gorunen.map(_kampanyaKart),
@@ -372,91 +371,49 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
   Widget _yeniKampanyaDugme() => GestureDetector(
         onTap: () => _kuralDuzenle(null),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+          height: 50,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF6D28D9), Color(0xFF4C1D95)]),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: _morKoyu.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+            gradient: const LinearGradient(colors: [Color(0xFFA855F7), Color(0xFF7C3AED), Color(0xFF5B21B6)]),
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [BoxShadow(color: _morKoyu.withValues(alpha: 0.32), blurRadius: 14, offset: const Offset(0, 6))],
           ),
+          alignment: Alignment.center,
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.add_rounded, color: Colors.white, size: 16),
-            SizedBox(width: 3),
-            Text('Yeni Kampanya', style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700)),
+            CircleAvatar(radius: 12, backgroundColor: Colors.white, child: Icon(Icons.add_rounded, color: _morKoyu, size: 18)),
+            SizedBox(width: 10),
+            Text('Yeni Kampanya', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
           ]),
         ),
       );
 
+  /// Kampanya oluşturma kartı: başlık + tam genişlikte "Yeni Kampanya" düğmesi.
   Widget _turKarti() => _cam(
         child: Column(children: [
           Row(children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 gradient: const LinearGradient(colors: [Color(0xFFF3E8FF), Color(0xFFDDD0FB)]),
                 boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 3))],
               ),
               child: const Icon(Icons.card_giftcard_rounded, color: _morKoyu, size: 24),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             const Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Kampanya Türü', maxLines: 1, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _koyu)),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text('Yeni bir kampanya oluşturun.', style: TextStyle(fontSize: 11, color: _soluk)),
-                ),
+                Text('Kampanya Oluştur', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: _koyu)),
+                SizedBox(height: 2),
+                Text('Hizmeti belirlediğiniz adette alan müşteriye hediye hizmet verin.',
+                    style: TextStyle(fontSize: 11.5, height: 1.3, color: _soluk)),
               ]),
             ),
-            _yeniKampanyaDugme(),
           ]),
           const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _sablonKart(5, 'images/ikram_etiket_5.png')),
-            const SizedBox(width: 10),
-            Expanded(child: _sablonKart(3, 'images/ikram_etiket_3.png')),
-          ]),
+          _yeniKampanyaDugme(),
         ]),
       );
-
-  Widget _sablonKart(int adet, String gorsel) {
-    final secili = _sablon == adet;
-    return GestureDetector(
-      onTap: () => setState(() => _sablon = adet),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.fromLTRB(4, 8, 6, 8),
-        decoration: BoxDecoration(
-          color: secili ? const Color(0xFFF6F0FF) : Colors.white.withValues(alpha: 0.75),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: secili ? _mor : const Color(0xFFE9DDF8), width: secili ? 1.6 : 1),
-        ),
-        child: Row(children: [
-          Image.asset(gorsel, width: 46),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text('$adet+1 İkram', style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: _koyu)),
-              ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text('$adet hizmet alana\n1 hizmet hediye',
-                    style: const TextStyle(fontSize: 10.5, height: 1.25, color: _morKoyu)),
-              ),
-            ]),
-          ),
-          Icon(secili ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
-              size: 18, color: secili ? _morKoyu : const Color(0xFFB9A5DD)),
-        ]),
-      ),
-    );
-  }
 
   Widget _listeBaslik() {
     const etiket = {'tumu': 'Tümü', 'aktif': 'Aktif', 'pasif': 'Pasif'};
@@ -745,7 +702,6 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
           salonId: _salonId,
           mevcut: mevcut,
           hizmetler: _hizmetler,
-          varsayilanAdet: mevcut == null ? _sablon : null,
         ),
       ),
     );
