@@ -13,6 +13,18 @@ class Marka {
     'eymlife': 'images/eymlifeicon.png',
     'ezgitakmaz': 'images/ezgitakmazicon.png',
     'yasemintuzun': 'images/yasemintuzunicon.png',
+    'aydangurece': 'images/aydangureceicon.png',
+    'bercislinaguzellik': 'images/bercislina.png',
+    'cerenceviz': 'images/ccicon.png',
+    'dermatouch': 'images/dermatouchicon.png',
+    'drmet': 'images/drmeticon.png',
+    'ebrumete': 'images/ebrumeteicon.png',
+    'esemavci': 'images/esemavciicon.png',
+    'fulyakandemir': 'images/fulyakandemiricon.png',
+    'moncher': 'images/monchericon.png',
+    'shemall': 'images/shemallicon.png',
+    'shiningstars': 'images/shiningstarsicon.png',
+    'vionnaguzellik': 'images/vionnaguzellik.png',
     'randevumcepteprivate': 'images/randevumcepteicon.png',
   };
 
