@@ -139,19 +139,24 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
                     color: _mor,
                     onRefresh: _yukle,
                     child: ListView(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + alt),
+                      padding: EdgeInsets.fromLTRB(0, 0, 0, 24 + alt),
                       children: [
                         _hero(),
-                        const SizedBox(height: 12),
-                        _bilgilerKarti(),
-                        const SizedBox(height: 12),
-                        _performansKarti(),
-                        const SizedBox(height: 12),
-                        _sekmeler(),
-                        const SizedBox(height: 12),
-                        _ozetKarti(),
-                        const SizedBox(height: 16),
-                        _raporDugmesi(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                            const SizedBox(height: 12),
+                            _bilgilerKarti(),
+                            const SizedBox(height: 12),
+                            _performansKarti(),
+                            const SizedBox(height: 12),
+                            _sekmeler(),
+                            const SizedBox(height: 12),
+                            _ozetKarti(),
+                            const SizedBox(height: 16),
+                            _raporDugmesi(),
+                          ]),
+                        ),
                       ],
                     ),
                   ),
@@ -232,6 +237,9 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
         ]),
       );
 
+  /// Üst bölüm: tasarımdaki ölçüler ekran genişliğine oranlanır (tasarım 941 px genişlik).
+  /// Sağda kampanya fotoğrafı (işletmenin yüklediği ya da hizmete uygun hazır görsel), solda
+  /// sağ kenarı fotoğrafa yumuşakça geçen mor panel.
   Widget _hero() {
     final g = (_kural['gorsel'] ?? '').toString();
     final hazir = Image.asset(ikramHazirGorsel(_hizmet), fit: BoxFit.cover);
@@ -244,81 +252,129 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
       'bitti' => ('Kampanya Bitti', const Color(0xFFE5E7EB)),
       _ => ('Pasif Kampanya', const Color(0xFFE5E7EB)),
     };
-    return SizedBox(
-      height: 214,
-      child: Stack(clipBehavior: Clip.none, children: [
-        Positioned(
-          right: -16,
-          top: -6,
-          bottom: 0,
-          width: 250,
-          child: ShaderMask(
-            shaderCallback: (r) => const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Colors.transparent, Colors.black],
-              stops: [0, 0.25],
-            ).createShader(r),
-            blendMode: BlendMode.dstIn,
-            child: foto,
-          ),
-        ),
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          right: 148,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF6D28D9), Color(0xFF4C1D95), Color(0xFF3B0764)],
+    return LayoutBuilder(builder: (c, k) {
+      final w = k.maxWidth;
+      double x(num px) => w * px / 941;
+      final h = x(404);
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Stack(children: [
+          // Fotoğraf: sağ %55, sol ve alt kenarı zemine erir
+          Positioned(
+            left: x(400),
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: ShaderMask(
+              shaderCallback: (r) => const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Colors.transparent, Colors.black],
+                stops: [0, 0.22],
+              ).createShader(r),
+              blendMode: BlendMode.dstIn,
+              child: ShaderMask(
+                shaderCallback: (r) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black, Colors.black, Colors.transparent],
+                  stops: [0, 0.86, 1],
+                ).createShader(r),
+                blendMode: BlendMode.dstIn,
+                child: SizedBox.expand(child: foto),
               ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(28),
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-                topRight: Radius.circular(54),
-              ),
-              boxShadow: [BoxShadow(color: _morKoyu.withValues(alpha: 0.35), blurRadius: 22, offset: const Offset(0, 10))],
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(20)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.star_rounded, color: chipRenk, size: 14),
-                  const SizedBox(width: 4),
-                  Text(chipYazi, style: TextStyle(color: chipRenk, fontSize: 11, fontWeight: FontWeight.w600)),
+          ),
+          // Mor panel (sağ kenarı yarı saydam: fotoğraf hafifçe görünür)
+          Positioned(
+            left: x(28),
+            top: x(6),
+            width: x(490 - 28),
+            height: x(394),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(x(56)),
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    const Color(0xFF4C1D95),
+                    const Color(0xFF5B21B6).withValues(alpha: 0.96),
+                    const Color(0xFF6D28D9).withValues(alpha: 0.72),
+                  ],
+                  stops: const [0, 0.65, 1],
+                ),
+                boxShadow: [BoxShadow(color: _morKoyu.withValues(alpha: 0.30), blurRadius: 24, offset: const Offset(0, 10))],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(x(56)),
+                child: Stack(children: [
+                  // Üstte hafif ışık parıltısı
+                  Positioned(
+                    right: -x(60),
+                    top: -x(120),
+                    child: Container(
+                      width: x(300),
+                      height: x(300),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(colors: [Colors.white.withValues(alpha: 0.18), Colors.transparent]),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(x(34), x(24), x(18), x(14)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Container(
+                        height: x(44),
+                        padding: EdgeInsets.symmetric(horizontal: x(16)),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(x(21)),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.star_rounded, color: chipRenk, size: x(26)),
+                          SizedBox(width: x(8)),
+                          Text(chipYazi, style: TextStyle(color: chipRenk, fontSize: x(21), fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                      SizedBox(
+                        height: x(134),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('$_adet + $_hediye',
+                              style: TextStyle(color: Colors.white, fontSize: x(170), fontWeight: FontWeight.w900, height: 1, letterSpacing: -3)),
+                        ),
+                      ),
+                      SizedBox(
+                        height: x(98),
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('$_hizmet\nKampanyası',
+                              maxLines: 2,
+                              style: TextStyle(color: Colors.white, fontSize: x(44), fontWeight: FontWeight.w800, height: 1.1)),
+                        ),
+                      ),
+                      SizedBox(height: x(8)),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text('$_adet hizmet alan müşterilerimize\n$_hediye hizmet hediye!',
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.95), fontSize: x(25), height: 1.28)),
+                      ),
+                    ]),
+                  ),
                 ]),
               ),
-              const SizedBox(height: 2),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text('$_adet + $_hediye',
-                    style: const TextStyle(color: Colors.white, fontSize: 52, fontWeight: FontWeight.w900, height: 1.05, letterSpacing: -1)),
-              ),
-              Flexible(
-                child: Text('$_hizmet Kampanyası',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.w800, height: 1.15)),
-              ),
-              const SizedBox(height: 6),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text('$_adet hizmet alan müşterilerimize\n$_hediye hizmet hediye!',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 11.5, height: 1.3)),
-              ),
-            ]),
+            ),
           ),
-        ),
-      ]),
-    );
+        ]),
+      );
+    });
   }
 
   // ---------------------------------------------------------------- kartlar
