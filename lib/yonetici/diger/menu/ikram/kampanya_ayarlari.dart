@@ -24,11 +24,9 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
   static const _morKoyu = Color(0xFF5B21B6);
   static const _soluk = Color(0xFF6B5A8E);
 
-  late String _tur;
   int? _hizmetId;
   late int _adet;
   late int _hediye;
-  late int _oran;
   DateTime? _bas;
   DateTime? _bit;
   late int _sureDeger;
@@ -43,11 +41,9 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
     super.initState();
     final m = widget.mevcut;
     int n(String a, int v) => (m?[a] as num?)?.toInt() ?? v;
-    _tur = m?['tur'] == 'indirim' ? 'indirim' : 'ikram';
     _hizmetId = (m?['hizmet_id'] as num?)?.toInt();
     _adet = n('gereken_adet', 5);
     _hediye = n('ucretsiz_adet', 1);
-    _oran = n('indirim_orani', 0) > 0 ? n('indirim_orani', 20) : 20;
     _bas = DateTime.tryParse((m?['baslangic'] ?? '').toString());
     _bit = DateTime.tryParse((m?['bitis_tarihi'] ?? '').toString());
     _sureDeger = n('gecerlilik_deger', 0);
@@ -165,7 +161,6 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
   // ---------------------------------------------------------------- hero
 
   Widget _hero() {
-    final indirim = _tur == 'indirim';
     return SizedBox(
       height: 196,
       child: Stack(clipBehavior: Clip.none, children: [
@@ -254,9 +249,7 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Expanded(
                   child: Text(
-                    indirim
-                        ? 'Belirlediğin adetlerde\n%$_oran indirim kazandır.'
-                        : 'Belirlediğin adetlerde\n$_hediye hizmet hediye et.',
+                    'Belirlediğin adetlerde\n$_hediye hizmet hediye et.',
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 12, height: 1.3),
                   ),
                 ),
@@ -315,64 +308,38 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
         ),
       ]);
 
-  // Kampanya Türü
+  // Kampanya Türü: yalnız X + 1 (yüzde indirim kampanyaları ayrı "Kampanyalar" bölümünde)
   Widget _turKarti() => _kart(
         child: Column(children: [
-          _kartBaslik(Icons.card_giftcard_rounded, 'Kampanya Türü', 'Kampanyanın türünü seçin.'),
+          _kartBaslik(Icons.card_giftcard_rounded, 'Kampanya Türü', 'Al-kazan hediye hizmet kampanyası.'),
           const SizedBox(height: 12),
-          IntrinsicHeight(
-            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF6F0FF),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _mor, width: 1.8),
+              boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.18), blurRadius: 14, offset: const Offset(0, 4))],
+            ),
+            child: Row(children: [
+              Image.asset('images/kampanya_hediye.png', height: 70),
+              const SizedBox(width: 12),
               Expanded(
-                child: _turSecenek('ikram', 'images/kampanya_hediye.png', 'X + $_hediye',
-                    'Belirlediğin adet hizmet al,\n$_hediye hizmet hediye et.'),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('$_adet + $_hediye', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _koyu)),
+                  const SizedBox(height: 2),
+                  Text('Müşteri $_adet hizmet alınca $_hediye hizmet hediye kazanır.',
+                      style: const TextStyle(fontSize: 12, height: 1.3, color: _koyu)),
+                ]),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _turSecenek('indirim', 'images/kampanya_indirim.png', 'İndirim',
-                    'Belirli bir oranda\nindirim uygula.'),
-              ),
+              const CircleAvatar(radius: 11, backgroundColor: _morKoyu, child: Icon(Icons.check_rounded, size: 15, color: Colors.white)),
             ]),
           ),
         ]),
       );
 
-  Widget _turSecenek(String tur, String gorsel, String baslik, String alt) {
-    final secili = _tur == tur;
-    return GestureDetector(
-      onTap: () => setState(() => _tur = tur),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
-        decoration: BoxDecoration(
-          color: secili ? const Color(0xFFF6F0FF) : Colors.white.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: secili ? _mor : const Color(0xFFE9DDF8), width: secili ? 1.8 : 1),
-          boxShadow: secili ? [BoxShadow(color: _mor.withValues(alpha: 0.18), blurRadius: 14, offset: const Offset(0, 4))] : null,
-        ),
-        child: Stack(children: [
-          Column(mainAxisSize: MainAxisSize.min, children: [
-            Image.asset(gorsel, height: 74),
-            const SizedBox(height: 4),
-            Text(baslik, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _koyu)),
-            const SizedBox(height: 3),
-            Text(alt,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, height: 1.3, color: secili ? _koyu : _morKoyu)),
-          ]),
-          if (secili)
-            const Positioned(
-              right: 0,
-              top: 0,
-              child: CircleAvatar(radius: 11, backgroundColor: _morKoyu, child: Icon(Icons.check_rounded, size: 15, color: Colors.white)),
-            ),
-        ]),
-      ),
-    );
-  }
-
   // Kampanya Detayları
   Widget _detayKarti() {
-    final indirim = _tur == 'indirim';
     return _kart(
       child: Column(children: [
         _kartBaslik(Icons.tune_rounded, 'Kampanya Detayları', 'Kampanyanın koşullarını belirleyin.'),
@@ -398,21 +365,12 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
               _sayac(_adet, (v) => setState(() => _adet = v), min: 1, max: 100),
             ),
             _ayrac(),
-            if (indirim) ...[
-              _detaySatir(
-                Icons.percent_rounded,
-                'İndirim Oranı',
-                'Kazanılan hakta uygulanacak indirim.',
-                _sayac(_oran, (v) => setState(() => _oran = v), min: 5, max: 100, adim: 5, onEk: '%'),
-              ),
-              _ayrac(),
-            ],
             _detaySatir(
               Icons.card_giftcard_rounded,
-              indirim ? 'İndirimli Hizmet' : 'Hediye Hizmet',
-              indirim ? 'Kaç seansta indirim uygulanacağını seçin.' : 'Müşteriye verilecek hediye hizmeti seçin.',
+              'Hediye Hizmet',
+              'Müşteriye verilecek hediye hizmeti seçin.',
               _secimKutusu('$_hediye Hizmet', () async {
-                final v = await _listeSec('${indirim ? 'İndirimli' : 'Hediye'} hizmet adedi',
+                final v = await _listeSec('Hediye hizmet adedi',
                     List.generate(10, (i) => i + 1), _hediye, (v) => '$v Hizmet');
                 if (v != null) setState(() => _hediye = v);
               }),
@@ -469,7 +427,7 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         dugme(Icons.remove_rounded, deger > min, () => degis((deger - adim).clamp(min, max))),
         SizedBox(
-          width: 52,
+          width: 40,
           child: Text('$onEk$deger',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _koyu)),
@@ -778,7 +736,7 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
         content: const SingleChildScrollView(
           child: Text(
             '• X + 1: Müşteri seçtiğiniz hizmeti belirlediğiniz adet kadar ücretli alınca hediye hizmet kazanır.\n'
-            '• İndirim: Aynı koşulda hediye yerine belirlediğiniz oranda indirim kazanır; kalan tutar normal tahsil edilir.\n\n'
+            '• Yüzde indirim kampanyaları için Kampanyalar bölümünü kullanın.\n\n'
             '• Sayım "Geldi" işaretli ücretli randevulara göre yapılır; paket/seanslı satış ve telafi seansları sayılmaz.\n'
             '• Yalnız kampanya tarihleri içindeki ziyaretler sayılır; geçmiş randevulara dağıtılmaz.\n'
             '• Müşteri kazandığını uygulamasında görür, ne zaman kullanacağına kendisi karar verir. '
@@ -806,10 +764,9 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
     final veri = <String, dynamic>{
       if (widget.mevcut != null) 'id': widget.mevcut!['id'],
       'hizmet_id': _hizmetId,
-      'tur': _tur,
+      'tur': 'ikram',
       'gereken_adet': _adet,
       'ucretsiz_adet': _hediye,
-      'indirim_orani': _tur == 'indirim' ? _oran : 0,
       'aktif': _aktif ? 1 : 0,
       'gecerlilik_deger': _sureDeger,
       'gecerlilik_birim': _sureBirim,
