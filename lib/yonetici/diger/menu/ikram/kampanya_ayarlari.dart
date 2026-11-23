@@ -112,8 +112,6 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(children: [
                         const SizedBox(height: 10),
-                        _turKarti(),
-                        const SizedBox(height: 12),
                         _detayKarti(),
                         const SizedBox(height: 12),
                         _gecerlilikKarti(),
@@ -246,36 +244,6 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
           ]),
         ),
       ]);
-
-  // Kampanya Türü: yalnız X + 1 (yüzde indirim kampanyaları ayrı "Kampanyalar" bölümünde)
-  Widget _turKarti() => _kart(
-        child: Column(children: [
-          _kartBaslik(Icons.card_giftcard_rounded, 'Kampanya Türü', 'Al-kazan hediye hizmet kampanyası.'),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF6F0FF),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _mor, width: 1.8),
-              boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.18), blurRadius: 14, offset: const Offset(0, 4))],
-            ),
-            child: Row(children: [
-              Image.asset('images/kampanya_hediye.png', height: 70),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('$_adet + $_hediye', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _koyu)),
-                  const SizedBox(height: 2),
-                  Text('Müşteri $_adet hizmet alınca $_hediye hizmet hediye kazanır.',
-                      style: const TextStyle(fontSize: 12, height: 1.3, color: _koyu)),
-                ]),
-              ),
-              const CircleAvatar(radius: 11, backgroundColor: _morKoyu, child: Icon(Icons.check_rounded, size: 15, color: Colors.white)),
-            ]),
-          ),
-        ]),
-      );
 
   // Kampanya Detayları
   Widget _detayKarti() {
