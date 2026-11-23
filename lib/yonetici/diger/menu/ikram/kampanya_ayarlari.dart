@@ -6,15 +6,30 @@ import 'package:image_picker/image_picker.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// Kampanya kartı hazır görseli (işletme fotoğraf yüklemediyse), hizmet adına göre.
-/// Ayak/pedikür ve uygun görseli olmayan hizmetlerde nötr spa görseli: yanlış görsel gösterilmez.
+/// Sıra önemli: "Ayak protez tırnak" ayak, "Kaş ve Kirpik Lifting" kirpik, "Saç bakımı" saç olur.
+/// Hiçbirine uymayan hizmette nötr spa görseli: yanlış görsel gösterilmez.
 String ikramHazirGorsel(String hizmet) {
-  final h = hizmet.toLowerCase();
-  const ayak = ['ayak', 'pedikür', 'pedikur', 'topuk', 'nasır', 'nasir', 'batık', 'batik', 'mantar'];
-  const el = ['tırnak', 'tirnak', 'oje', 'manikür', 'manikur', 'nail', 'jel', 'protez', 'french'];
-  const yuz = ['cilt', 'yüz', 'yuz', 'hydra', 'facial', 'peeling', 'leke', 'akne', 'inci tozu'];
-  if (ayak.any(h.contains)) return 'images/ikram_foto_ayak.png';
-  if (el.any(h.contains)) return 'images/ikram_foto_tirnak.png';
-  if (yuz.any(h.contains)) return 'images/ikram_foto_cilt.png';
+  // "İ".toLowerCase() noktalı i (i + U+0307) verir; aramada sorun çıkmasın diye nokta atılır
+  final h = hizmet.toLowerCase().replaceAll('̇', '');
+  bool var_(List<String> l) => l.any(h.contains);
+  if (var_(['pedikür', 'pedikur'])) return 'images/ikram_k_pedikur.jpg';
+  if (var_(['ayak', 'topuk', 'nasır', 'nasir', 'batık', 'batik', 'mantar'])) return 'images/ikram_foto_ayak.png';
+  if (var_(['kalıcı makyaj', 'kalici makyaj', 'dudak', 'liner', 'microblading', 'pudra kaş', 'pudra kas'])) {
+    return 'images/ikram_k_dudak.jpg';
+  }
+  if (var_(['kirpik', 'lash'])) return 'images/ikram_k_kirpik.jpg';
+  if (var_(['kaş', 'brow'])) return 'images/ikram_k_kas.jpg';
+  if (var_(['lazer', 'epilasyon', 'ağda', 'agda', 'iğneli', 'igneli', 'bıyık', 'biyik', 'tüy alma'])) return 'images/ikram_k_lazer.jpg';
+  if (var_(['tırnak', 'tirnak', 'oje', 'manikür', 'manikur', 'nail', 'jel', 'protez', 'french', 'inci tozu', 'kedi gözü', 'kedi gozu', 'şablon', 'sablon'])) {
+    return 'images/ikram_k_tirnak.jpg';
+  }
+  if (var_(['saç', 'sac ', 'fön', 'boya', 'kesim', 'keratin', 'perma', 'röfle', 'rofle', 'balyaj', 'ombre', 'topuz', 'maşa', 'brezilya', 'gelin başı'])) {
+    return 'images/ikram_k_sac.jpg';
+  }
+  if (var_(['cilt', 'yüz', 'yuz', 'hydra', 'facial', 'peeling', 'leke', 'akne', 'bakım', 'bakim', 'dermapen', 'mezoterapi'])) {
+    return 'images/ikram_k_cilt.jpg';
+  }
+  if (var_(['masaj', 'spa', 'taş', 'aroma', 'refleks', 'sauna', 'hamam', 'kese'])) return 'images/ikram_k_masaj.jpg';
   return 'images/ikram_foto_spa.png';
 }
 
