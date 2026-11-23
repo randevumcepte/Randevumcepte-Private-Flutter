@@ -12,7 +12,7 @@ String ikramHazirGorsel(String hizmet) {
   const ayak = ['ayak', 'pedikür', 'pedikur', 'topuk', 'nasır', 'nasir', 'batık', 'batik', 'mantar'];
   const el = ['tırnak', 'tirnak', 'oje', 'manikür', 'manikur', 'nail', 'jel', 'protez', 'french'];
   const yuz = ['cilt', 'yüz', 'yuz', 'hydra', 'facial', 'peeling', 'leke', 'akne', 'inci tozu'];
-  if (ayak.any(h.contains)) return 'images/ikram_foto_spa.png';
+  if (ayak.any(h.contains)) return 'images/ikram_foto_ayak.png';
   if (el.any(h.contains)) return 'images/ikram_foto_tirnak.png';
   if (yuz.any(h.contains)) return 'images/ikram_foto_cilt.png';
   return 'images/ikram_foto_spa.png';

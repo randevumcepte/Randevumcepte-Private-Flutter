@@ -6991,6 +6991,10 @@ Future<Map<String, dynamic>?> carkAdminDamgaKartiSil(String salonId, int id) =>
 Future<Map<String, dynamic>?> ikramHizmetYonetimGetir(String salonId, {int donem = 30}) =>
     _carkAdminGetJson('carkAdmin/damga-karti/$salonId?musteriler=1&ozet=1&donem=$donem');
 
+/// Ikram Kampanya Detayi: { basarili, kural, performans, musteriler, kazanc_detay }
+Future<Map<String, dynamic>?> ikramKampanyaDetay(String salonId, int kuralId, {int donem = 30}) =>
+    _carkAdminGetJson('carkAdmin/damga-karti-detay/$salonId?id=$kuralId&donem=$donem');
+
 /// Ikram kampanya gorseli: dosyaYolu verilirse yukler, sil=true ise kaldirir.
 /// { basarili, gorsel: '/public/kampanya_gorselleri/...' | null, mesaj? }
 Future<Map<String, dynamic>?> ikramKampanyaGorsel(String salonId, int kuralId,

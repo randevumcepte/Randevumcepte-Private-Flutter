@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'ikram_rapor.dart';
 import 'kampanya_ayarlari.dart';
+import 'kampanya_detay.dart';
 
 /// İkram Hizmet ("bir hizmeti N kez alana M ikram") — Çarkıfelek'ten bağımsız
 /// yönetim sayfası ("Mor Işıltıda İkram Kampanyaları" tasarımı). Web /isletmeyonetim/ikramhizmet
@@ -492,7 +493,10 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
       'bitti' => (const Color(0xFF6B7280), const Color(0xFFF3F4F6), 'Bitti'),
       _ => (const Color(0xFF6B7280), const Color(0xFFF3F4F6), 'Pasif'),
     };
-    return Padding(
+    return GestureDetector(
+      onTap: () => _detayAc(k),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
@@ -603,7 +607,7 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _menu(Map<String, dynamic> k) {
@@ -724,6 +728,23 @@ class _IkramHizmetPageState extends State<IkramHizmetPage> {
         actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Tamam', style: TextStyle(color: _mor)))],
       ),
     );
+  }
+
+  Future<void> _detayAc(Map<String, dynamic> k) async {
+    final degisti = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => KampanyaDetaySayfasi(
+          salonId: _salonId,
+          kural: k,
+          hizmetler: _hizmetler,
+          tumKurallar: _kurallar,
+          tumMusteriler: _musteriler,
+          ilkDonem: _donem,
+        ),
+      ),
+    );
+    if (degisti == true && mounted) _yukle();
   }
 
   Future<void> _kuralDuzenle(Map<String, dynamic>? mevcut) async {
