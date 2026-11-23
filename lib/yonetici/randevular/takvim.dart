@@ -3349,7 +3349,8 @@ class _AppointmentCardState extends State<_AppointmentCard> {
       width: widget.width,
       height: displayHeight,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: _isResizing ? 0.7 : 0.92),
+        // Kapalı saat (mola / izin / kapama) tam siyah; diğerleri hafif saydam
+        color: color.withValues(alpha: _isResizing ? 0.7 : (color.toARGB32() == 0xFF000000 ? 1.0 : 0.92)),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: _isResizing ? Colors.white : color,

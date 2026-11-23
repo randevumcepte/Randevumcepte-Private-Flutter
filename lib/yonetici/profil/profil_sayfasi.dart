@@ -15,6 +15,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/bildirim_ayarlari/bildirim_ay
 import 'package:randevu_sistem/yonetici/diger/menu/bildirim_ayarlari/bildirimlerim_page.dart';
 
 import 'profil_api.dart';
+import 'profil_durum.dart';
 import 'profil_sayfalar.dart';
 import 'profil_tema.dart';
 
@@ -130,43 +131,11 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
 
   // ─────────────────────────────── durum
 
-  void _durumSec() {
-    final durumlar = Map<String, dynamic>.from(_o['durumlar'] ?? {'musait': 'Müsait', 'molada': 'Molada', 'izinli': 'İzinli'});
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (c) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Durumum', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: PT.koyu)),
-            const SizedBox(height: 4),
-            const Text('Yöneticiniz durumunuzu Ekibim ekranında görür.', style: TextStyle(fontSize: 13, color: PT.gri)),
-            const SizedBox(height: 12),
-            ...durumlar.entries.map((e) {
-              final secili = (_o['durum'] ?? 'musait') == e.key;
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                leading: Container(width: 14, height: 14, decoration: BoxDecoration(color: PT.durumRenk(e.key), shape: BoxShape.circle)),
-                title: Text(e.value.toString(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5, color: PT.koyu)),
-                trailing: secili ? const Icon(Icons.check_circle_rounded, color: PT.mor) : null,
-                onTap: () async {
-                  Navigator.pop(c);
-                  final eski = _o['durum'];
-                  setState(() => _o['durum'] = e.key);
-                  final r = await ProfilApi.post('durum', _sube, {'durum': e.key});
-                  if (!ProfilApi.ok(r)) {
-                    setState(() => _o['durum'] = eski);
-                    _bildir((r['hata'] ?? 'Kaydedilemedi.').toString(), hata: true);
-                  }
-                },
-              );
-            }),
-          ]),
-        ),
-      ),
-    );
+  /// Personel: Molada = yöneticiye talep; Yönetici: doğrudan (bkz. profil_durum.dart)
+  Future<void> _durumSec() async {
+    final degisti = await durumSec(context,
+        sube: _sube, yonetici: _yonetici, detay: _o['durum_detay'] is Map ? _o['durum_detay'] as Map : {'durum': _o['durum'] ?? 'musait'});
+    if (degisti) _yukle();
   }
 
   // ─────────────────────────────── çizim
@@ -251,7 +220,10 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
     final ad = (_k?.name ?? '') == 'null' ? '' : (_k?.name ?? '');
     final unvan = (_k?.unvan ?? '') == 'null' ? '' : (_k?.unvan ?? '');
     final durum = (_o['durum'] ?? 'musait').toString();
-    final durumAd = (_o['durumlar'] is Map ? _o['durumlar'][durum] : null) ?? {'musait': 'Müsait', 'molada': 'Molada', 'izinli': 'İzinli'}[durum] ?? 'Müsait';
+    // "Molada · 14:30'e kadar" / "İzinli · 25.11.2026'e kadar"
+    final durumAd = (_o['durum_detay'] is Map ? (_o['durum_detay'] as Map)['metin'] : null) ??
+        {'musait': 'Müsait', 'molada': 'Molada', 'izinli': 'İzinli'}[durum] ??
+        'Müsait';
     final resim = _resim();
     return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
       Stack(clipBehavior: Clip.none, children: [
@@ -306,12 +278,26 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Container(width: 9, height: 9, decoration: BoxDecoration(color: PT.durumRenk(durum), shape: BoxShape.circle)),
                   const SizedBox(width: 6),
-                  Text(durumAd.toString(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: PT.durumKoyu(durum))),
+                  Flexible(
+                    child: Text(durumAd.toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: PT.durumKoyu(durum))),
+                  ),
                   Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: PT.durumKoyu(durum)),
                 ]),
               ),
             ),
           ),
+          if (_o['durum_detay'] is Map && (_o['durum_detay'] as Map)['bekleyen_mola'] is Map)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4, right: 4),
+                child: Text('Mola talebi onay bekliyor',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFFEA580C))),
+              ),
+            ),
           const SizedBox(height: 4),
           Text(ad.isEmpty ? '—' : ad,
               maxLines: 2,

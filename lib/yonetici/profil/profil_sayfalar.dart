@@ -6,6 +6,7 @@ import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ayarlar/personeller/hakedislerim.dart';
 
 import 'profil_api.dart';
+import 'profil_durum.dart';
 import 'profil_tema.dart';
 
 int _i(dynamic v) => v is int ? v : (v is num ? v.toInt() : int.tryParse('${v ?? ''}') ?? 0);
@@ -736,6 +737,7 @@ class _EkipSayfasiState extends _ListeDurum<EkipSayfasi> {
               padding: EdgeInsets.only(top: 6),
               child: Text('Onaylanınca bu günler takvimde kapatılır.', style: TextStyle(fontSize: 13, color: PT.gri)),
             ),
+          if (onay) _cakisanUyari(z['cakisan']),
           const SizedBox(height: 10),
           TextField(controller: notC, decoration: const InputDecoration(hintText: 'Not (isteğe bağlı)')),
         ]),
@@ -755,6 +757,93 @@ class _EkipSayfasiState extends _ListeDurum<EkipSayfasi> {
     ptMesaj(context, ProfilApi.ok(r) ? (onay ? 'İzin onaylandı, takvim kapatıldı.' : 'İzin reddedildi.') : (r['hata'] ?? 'Kaydedilemedi.').toString(),
         hata: !ProfilApi.ok(r));
     yukle();
+  }
+
+  /// Bu sürede zaten alınmış randevular (onay öncesi uyarı)
+  Widget _cakisanUyari(dynamic liste) {
+    final l = (liste is List ? liste : const []).cast<Map>();
+    if (l.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(12)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Bu sürede ${l.length} randevusu var:', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFC2410C), fontSize: 13)),
+        const SizedBox(height: 4),
+        ...l.take(5).map((x) => Text('• ${trTarih(x['tarih']?.toString())} ${x['saat']} · ${x['musteri']}', style: const TextStyle(fontSize: 12.5))),
+        if (l.length > 5) Text('… ve ${l.length - 5} randevu daha', style: const TextStyle(fontSize: 12.5)),
+        const SizedBox(height: 4),
+        const Text('Randevular kendiliğinden iptal edilmez; başka personele aktarın ya da müşteriyi arayın.',
+            style: TextStyle(fontSize: 12, color: PT.gri)),
+      ]),
+    );
+  }
+
+  Future<void> _molaKarar(Map m, bool onay) async {
+    final evet = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(onay ? 'Molayı onayla' : 'Molayı reddet'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${m['personel_adi']} · ${m['sure']}'),
+          if (onay)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('Onaylanınca şu andan itibaren takvim bu süre için kapatılır.', style: TextStyle(fontSize: 13, color: PT.gri)),
+            ),
+          if (onay) _cakisanUyari(m['cakisan']),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Vazgeç')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: onay ? PT.yesil : Colors.red.shade600),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(onay ? 'Onayla' : 'Reddet'),
+          ),
+        ],
+      ),
+    );
+    if (evet != true) return;
+    final r = await ProfilApi.post('mola-karar', widget.sube, {'id': m['id'], 'onay': onay ? 1 : 0});
+    if (!mounted) return;
+    ptMesaj(context, ProfilApi.ok(r) ? (onay ? 'Mola onaylandı, takvim kapatıldı.' : 'Mola reddedildi.') : (r['hata'] ?? 'Kaydedilemedi.').toString(),
+        hata: !ProfilApi.ok(r));
+    yukle();
+  }
+
+  Future<void> _kisiMenu(Map p) async {
+    final secim = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const PTIkon(Icons.toggle_on_rounded, boyut: 42),
+            title: const Text('Durumunu değiştir', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text((p['durum_metni'] ?? 'Müsait').toString()),
+            onTap: () => Navigator.pop(c, 'durum'),
+          ),
+          ListTile(
+            leading: const PTIkon(Icons.flag_rounded, boyut: 42),
+            title: const Text('Aylık hedef', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(_d(p['hedef']) > 0 ? tl(_d(p['hedef'])) : 'Hedef yok'),
+            onTap: () => Navigator.pop(c, 'hedef'),
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+    if (!mounted || secim == null) return;
+    if (secim == 'hedef') return _hedef(p);
+    final degisti = await durumSec(context,
+        sube: widget.sube,
+        yonetici: true,
+        detay: {'durum': p['durum'] ?? 'musait', 'metin': p['durum_metni'] ?? ''},
+        personelId: _i(p['id']),
+        personelAdi: p['ad'].toString());
+    if (degisti) yukle();
   }
 
   Future<void> _hedef(Map p) async {
@@ -788,9 +877,58 @@ class _EkipSayfasiState extends _ListeDurum<EkipSayfasi> {
     final ekip = (veri['ekip'] as List? ?? []).cast<Map>();
     final durumlar = Map<String, dynamic>.from(veri['durumlar'] ?? {});
     final bekleyen = _izinler.where((z) => z['durum'] == 'bekliyor').toList();
+    final molalar = (veri['mola_bekleyen'] as List? ?? []).cast<Map>();
     return PTAltSayfa(
       baslik: 'Ekibim',
       govde: kaydirma([
+        if (molalar.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text('Onay bekleyen molalar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFEA580C))),
+          ),
+          ...molalar.map((m) => Padding(
+                padding: const EdgeInsets.only(bottom: 9),
+                child: PTKart(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      const PTIkon(Icons.coffee_rounded, boyut: 40),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(m['personel_adi'].toString(), style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: PT.koyu)),
+                          Text('${m['sure']} mola · ${m['saat']}\'de istedi', style: const TextStyle(fontSize: 13, color: PT.gri)),
+                        ]),
+                      ),
+                    ]),
+                    if ((m['cakisan'] as List? ?? []).isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text('⚠ Bu sürede ${(m['cakisan'] as List).length} randevusu var',
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFFC2410C))),
+                      ),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(foregroundColor: Colors.red.shade600, side: BorderSide(color: Colors.red.shade200)),
+                          onPressed: () => _molaKarar(m, false),
+                          child: const Text('Reddet'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(backgroundColor: PT.yesil),
+                          onPressed: () => _molaKarar(m, true),
+                          child: const Text('Onayla'),
+                        ),
+                      ),
+                    ]),
+                  ]),
+                ),
+              )),
+          const SizedBox(height: 8),
+        ],
         if (bekleyen.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(left: 4, bottom: 8),
@@ -805,6 +943,12 @@ class _EkipSayfasiState extends _ListeDurum<EkipSayfasi> {
                         style: const TextStyle(fontSize: 13, color: PT.gri)),
                     if ((z['aciklama'] ?? '').toString().isNotEmpty)
                       Padding(padding: const EdgeInsets.only(top: 5), child: Text(z['aciklama'].toString(), style: const TextStyle(fontSize: 13.5))),
+                    if ((z['cakisan'] as List? ?? []).isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text('⚠ Bu sürede ${(z['cakisan'] as List).length} randevusu var',
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFFC2410C))),
+                      ),
                     const SizedBox(height: 8),
                     Row(children: [
                       Expanded(
@@ -839,7 +983,7 @@ class _EkipSayfasiState extends _ListeDurum<EkipSayfasi> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 9),
             child: PTKart(
-              onTap: () => _hedef(p),
+              onTap: () => _kisiMenu(p),
               child: Column(children: [
                 Row(children: [
                   Stack(children: [
@@ -865,7 +1009,7 @@ class _EkipSayfasiState extends _ListeDurum<EkipSayfasi> {
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(p['ad'].toString(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: PT.koyu)),
-                      Text('${durumlar[durum] ?? durum} · Satış ${tl(_d(p['ciro']))}', style: const TextStyle(fontSize: 12.5, color: PT.gri)),
+                      Text('${p['durum_metni'] ?? durumlar[durum] ?? durum} · Satış ${tl(_d(p['ciro']))}', style: const TextStyle(fontSize: 12.5, color: PT.gri)),
                     ]),
                   ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
