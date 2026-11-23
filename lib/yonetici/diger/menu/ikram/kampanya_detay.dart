@@ -663,6 +663,9 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
 
   // ---------------------------------------------------------------- sekmeler
 
+  /// Tasarım ölçüsü (941 px genişlik) → ekran genişliği
+  double _x(num px) => MediaQuery.of(context).size.width * px / 941;
+
   Widget _sekmeDugme(int i, IconData ikon, String yazi) {
     final secili = _sekme == i;
     return Expanded(
@@ -670,20 +673,22 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
         onTap: () => setState(() => _sekme = i),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          height: 46,
+          height: _x(64),
+          padding: EdgeInsets.symmetric(horizontal: _x(14)),
           decoration: BoxDecoration(
             gradient: secili ? const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)]) : null,
-            color: secili ? null : Colors.white.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: secili ? [BoxShadow(color: _morKoyu.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
+            color: secili ? null : Colors.white.withValues(alpha: 0.7),
+            borderRadius: BorderRadius.circular(_x(32)),
+            border: secili ? null : Border.all(color: const Color(0xFFE6DAF8)),
+            boxShadow: secili ? [BoxShadow(color: _morKoyu.withValues(alpha: 0.28), blurRadius: 10, offset: const Offset(0, 4))] : null,
           ),
           alignment: Alignment.center,
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(ikon, color: secili ? Colors.white : _morKoyu, size: 20),
-              const SizedBox(width: 8),
-              Text(yazi, style: TextStyle(color: secili ? Colors.white : _koyu, fontSize: 13.5, fontWeight: FontWeight.w700)),
+              Icon(ikon, color: secili ? Colors.white : _morKoyu, size: _x(36)),
+              SizedBox(width: _x(16)),
+              Text(yazi, style: TextStyle(color: secili ? Colors.white : _koyu, fontSize: _x(27), fontWeight: FontWeight.w700)),
             ]),
           ),
         ),
@@ -691,22 +696,37 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
     );
   }
 
-  Widget _sekmeler() => _cam(
-        padding: const EdgeInsets.all(8),
-        child: Column(children: [
-          Row(children: [
-            _sekmeDugme(0, Icons.people_alt_rounded, 'Katılan Müşteriler (${_musteriler.length})'),
-            const SizedBox(width: 6),
-            _sekmeDugme(1, Icons.bar_chart_rounded, 'Kazanç Detayları'),
-          ]),
-          const SizedBox(height: 10),
-          if (_yukleniyor)
-            const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: _mor))
-          else if (_sekme == 0)
-            _musteriSekmesi()
-          else
-            _kazancSekmesi(),
-        ]),
+  Widget _sekmeler() => ClipRRect(
+        borderRadius: BorderRadius.circular(_x(36)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: EdgeInsets.fromLTRB(_x(17), _x(18), _x(17), _x(14)),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.62),
+              borderRadius: BorderRadius.circular(_x(36)),
+              border: Border.all(color: Colors.white, width: 1.2),
+              boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 6))],
+            ),
+            child: Column(children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: _x(8)),
+                child: Row(children: [
+                  _sekmeDugme(0, Icons.people_alt_rounded, 'Katılan Müşteriler (${_musteriler.length})'),
+                  SizedBox(width: _x(14)),
+                  _sekmeDugme(1, Icons.bar_chart_rounded, 'Kazanç Detayları'),
+                ]),
+              ),
+              SizedBox(height: _x(14)),
+              if (_yukleniyor)
+                const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: _mor))
+              else if (_sekme == 0)
+                _musteriSekmesi()
+              else
+                _kazancSekmesi(),
+            ]),
+          ),
+        ),
       );
 
   Widget _musteriSekmesi() {
@@ -718,67 +738,83 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
           (m['ad'] ?? '').toString().toLowerCase().contains(q) ||
           (m['telefon'] ?? '').toString().contains(q);
     }).toList();
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Row(children: [
-          Expanded(
-            child: SizedBox(
-              height: 44,
-              child: TextField(
-                onChanged: (v) => setState(() => _arama = v),
-                decoration: InputDecoration(
-                  hintText: 'Müşteri ara...',
-                  hintStyle: const TextStyle(color: _soluk, fontSize: 13.5),
-                  prefixIcon: const Icon(Icons.search_rounded, color: _morKoyu),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.zero,
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: Color(0xFFE2D4F8))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: _mor)),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          PopupMenuButton<String>(
-            onSelected: (v) => setState(() => _filtre = v),
-            color: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            itemBuilder: (_) => filtreler.entries
-                .map((e) => PopupMenuItem<String>(value: e.key, child: Text(e.value, style: const TextStyle(color: _koyu))))
-                .toList(),
-            child: Container(
-              height: 44,
-              padding: const EdgeInsets.fromLTRB(12, 0, 6, 0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE2D4F8)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(filtreler[_filtre]!, style: const TextStyle(color: _koyu, fontSize: 12.5, fontWeight: FontWeight.w600)),
-                const Icon(Icons.keyboard_arrow_down_rounded, color: _koyu, size: 20),
-              ]),
-            ),
-          ),
-        ]),
+    return Container(
+      padding: EdgeInsets.fromLTRB(_x(6), _x(14), _x(6), _x(6)),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(_x(30)),
+        border: Border.all(color: const Color(0xFFEDE4FA)),
       ),
-      const SizedBox(height: 8),
-      if (liste.isEmpty)
+      child: Column(children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 12),
-          child: Text(
-            _musteriler.isEmpty
-                ? 'Henüz kampanyaya katılan müşteri yok.\nBu hizmeti alan ve "Geldi" işaretlenen müşteriler burada görünür.'
-                : 'Bu filtrede müşteri yok.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12.5, color: _soluk, height: 1.4),
-          ),
-        )
-      else
-        ...liste.map(_musteriSatir),
-    ]);
+          padding: EdgeInsets.symmetric(horizontal: _x(4)),
+          child: Row(children: [
+            Expanded(
+              child: Container(
+                height: _x(56),
+                padding: EdgeInsets.symmetric(horizontal: _x(18)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(_x(28)),
+                  border: Border.all(color: const Color(0xFFE2D4F8)),
+                ),
+                child: Row(children: [
+                  Icon(Icons.search_rounded, color: _morKoyu, size: _x(34)),
+                  SizedBox(width: _x(12)),
+                  Expanded(
+                    child: TextField(
+                      onChanged: (v) => setState(() => _arama = v),
+                      style: TextStyle(fontSize: _x(25), color: _koyu),
+                      decoration: InputDecoration.collapsed(
+                        hintText: 'Müşteri ara...',
+                        hintStyle: TextStyle(color: _soluk, fontSize: _x(25)),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            SizedBox(width: _x(14)),
+            PopupMenuButton<String>(
+              onSelected: (v) => setState(() => _filtre = v),
+              color: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              itemBuilder: (_) => filtreler.entries
+                  .map((e) => PopupMenuItem<String>(value: e.key, child: Text(e.value, style: const TextStyle(color: _koyu))))
+                  .toList(),
+              child: Container(
+                height: _x(56),
+                padding: EdgeInsets.fromLTRB(_x(20), 0, _x(12), 0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(_x(28)),
+                  border: Border.all(color: const Color(0xFFE2D4F8)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(filtreler[_filtre]!, style: TextStyle(color: _koyu, fontSize: _x(24), fontWeight: FontWeight.w600)),
+                  SizedBox(width: _x(6)),
+                  Icon(Icons.keyboard_arrow_down_rounded, color: _koyu, size: _x(32)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+        SizedBox(height: _x(12)),
+        if (liste.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: _x(30), horizontal: _x(24)),
+            child: Text(
+              _musteriler.isEmpty
+                  ? 'Henüz kampanyaya katılan müşteri yok.\nBu hizmeti alan ve "Geldi" işaretlenen müşteriler burada görünür.'
+                  : 'Bu filtrede müşteri yok.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: _x(23), color: _soluk, height: 1.4),
+            ),
+          )
+        else
+          ...liste.map(_musteriSatir),
+      ]),
+    );
   }
 
   Widget _avatar(Map<String, dynamic> m, double r) {
@@ -809,41 +845,42 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
     return GestureDetector(
       onTap: () => _musteriDetay(m),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-        padding: const EdgeInsets.fromLTRB(10, 10, 6, 10),
+        margin: EdgeInsets.only(bottom: _x(4)),
+        padding: EdgeInsets.fromLTRB(_x(16), _x(8), _x(10), _x(8)),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(_x(26)),
           border: Border.all(color: const Color(0xFFEFE6FB)),
         ),
         child: Row(children: [
-          _avatar(m, 22),
-          const SizedBox(width: 10),
+          _avatar(m, _x(35)),
+          SizedBox(width: _x(30)),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text((m['ad'] ?? '').toString(),
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: _koyu)),
-              const SizedBox(height: 2),
+                  style: TextStyle(fontSize: _x(28), fontWeight: FontWeight.w700, color: _koyu)),
+              SizedBox(height: _x(4)),
               Row(children: [
-                const Icon(Icons.calendar_month_rounded, size: 13, color: _soluk),
-                const SizedBox(width: 4),
+                Icon(Icons.calendar_month_rounded, size: _x(26), color: _morKoyu),
+                SizedBox(width: _x(8)),
                 Flexible(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text(_tarihSaat(m['son_ziyaret']?.toString()), style: const TextStyle(fontSize: 11.5, color: _soluk)),
+                    child: Text(_tarihSaat(m['son_ziyaret']?.toString()), style: TextStyle(fontSize: _x(23), color: _morKoyu)),
                   ),
                 ),
               ]),
             ]),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-            decoration: BoxDecoration(color: zemin, borderRadius: BorderRadius.circular(14)),
-            child: Text(yazi, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: renk)),
+            padding: EdgeInsets.symmetric(horizontal: _x(20), vertical: _x(8)),
+            decoration: BoxDecoration(color: zemin, borderRadius: BorderRadius.circular(_x(22))),
+            child: Text(yazi, style: TextStyle(fontSize: _x(21), fontWeight: FontWeight.w600, color: renk)),
           ),
-          const Icon(Icons.chevron_right_rounded, color: _koyu),
+          SizedBox(width: _x(18)),
+          Icon(Icons.chevron_right_rounded, color: _morKoyu, size: _x(40)),
         ]),
       ),
     );
@@ -953,35 +990,40 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
     const aylar = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     Widget kutu(String etiket, String deger, Color renk) => Expanded(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+            margin: EdgeInsets.symmetric(horizontal: _x(6)),
+            padding: EdgeInsets.symmetric(vertical: _x(16), horizontal: _x(8)),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(_x(24))),
             child: Column(children: [
-              FittedBox(fit: BoxFit.scaleDown, child: Text(deger, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: renk))),
-              const SizedBox(height: 2),
-              Text(etiket, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: _soluk)),
+              FittedBox(fit: BoxFit.scaleDown, child: Text(deger, style: TextStyle(fontSize: _x(32), fontWeight: FontWeight.w800, color: renk))),
+              SizedBox(height: _x(4)),
+              Text(etiket, textAlign: TextAlign.center, style: TextStyle(fontSize: _x(20), color: _soluk, height: 1.25)),
             ]),
           ),
         );
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+    return Container(
+      padding: EdgeInsets.fromLTRB(_x(12), _x(16), _x(12), _x(10)),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(_x(30)),
+        border: Border.all(color: const Color(0xFFEDE4FA)),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           kutu('Toplam Satış\n(kampanya boyunca)', '${ikramTl(_perf['kazanc'] as num?)} TL', _koyu),
           kutu('Verilen İkram\n(${(_perf['kullanilan'] as num?)?.toInt() ?? 0} adet)', '${ikramTl(_kazanc['ikram_tutari'] as num?)} TL', const Color(0xFFB45309)),
           kutu('Net Kazanç\n ', '${ikramTl(_kazanc['net'] as num?)} TL', const Color(0xFF15803D)),
         ]),
-        const SizedBox(height: 14),
-        const Text('Aylık Satış', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _koyu)),
-        const SizedBox(height: 8),
+        SizedBox(height: _x(22)),
+        Text('Aylık Satış', style: TextStyle(fontSize: _x(27), fontWeight: FontWeight.w700, color: _koyu)),
+        SizedBox(height: _x(12)),
         if (aylik.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
-            child: Text('Kampanya süresince bu hizmetten satış yok.', style: TextStyle(fontSize: 12.5, color: _soluk)),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: _x(12)),
+            child: Text('Kampanya süresince bu hizmetten satış yok.', style: TextStyle(fontSize: _x(22), color: _soluk)),
           )
         else
           SizedBox(
-            height: 150,
+            height: _x(250),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: aylik.map((a) {
@@ -991,11 +1033,11 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
                   child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(ikramTl(t), style: const TextStyle(fontSize: 9.5, color: _soluk, fontWeight: FontWeight.w600)),
+                      child: Text(ikramTl(t), style: TextStyle(fontSize: _x(18), color: _soluk, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(height: 3),
                     Container(
-                      height: enBuyuk > 0 ? math.max(4, 100 * t / enBuyuk) : 4,
+                      height: enBuyuk > 0 ? math.max(4, _x(170) * t / enBuyuk) : 4,
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -1007,36 +1049,36 @@ class _KampanyaDetaySayfasiState extends State<KampanyaDetaySayfasi> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(aylar[(ay - 1).clamp(0, 11)], style: const TextStyle(fontSize: 10.5, color: _koyu)),
+                    Text(aylar[(ay - 1).clamp(0, 11)], style: TextStyle(fontSize: _x(20), color: _koyu)),
                   ]),
                 );
               }).toList(),
             ),
           ),
-        const SizedBox(height: 14),
-        const Text('Kullanılan İkramlar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _koyu)),
-        const SizedBox(height: 6),
+        SizedBox(height: _x(22)),
+        Text('Kullanılan İkramlar', style: TextStyle(fontSize: _x(27), fontWeight: FontWeight.w700, color: _koyu)),
+        SizedBox(height: _x(10)),
         if (kullanimlar.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Text('Henüz ikram kullanılmadı.', style: TextStyle(fontSize: 12.5, color: _soluk)),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: _x(12)),
+            child: Text('Henüz ikram kullanılmadı.', style: TextStyle(fontSize: _x(22), color: _soluk)),
           )
         else
           ...kullanimlar.map((u) => Container(
                 margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: EdgeInsets.symmetric(horizontal: _x(20), vertical: _x(16)),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
                 child: Row(children: [
-                  const Icon(Icons.card_giftcard_rounded, color: _mor, size: 18),
+                  Icon(Icons.card_giftcard_rounded, color: _mor, size: _x(32)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text((u['ad'] ?? '').toString(),
                         maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: _koyu)),
+                        style: TextStyle(fontSize: _x(25), fontWeight: FontWeight.w700, color: _koyu)),
                   ),
-                  Text(_tarihSaat(u['tarih']?.toString()), style: const TextStyle(fontSize: 11, color: _soluk)),
+                  Text(_tarihSaat(u['tarih']?.toString()), style: TextStyle(fontSize: _x(20), color: _soluk)),
                   const SizedBox(width: 8),
-                  Text('${ikramTl(u['tutar'] as num?)} TL', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFB45309))),
+                  Text('${ikramTl(u['tutar'] as num?)} TL', style: TextStyle(fontSize: _x(25), fontWeight: FontWeight.w800, color: const Color(0xFFB45309))),
                 ]),
               )),
         const SizedBox(height: 4),
