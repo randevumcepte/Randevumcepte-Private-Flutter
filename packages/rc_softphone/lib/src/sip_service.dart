@@ -120,6 +120,7 @@ class SipService implements SipUaHelperListener {
     // Ayni dahili zaten baslatildiysa tekrar baslatma.
     if (_started && _dahili == dahili && _dahiliSifre == dahiliSifre) return;
 
+    if (_dahili != dahili) _adOnbellek.clear();
     _dahili = dahili;
     _dahiliSifre = dahiliSifre;
 
@@ -294,8 +295,12 @@ class SipService implements SipUaHelperListener {
         ? hedef
         : hedef.replaceAll(RegExp(r'[^0-9*#+]'), '');
     if (temiz.isEmpty) return false;
-    karsiTarafAdi = gorunenAd;
+    // Uygulama ad vermediyse (tus takimi) kayitli musteri adi sunucudan bulunur.
+    karsiTarafAdi = (gorunenAd != null && gorunenAd.trim().isNotEmpty)
+        ? gorunenAd.trim()
+        : _adOnbellek[_son10(temiz)];
     karsiTarafNumara = temiz;
+    _karsiTarafAdiBul();
     bitisNedeni.value = null;
     final String dest = temiz.contains('@') ? temiz : 'sip:$temiz@$kSipDomain';
     return _helper.call(dest, voiceOnly: true);
@@ -534,6 +539,7 @@ class SipService implements SipUaHelperListener {
               ? call.remote_display_name
               : null;
           karsiTarafNumara = call.remote_identity;
+          _karsiTarafAdiBul();
           bitisNedeni.value = null;
           _gelenCagriyiKarsila(call);
         } else {
@@ -886,6 +892,59 @@ class SipService implements SipUaHelperListener {
       // CallKit ses oturumu kabul aninda zaten acildi; WebRTC'ye bildir.
       await IosSes.callkitSesAktif();
     }
+  }
+
+  /// Numara -> kayitli musteri adi ('' = kayitli degil). Anahtar: son 10 hane.
+  final Map<String, String> _adOnbellek = <String, String>{};
+
+  static String _son10(String numara) {
+    final String h = numara.replaceAll(RegExp(r'[^0-9]'), '');
+    return h.length < 10 ? '' : h.substring(h.length - 10);
+  }
+
+  /// Numara kayitli musteriyse adi, degilse (ya da sorulamadiysa) ''.
+  /// Dahili numaralar (10 haneden kisa) sorulmaz.
+  Future<String> numaraAdi(String numara) async {
+    final String k = _son10(numara);
+    final String? d = _dahili;
+    final String? s = _dahiliSifre;
+    if (k.isEmpty || d == null || s == null) return '';
+    final String? kayitliAd = _adOnbellek[k];
+    if (kayitliAd != null && kayitliAd.isNotEmpty) return kayitliAd;
+    try {
+      final http.Response r = await http
+          .post(
+            Uri.parse('$kSoftphoneApi/numara-ad'),
+            headers: <String, String>{'Content-Type': 'application/json'},
+            body: jsonEncode(<String, dynamic>{'dahili': d, 'sifre': s, 'numara': k}),
+          )
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return '';
+      final dynamic j = jsonDecode(utf8.decode(r.bodyBytes));
+      final String ad = j is Map ? (j['ad'] ?? '').toString().trim() : '';
+      if (ad.isNotEmpty) _adOnbellek[k] = ad;
+      return ad;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[SIP] numara-ad hatasi: $e');
+      return '';
+    }
+  }
+
+  /// Suren aramada ad yoksa (ya da ad yerine numara geldiyse) musteri adini
+  /// yazar; arama ekrani saniyede bir yenilendigi icin kendiliginden gorunur.
+  Future<void> _karsiTarafAdiBul() async {
+    final String? numara = karsiTarafNumara;
+    if (numara == null) return;
+    bool adYok() {
+      final String ad = karsiTarafAdi ?? '';
+      return ad.isEmpty || RegExp(r'^[0-9+\s()-]+$').hasMatch(ad);
+    }
+
+    if (!adYok()) return;
+    final String ad = await numaraAdi(numara);
+    // Cevap gelene kadar baska aramaya gecilmis olabilir.
+    if (ad.isEmpty || karsiTarafNumara != numara || !adYok()) return;
+    karsiTarafAdi = ad;
   }
 
   Future<bool> _api(String uc, Map<String, dynamic> govde) async {

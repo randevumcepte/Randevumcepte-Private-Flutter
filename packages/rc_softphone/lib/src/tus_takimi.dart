@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sip_ua/sip_ua.dart';
 
@@ -19,29 +21,51 @@ class _TusTakimiEkraniState extends State<TusTakimiEkrani> {
   late final TextEditingController _numara =
       TextEditingController(text: widget.baslangicNumara);
   bool _araniyor = false;
+  String _ad = ''; // yazilan numara kayitli musteriyse adi
+  Timer? _adSayac;
+
+  @override
+  void initState() {
+    super.initState();
+    _adSor();
+  }
 
   @override
   void dispose() {
+    _adSayac?.cancel();
     _numara.dispose();
     super.dispose();
   }
 
+  /// Numara degisince kisa bekleyip kayitli musteri adini sorar.
+  void _adSor() {
+    _adSayac?.cancel();
+    _ad = '';
+    final String n = _numara.text;
+    if (n.replaceAll(RegExp(r'[^0-9]'), '').length < 10) return;
+    _adSayac = Timer(const Duration(milliseconds: 350), () async {
+      final String ad = await _sip.numaraAdi(n);
+      if (!mounted || _numara.text != n) return;
+      setState(() => _ad = ad);
+    });
+  }
+
   void _ekle(String t) {
     _numara.text += t;
-    setState(() {});
+    setState(_adSor);
   }
 
   void _sil() {
     if (_numara.text.isEmpty) return;
     _numara.text = _numara.text.substring(0, _numara.text.length - 1);
-    setState(() {});
+    setState(_adSor);
   }
 
   Future<void> _ara() async {
     final String n = _numara.text.trim();
     if (n.isEmpty || _araniyor) return;
     setState(() => _araniyor = true);
-    final bool ok = await _sip.cagriBaslat(n);
+    final bool ok = await _sip.cagriBaslat(n, gorunenAd: _ad);
     if (!mounted) return;
     setState(() => _araniyor = false);
     if (!ok) {
@@ -89,7 +113,21 @@ class _TusTakimiEkraniState extends State<TusTakimiEkrani> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              // Yer hep ayrilir: ad gelince tuslar kaymasin.
+              SizedBox(
+                height: 32,
+                child: Center(
+                  child: Text(
+                    _ad,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary),
+                  ),
+                ),
+              ),
               TusIzgarasi(onTus: _ekle),
               const SizedBox(height: 24),
               ValueListenableBuilder<bool>(
