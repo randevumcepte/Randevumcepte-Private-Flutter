@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Backend/backend.dart'
-    show musteriOnlineRandevuAktifMi, bundleOnlineRandevuAktifMi, dashboardGunlukRaporMusteri, salonAyarlariByBundle, appBundleAl;
+    show musteriOnlineRandevuAktifMi, salonAyarlariByBundle, appBundleAl;
 import 'package:randevu_sistem/Frontend/indexedstack.dart';
 import 'package:randevu_sistem/Frontend/lisans_uyari.dart';
 import 'package:randevu_sistem/Login Sayfası/checklogin.dart';
@@ -36,8 +36,6 @@ import 'anasayfa/raporlar/seanslar.dart';
 import 'menu/indirimler.dart';
 import 'menu/musterimenu.dart';
 import 'menu/siparislerim.dart';
-import 'musteri_alt_menu.dart';
-import 'package:randevu_sistem/randevualma/randevual.dart';
 
 
 
@@ -266,7 +264,6 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        extendBody: _selectedTab == 0,
         body: Column(
           children: [
             const NotificationStatusBanner(),
@@ -276,75 +273,31 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
 
         bottomNavigationBar: _isKeyboardVisible
             ? const SizedBox.shrink()
-            : MusteriAltMenu(saydam: _selectedTab == 0, onOrta: _ortaDugme, ogeler: [
-                MusteriAltMenuOge(
-                    ikon: Icons.home_outlined,
-                    seciliIkon: Icons.home_rounded,
-                    yazi: 'Ana Sayfa',
-                    secili: _selectedTab == 0,
-                    onTap: () => setState(() => _selectedTab = 0)),
-                MusteriAltMenuOge(
-                    ikon: Icons.calendar_month_outlined,
-                    seciliIkon: Icons.calendar_month_rounded,
-                    yazi: 'Randevularım',
-                    secili: _selectedTab == 1,
-                    onTap: () => setState(() => _selectedTab = 1)),
-                // Grup dersi olan işletmede "Derslerim" sekmesi korunur (bildirimler üstteki zilde)
-                if (_grupAktif)
-                  MusteriAltMenuOge(
-                      ikon: Icons.groups_outlined,
-                      seciliIkon: Icons.groups_rounded,
-                      yazi: 'Derslerim',
-                      secili: _selectedTab == 2,
-                      onTap: () => setState(() => _selectedTab = 2))
-                else
-                  MusteriAltMenuOge(
-                      ikon: Icons.notifications_none_rounded,
-                      seciliIkon: Icons.notifications_rounded,
-                      yazi: 'Bildirimler',
-                      rozet: true,
-                      onTap: _bildirimleriAc),
-                MusteriAltMenuOge(
-                    ikon: Icons.menu_rounded,
-                    seciliIkon: Icons.menu_rounded,
-                    yazi: 'Menü',
-                    secili: _selectedTab == _pages.length - 1,
-                    onTap: () => setState(() => _selectedTab = _pages.length - 1)),
-              ]),
+            : BottomNavigationBar(
+          currentIndex: _selectedTab,
+          onTap: (index) {
+            setState(() => _selectedTab = index);
+          },
+          selectedItemColor: Colors.deepPurple,
+          unselectedItemColor: Colors.black26,
+          selectedFontSize: 10,
+          unselectedFontSize: 10,
+          type: BottomNavigationBarType.fixed,
+          items: [
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined), label: "Ana Sayfa"),
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_month_outlined),
+                label: "Randevularım"),
+            if (_grupAktif)
+              const BottomNavigationBarItem(
+                  icon: Icon(Icons.groups_outlined), label: "Derslerim"),
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.checklist_outlined), label: "Menü"),
+          ],
+        ),
       ),
     );
-  }
-
-  /// Ortadaki nilüfer: online randevu açıksa Randevu Al, değilse Kampanyalarım
-  void _ortaDugme() {
-    final subeler = widget.musteriId.musteri_olunan_salonlar;
-    final acik = (subeler != null && subeler.isNotEmpty)
-        ? bundleOnlineRandevuAktifMi(subeler)
-        : musteriOnlineRandevuAktifMi(widget.isletmebilgi);
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => acik
-          ? RandevuAl()
-          : IkramHizmetlerimPage(
-              md: widget.musteriId,
-              salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id']?.toString() : null,
-            ),
-    ));
-  }
-
-  Future<void> _rozetTazele() async {
-    try {
-      final o = await dashboardGunlukRaporMusteri();
-      musteriOkunmamisBildirim.value = int.tryParse(o.okunmamisbildirimler) ?? 0;
-    } catch (_) {
-      // rozet tazelenemezse eski sayı kalır
-    }
-  }
-
-  Future<void> _bildirimleriAc() async {
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => MusteriBildirimlerScreen(md: widget.musteriId, isletmebilgi: widget.isletmebilgi),
-    ));
-    _rozetTazele();
   }
 
   void _handleLogout() async {

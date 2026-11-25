@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/theme/musteri_palet.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ikram/kampanya_ayarlari.dart' show ikramHazirGorsel;
 
 /// Müşteri: Kampanyalarım (ikram hizmet / "N alana M ikram").
@@ -23,11 +24,12 @@ class IkramHizmetlerimPage extends StatefulWidget {
 }
 
 class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
-  static const _mor = Color(0xFF6D28D9);
-  static const _morKoyu = Color(0xFF4C1D95);
-  static const _baslik = Color(0xFF2E0A7A);
-  static const _koyu = Color(0xFF1E1250);
-  static const _soluk = Color(0xFF6B5B95);
+  MusteriPalet get _p => MusteriPalet.of(context);
+  Color get _mor => _p.ana;
+  Color get _morKoyu => _p.metin;
+  Color get _baslik => _p.baslik;
+  Color get _koyu => _p.baslik;
+  Color get _soluk => _p.metin;
 
   bool _yukleniyor = true;
   List<Map<String, dynamic>> _kartlar = [];
@@ -85,21 +87,15 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
   Widget build(BuildContext context) {
     final k = _kartlar.isEmpty ? null : _kartlar[_secili];
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: (_p.koyuMod ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF2E5FD),
+        backgroundColor: _p.zemin,
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFF4EAFE), Color(0xFFF2E5FD), Color(0xFFEEDFFC)],
-            ),
-          ),
+          color: _p.zemin,
           child: _yukleniyor
               ? Stack(children: [
                   _ust(null),
-                  const Center(child: CircularProgressIndicator(color: _mor)),
+                  Center(child: CircularProgressIndicator(color: _mor)),
                 ])
               : RefreshIndicator(
                   color: _mor,
@@ -146,7 +142,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
           height: _x(78),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.78),
+            color: _p.kart.withValues(alpha: 0.9),
             boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.14), blurRadius: 14, offset: const Offset(0, 4))],
           ),
           child: Icon(ikon, color: _baslik, size: _x(boyut)),
@@ -226,11 +222,11 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  const Color(0xFF4B0F98),
-                  const Color(0xFF5B1AA6).withValues(alpha: 0.98),
-                  const Color(0xFF7C3AED).withValues(alpha: 0.6),
-                  const Color(0xFFA78BFA).withValues(alpha: 0.2),
-                  const Color(0xFFC4B5FD).withValues(alpha: 0),
+                  _p.anaKoyu,
+                  Color.lerp(_p.anaKoyu, _p.dugmeAna, 0.35)!.withValues(alpha: 0.98),
+                  _p.dugmeAna.withValues(alpha: 0.6),
+                  _p.dugmeAna.withValues(alpha: 0.2),
+                  _p.dugmeAna.withValues(alpha: 0),
                 ],
                 stops: const [0, 0.55, 0.72, 0.87, 1],
               ),
@@ -264,7 +260,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                         shaderCallback: (r) => const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Colors.white, Color(0xFFF3E8FF), Color(0xFFD8B4FE)],
+                          colors: [Colors.white, Color(0xFFF7F7FA), Color(0xFFDDDDE6)],
                         ).createShader(r),
                         child: Text('$gereken+$hediye',
                             style: TextStyle(
@@ -273,7 +269,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                               fontWeight: FontWeight.w900,
                               height: 1,
                               letterSpacing: -2,
-                              shadows: [Shadow(color: const Color(0xFFE9D5FF).withValues(alpha: 0.7), blurRadius: 24)],
+                              shadows: [Shadow(color: Colors.white.withValues(alpha: 0.55), blurRadius: 24)],
                             )),
                       ),
                     ),
@@ -325,10 +321,10 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                   padding: EdgeInsets.symmetric(horizontal: _x(24)),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: secili ? const LinearGradient(colors: [Color(0xFF8B3FE6), Color(0xFF6D28D9)]) : null,
-                    color: secili ? null : Colors.white.withValues(alpha: 0.7),
+                    gradient: secili ? LinearGradient(colors: _p.dugme) : null,
+                    color: secili ? null : _p.kart,
                     borderRadius: BorderRadius.circular(_x(28)),
-                    border: secili ? null : Border.all(color: const Color(0xFFE2D4F8)),
+                    border: secili ? null : Border.all(color: _p.kartKenar),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text((k['hizmet_adi'] ?? '').toString(),
@@ -353,9 +349,9 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.55),
+            color: _p.kart,
             borderRadius: BorderRadius.circular(_x(42)),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.5),
+            border: Border.all(color: _p.kartKenar),
             boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.08), blurRadius: 22, offset: const Offset(0, 8))],
           ),
           child: child,
@@ -386,7 +382,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text('Kampanya Geçerlilik Tarihi',
-                    style: TextStyle(fontSize: _x(23), fontWeight: FontWeight.w600, color: const Color(0xFF5B21B6))),
+                    style: TextStyle(fontSize: _x(23), fontWeight: FontWeight.w600, color: _morKoyu)),
               ),
               SizedBox(height: _x(4)),
               FittedBox(
@@ -395,14 +391,14 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               ),
             ]),
           ),
-          Container(width: 1, height: _x(58), color: const Color(0xFFDCCBF6)),
+          Container(width: 1, height: _x(58), color: _p.kartKenar),
           SizedBox(width: _x(62)),
           Container(
             width: _x(214),
             height: _x(80),
             padding: EdgeInsets.symmetric(horizontal: _x(18)),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF9A47EA), Color(0xFF7C3AED)]),
+              gradient: LinearGradient(colors: _p.dugme),
               borderRadius: BorderRadius.circular(_x(34)),
               boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 5))],
             ),
@@ -441,9 +437,9 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
           margin: EdgeInsets.only(right: _x(28)),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: dolu ? const LinearGradient(colors: [Color(0xFF8B3FE6), Color(0xFF5B21B6)]) : null,
+            gradient: dolu ? LinearGradient(colors: _p.dugme) : null,
             color: dolu ? null : Colors.white.withValues(alpha: 0.45),
-            border: dolu ? null : Border.all(color: const Color(0xFFD9C6F7), width: 1.5),
+            border: dolu ? null : Border.all(color: _mor.withValues(alpha: 0.25), width: 1.5),
           ),
           child: dolu ? Icon(Icons.check_rounded, color: Colors.white, size: _x(26)) : null,
         );
@@ -459,7 +455,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               top: _x(6),
               width: _x(258),
               height: _x(192),
-              child: Image.asset('images/ikram_m_hediye.png', fit: BoxFit.contain),
+              child: ColorFiltered(colorFilter: _p.gorselFiltre, child: Image.asset('images/ikram_m_hediye.png', fit: BoxFit.contain)),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(_x(43), _x(10), _x(250), _x(10)),
@@ -468,10 +464,10 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                   width: _x(178),
                   height: _x(178),
                   child: CustomPaint(
-                    painter: _Halka(ilerleme / gereken, _x(16)),
+                    painter: _Halka(ilerleme / gereken, _x(16), _p),
                     child: Center(
                       child: Text('$ilerleme/$gereken',
-                          style: TextStyle(fontSize: _x(54), fontWeight: FontWeight.w800, color: const Color(0xFF7A1530))),
+                          style: TextStyle(fontSize: _x(54), fontWeight: FontWeight.w800, color: _baslik)),
                     ),
                   ),
                 ),
@@ -487,7 +483,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(acik ? '$gereken hizmet al, $hediye hizmet kazan!' : 'Bu kampanya sona erdi',
-                          style: TextStyle(fontSize: _x(22), fontWeight: FontWeight.w500, color: const Color(0xFF5B21B6))),
+                          style: TextStyle(fontSize: _x(22), fontWeight: FontWeight.w500, color: _morKoyu)),
                     ),
                     SizedBox(height: _x(26)),
                     FittedBox(
@@ -513,7 +509,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                       if (acik && yeniKart > 0) ...[
                         SizedBox(height: _x(8)),
                         Text('Yeni kartınız: $yeniKart/$gereken',
-                            style: TextStyle(fontSize: _x(20), fontWeight: FontWeight.w500, color: const Color(0xFF5B21B6))),
+                            style: TextStyle(fontSize: _x(20), fontWeight: FontWeight.w500, color: _morKoyu)),
                       ],
                     ],
                   ]),
@@ -535,7 +531,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
     final dolan = _n(k, 'suresi_dolan');
     final gecerlilik = (k['gecerlilik'] ?? '').toString();
 
-    Widget sutun(IconData ikon, String etiket, String deger, {Color renk = const Color(0xFF1A0B5C)}) => Expanded(
+    Widget sutun(IconData ikon, String etiket, String deger, {Color? renk}) => Expanded(
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: _x(22)),
             child: Column(children: [
@@ -543,14 +539,14 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               SizedBox(height: _x(8)),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(etiket, style: TextStyle(fontSize: _x(23), color: const Color(0xFF4C1D95), fontWeight: FontWeight.w500)),
+                child: Text(etiket, style: TextStyle(fontSize: _x(23), color: _morKoyu, fontWeight: FontWeight.w500)),
               ),
               SizedBox(height: _x(4)),
-              Text(deger, style: TextStyle(fontSize: _x(38), fontWeight: FontWeight.w800, color: renk, height: 1.1)),
+              Text(deger, style: TextStyle(fontSize: _x(38), fontWeight: FontWeight.w800, color: renk ?? _baslik, height: 1.1)),
             ]),
           ),
         );
-    Widget cizgi() => Container(width: 1, height: _x(110), color: const Color(0xFFDCCBF6));
+    Widget cizgi() => Container(width: 1, height: _x(110), color: _p.kartKenar);
     Widget not(IconData ikon, String yazi, Color renk) => Padding(
           padding: EdgeInsets.only(top: _x(10)),
           child: Row(children: [
@@ -591,9 +587,8 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
           firstChild: Column(children: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.72),
+                color: _p.yumusak.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(_x(40)),
-                border: Border.all(color: Colors.white),
               ),
               child: Row(children: [
                 sutun(Icons.redeem_rounded, 'Kazanılan İkram', '${_n(k, 'kazanilan')}'),
@@ -651,9 +646,9 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
       return Container(
         width: _x(197),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.6),
+          color: _p.kart,
           borderRadius: BorderRadius.circular(_x(28)),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.2),
+          border: Border.all(color: _p.kartKenar),
           boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -664,14 +659,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
               Container(
                 width: _x(90),
                 height: _x(90),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFF3E8FF), Color(0xFFD9C2FA)],
-                  ),
-                ),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: _p.yumusak),
                 child: Icon(Icons.card_giftcard_rounded, color: _mor, size: _x(44)),
               ),
               Positioned(
@@ -721,7 +709,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                 height: _x(57),
                 padding: EdgeInsets.only(left: _x(26), right: _x(14)),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.75),
+                  color: _p.kart,
                   borderRadius: BorderRadius.circular(_x(29)),
                   boxShadow: [BoxShadow(color: _mor.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3))],
                 ),
@@ -768,7 +756,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
   void _gecmisAc(Map<String, dynamic> k, List<Map<String, dynamic>> ikramlar) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: _p.kart,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (c) => SafeArea(
@@ -779,7 +767,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
             children: [
               Text('${k['hizmet_adi'] ?? ''} · İkram Geçmişim',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _baslik)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _baslik)),
               const SizedBox(height: 10),
               ...ikramlar.map((ik) {
                 final (baslik, _, ikon, renk) = _ikramDurum(ik);
@@ -800,7 +788,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('${_tarih(ik['kazanma'])} tarihinde kazanıldı',
                             style: const TextStyle(fontSize: 11.5, color: Color(0xFF9CA3AF))),
-                        Text(aciklama, style: const TextStyle(fontSize: 13, color: _koyu)),
+                        Text(aciklama, style: TextStyle(fontSize: 13, color: _koyu)),
                       ]),
                     ),
                     Container(
@@ -822,7 +810,10 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
         padding: EdgeInsets.symmetric(horizontal: _x(40)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(_x(50)),
-          child: Image.asset('images/ikram_m_bant.png', width: _x(863), height: _x(100), fit: BoxFit.fill),
+          child: ColorFiltered(
+            colorFilter: _p.gorselFiltre,
+            child: Image.asset('images/ikram_m_bant.png', width: _x(863), height: _x(100), fit: BoxFit.fill),
+          ),
         ),
       );
 
@@ -832,18 +823,18 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             CircleAvatar(radius: 17, backgroundColor: _mor.withValues(alpha: 0.1), child: Icon(ikon, size: 18, color: _mor)),
             const SizedBox(width: 12),
-            Expanded(child: Text(yazi, style: const TextStyle(fontSize: 13.5, color: Color(0xFF374151), height: 1.4))),
+            Expanded(child: Text(yazi, style: TextStyle(fontSize: 13.5, color: _soluk, height: 1.4))),
           ]),
         );
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: _p.kart,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('İkram kampanyası nasıl işler?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _baslik)),
+            Text('İkram kampanyası nasıl işler?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _baslik)),
             const SizedBox(height: 8),
             satir(Icons.event_available_rounded, 'Yalnızca kampanyadaki hizmeti ücretli aldığınızda sayılır; paket seansları ve diğer hizmetler sayılmaz.'),
             satir(Icons.card_giftcard_rounded,
@@ -861,7 +852,8 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
 class _Halka extends CustomPainter {
   final double oran;
   final double kalinlik;
-  _Halka(this.oran, this.kalinlik);
+  final MusteriPalet p;
+  _Halka(this.oran, this.kalinlik, this.p);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -874,7 +866,7 @@ class _Halka extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = kalinlik
-          ..color = const Color(0xFFEADCFB));
+          ..color = p.yumusak);
     canvas.drawCircle(m, r - kalinlik / 2, Paint()..color = Colors.white.withValues(alpha: 0.35));
     if (oran <= 0) return;
     canvas.drawArc(
@@ -886,13 +878,13 @@ class _Halka extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = kalinlik
           ..strokeCap = StrokeCap.round
-          ..shader = const SweepGradient(
+          ..shader = SweepGradient(
             startAngle: -math.pi / 2,
             endAngle: 3 * math.pi / 2,
-            colors: [Color(0xFF7C3AED), Color(0xFF5B21B6), Color(0xFF7C3AED)],
+            colors: [p.ana, p.anaKoyu, p.ana],
           ).createShader(rect));
   }
 
   @override
-  bool shouldRepaint(covariant _Halka e) => e.oran != oran || e.kalinlik != kalinlik;
+  bool shouldRepaint(covariant _Halka e) => e.oran != oran || e.kalinlik != kalinlik || e.p.ana != p.ana;
 }

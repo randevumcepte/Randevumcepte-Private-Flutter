@@ -8,7 +8,7 @@ import 'package:randevu_sistem/theme/app_theme.dart';
 /// API endpoint sözleşmesi (Laravel tarafında deploy edilecek):
 ///
 /// GET  /api/v1/salonTemaGet/{salonId}
-///   -> { "preset": "mor_luks", "customSeedArgb": null, "brightnessMode": "light" }
+///   -> { "basarili": true, "config": { "preset": "mor_luks", "customSeedArgb": null, "brightnessMode": "light" }, "seed": "#..." }
 ///
 /// POST /api/v1/salonTemaSet/{salonId}
 ///   body: { "preset": "...", "customSeedArgb": int|null, "brightnessMode": "..." }
@@ -30,11 +30,11 @@ class SalonTemaApi {
       if (res.statusCode != 200) return null;
       final body = jsonDecode(res.body);
       if (body is! Map<String, dynamic>) return null;
+      // Sunucu { basarili, config: {preset, ...} } döner; eski düz biçim de okunur
+      final ham = body['config'] is Map ? Map<String, dynamic>.from(body['config'] as Map) : body;
       // Boş cevap -> default
-      if (body.isEmpty || body['preset'] == null) {
-        return AppThemeConfig.defaults;
-      }
-      return AppThemeConfig.fromJson(body);
+      if (ham['preset'] == null) return AppThemeConfig.defaults;
+      return AppThemeConfig.fromJson(ham);
     } catch (_) {
       return null;
     }

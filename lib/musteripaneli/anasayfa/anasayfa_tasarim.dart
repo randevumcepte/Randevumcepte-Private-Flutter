@@ -1,11 +1,6 @@
 // ignore_for_file: invalid_use_of_protected_member
 part of 'anasayfa.dart';
 
-const _dMor = Color(0xFF5B16C4);
-const _dMorKoyu = Color(0xFF4C1D95);
-const _dBaslik = Color(0xFF34108A);
-const _dKoyu = Color(0xFF2A0B73);
-
 /// Tasarımın yuvarlak hatlı yazı tipi (Figtree; inmezse tema yazı tipine düşer)
 TextStyle _dYazi({double? fontSize, double? height, FontWeight? fontWeight, Color? color, double? letterSpacing}) => GoogleFonts.figtree(
     fontSize: fontSize, height: height, fontWeight: fontWeight, color: color, letterSpacing: letterSpacing ?? 0);
@@ -14,6 +9,7 @@ TextStyle _dYazi({double? fontSize, double? height, FontWeight? fontWeight, Colo
 /// Ölçüler ekran genişliğine oranlanır (tablette en çok 600 dp). Sabit parçalar (üst görsel, çark
 /// kartı, ikonlar) tasarımdan kesilmiştir; yazı ve sayılar canlıdır.
 extension _AnasayfaTasarim on _MusteriAnsayfaState {
+  MusteriPalet get _p => MusteriPalet.of(context);
   double get _genislik => math.min(MediaQuery.of(context).size.width, 600.0);
   double _x(num px) => _genislik * px / 852;
 
@@ -109,26 +105,11 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
           child: c,
         );
 
-    return Container(
+    return SizedBox(
       height: kay + _x(548),
-      color: const Color(0xFFD6B4FC),
       child: Stack(clipBehavior: Clip.hardEdge, children: [
-        yer(0, 0, Image.asset('images/musteri_hero.jpg', fit: BoxFit.fill), w: 852, h: 548),
-        // Görselin altı sayfa zeminine erir
-        yer(
-          0,
-          532,
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0x00E6CBFD), Color(0xFFE6CBFD)],
-              ),
-            ),
-          ),
-          w: 852,
-          h: 16.5,
+        Positioned.fill(
+          child: MarkaIsikEfekti(merkez: Offset(_x(612), kay + _x(262)), yaricap: _x(146)),
         ),
         yer(
           32,
@@ -136,17 +117,8 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
           GestureDetector(
             onTap: _bildirimlerAc,
             child: Stack(clipBehavior: Clip.none, children: [
-              Container(
-                width: _x(82),
-                height: _x(82),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.82),
-                  boxShadow: [BoxShadow(color: _dMor.withValues(alpha: 0.14), blurRadius: 14, offset: const Offset(0, 4))],
-                ),
-                child: Icon(Icons.notifications_rounded, color: _dMor, size: _x(46)),
-              ),
-              if (_okunmamis > 0) Positioned(left: _x(62), top: _x(6), child: MusteriRozet(_okunmamis, _x(34))),
+              _daire(Icons.notifications_rounded),
+              if (_okunmamis > 0) Positioned(left: _x(62), top: _x(6), child: _Rozet(_okunmamis, _x(34))),
             ]),
           ),
           w: 130,
@@ -160,33 +132,30 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.spa_outlined, color: _dMor, size: _x(58)),
+                Icon(Icons.spa_outlined, color: _p.ana, size: _x(58)),
                 SizedBox(width: _x(12)),
                 Text(_resolveSalonAdi(),
                     maxLines: 1,
-                    style: _dYazi(fontSize: _x(36), fontWeight: FontWeight.w700, color: _dMor, letterSpacing: -0.3)),
+                    style: _dYazi(fontSize: _x(36), fontWeight: FontWeight.w700, color: _p.ana, letterSpacing: -0.3)),
               ]),
             ),
           ),
           w: 430,
           h: 66,
         ),
-        // Profil dairesi görselin içinde; üstüne dokunma alanı
         yer(
           738,
-          76,
+          78,
           Semantics(
             button: true,
             label: 'Profilim',
             child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
               onTap: () => _git(MusteriProfilBilgileri(kullanici: widget.md)),
+              child: _daire(Icons.person_outline_rounded),
             ),
           ),
-          w: 90,
-          h: 90,
         ),
-        yer(43, 190, Text('Merhaba 👋', style: _dYazi(fontSize: _x(28), height: 1.2, fontWeight: FontWeight.w700, color: _dBaslik))),
+        yer(43, 190, Text('Merhaba 👋', style: _dYazi(fontSize: _x(28), height: 1.2, fontWeight: FontWeight.w700, color: _p.baslik))),
         yer(
           43,
           226,
@@ -195,9 +164,9 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
             alignment: Alignment.centerLeft,
             child: Row(children: [
               Text(ad,
-                  style: _dYazi(fontSize: _x(58), height: 1.1, fontWeight: FontWeight.w800, color: _dBaslik, letterSpacing: -1)),
+                  style: _dYazi(fontSize: _x(58), height: 1.1, fontWeight: FontWeight.w800, color: _p.baslik, letterSpacing: -1)),
               SizedBox(width: _x(16)),
-              Text('💜', style: _dYazi(fontSize: _x(42), height: 1.1)),
+              _degrade(Icons.favorite_rounded, _x(44)),
             ]),
           ),
           w: 262,
@@ -207,14 +176,25 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
           43,
           300,
           Text('Güzelliğin için\nher zaman yanındayız ✨',
-              style: _dYazi(fontSize: _x(22), height: 1.3, fontWeight: FontWeight.w500, color: const Color(0xFF4A1FA5))),
+              style: _dYazi(fontSize: _x(22), height: 1.3, fontWeight: FontWeight.w500, color: _p.metin)),
         ),
         ..._bakiyeKarti(yer),
       ]),
     );
   }
 
-  /// İkram bakiyesi kartı: zemini, hediye kutusu ve "Detaylar" düğmesi görselin içindedir.
+  Widget _daire(IconData ikon) => Container(
+        width: _x(82),
+        height: _x(82),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _p.kart.withValues(alpha: 0.9),
+          boxShadow: [BoxShadow(color: _p.ana.withValues(alpha: 0.14), blurRadius: 14, offset: const Offset(0, 4))],
+        ),
+        child: Icon(ikon, color: _p.ana, size: _x(46)),
+      );
+
+  /// İkram bakiyesi kartı.
   /// Salonda ikram kampanyası yoksa sadakat puanı ve üyelik gösterilir.
   List<Widget> _bakiyeKarti(Widget Function(num, num, Widget, {num? w, num? h}) yer) {
     final ikramVar = _ikramKartlari.isNotEmpty;
@@ -227,33 +207,62 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
         oran = math.max(oran, (_kn(k, 'ilerleme') / g).clamp(0.0, 1.0));
       }
     }
-    TextStyle etiket = _dYazi(fontSize: _x(20), height: 1.2, fontWeight: FontWeight.w600, color: _dBaslik);
+    TextStyle etiket = _dYazi(fontSize: _x(20), height: 1.2, fontWeight: FontWeight.w600, color: _p.baslik);
     Widget sigdir(Widget c) => FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: c);
 
     return [
+      yer(30, 394, Container(decoration: _camKutu(50)), w: 792, h: 138),
+      yer(
+        54,
+        418,
+        Container(
+          padding: EdgeInsets.all(_x(10)),
+          decoration: BoxDecoration(color: _p.yumusak.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(_x(28))),
+          child: ColorFiltered(colorFilter: _p.gorselFiltre, child: Image.asset('images/musteri_kutu3d.png', fit: BoxFit.contain)),
+        ),
+        w: 90,
+        h: 90,
+      ),
+      yer(
+        656,
+        439,
+        Container(
+          padding: EdgeInsets.only(left: _x(18), right: _x(6)),
+          decoration: BoxDecoration(color: _p.yumusak, borderRadius: BorderRadius.circular(_x(29))),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(children: [
+              Text('Detaylar', style: _dYazi(fontSize: _x(21), fontWeight: FontWeight.w600, color: _p.ana)),
+              Icon(Icons.chevron_right_rounded, color: _p.ana, size: _x(34)),
+            ]),
+          ),
+        ),
+        w: 146,
+        h: 58,
+      ),
       yer(166, 416, sigdir(Text(ikramVar ? 'İkram Bakiyen' : 'Sadakat Puanın', style: etiket)), w: 155, h: 27),
       yer(
         166,
         443,
         sigdir(Text(ikramVar ? '$_ikramHak' : _formatPuan(ozetsayfabilgi?.sadakatPuani ?? 0),
-            style: _dYazi(fontSize: _x(44), height: 1.1, fontWeight: FontWeight.w800, color: _dKoyu))),
+            style: _dYazi(fontSize: _x(44), height: 1.1, fontWeight: FontWeight.w800, color: _p.baslik))),
         w: 155,
         h: 50,
       ),
-      yer(166, 492, sigdir(Text(ikramVar ? 'Hediye Hizmet' : 'Puan', style: _dYazi(fontSize: _x(19), height: 1.2, color: _dMorKoyu))),
+      yer(166, 492, sigdir(Text(ikramVar ? 'Hediye Hizmet' : 'Puan', style: _dYazi(fontSize: _x(19), height: 1.2, color: _p.metin))),
           w: 155, h: 25),
-      yer(331, 424, Container(color: _dMor.withValues(alpha: 0.35)), w: 1.6, h: 78),
-      yer(372, 416, Icon(Icons.star_rounded, color: _dMor, size: _x(34))),
+      yer(331, 424, Container(color: _p.ana.withValues(alpha: 0.35)), w: 1.6, h: 78),
+      yer(372, 416, Icon(Icons.star_rounded, color: _p.ana, size: _x(34))),
       yer(414, 418, sigdir(Text(ikramVar ? 'Kampanya Oranın' : 'Üyeliğin', style: etiket)), w: 200, h: 27),
       yer(
         374,
         456,
         sigdir(Text(ikramVar ? '%${(oran * 100).round()}' : (ozetsayfabilgi?.kategoriLabel ?? 'Müşteri'),
-            style: _dYazi(fontSize: _x(ikramVar ? 46 : 28), height: 1.1, fontWeight: FontWeight.w800, color: _dKoyu))),
+            style: _dYazi(fontSize: _x(ikramVar ? 46 : 28), height: 1.1, fontWeight: FontWeight.w800, color: _p.baslik))),
         w: ikramVar ? 140 : 250,
         h: 54,
       ),
-      if (ikramVar) yer(530, 444, CustomPaint(painter: _DHalka(oran, _x(11))), w: 76, h: 76),
+      if (ikramVar) yer(530, 444, CustomPaint(painter: _DHalka(oran, _x(11), _p)), w: 76, h: 76),
       yer(
         30,
         394,
@@ -274,25 +283,29 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
   // ---------------------------------------------------------------- çark + kısayollar
 
   BoxDecoration _camKutu(num r) => BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xF2FBF5FF), Color(0xE6F3E6FE)],
-        ),
+        color: _p.kart,
         borderRadius: BorderRadius.circular(_x(r)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 1.2),
-        boxShadow: [BoxShadow(color: _dMor.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 5))],
+        border: Border.all(color: _p.kartKenar),
+        boxShadow: [BoxShadow(color: _p.ana.withValues(alpha: _p.koyuMod ? 0 : 0.08), blurRadius: 16, offset: const Offset(0, 6))],
       );
 
-  Widget _degrade(IconData ikon, double boyut) => ShaderMask(
-        shaderCallback: (r) => const LinearGradient(
+  LinearGradient get _dugmeDegrade =>
+      LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: _p.dugme);
+
+  /// Tek renk ikon/görseli temanın degradesiyle boyar
+  Widget _boya(Widget c) => ShaderMask(
+        shaderCallback: (r) => LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF8B3FE6), Color(0xFF4C12B0)],
+          colors: [Color.lerp(_p.ana, Colors.white, 0.18)!, _p.ana],
         ).createShader(r),
         blendMode: BlendMode.srcIn,
-        child: Icon(ikon, size: boyut, color: Colors.white),
+        child: c,
       );
+
+  Widget _degrade(IconData ikon, double boyut) => _boya(Icon(ikon, size: boyut, color: Colors.white));
+
+  Widget _gorselIkon(String ad) => _boya(Image.asset('images/musteri_i_$ad.png', fit: BoxFit.contain));
 
   Widget _carkVeKisayollar() {
     Widget kisayol(Widget ikon, String yazi, VoidCallback onTap) => Expanded(
@@ -308,15 +321,15 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text(yazi, style: _dYazi(fontSize: _x(20), fontWeight: FontWeight.w600, color: _dBaslik)),
+                    child: Text(yazi, style: _dYazi(fontSize: _x(20), fontWeight: FontWeight.w600, color: _p.baslik)),
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: _dMor, size: _x(32)),
+                Icon(Icons.chevron_right_rounded, color: _p.ana, size: _x(32)),
               ]),
             ),
           ),
         );
-    Widget gorsel(String ad) => Image.asset('images/musteri_i_$ad.png', fit: BoxFit.contain);
+    Widget gorsel(String ad) => _gorselIkon(ad);
     final ara = SizedBox(height: _x(9));
 
     return Padding(
@@ -354,11 +367,67 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(_x(38)),
-              boxShadow: [BoxShadow(color: _dMor.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 8))],
+              gradient: _dugmeDegrade,
+              boxShadow: [BoxShadow(color: _p.ana.withValues(alpha: 0.24), blurRadius: 18, offset: const Offset(0, 8))],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(_x(38)),
-              child: Image.asset('images/musteri_cark.jpg', fit: BoxFit.fill),
+              child: Stack(children: [
+                for (final (sol, y, cap) in const [(350, -80, 260), (-60, 190, 220), (190, 20, 150)])
+                  Positioned(
+                    left: _x(sol),
+                    top: _x(y),
+                    width: _x(cap),
+                    height: _x(cap),
+                    child: DecoratedBox(
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.07))),
+                  ),
+                Positioned(
+                  left: _x(12),
+                  top: _x(30),
+                  width: _x(240),
+                  height: _x(250),
+                  child: ColorFiltered(
+                      colorFilter: _p.gorselFiltre, child: Image.asset('images/musteri_cark3d.png', fit: BoxFit.contain)),
+                ),
+                Positioned(
+                  right: _x(24),
+                  top: _x(34),
+                  child: Text('🎁', style: TextStyle(fontSize: _x(38), height: 1.1)),
+                ),
+                Positioned(
+                  left: _x(268),
+                  right: _x(16),
+                  top: _x(86),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Çarkıfelek',
+                          style: _dYazi(color: Colors.white, fontSize: _x(38), height: 1.15, fontWeight: FontWeight.w800)),
+                    ),
+                    SizedBox(height: _x(6)),
+                    Text('Şansını dene,\nhediye kazan!',
+                        style: _dYazi(color: Colors.white.withValues(alpha: 0.92), fontSize: _x(22), height: 1.25)),
+                    SizedBox(height: _x(20)),
+                    Container(
+                      height: _x(54),
+                      padding: EdgeInsets.only(left: _x(22), right: _x(10)),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(_x(27)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(children: [
+                          Text('Çevir & Kazan', style: _dYazi(color: Colors.white, fontSize: _x(21), fontWeight: FontWeight.w700)),
+                          Icon(Icons.chevron_right_rounded, color: Colors.white, size: _x(34)),
+                        ]),
+                      ),
+                    ),
+                  ]),
+                ),
+              ]),
             ),
           ),
         ),
@@ -375,12 +444,8 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
         padding: EdgeInsets.all(_x(40)),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(_x(38)),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF8B3FE6), Color(0xFF4C12B0)],
-          ),
-          boxShadow: [BoxShadow(color: _dMor.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 8))],
+          gradient: _dugmeDegrade,
+          boxShadow: [BoxShadow(color: _p.ana.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 8))],
         ),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(ders ? Icons.groups_rounded : Icons.event_available_rounded, color: Colors.white, size: _x(72)),
@@ -398,7 +463,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
   void _destekAc() {
     Widget satir(IconData ikon, Color renk, String baslik, String alt, String mode) => ListTile(
           leading: CircleAvatar(backgroundColor: renk.withValues(alpha: 0.12), child: Icon(ikon, color: renk)),
-          title: Text(baslik, style: _dYazi(fontWeight: FontWeight.w700, color: _dKoyu)),
+          title: Text(baslik, style: _dYazi(fontWeight: FontWeight.w700, color: _p.baslik)),
           subtitle: Text(alt),
           onTap: () {
             Navigator.pop(context);
@@ -407,13 +472,13 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
         );
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: _p.kart,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            satir(Icons.phone_rounded, _dMor, 'Salonu Ara', 'Telefonla görüşün', 'ara'),
+            satir(Icons.phone_rounded, _p.ana, 'Salonu Ara', 'Telefonla görüşün', 'ara'),
             satir(FontAwesomeIcons.whatsapp, const Color(0xFF25D366), 'WhatsApp', 'Mesaj gönderin', 'wp'),
           ]),
         ),
@@ -489,21 +554,21 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
             height: _x(70),
             child: Row(children: [
               SizedBox(width: _x(28)),
-              SizedBox(width: _x(50), height: _x(52), child: Image.asset('images/musteri_i_takvim.png', fit: BoxFit.contain)),
+              SizedBox(width: _x(50), height: _x(52), child: _gorselIkon('takvim')),
               SizedBox(width: _x(14)),
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text('Yaklaşan Randevunuz', style: _dYazi(fontSize: _x(27), fontWeight: FontWeight.w700, color: _dBaslik)),
+                  child: Text('Yaklaşan Randevunuz', style: _dYazi(fontSize: _x(27), fontWeight: FontWeight.w700, color: _p.baslik)),
                 ),
               ),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _randevularimAc,
                 child: Row(children: [
-                  Text('Tümünü Gör', style: _dYazi(fontSize: _x(21), color: _dMor, fontWeight: FontWeight.w500)),
-                  Icon(Icons.chevron_right_rounded, color: _dMor, size: _x(38)),
+                  Text('Tümünü Gör', style: _dYazi(fontSize: _x(21), color: _p.ana, fontWeight: FontWeight.w500)),
+                  Icon(Icons.chevron_right_rounded, color: _p.ana, size: _x(38)),
                   SizedBox(width: _x(12)),
                 ]),
               ),
@@ -512,7 +577,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
           Container(
             padding: EdgeInsets.fromLTRB(_x(34), _x(12), _x(24), _x(16)),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.45),
+              color: _p.yumusak.withValues(alpha: 0.22),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(_x(42))),
             ),
             child: Row(children: [
@@ -530,21 +595,21 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                   Text(r == null ? 'Yaklaşan randevunuz yok' : hizmet,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: _dYazi(fontSize: _x(23), fontWeight: FontWeight.w600, color: _dBaslik)),
+                      style: _dYazi(fontSize: _x(23), fontWeight: FontWeight.w600, color: _p.baslik)),
                   SizedBox(height: _x(8)),
                   if (r != null)
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Row(children: [
-                        Icon(Icons.calendar_month_rounded, color: _dMor, size: _x(28)),
+                        Icon(Icons.calendar_month_rounded, color: _p.ana, size: _x(28)),
                         SizedBox(width: _x(8)),
-                        Text(tarih, style: _dYazi(fontSize: _x(22), fontWeight: FontWeight.w600, color: _dBaslik)),
+                        Text(tarih, style: _dYazi(fontSize: _x(22), fontWeight: FontWeight.w600, color: _p.baslik)),
                       ]),
                     )
                   else
                     Text('Size uygun saati hemen seçin',
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: _dYazi(fontSize: _x(20), color: _dMorKoyu)),
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: _dYazi(fontSize: _x(20), color: _p.metin)),
                   if (r != null && r.durum == '0') ...[
                     SizedBox(height: _x(4)),
                     Text('Onay bekliyor',
@@ -560,13 +625,9 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                     width: _x(198),
                     height: _x(77),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFF6A22D8), Color(0xFF4A0FB2)],
-                      ),
+                      gradient: _dugmeDegrade,
                       borderRadius: BorderRadius.circular(_x(39)),
-                      boxShadow: [BoxShadow(color: _dMor.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 5))],
+                      boxShadow: [BoxShadow(color: _p.ana.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 5))],
                     ),
                     child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Text(r != null ? 'Randevumu\nGörüntüle' : 'Randevu Al',
@@ -591,13 +652,13 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
         padding: EdgeInsets.symmetric(horizontal: _x(32)),
         child: Row(children: [
           if (ikon != null) ...[ikon, SizedBox(width: _x(12))],
-          Text(yazi, style: _dYazi(fontSize: _x(27), fontWeight: FontWeight.w700, color: _dBaslik)),
+          Text(yazi, style: _dYazi(fontSize: _x(27), fontWeight: FontWeight.w700, color: _p.baslik)),
           SizedBox(width: _x(20)),
           Expanded(
             child: Container(
               height: 1.4,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0x00A855F7), Color(0x66A855F7), Color(0x00A855F7)]),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [_p.ana.withValues(alpha: 0), _p.ana.withValues(alpha: 0.3), _p.ana.withValues(alpha: 0)]),
               ),
             ),
           ),
@@ -606,7 +667,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
 
   Widget _kampanyaBolumu(List<Map<String, dynamic>> liste) => Column(children: [
         _bolumBasligi('Aktif Kampanyalarım',
-            ikon: SizedBox(width: _x(50), height: _x(54), child: Image.asset('images/musteri_i_hediye.png', fit: BoxFit.contain))),
+            ikon: SizedBox(width: _x(50), height: _x(54), child: _gorselIkon('hediye'))),
         SizedBox(height: _x(8)),
         SizedBox(
           height: _x(228),
@@ -625,7 +686,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                 width: _x(15),
                 height: _x(15),
                 margin: EdgeInsets.symmetric(horizontal: _x(7)),
-                decoration: BoxDecoration(shape: BoxShape.circle, color: i == _kampanyaSayfa ? _dMor : const Color(0xFFCBA6F5)),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: i == _kampanyaSayfa ? _p.ana : _p.yumusak),
               ),
           ]),
         ],
@@ -652,8 +713,8 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
           margin: EdgeInsets.only(left: _x(12)),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: dolu ? const LinearGradient(colors: [Color(0xFF7C2BE0), Color(0xFFC9A0F5)]) : null,
-            border: dolu ? null : Border.all(color: const Color(0xFFCDB0F3), width: 1.6),
+            color: dolu ? _p.ana : null,
+            border: dolu ? null : Border.all(color: _p.ana.withValues(alpha: 0.3), width: 1.6),
           ),
         );
 
@@ -682,7 +743,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                   height: _x(52),
                   padding: EdgeInsets.symmetric(horizontal: _x(16)),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF6A22D8), Color(0xFF4A0FB2)]),
+                    gradient: _dugmeDegrade,
                     borderRadius: BorderRadius.circular(_x(16)),
                   ),
                   alignment: Alignment.center,
@@ -698,7 +759,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: _x(14), vertical: _x(8)),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFFFBEFF6), Color(0xFFFDE6C8)]),
+                      color: const Color(0xFFFEF3DC),
                       borderRadius: BorderRadius.circular(_x(24)),
                     ),
                     child: Row(children: [
@@ -711,7 +772,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
               const Spacer(),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text('$hizmet Kampanyası', style: _dYazi(fontSize: _x(23), fontWeight: FontWeight.w700, color: _dBaslik)),
+                child: Text('$hizmet Kampanyası', style: _dYazi(fontSize: _x(23), fontWeight: FontWeight.w700, color: _p.baslik)),
               ),
               SizedBox(height: _x(2)),
               FittedBox(
@@ -720,7 +781,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                     style: _dYazi(
                         fontSize: _x(20),
                         fontWeight: hak > 0 ? FontWeight.w700 : FontWeight.w400,
-                        color: hak > 0 ? const Color(0xFF15803D) : _dMorKoyu)),
+                        color: hak > 0 ? const Color(0xFF15803D) : _p.metin)),
               ),
               const Spacer(),
               Row(children: [
@@ -731,9 +792,9 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                     child: Row(children: [
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: _x(9), vertical: _x(7)),
-                        decoration: BoxDecoration(color: const Color(0xFFDFC4FA), borderRadius: BorderRadius.circular(_x(20))),
+                        decoration: BoxDecoration(color: _p.yumusak, borderRadius: BorderRadius.circular(_x(20))),
                         child: Text('$ilerleme/$gereken',
-                            style: _dYazi(fontSize: _x(21), height: 1.1, fontWeight: FontWeight.w700, color: _dMor)),
+                            style: _dYazi(fontSize: _x(21), height: 1.1, fontWeight: FontWeight.w700, color: _p.ana)),
                       ),
                       for (var i = 0; i < gereken; i++) nokta(i < ilerleme),
                     ]),
@@ -744,16 +805,12 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                   height: _x(56),
                   padding: EdgeInsets.only(left: _x(22), right: _x(10)),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF6ECFE), Color(0xFFDFC6FA)],
-                    ),
+                    color: _p.yumusak,
                     borderRadius: BorderRadius.circular(_x(28)),
                   ),
                   child: Row(children: [
-                    Text('Detaylar', style: _dYazi(fontSize: _x(20), fontWeight: FontWeight.w600, color: _dMor)),
-                    Icon(Icons.chevron_right_rounded, color: _dMor, size: _x(34)),
+                    Text('Detaylar', style: _dYazi(fontSize: _x(20), fontWeight: FontWeight.w600, color: _p.ana)),
+                    Icon(Icons.chevron_right_rounded, color: _p.ana, size: _x(34)),
                   ]),
                 ),
               ]),
@@ -767,10 +824,10 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
   // ---------------------------------------------------------------- diğer özellikler
 
   Widget _digerOzellikler() {
-    Widget gorsel(String ad) => Image.asset('images/musteri_i_$ad.png', fit: BoxFit.contain);
+    Widget gorsel(String ad) => _gorselIkon(ad);
     final ogeler = <(Widget, String, VoidCallback)>[
       if (!_studyo) (gorsel('kupa'), 'Puan\nÖdülleri', _puanOdulAc),
-      if (!_studyo) (gorsel('kupon'), 'Kuponlarım', () => _git(OdullerimPage(md: widget.md))),
+      if (!_studyo) (_degrade(Icons.confirmation_number_rounded, _x(48)), 'Kuponlarım', () => _git(OdullerimPage(md: widget.md))),
       (gorsel('yorum'), 'Müşteri\nYorumları', () => _git(const SalonYorumlariSayfasi())),
       (gorsel('duyuru'), 'Kampanya ve\nDuyurular', _duyurularAc),
       (
@@ -805,7 +862,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                         fit: BoxFit.scaleDown,
                         child: Text(o.$2,
                             textAlign: TextAlign.center,
-                            style: _dYazi(fontSize: _x(19), height: 1.15, fontWeight: FontWeight.w600, color: _dBaslik)),
+                            style: _dYazi(fontSize: _x(19), height: 1.15, fontWeight: FontWeight.w600, color: _p.baslik)),
                       ),
                     ),
                   ),
@@ -814,14 +871,13 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
               Positioned(
                 right: _x(10),
                 top: _x(36),
-                child: Icon(Icons.chevron_right_rounded, color: const Color(0xFFA86BEF), size: _x(30)),
+                child: Icon(Icons.chevron_right_rounded, color: _p.ana.withValues(alpha: 0.55), size: _x(30)),
               ),
             ]),
           ),
         );
 
     return Stack(clipBehavior: Clip.none, children: [
-      Positioned(right: 0, top: -_x(30), width: _x(124), child: IgnorePointer(child: Image.asset('images/musteri_orkide.png'))),
       Column(children: [
         _bolumBasligi('Diğer Özellikler'),
         SizedBox(height: _x(14)),
@@ -845,7 +901,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
   void _duyurularAc() => showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: const Color(0xFFF6EEFE),
+        backgroundColor: _p.zemin,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         builder: (c) => SafeArea(
           child: ConstrainedBox(
@@ -863,17 +919,21 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
 class _DHalka extends CustomPainter {
   final double oran;
   final double kalinlik;
-  _DHalka(this.oran, this.kalinlik);
+  final MusteriPalet p;
+  _DHalka(this.oran, this.kalinlik, this.p);
 
   @override
   void paint(Canvas canvas, Size size) {
     final m = size.center(Offset.zero);
     final r = size.shortestSide / 2 - kalinlik / 2;
     final rect = Rect.fromCircle(center: m, radius: r);
-    final p = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = kalinlik;
-    canvas.drawCircle(m, r, p..color = const Color(0xFFCDB0F5));
+    canvas.drawCircle(
+        m,
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = kalinlik
+          ..color = p.yumusak);
     if (oran <= 0) return;
     canvas.drawArc(
         rect,
@@ -884,11 +944,27 @@ class _DHalka extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = kalinlik
           ..strokeCap = StrokeCap.round
-          ..shader = const SweepGradient(
-            colors: [Color(0xFF5B16C4), Color(0xFF7C2BE0), Color(0xFFC026D3), Color(0xFFE026C8), Color(0xFF5B16C4)],
-          ).createShader(rect));
+          ..shader = SweepGradient(colors: [p.ana, p.anaKoyu, p.ana]).createShader(rect));
   }
 
   @override
-  bool shouldRepaint(covariant _DHalka e) => e.oran != oran || e.kalinlik != kalinlik;
+  bool shouldRepaint(covariant _DHalka e) => e.oran != oran || e.kalinlik != kalinlik || e.p.ana != p.ana;
+}
+
+/// Kırmızı bildirim rozeti (99 üstü "99+")
+class _Rozet extends StatelessWidget {
+  final int sayi;
+  final double boyut;
+  const _Rozet(this.sayi, this.boyut);
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: boyut,
+        constraints: BoxConstraints(minWidth: boyut),
+        padding: EdgeInsets.symmetric(horizontal: boyut * 0.2),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: const Color(0xFFF5132B), borderRadius: BorderRadius.circular(boyut / 2)),
+        child: Text(sayi > 99 ? '99+' : '$sayi',
+            style: TextStyle(color: Colors.white, fontSize: boyut * 0.58, height: 1, fontWeight: FontWeight.w600)),
+      );
 }

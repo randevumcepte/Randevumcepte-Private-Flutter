@@ -34,7 +34,9 @@ import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 import 'package:randevu_sistem/Models/randevular.dart';
-import 'package:randevu_sistem/musteripaneli/musteri_alt_menu.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/marka_isik_efekti.dart';
+import 'package:randevu_sistem/theme/musteri_palet.dart';
+import 'package:randevu_sistem/theme/theme_provider.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/ikram/kampanya_ayarlari.dart' show ikramHazirGorsel;
 
 import '../randevularim/randevularim.dart';
@@ -124,7 +126,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
         yorumOzeti = results[1] as SalonYorumlarOzet;
         isloading = false;
       });
-      musteriOkunmamisBildirim.value = int.tryParse(ozetsayfabilgi?.okunmamisbildirimler ?? '') ?? 0;
     } catch (e) {
       print('Initialize hatası: $e');
       setState(() => isloading = false);
@@ -140,6 +141,10 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     _ikramYukle();
     _yaklasanYukle();
     _bundleBasligiYukle();
+    // İşletmenin Görünüm ayarında seçtiği renk müşteri uygulamasına da uygulanır
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _salonId.isNotEmpty) context.read<ThemeProvider>().bindSalon(_salonId);
+    });
   }
 
   @override
@@ -463,28 +468,20 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
 
   @override
   Widget build(BuildContext context) {
+    final p = MusteriPalet.of(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: (p.koyuMod ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor: const Color(0xFFEBD3FD),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFDDB9FD), Color(0xFFE8CFFD), Color(0xFFF0DFFC), Color(0xFFE9CFFD)],
-            ),
-          ),
-          child: isloading
-              ? const Center(child: CircularProgressIndicator(color: _dMor))
-              : RefreshIndicator(
-                  color: _dMor,
-                  backgroundColor: Colors.white,
-                  strokeWidth: 3,
-                  onRefresh: _refreshPage,
-                  child: _sayfa(),
-                ),
-        ),
+        backgroundColor: p.zemin,
+        body: isloading
+            ? Center(child: CircularProgressIndicator(color: p.ana))
+            : RefreshIndicator(
+                color: p.ana,
+                backgroundColor: p.kart,
+                strokeWidth: 3,
+                onRefresh: _refreshPage,
+                child: _sayfa(),
+              ),
       ),
     );
   }
