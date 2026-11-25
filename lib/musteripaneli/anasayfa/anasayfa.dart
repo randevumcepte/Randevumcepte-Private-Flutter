@@ -34,6 +34,7 @@ import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 import 'package:randevu_sistem/Models/randevular.dart';
+import 'package:randevu_sistem/musteripaneli/musteri_alt_menu.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/donen_cark.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/marka_isik_efekti.dart';
 import 'package:randevu_sistem/theme/musteri_palet.dart';
@@ -122,6 +123,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
         yorumOzeti = results[1] as SalonYorumlarOzet;
         isloading = false;
       });
+      musteriOkunmamisBildirim.value = int.tryParse(ozetsayfabilgi?.okunmamisbildirimler ?? '') ?? 0;
     } catch (e) {
       print('Initialize hatası: $e');
       setState(() => isloading = false);

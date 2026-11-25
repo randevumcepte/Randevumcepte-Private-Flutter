@@ -118,7 +118,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
             onTap: _bildirimlerAc,
             child: Stack(clipBehavior: Clip.none, children: [
               _daire(Icons.notifications_rounded),
-              if (_okunmamis > 0) Positioned(left: _x(62), top: _x(6), child: _Rozet(_okunmamis, _x(34))),
+              if (_okunmamis > 0) Positioned(left: _x(62), top: _x(6), child: MusteriRozet(_okunmamis, _x(34))),
             ]),
           ),
           w: 130,
@@ -929,22 +929,4 @@ class _DHalka extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DHalka e) => e.oran != oran || e.kalinlik != kalinlik || e.p.ana != p.ana;
-}
-
-/// Kırmızı bildirim rozeti (99 üstü "99+")
-class _Rozet extends StatelessWidget {
-  final int sayi;
-  final double boyut;
-  const _Rozet(this.sayi, this.boyut);
-
-  @override
-  Widget build(BuildContext context) => Container(
-        height: boyut,
-        constraints: BoxConstraints(minWidth: boyut),
-        padding: EdgeInsets.symmetric(horizontal: boyut * 0.2),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: const Color(0xFFF5132B), borderRadius: BorderRadius.circular(boyut / 2)),
-        child: Text(sayi > 99 ? '99+' : '$sayi',
-            style: TextStyle(color: Colors.white, fontSize: boyut * 0.58, height: 1, fontWeight: FontWeight.w600)),
-      );
 }
