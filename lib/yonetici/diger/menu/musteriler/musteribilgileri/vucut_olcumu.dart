@@ -5,7 +5,8 @@
 // Boy ve Yas sabit: ekleme formunda son olcumden/dogum tarihinden on-dolu gelir,
 // her seferinde tekrar girilmez. Dogum tarihi varsa yas otomatik hesaplanir (kilitli).
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/olcum_api.dart';
 import 'package:randevu_sistem/Models/olcum.dart';
 
@@ -387,7 +388,7 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      m.etiket,
+                      m.key == 'kasKg' && Dil.kod != 'tr' ? 'Kas (kg)' : m.etiket,
                       style: TextStyle(
                         color: aktif ? Colors.white : const Color(0xFF555566),
                         fontWeight: FontWeight.w600,
@@ -743,7 +744,7 @@ class _VucutOlcumuEkranState extends State<VucutOlcumuEkran> {
               metrik('Yağ', o.yagOrani, '%'),
               metrik('Ödem', o.odem, ''),
               metrik('Kas Puanı', o.kasPuani, ''),
-              metrik('Kas', o.kasKg, ' kg'),
+              metrik(Dil.kod == 'tr' ? 'Kas' : 'Kas (kg)', o.kasKg, ' kg'), // yabancı dilde 'Kas' = Kasım kısaltması
               metrik('İç Yağ.', o.icYaglanma, ''),
             ],
           ),

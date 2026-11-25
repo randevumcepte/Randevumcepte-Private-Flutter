@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/seansdetay.dart';
 

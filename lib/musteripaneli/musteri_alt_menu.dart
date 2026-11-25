@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:randevu_sistem/theme/musteri_palet.dart';

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
+import 'package:randevu_sistem/dil/iletisim_dili_alani.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -56,6 +57,7 @@ class _YenimusteriState extends State<Yenimusteri> {
   final TextEditingController eposta = TextEditingController();
   final TextEditingController notlar = TextEditingController();
   String selectedcinsiyet = '';
+  String? _iletisimDili; // seçilmezse değişmez
   bool yukleniyor = true;
   final _formKey = GlobalKey<FormState>();
 
@@ -170,6 +172,7 @@ class _YenimusteriState extends State<Yenimusteri> {
                   onTap: _pickDate,
                 ),
                 _genderSelector(),
+                IletisimDiliAlani(secili: _iletisimDili, onSec: (d) => setState(() => _iletisimDili = d)),
                 const SizedBox(height: 18),
                 _sectionTitle(
                     'İletişim', Icons.contact_mail_outlined, primary),
@@ -747,7 +750,8 @@ class _YenimusteriState extends State<Yenimusteri> {
       'dogum_tarihi': dogumtarihi,
       'cinsiyet': cinsiyet,
       'musteri_tipi': referans,
-      'ozel_notlar': notlar
+      'ozel_notlar': notlar,
+      if (_iletisimDili != null) 'iletisim_dili': _iletisimDili,
     };
 
     try {

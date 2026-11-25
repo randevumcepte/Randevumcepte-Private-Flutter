@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'notification_service.dart';

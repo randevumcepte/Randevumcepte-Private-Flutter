@@ -1,5 +1,5 @@
 ﻿
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 dynamic showProgressLoading(BuildContext context)
 {

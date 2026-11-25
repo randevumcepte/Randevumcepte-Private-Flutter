@@ -3,7 +3,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
 import 'package:flutter/services.dart';
 
 import 'package:provider/provider.dart';
@@ -104,6 +105,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    Dil.musteriEsitle();
     NotificationNavigationBus.current.addListener(_handleNotificationIntent);
     // Cold-start: bus'ta onceden konmus intent varsa altbar mount olduktan
     // sonra tuket.

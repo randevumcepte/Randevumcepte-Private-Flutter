@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/yonetici/profil/profil_api.dart';
 
 import 'bildirimler_class.dart';

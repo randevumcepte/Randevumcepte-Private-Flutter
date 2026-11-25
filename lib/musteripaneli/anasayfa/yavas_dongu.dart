@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 /// Süs animasyonları için 0..1 arası yavaş döngü. Tüm animasyonlar TEK saati paylaşır (20 kare/sn),
 /// böylece ekran her adımda bir kez çizilir (pil dostu). Sayfa üstte değilken, uygulama arka

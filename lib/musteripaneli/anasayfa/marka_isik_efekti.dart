@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/musteripaneli/anasayfa/yavas_dongu.dart';
 import 'package:randevu_sistem/marka.dart';

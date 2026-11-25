@@ -157,6 +157,7 @@ flutter:
 
   assets:
     - images/
+    - assets/dil/
     - images/olanail.png
     - images/olanailicon.png
     - images/ring.mp3

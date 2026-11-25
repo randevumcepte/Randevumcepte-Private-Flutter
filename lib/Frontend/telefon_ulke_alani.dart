@@ -10,7 +10,8 @@
 //
 //   TelefonUlkeAlani(controller: telefon, label: 'Telefon Numarası')
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as m show InputDecoration;
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter/services.dart';
 
 class UlkeKodu {
@@ -481,7 +482,7 @@ class TelefonUlkeAlani extends StatefulWidget {
   final String? label;
   final String? hint;
   final bool enabled;
-  final InputDecoration? decoration;
+  final m.InputDecoration? decoration;
   final String? Function(String?)? validator;
   final void Function(String deger)? onChanged;
 

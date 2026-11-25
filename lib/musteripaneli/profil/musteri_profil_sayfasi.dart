@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/dil_secici.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -420,6 +422,16 @@ class _MusteriProfilSayfasiState extends State<MusteriProfilSayfasi> {
           baslik: 'Şifre Değiştir',
           alt: 'Hesap güvenliğiniz için şifrenizi güncelleyin',
           onTap: () => _ac(MusteriProfilBilgileri(kullanici: md, mod: 'sifre'))),
+      if (Dil.acik)
+        MPSatir(
+            ikon: Icons.language_rounded,
+            baslik: Dil.kod == 'tr' ? 'Dil / Language' : '${Dil.cevir('Dil')} / Language',
+            alt: 'Uygulama ve mesajlarınızın dili',
+            rozet: Dil.secili == null ? null : '${Dil.secili!.bayrak} ${Dil.secili!.ad}',
+            onTap: () async {
+              await dilSeciciAc(context, renk: MusteriPalet.of(context).ana);
+              if (mounted) setState(() {});
+            }),
       MPSatir(
           ikon: Icons.devices_rounded,
           baslik: 'Cihazlarım',

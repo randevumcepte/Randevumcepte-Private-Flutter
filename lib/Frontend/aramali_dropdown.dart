@@ -7,6 +7,7 @@ export 'package:dropdown_button2/dropdown_button2.dart'
         MenuItemStyleData,
         DropdownSearchData;
 import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
 
 /// Uygulama genelinde kullanilan ortak "aranabilir" dropdown bilesenleri.
 ///
@@ -73,7 +74,7 @@ Widget _aramaKutusu(BuildContext context, TextEditingController controller) {
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        hintText: 'Ara...',
+        hintText: Dil.cevir('Ara...'),
         hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
         prefixIcon: const Icon(Icons.search, size: 20),
         suffixIcon: ValueListenableBuilder<TextEditingValue>(

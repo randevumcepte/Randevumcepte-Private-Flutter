@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 /// Kazanılan kupon/ödülün hangi şube(ler)de geçerli olduğunu gösteren satır.
 /// Backend response alanları: gecerli_coklu (bool), gecerli_tumu (bool),

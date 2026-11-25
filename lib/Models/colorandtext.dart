@@ -1,7 +1,7 @@
 ﻿import 'dart:developer';
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 class ColorAndText {
   final Color color;

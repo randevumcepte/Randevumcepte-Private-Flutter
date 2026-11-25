@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 /// Modern, full-screen "internet bağlantınız yok" ekrani.
 ///

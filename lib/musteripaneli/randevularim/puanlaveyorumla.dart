@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 void main() {

@@ -1,7 +1,7 @@
 // Danisan (musteri) grup dersi ONLINE REZERVASYON ekrani.
 // Ust kisimda 1 aylik yatay tarih secici (randevu alma gibi); secilen gunun
 // rezervasyona uygun derslerini altta listeler. Rezervasyon hak/paket ZORUNLU DEGIL.
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 
 const Color _mor = Color(0xFF5C008E);

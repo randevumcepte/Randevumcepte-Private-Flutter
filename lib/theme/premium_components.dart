@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 /// Premium dashboard tasarımında kullanılan paylaşılan bileşenler.
 /// Diğer ekranları aynı dile getirirken bu yapı taşları kullanılır.

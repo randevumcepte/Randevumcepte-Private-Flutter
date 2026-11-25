@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
@@ -812,10 +813,26 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
         padding: EdgeInsets.symmetric(horizontal: _x(40)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(_x(50)),
-          child: ColorFiltered(
-            colorFilter: _p.gorselFiltre,
-            child: Image.asset('images/ikram_m_bant.png', width: _x(863), height: _x(100), fit: BoxFit.fill),
-          ),
+          // Görselin yazısı Türkçe; yabancı dilde aynı bant yazıyla
+          child: Dil.kod != 'tr'
+              ? Container(
+                  width: _x(863),
+                  color: _mor.withValues(alpha: 0.14),
+                  padding: EdgeInsets.symmetric(horizontal: _x(40), vertical: _x(22)),
+                  child: Row(children: [
+                    Icon(Icons.campaign_rounded, color: _mor, size: _x(52)),
+                    SizedBox(width: _x(26)),
+                    Expanded(
+                      child: Text("Kampanya'dan yararlanarak hem güzelliğinize hem bakımınıza değer katın!",
+                          style: TextStyle(fontSize: _x(25), fontWeight: FontWeight.w600, height: 1.25, color: _p.baslik)),
+                    ),
+                    Icon(Icons.favorite_border_rounded, color: _mor, size: _x(44)),
+                  ]),
+                )
+              : ColorFiltered(
+                  colorFilter: _p.gorselFiltre,
+                  child: Image.asset('images/ikram_m_bant.png', width: _x(863), height: _x(100), fit: BoxFit.fill),
+                ),
         ),
       );
 

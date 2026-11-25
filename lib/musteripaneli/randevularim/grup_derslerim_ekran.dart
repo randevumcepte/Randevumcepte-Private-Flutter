@@ -1,6 +1,6 @@
 // Danisan (musteri) grup derslerim ekrani — dahil oldugu dersleri gorur, gecmis
 // derslerde kendisi "Geldim" isaretleyebilir (paketten dusum tetiklenir).
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/musteripaneli/randevularim/grup_dersi_rezervasyon_ekran.dart';
 

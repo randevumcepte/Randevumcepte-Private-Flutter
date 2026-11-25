@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:crop_your_image/crop_your_image.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
+import 'package:randevu_sistem/dil/material.dart';
 
 class CropScreen extends StatefulWidget {
   final File imageFile;

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/Models/seanstakibi.dart';
 import 'package:randevu_sistem/yonetici/dashboard/paket_satis_hizmetleri.dart';

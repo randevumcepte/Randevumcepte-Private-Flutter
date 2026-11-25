@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:randevu_sistem/marka.dart';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -33,6 +34,7 @@ void main() async {
   // 1) SharedPreferences MUST come first
   prefs = await SharedPreferences.getInstance();
   await Marka.yukle();
+  await Dil.yukle();
 
   // 2) Firebase init
   await Firebase.initializeApp();
@@ -116,7 +118,9 @@ class MyApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           final platformBrightness =
               MediaQuery.platformBrightnessOf(context);
-          return MaterialApp(
+          return ValueListenableBuilder<String>(
+            valueListenable: Dil.degisim,
+            builder: (context, dilKodu, _) => MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: AppTheme.fromConfig(
               themeProvider.config,
@@ -129,15 +133,15 @@ class MyApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            supportedLocales: const [Locale('tr')],
-            locale: const Locale('tr'),
+            supportedLocales: const [Locale('tr'), Locale('en'), Locale('ru'), Locale('de')],
+            locale: Locale(dilKodu),
             builder: (context, child) {
               return ConnectivityWatcher(
                 child: child ?? const SizedBox.shrink(),
               );
             },
             home: cagriAcilisi ? const _CagriAcilis() : MyHomePage(),
-          );
+          ));
         },
       ),
     );
@@ -181,6 +185,12 @@ class _MyHomePageState extends State<MyHomePage> {
       if (mounted) setState(() => _offline = true);
       return;
     }
+
+    // Müşteri dili: bu markada açık mı, güncel sözlük (açılışı bekletmez)
+    appBundleAl().then((b) {
+      Dil.bundleAta(b);
+      Dil.sunucudanAl(b);
+    }).catchError((_) {});
 
     print("3️⃣ checkVersion çağrılıyor...");
     await checkVersion(context);
