@@ -14,7 +14,9 @@ import 'package:randevu_sistem/yonetici/diger/menu/ikram/kampanya_ayarlari.dart'
 class IkramHizmetlerimPage extends StatefulWidget {
   final MusteriDanisan md;
   final String? salonId;
-  const IkramHizmetlerimPage({Key? key, required this.md, this.salonId}) : super(key: key);
+  /// Açılışta seçili gelecek kampanya (yoksa ilk kampanya)
+  final int? kuralId;
+  const IkramHizmetlerimPage({Key? key, required this.md, this.salonId, this.kuralId}) : super(key: key);
 
   @override
   State<IkramHizmetlerimPage> createState() => _IkramHizmetlerimPageState();
@@ -31,6 +33,7 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
   List<Map<String, dynamic>> _kartlar = [];
   int _secili = 0;
   bool _detayAcik = true;
+  bool _ilkYukleme = true;
 
   @override
   void initState() {
@@ -46,7 +49,11 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
       _yukleniyor = false;
       if (r != null && r['basarili'] == true) {
         _kartlar = ((r['kartlar'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-        if (_secili >= _kartlar.length) _secili = 0;
+        if (_ilkYukleme && widget.kuralId != null) {
+          _secili = _kartlar.indexWhere((k) => _n(k, 'kural_id') == widget.kuralId);
+        }
+        _ilkYukleme = false;
+        if (_secili < 0 || _secili >= _kartlar.length) _secili = 0;
       }
     });
   }
