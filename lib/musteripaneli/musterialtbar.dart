@@ -37,7 +37,8 @@ import 'menu/indirimler.dart';
 import 'menu/musterimenu.dart';
 import 'menu/siparislerim.dart';
 import 'musteri_alt_menu.dart';
-import 'package:randevu_sistem/randevualma/randevual.dart';
+import 'musteri_hizli_islem.dart';
+import 'marka_subeleri.dart';
 
 
 
@@ -276,7 +277,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
 
         bottomNavigationBar: _isKeyboardVisible
             ? const SizedBox.shrink()
-            : MusteriAltMenu(saydam: _selectedTab == 0, onOrta: _ortaDugme, ortaYazi: _randevuAcik ? 'Randevu Al' : 'Kampanyalarım', ogeler: [
+            : MusteriAltMenu(saydam: _selectedTab == 0, onOrta: _ortaDugme, ogeler: [
                 MusteriAltMenuOge(
                     ikon: Icons.home_outlined,
                     seciliIkon: Icons.home_rounded,
@@ -316,24 +317,19 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
   }
 
   bool get _randevuAcik {
-    final subeler = widget.musteriId.musteri_olunan_salonlar;
-    return (subeler != null && subeler.isNotEmpty)
+    final subeler = markaSubeleri(widget.musteriId, widget.isletmebilgi);
+    return subeler.isNotEmpty
         ? bundleOnlineRandevuAktifMi(subeler)
         : musteriOnlineRandevuAktifMi(widget.isletmebilgi);
   }
 
-  /// Ortadaki nilüfer: online randevu açıksa Randevu Al, değilse Kampanyalarım
-  void _ortaDugme() {
-    final acik = _randevuAcik;
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => acik
-          ? RandevuAl()
-          : IkramHizmetlerimPage(
-              md: widget.musteriId,
-              salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id']?.toString() : null,
-            ),
-    ));
-  }
+  /// Ortadaki +: alttan Hızlı İşlemler açılır
+  void _ortaDugme() => musteriHizliIslemAc(
+        context,
+        md: widget.musteriId,
+        isletmebilgi: widget.isletmebilgi,
+        randevuAcik: _randevuAcik,
+      );
 
   Future<void> _rozetTazele() async {
     try {

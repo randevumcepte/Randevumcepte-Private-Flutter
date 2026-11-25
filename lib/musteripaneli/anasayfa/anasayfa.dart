@@ -35,6 +35,7 @@ import 'package:randevu_sistem/theme/app_tokens.dart';
 
 import 'package:randevu_sistem/Models/randevular.dart';
 import 'package:randevu_sistem/musteripaneli/musteri_alt_menu.dart';
+import 'package:randevu_sistem/musteripaneli/marka_subeleri.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/donen_cark.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/marka_isik_efekti.dart';
 import 'package:randevu_sistem/theme/musteri_palet.dart';
@@ -98,8 +99,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   // "Hemen Randevu Al": markanın (app_bundle) şubelerinden en az biri online
   // randevuya açıksa göster. Şube listesi boşsa mevcut tek-şube davranışını koru.
   bool get _onlineRandevuAktif {
-    final subeler = widget.md.musteri_olunan_salonlar;
-    if (subeler != null && subeler.isNotEmpty) {
+    final subeler = markaSubeleri(widget.md, widget.isletmebilgi);
+    if (subeler.isNotEmpty) {
       return bundleOnlineRandevuAktifMi(subeler);
     }
     return musteriOnlineRandevuAktifMi(widget.isletmebilgi);
@@ -1114,14 +1115,11 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
 
   /// MusteriDanisan.musteri_olunan_salonlar listesinden {salon_id, salon_adi,
   /// telefon, whatsapp} nested map'lerini normalize et. mevcut isletmebilgi
-  /// disinda da tum brand subeleri buradan gelir (login akisinda backend
-  /// zaten brand app_bundle'a gore filtreliyor).
+  /// disinda da tum brand subeleri buradan gelir; baska isletmeler markaSubeleri'nde elenir.
   List<Map<String, dynamic>> _brandSubeleri() {
-    final list = widget.md.musteri_olunan_salonlar;
-    if (list == null || list.isEmpty) return [];
+    final list = markaSubeleri(widget.md, widget.isletmebilgi);
     final out = <Map<String, dynamic>>[];
     for (final e in list) {
-      if (e is! Map) continue;
       final salon = e['salonlar'];
       if (salon is! Map) continue;
       final salonId = e['salon_id']?.toString() ?? salon['id']?.toString() ?? '';

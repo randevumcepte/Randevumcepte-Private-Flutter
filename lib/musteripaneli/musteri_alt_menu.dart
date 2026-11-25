@@ -25,12 +25,11 @@ class MusteriAltMenuOge {
   });
 }
 
-/// Müşteri alt menüsü (tasarım 852 px genişlik): hap, ortada nilüferli daire, kenarlarda orkide.
+/// Müşteri alt menüsü (tasarım 852 px genişlik): hap, ortada + düğmeli daire, kenarlarda orkide.
 /// Renkler salonun Görünüm temasından gelir (MusteriPalet). Tam 4 öge alır.
 class MusteriAltMenu extends StatelessWidget {
   final List<MusteriAltMenuOge> ogeler;
   final VoidCallback onOrta;
-  final String ortaYazi;
 
   /// Ana sayfada içerik menünün arkasından geçer; diğer sekmelerde zemin dolu kalır
   final bool saydam;
@@ -38,7 +37,6 @@ class MusteriAltMenu extends StatelessWidget {
     super.key,
     required this.ogeler,
     required this.onOrta,
-    required this.ortaYazi,
     this.saydam = false,
   });
 
@@ -102,7 +100,7 @@ class MusteriAltMenu extends StatelessWidget {
             height: x(140),
             child: Semantics(
               button: true,
-              label: ortaYazi,
+              label: 'Hızlı İşlemler',
               child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onOrta),
             ),
           ),
@@ -154,7 +152,7 @@ class MusteriAltMenu extends StatelessWidget {
   }
 }
 
-/// Hap + orta kabartı + ışıklı daire + nilüfer (852x184 tasarım koordinatı)
+/// Hap + orta kabartı + ışıklı daire + artı (852x184 tasarım koordinatı)
 class _HapBoyaci extends CustomPainter {
   final MusteriPalet p;
   _HapBoyaci(this.p);
@@ -244,35 +242,13 @@ class _HapBoyaci extends CustomPainter {
             colors: [Colors.white.withValues(alpha: 0.35), Colors.white.withValues(alpha: 0.75)],
           ).createShader(daire));
 
-    // Nilüfer
-    canvas.translate(m.dx - 45, m.dy - 33);
+    // Artı
     final kalem = Paint()
       ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    canvas.drawPath(
-        Path()
-          ..moveTo(45, 8)
-          ..cubicTo(28, 24, 27, 44, 45, 56)
-          ..cubicTo(63, 44, 62, 24, 45, 8),
-        kalem);
-    for (final yon in const [1.0, -1.0]) {
-      double a(double v) => 45 + yon * v;
-      canvas.drawPath(
-          Path()
-            ..moveTo(a(-13), 27)
-            ..cubicTo(a(-17), 22, a(-21), 20, a(-25.5), 19)
-            ..cubicTo(a(-26.5), 27, a(-25.5), 33, a(-23), 38),
-          kalem);
-      canvas.drawPath(
-          Path()
-            ..moveTo(a(-2), 56)
-            ..cubicTo(a(-8), 43, a(-21), 36, a(-37.5), 37)
-            ..cubicTo(a(-32), 50, a(-20), 58, a(-2), 56),
-          kalem);
-    }
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(m - const Offset(23, 0), m + const Offset(23, 0), kalem);
+    canvas.drawLine(m - const Offset(0, 23), m + const Offset(0, 23), kalem);
     canvas.restore();
   }
 

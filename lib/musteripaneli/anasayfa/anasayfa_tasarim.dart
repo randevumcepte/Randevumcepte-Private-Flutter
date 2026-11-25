@@ -33,6 +33,8 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
     return _ikramKartlari.where((k) {
       if (_kn(k, 'hak') > 0) return true;
       if (_kn(k, 'aktif') != 1) return false;
+      final bas = DateTime.tryParse((k['kampanya_baslangic'] ?? '').toString());
+      if (bas != null && bas.isAfter(bugun)) return false;
       final bit = DateTime.tryParse((k['kampanya_bitis'] ?? '').toString());
       return bit == null || !bit.isBefore(bugun);
     }).toList();
