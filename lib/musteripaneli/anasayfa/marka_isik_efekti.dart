@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:randevu_sistem/musteripaneli/anasayfa/yavas_dongu.dart';
 import 'package:randevu_sistem/marka.dart';
 import 'package:randevu_sistem/theme/musteri_palet.dart';
 
@@ -17,25 +18,9 @@ class MarkaIsikEfekti extends StatefulWidget {
   State<MarkaIsikEfekti> createState() => _MarkaIsikEfektiState();
 }
 
-class _MarkaIsikEfektiState extends State<MarkaIsikEfekti> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 18));
-
+class _MarkaIsikEfektiState extends State<MarkaIsikEfekti> with YavasDongu {
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Sistemde animasyonlar kapalıysa sabit kalır
-    if (MediaQuery.of(context).disableAnimations) {
-      _c.stop();
-    } else if (!_c.isAnimating) {
-      _c.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
+  Duration get donguSuresi => const Duration(seconds: 18);
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +28,7 @@ class _MarkaIsikEfektiState extends State<MarkaIsikEfekti> with SingleTickerProv
     final r = widget.yaricap;
     return RepaintBoundary(
       child: Stack(children: [
-        Positioned.fill(child: CustomPaint(painter: _IsikBoyaci(_c, p, widget.merkez, r))),
+        Positioned.fill(child: CustomPaint(painter: _IsikBoyaci(dongu, p, widget.merkez, r))),
         Positioned(
           left: widget.merkez.dx - r * 0.62,
           top: widget.merkez.dy - r * 0.62,
@@ -65,7 +50,7 @@ class _MarkaIsikEfektiState extends State<MarkaIsikEfekti> with SingleTickerProv
 }
 
 class _IsikBoyaci extends CustomPainter {
-  final Animation<double> t;
+  final ValueNotifier<double> t;
   final MusteriPalet p;
   final Offset m;
   final double r;

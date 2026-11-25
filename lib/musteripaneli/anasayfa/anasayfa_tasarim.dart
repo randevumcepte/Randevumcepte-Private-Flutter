@@ -387,8 +387,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                   top: _x(30),
                   width: _x(240),
                   height: _x(250),
-                  child: ColorFiltered(
-                      colorFilter: _p.gorselFiltre, child: Image.asset('images/musteri_cark3d.png', fit: BoxFit.contain)),
+                  child: DonenCark(filtre: _p.gorselFiltre),
                 ),
                 Positioned(
                   right: _x(24),
