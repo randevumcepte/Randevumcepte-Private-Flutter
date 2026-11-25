@@ -125,25 +125,6 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
           h: 84,
         ),
         yer(
-          160,
-          66,
-          Align(
-            alignment: Alignment.center,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.spa_outlined, color: _p.ana, size: _x(58)),
-                SizedBox(width: _x(12)),
-                Text(_resolveSalonAdi(),
-                    maxLines: 1,
-                    style: _dYazi(fontSize: _x(36), fontWeight: FontWeight.w700, color: _p.ana, letterSpacing: -0.3)),
-              ]),
-            ),
-          ),
-          w: 430,
-          h: 66,
-        ),
-        yer(
           738,
           78,
           Semantics(

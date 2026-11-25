@@ -94,11 +94,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   final PageController _kampanyaPc = PageController();
   int _kampanyaSayfa = 0;
 
-  // Çoklu şubeli markada üst başlıkta salon adı yerine gösterilecek marka başlığı.
-  String? _bundleBaslik;
-  bool get _cokluSube =>
-      (widget.md.musteri_olunan_salonlar?.length ?? 0) > 1;
-
   // "Hemen Randevu Al": markanın (app_bundle) şubelerinden en az biri online
   // randevuya açıksa göster. Şube listesi boşsa mevcut tek-şube davranışını koru.
   bool get _onlineRandevuAktif {
@@ -141,7 +136,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     _kampanyalariYukle();
     _ikramYukle();
     _yaklasanYukle();
-    _bundleBasligiYukle();
     // İşletmenin Görünüm ayarında seçtiği renk müşteri uygulamasına da uygulanır
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _salonId.isNotEmpty) context.read<ThemeProvider>().bindSalon(_salonId);
@@ -198,17 +192,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     } catch (_) {
       // kampanya yuklenemezse ana sayfa normal calismaya devam eder
     }
-  }
-
-  /// Çoklu şubeli markada üst başlıkta gösterilecek marka başlığını çeker.
-  Future<void> _bundleBasligiYukle() async {
-    if (!_cokluSube) return;
-    try {
-      final ayar = await salonAyarlariByBundle(await appBundleAl());
-      final b = ayar['bundle_baslik']?.toString().trim() ?? '';
-      if (!mounted || b.isEmpty) return;
-      setState(() => _bundleBaslik = b);
-    } catch (_) {}
   }
 
   /// Uygulama-içi bildirim reklamlarını çeker (hata olursa sessizce geçer).
@@ -422,49 +405,6 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
         SnackBar(content: Text('Bir hata oluştu: ${e.toString()}')),
       );
     }
-  }
-
-  String _resolveSalonAdi() {
-    // Çoklu şubeli markada üst başlık = marka başlığı (varsa).
-    if (_cokluSube && (_bundleBaslik?.trim().isNotEmpty ?? false)) {
-      return _bundleBaslik!.trim();
-    }
-    final b = widget.isletmebilgi;
-    if (b == null) return 'Salon';
-
-    if (b is Map) {
-      for (final k in const [
-        'salon_adi',
-        'isletme_adi',
-        'salonadi',
-        'isletmeadi',
-        'adi',
-        'name',
-      ]) {
-        final v = b[k];
-        if (v != null && v.toString().trim().isNotEmpty) {
-          return v.toString();
-        }
-      }
-      return 'Salon';
-    }
-
-    try {
-      final candidates = [
-        b.salon_adi,
-        b.isletme_adi,
-        b.isletmeadi,
-        b.salonadi,
-        b.adi,
-        b.name,
-      ];
-      for (final c in candidates) {
-        if (c != null && c.toString().trim().isNotEmpty) {
-          return c.toString();
-        }
-      }
-    } catch (_) {}
-    return 'Salon';
   }
 
   @override
