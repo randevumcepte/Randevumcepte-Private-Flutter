@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
-import 'package:provider/provider.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/carkifelek.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
-import 'package:randevu_sistem/services/notification_service.dart';
-import 'package:randevu_sistem/musteripaneli/anasayfa/musteriprofilbilgileri.dart';
+import 'package:randevu_sistem/musteripaneli/profil/musteri_profil_sayfasi.dart';
 import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
 import 'package:randevu_sistem/musteripaneli/menu/siparislerim.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:randevu_sistem/Backend/yetki.dart';
-import 'package:randevu_sistem/Frontend/indexedstack.dart';
-import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import '../anasayfa/raporlar/seanslar.dart';
 import 'musteriresimleri.dart';
@@ -46,78 +40,6 @@ class _MenuPageState extends State<MenuPage> {
   Color get _textColor => Theme.of(context).colorScheme.onSurface;
   Color get _borderColor =>
       Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10);
-
-  void _logout(BuildContext context) async {
-    try {
-      bool? confirmLogout = await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            'Çıkış Yap',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: _textColor,
-            ),
-          ),
-          content: const Text('Çıkış yapmak istediğinize emin misiniz?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'Hayır',
-                style: TextStyle(color: _primaryColor),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(
-                backgroundColor: _primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Evet',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmLogout == true) {
-        try { await NotificationService.instance.unregister(); } catch (_) {}
-        Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(0);
-        Provider.of<IndexedStackState>(context, listen: false).resetSelectedIndex();
-
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.remove('musteri');
-        await prefs.remove('user_type');
-        await prefs.remove('token');
-        await Yetki.temizle();
-
-        Navigator.pushAndRemoveUntil(
-          context,
-          PageTransition(
-            type: PageTransitionType.fade,
-            duration: const Duration(milliseconds: 300),
-            child: OnBoardingPage(),
-          ),
-          (Route<dynamic> route) => false,
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Bir hata oluştu: ${e.toString()}'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
-  }
 
   Widget _buildMenuButton({
     required IconData icon,
@@ -414,14 +336,17 @@ class _MenuPageState extends State<MenuPage> {
                   _buildSectionTitle('HESABIM'),
                   _buildMenuButton(
                     icon: Icons.person_pin_rounded,
-                    label: 'Profil Bilgilerim',
+                    label: 'Profilim',
                     onTap: () {
                       Navigator.push(
                         context,
                         PageTransition(
                           type: PageTransitionType.rightToLeft,
                           duration: const Duration(milliseconds: 300),
-                          child: MusteriProfilBilgileri(kullanici: widget.md),
+                          child: MusteriProfilSayfasi(
+                            md: widget.md,
+                            isletmebilgi: widget.isletmebilgi,
+                          ),
                         ),
                       );
                     },
@@ -429,7 +354,7 @@ class _MenuPageState extends State<MenuPage> {
                   _buildMenuButton(
                     icon: Icons.logout_rounded,
                     label: 'Çıkış Yap',
-                    onTap: () => _logout(context),
+                    onTap: () => musteriGuvenliCikis(context),
                   ),
 
                   const SizedBox(height: 40),

@@ -6,9 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Profil sayfası uçları: /api/v1/profil/* (Bearer + sube).
 class ProfilApi {
-  static const _base = 'https://app.randevumcepte.com.tr/api/v1/profil';
+  static const _kok = 'https://app.randevumcepte.com.tr/api/v1';
 
-  static Future<String?> _token() async {
+  /// '/' ile başlayan yol api köküne göredir (müşteri: /musteri-profil/...)
+  static String _url(String yol) => yol.startsWith('/') ? '$_kok$yol' : '$_kok/profil/$yol';
+
+  static Future<String?> token() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('token');
     if (raw == null || raw.isEmpty) return null;
@@ -32,9 +35,9 @@ class ProfilApi {
 
   static Future<Map<String, dynamic>> get(String yol, String sube, [Map<String, String> ek = const {}]) async {
     try {
-      final t = await _token();
+      final t = await token();
       if (t == null) return {'ok': 0, 'hata': 'Oturum bulunamadı.'};
-      final uri = Uri.parse('$_base/$yol').replace(queryParameters: {'sube': sube, ...ek});
+      final uri = Uri.parse(_url(yol)).replace(queryParameters: {'sube': sube, ...ek});
       final res = await http.get(uri, headers: {'Accept': 'application/json', 'Authorization': 'Bearer $t'})
           .timeout(const Duration(seconds: 25));
       return _cevap(res);
@@ -46,9 +49,9 @@ class ProfilApi {
 
   static Future<Map<String, dynamic>> post(String yol, String sube, Map<String, dynamic> govde) async {
     try {
-      final t = await _token();
+      final t = await token();
       if (t == null) return {'ok': 0, 'hata': 'Oturum bulunamadı.'};
-      final res = await http.post(Uri.parse('$_base/$yol?sube=$sube'),
+      final res = await http.post(Uri.parse('${_url(yol)}?sube=$sube'),
           headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer $t'},
           body: jsonEncode({...govde, 'sube': sube})).timeout(const Duration(seconds: 25));
       return _cevap(res);
@@ -61,9 +64,9 @@ class ProfilApi {
   static Future<Map<String, dynamic>> dosya(String yol, String sube, String alan, String dosyaYolu,
       [Map<String, String> ek = const {}]) async {
     try {
-      final t = await _token();
+      final t = await token();
       if (t == null) return {'ok': 0, 'hata': 'Oturum bulunamadı.'};
-      final req = http.MultipartRequest('POST', Uri.parse('$_base/$yol?sube=$sube'))
+      final req = http.MultipartRequest('POST', Uri.parse('${_url(yol)}?sube=$sube'))
         ..headers.addAll({'Accept': 'application/json', 'Authorization': 'Bearer $t'})
         ..fields.addAll({'sube': sube, ...ek})
         ..files.add(await http.MultipartFile.fromPath(alan, dosyaYolu));

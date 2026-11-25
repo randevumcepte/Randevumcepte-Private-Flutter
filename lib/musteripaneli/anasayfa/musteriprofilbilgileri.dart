@@ -1,26 +1,26 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:randevu_sistem/Frontend/cropimage.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
-import 'package:randevu_sistem/musteripaneli/anasayfa/hesapkaldirma.dart';
+import 'package:randevu_sistem/musteripaneli/profil/musteri_profil_tema.dart';
+import 'package:randevu_sistem/theme/musteri_palet.dart';
 
 class MusteriProfilBilgileri extends StatefulWidget {
   final MusteriDanisan kullanici;
   final VoidCallback? onProfileUpdated;
 
+  /// 'bilgi' (Bilgilerimi Düzenle) | 'sifre' (Şifre Değiştir)
+  final String mod;
+
   const MusteriProfilBilgileri({
     super.key,
     required this.kullanici,
     this.onProfileUpdated,
+    this.mod = 'bilgi',
   });
 
   @override
@@ -42,12 +42,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
 
   String _selectedGender = '';
   bool _isObscure = true;
-  File? _profileImage;
-  String? _currentProfileImageUrl;
-  String _currentName = '';
-  bool _isLoading = false;
   bool _isSaving = false;
-  int _imageVersion = 0;
 
   String _formatPhone(String? raw) {
     if (raw == null || raw == 'null' || raw.isEmpty) return '0';
@@ -72,9 +67,6 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
       text: widget.kullanici.meslek != 'null' ? widget.kullanici.meslek : '',
     );
     _sifre = TextEditingController();
-
-    _currentName = _adsoyad.text;
-    _currentProfileImageUrl = widget.kullanici.profil_resim;
 
     if (widget.kullanici.cinsiyet == '0') {
       _selectedGender = 'kadin';
@@ -101,15 +93,13 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
 
       if (!mounted) return;
       setState(() {
-        _currentProfileImageUrl = data['profil_resim'];
         _adsoyad.text = data['name'] ?? '';
         _email.text = data['email'] ?? '';
         _telefon.text = _formatPhone(data['cep_telefon']?.toString());
         _meslek.text = data['meslek'] ?? '';
-        _currentName = _adsoyad.text;
-        if (data['cinsiyet'] == '0') {
+        if (data['cinsiyet'].toString() == '0') {
           _selectedGender = 'kadin';
-        } else if (data['cinsiyet'] == '1') {
+        } else if (data['cinsiyet'].toString() == '1') {
           _selectedGender = 'erkek';
         }
       });
@@ -120,112 +110,17 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
 
   Future<void> _refreshUserData() async {
     await _loadCurrentUserData();
-    setState(() => _imageVersion++);
     widget.onProfileUpdated?.call();
-  }
-
-  Future<void> _pickAndCropImage() async {
-    final statuses = await [
-      Permission.camera,
-      Permission.photos,
-    ].request();
-
-    final granted = (statuses[Permission.photos]?.isGranted ?? false) ||
-        (statuses[Permission.camera]?.isGranted ?? false);
-    if (!granted) return;
-
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile == null) return;
-
-    if (!mounted) return;
-    final croppedFile = await Navigator.push<File>(
-      context,
-      MaterialPageRoute(
-          builder: (_) => CropScreen(imageFile: File(pickedFile.path))),
-    );
-
-    if (croppedFile != null) {
-      setState(() => _isLoading = true);
-      await _uploadImage(croppedFile);
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _uploadImage(File image) async {
-    try {
-      SharedPreferences localStorage = await SharedPreferences.getInstance();
-      var user = jsonDecode(localStorage.getString('musteri')!);
-
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(
-            'https://app.randevumcepte.com.tr//api/v1/musteriprofilresimyukle'),
-      );
-
-      request.fields['yetkili_id'] = user["id"].toString();
-      // GUVENLIK: self-update dogrulamasi icin token'i gonder (eski app'lerde bos gecer).
-      final rawToken = localStorage.getString('token');
-      if (rawToken != null && rawToken.isNotEmpty) {
-        String? token;
-        try {
-          final d = jsonDecode(rawToken);
-          token = d is String ? d : d?.toString();
-        } catch (_) {
-          token = rawToken;
-        }
-        if (token != null && token.isNotEmpty) {
-          request.headers['Authorization'] = 'Bearer $token';
-        }
-      }
-      request.files
-          .add(await http.MultipartFile.fromPath('folderPath', image.path));
-
-      var response = await request.send();
-
-      if (response.statusCode == 200) {
-        var responseData = await http.Response.fromStream(response);
-        var responseBody = jsonDecode(responseData.body);
-
-        String newProfileImageUrl = responseBody['profilresmi'] ?? '';
-        user['profil_resim'] = newProfileImageUrl;
-        await localStorage.setString('musteri', jsonEncode(user));
-
-        if (!mounted) return;
-        setState(() {
-          _profileImage = image;
-          _currentProfileImageUrl = newProfileImageUrl;
-          _imageVersion++;
-        });
-
-        widget.onProfileUpdated?.call();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil resmi başarıyla güncellendi!')),
-        );
-      } else {
-        var responseData = await http.Response.fromStream(response);
-        debugPrint(
-            'Upload error: ${response.statusCode}, Body: ${responseData.body}');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Profil resmi güncellenirken hata oluştu!')),
-        );
-      }
-    } catch (e) {
-      debugPrint('Exception: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Profil resmi güncellenirken bir istisna oluştu!')),
-      );
-    }
   }
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     _formKey.currentState!.save();
+    if (widget.mod == 'sifre' && _sifre.text.trim().length < 6) {
+      mpMesaj(context, 'Yeni şifre en az 6 karakter olmalı.', hata: true);
+      return;
+    }
+    FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
     await _submitForm(
       _adsoyad.text,
@@ -233,7 +128,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
       _meslek.text,
       _telefon.text.replaceAll(RegExp(r'\D'), ''),
       _sifre.text,
-      _selectedGender == 'kadin' ? '0' : '1',
+      _selectedGender.isEmpty ? '' : (_selectedGender == 'kadin' ? '0' : '1'),
     );
     if (!mounted) return;
     setState(() => _isSaving = false);
@@ -252,7 +147,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
         'meslek': meslek,
         'cep_telefon': cepTelefon,
         'password': password,
-        'cinsiyet': int.parse(cinsiyet),
+        if (cinsiyet.isNotEmpty) 'cinsiyet': int.parse(cinsiyet),
       };
 
       // GUVENLIK: backend self-update dogrulamasi icin Passport token'i gonder.
@@ -285,293 +180,35 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
         await _refreshUserData();
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Profil bilgileriniz başarıyla güncellendi!')),
-        );
+        mpMesaj(context, widget.mod == 'sifre' ? 'Şifreniz güncellendi.' : 'Bilgileriniz güncellendi.');
+        if (widget.mod == 'sifre') _sifre.clear();
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Güncelleme sırasında hata oluştu! Hata kodu: ${response.statusCode}')),
-        );
+        mpMesaj(context, 'Güncellenemedi (hata kodu: ${response.statusCode}).', hata: true);
         debugPrint('Error: ${response.body}');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bir hata oluştu: $e')),
-      );
+      mpMesaj(context, 'Bir hata oluştu: $e', hata: true);
     }
-  }
-
-  String _getProfileImageUrl() {
-    if (_currentProfileImageUrl == null || _currentProfileImageUrl!.isEmpty) {
-      return '';
-    }
-    String baseUrl =
-        'https://app.randevumcepte.com.tr/$_currentProfileImageUrl';
-    if (_imageVersion > 0) return '$baseUrl?v=$_imageVersion';
-    return '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-  }
-
-  ImageProvider? _getProfileImage() {
-    if (_profileImage != null) return FileImage(_profileImage!);
-    if (_currentProfileImageUrl != null &&
-        _currentProfileImageUrl!.isNotEmpty) {
-      return NetworkImage(_getProfileImageUrl());
-    }
-    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
+    final sifre = widget.mod == 'sifre';
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          systemOverlayStyle: SystemUiOverlayStyle.dark,
-          leading: IconButton(
-            icon: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: scheme.primary.withValues(alpha: 0.12),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(Icons.arrow_back_rounded,
-                  color: scheme.onSurface, size: 20),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            'Profil Bilgileri',
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
-            ),
-          ),
-          centerTitle: true,
-        ),
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: [
-                Color.alphaBlend(
-                    scheme.primary.withValues(alpha: 0.36), Colors.white),
-                Color.alphaBlend(
-                    scheme.tertiary.withValues(alpha: 0.08), Colors.white),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(color: scheme.primary))
-                : RefreshIndicator(
-                    color: scheme.primary,
-                    backgroundColor: Colors.white,
-                    strokeWidth: 3,
-                    onRefresh: () async {
-                      await _refreshUserData();
-                      await Future<void>.delayed(
-                          const Duration(milliseconds: 600));
-                    },
-                    child: Form(
-                      key: _formKey,
-                      child: ListView(
-                        physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics()),
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                        children: [
-                          _heroHeader(context),
-                          const SizedBox(height: 22),
-                          _sectionTitle(context, 'Kişisel Bilgiler',
-                              Icons.person_outline_rounded),
-                          const SizedBox(height: 10),
-                          _personalCard(context),
-                          const SizedBox(height: 18),
-                          _sectionTitle(context, 'Güvenlik',
-                              Icons.lock_outline_rounded),
-                          const SizedBox(height: 10),
-                          _securityCard(context),
-                          const SizedBox(height: 18),
-                          _dangerZone(context),
-                        ],
-                      ),
-                    ),
-                  ),
+      child: MPAltSayfa(
+        baslik: sifre ? 'Şifre Değiştir' : 'Bilgilerimi Düzenle',
+        altDugme: _saveBar(context),
+        govde: Form(
+          key: _formKey,
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+            children: [sifre ? _securityCard(context) : _personalCard(context)],
           ),
         ),
-        bottomNavigationBar: _saveBar(context),
-      ),
-    );
-  }
-
-  Widget _heroHeader(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final hasImage = _getProfileImage() != null;
-    return Center(
-      child: Column(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 116,
-                height: 116,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [scheme.primary, scheme.tertiary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 22,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(4),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                  ),
-                  padding: const EdgeInsets.all(3),
-                  child: CircleAvatar(
-                    backgroundColor: scheme.primary.withValues(alpha: 0.10),
-                    backgroundImage: _getProfileImage(),
-                    child: !hasImage
-                        ? Icon(Icons.person_rounded,
-                            size: 48, color: scheme.primary)
-                        : null,
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -2,
-                right: -2,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _pickAndCropImage,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: scheme.primary.withValues(alpha: 0.25),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Icon(Icons.camera_alt_rounded,
-                          color: scheme.primary, size: 18),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            _currentName.isEmpty || _currentName == 'null' ? '-' : _currentName,
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-            ),
-          ),
-          if (_meslek.text.isNotEmpty && _meslek.text != 'null') ...[
-            const SizedBox(height: 4),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                _meslek.text,
-                style: TextStyle(
-                  color: scheme.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.phone_rounded,
-                  size: 14,
-                  color: scheme.onSurface.withValues(alpha: 0.55)),
-              const SizedBox(width: 4),
-              Text(
-                _telefon.text.isNotEmpty
-                    ? _telefon.text
-                    : _formatPhone(widget.kullanici.cep_telefon),
-                style: TextStyle(
-                  color: scheme.onSurface.withValues(alpha: 0.65),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(BuildContext context, String title, IconData icon) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: scheme.primary),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -589,7 +226,6 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
               keyboardType: TextInputType.text,
               textCapitalization: TextCapitalization.words,
               decoration: _inputDecoration(hint: 'Ad ve soyad'),
-              onChanged: (v) => setState(() => _currentName = v),
               onSaved: (v) => _adsoyad.text = v ?? '',
             ),
           ),
@@ -699,7 +335,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
             decoration: BoxDecoration(
               gradient: selected
                   ? LinearGradient(
-                      colors: [scheme.primary, scheme.tertiary],
+                      colors: MusteriPalet.of(context).dugme,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
@@ -713,7 +349,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
                 Icon(icon,
                     size: 16,
                     color: selected
-                        ? scheme.onPrimary
+                        ? Colors.white
                         : scheme.onSurface.withValues(alpha: 0.6)),
                 const SizedBox(width: 6),
                 Text(
@@ -722,7 +358,7 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: selected
-                        ? scheme.onPrimary
+                        ? Colors.white
                         : scheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -748,24 +384,8 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
     );
   }
 
-  Widget _card(BuildContext context, {required Widget child}) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: child,
-    );
-  }
+  Widget _card(BuildContext context, {required Widget child}) =>
+      MPKart(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), child: child);
 
   Widget _labeledField({
     required String label,
@@ -846,142 +466,26 @@ class _MusteriProfilBilgileriState extends State<MusteriProfilBilgileri> {
     );
   }
 
-  Widget _dangerZone(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    const danger = Color(0xFFEF4444);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  HesapKaldirma(kullanici: widget.kullanici),
-            ),
-          );
-        },
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: danger.withValues(alpha: 0.18)),
-            boxShadow: [
-              BoxShadow(
-                color: danger.withValues(alpha: 0.06),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: danger.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.delete_outline_rounded,
-                    color: danger, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hesabımı Sil',
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Hesabınızı kalıcı olarak kaldırın',
-                      style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.55),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded,
-                  color: scheme.onSurface.withValues(alpha: 0.4)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _saveBar(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: _isSaving ? null : _submit,
-            child: Container(
-              height: 54,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [scheme.primary, scheme.tertiary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: scheme.primary.withValues(alpha: 0.30),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: _isSaving
-                    ? SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          color: scheme.onPrimary,
-                          strokeWidth: 2.4,
-                        ),
-                      )
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check_circle_outline_rounded,
-                              color: scheme.onPrimary, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Bilgileri Güncelle',
-                            style: TextStyle(
-                              color: scheme.onPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-          ),
+    final p = MusteriPalet.of(context);
+    return GestureDetector(
+      onTap: _isSaving ? null : _submit,
+      child: Container(
+        height: 54,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: p.dugme, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: p.dugmeAna.withValues(alpha: 0.30), blurRadius: 18, offset: const Offset(0, 8))],
         ),
+        child: _isSaving
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4))
+            : Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(widget.mod == 'sifre' ? 'Şifreyi Güncelle' : 'Bilgileri Güncelle',
+                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.2)),
+              ]),
       ),
     );
   }

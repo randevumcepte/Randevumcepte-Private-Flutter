@@ -133,8 +133,8 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
             button: true,
             label: 'Profilim',
             child: GestureDetector(
-              onTap: () => _git(MusteriProfilBilgileri(kullanici: widget.md)),
-              child: _daire(Icons.person_outline_rounded),
+              onTap: () => _git(MusteriProfilSayfasi(md: widget.md, isletmebilgi: widget.isletmebilgi), sonra: _profilResimOku),
+              child: _daire(Icons.person_outline_rounded, resim: _profilResim),
             ),
           ),
         ),
@@ -166,16 +166,45 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
     );
   }
 
-  Widget _daire(IconData ikon) => Container(
-        width: _x(82),
-        height: _x(82),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _p.kart.withValues(alpha: 0.9),
-          boxShadow: [BoxShadow(color: _p.ana.withValues(alpha: 0.14), blurRadius: 14, offset: const Offset(0, 4))],
-        ),
-        child: Icon(ikon, color: _p.ana, size: _x(46)),
-      );
+  /// Resim verilir ve açılırsa simgenin yerine geçer
+  Widget _daire(IconData ikon, {String resim = ''}) {
+    final simge = Icon(ikon, color: _p.ana, size: _x(46));
+    return Container(
+      width: _x(82),
+      height: _x(82),
+      padding: EdgeInsets.all(resim.isEmpty ? 0 : _x(5)),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _p.kart.withValues(alpha: 0.9),
+        boxShadow: [BoxShadow(color: _p.ana.withValues(alpha: 0.14), blurRadius: 14, offset: const Offset(0, 4))],
+      ),
+      child: resim.isEmpty
+          ? simge
+          : ClipOval(
+              child: Image.network(
+                'https://app.randevumcepte.com.tr/${resim.replaceFirst(RegExp(r'^/+'), '')}',
+                fit: BoxFit.cover,
+                cacheWidth: 200,
+                errorBuilder: (_, __, ___) => Center(child: simge),
+              ),
+            ),
+    );
+  }
+
+  /// Profil resmi: cihazdaki müşteri kaydından (profilde değişince güncellenir), yoksa girişteki bilgiden
+  Future<void> _profilResimOku() async {
+    var resim = widget.md.profil_resim ?? '';
+    try {
+      final m = jsonDecode((await SharedPreferences.getInstance()).getString('musteri') ?? '{}');
+      if (m is Map && m['id'].toString() == widget.md.id.toString() && m.containsKey('profil_resim')) {
+        resim = (m['profil_resim'] ?? '').toString();
+      }
+    } catch (_) {
+      // kayıt okunamazsa girişteki bilgi kullanılır
+    }
+    resim = resim.trim() == 'null' ? '' : resim.trim();
+    if (mounted && resim != _profilResim) setState(() => _profilResim = resim);
+  }
 
   /// İkram bakiyesi kartı.
   /// Salonda ikram kampanyası yoksa sadakat puanı ve üyelik gösterilir.

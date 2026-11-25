@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -44,7 +45,7 @@ import 'package:randevu_sistem/yonetici/diger/menu/ikram/kampanya_ayarlari.dart'
 
 import '../randevularim/randevularim.dart';
 import 'musteribildirimleri/musteribildirimleri.dart';
-import 'musteriprofilbilgileri.dart';
+import 'package:randevu_sistem/musteripaneli/profil/musteri_profil_sayfasi.dart';
 
 part 'anasayfa_tasarim.dart';
 
@@ -89,6 +90,8 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
   // Salonda ikram kurali yoksa kart gizli.
   int _ikramHak = 0;
   List<Map<String, dynamic>> _ikramKartlari = [];
+
+  String _profilResim = '';
 
   // En yakın gelecek randevu (yaklaşan randevu kartı) + kampanya kaydırması
   Randevu? _yaklasan;
@@ -139,6 +142,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     _kampanyalariYukle();
     _ikramYukle();
     _yaklasanYukle();
+    _profilResimOku();
     // İşletmenin Görünüm ayarında seçtiği renk müşteri uygulamasına da uygulanır
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _salonId.isNotEmpty) context.read<ThemeProvider>().bindSalon(_salonId);
@@ -364,6 +368,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     _ikramYukle();
     _kampanyalariYukle();
     _yaklasanYukle();
+    _profilResimOku();
     await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 
