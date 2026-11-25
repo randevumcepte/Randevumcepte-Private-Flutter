@@ -389,7 +389,7 @@ TextEditingController ceptelefon = TextEditingController();
       'salonidler' : '236',
       'sms_username':'',
       'sms_secret':'',
-      'isletmeadi': 'Saloon Cadde',
+      'isletmeadi': Marka.ad,
       'appBundle': appBundle
       // Add other form fields
     };

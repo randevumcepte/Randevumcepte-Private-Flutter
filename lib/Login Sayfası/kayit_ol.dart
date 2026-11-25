@@ -470,7 +470,7 @@ class _KayitOlState extends State<KayitOl> {
         'salonidler' : '236',
         'sms_username':'',
         'sms_secret':'',
-        'isletmeadi': 'Saloon Cadde',
+        'isletmeadi': Marka.ad,
         'appBundle': appBundle,
         if (Dil.acik && Dil.soruldu) 'dil': Dil.kod,
       };
