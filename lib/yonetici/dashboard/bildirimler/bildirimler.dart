@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirim_silme.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
 import 'package:randevu_sistem/Frontend/filedownload.dart';
 import '../../diger/menu/randvular/randevularmenu.dart';
@@ -30,7 +31,7 @@ class BildirimlerScreen extends StatefulWidget {
   _BildirimlerScreenState createState() => _BildirimlerScreenState();
 }
 
-class _BildirimlerScreenState extends State<BildirimlerScreen> {
+class _BildirimlerScreenState extends State<BildirimlerScreen> with BildirimSilme {
   late Future<List<SistemBildirimleri>> _items;
   late String _salonId;
   String? _personelId;
@@ -38,6 +39,13 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
 
   // 0=Tümü, 1=Okunmamış
   int _filter = 0;
+
+  @override
+  String get silYolu => '/bildirimlerim/sil';
+  @override
+  String get silSube => _salonId;
+  @override
+  void silindi() => widget.onNotificationRead?.call();
 
   @override
   void initState() {
@@ -205,7 +213,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
             if (snapshot.hasError) {
               return _errorState(snapshot.error.toString());
             }
-            final all = snapshot.data ?? <SistemBildirimleri>[];
+            final all = kalanlar(snapshot.data ?? <SistemBildirimleri>[]);
             final unreadCount = all.where((b) => b.okundu != '1').length;
             final visible = _filter == 0
                 ? all
@@ -218,7 +226,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
-                    child: _headerBar(all.length, unreadCount),
+                    child: _headerBar(all, unreadCount),
                   ),
                   if (visible.isEmpty)
                     SliverFillRemaining(
@@ -230,7 +238,8 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, i) => _bildirimCard(visible[i]),
+                          (context, i) =>
+                              kaydirSil(visible[i], _bildirimCard(visible[i])),
                           childCount: visible.length,
                         ),
                       ),
@@ -244,7 +253,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
     );
   }
 
-  Widget _headerBar(int total, int unread) {
+  Widget _headerBar(List<SistemBildirimleri> all, int unread) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 16, 8),
@@ -258,7 +267,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                 child: Row(
                   children: [
                     Text(
-                      total.toString(),
+                      all.length.toString(),
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -354,6 +363,8 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                 badge: unread > 0 ? unread.toString() : null,
                 onTap: () => setState(() => _filter = 1),
               ),
+              const Spacer(),
+              if (all.isNotEmpty) topluSilDugme(all),
             ],
           ),
         ],
@@ -507,7 +518,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 2, 12),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -616,13 +627,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 12,
-                            color: const Color(0xFF1A1A1A)
-                                .withValues(alpha: 0.30),
-                          ),
+                          copDugme(b),
                         ],
                       ),
                     ),

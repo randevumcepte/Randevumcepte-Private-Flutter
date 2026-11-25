@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show appBundleAl;
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
+import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirim_silme.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
 
 import '../../menu/indirimler.dart';
@@ -35,7 +36,7 @@ class MusteriBildirimlerScreen extends StatefulWidget {
       _MusteriBildirimlerScreenState();
 }
 
-class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
+class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> with BildirimSilme {
   late Future<List<SistemBildirimleri>> _items;
   late String _salonId;
   late String _userId;
@@ -43,6 +44,13 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
 
   // 0=Tümü, 1=Okunmamış
   int _filter = 0;
+
+  @override
+  String get silYolu => '/musteri-profil/bildirim-sil';
+  @override
+  String get silSube => _salonId;
+  @override
+  void silindi() => widget.onNotificationRead?.call();
 
   @override
   void initState() {
@@ -219,7 +227,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
             if (snapshot.hasError) {
               return _errorState();
             }
-            final all = snapshot.data ?? <SistemBildirimleri>[];
+            final all = kalanlar(snapshot.data ?? <SistemBildirimleri>[]);
             final unreadCount = all.where((b) => b.okundu != '1').length;
             final visible = _filter == 0
                 ? all
@@ -232,7 +240,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
-                    child: _headerBar(all.length, unreadCount),
+                    child: _headerBar(all, unreadCount),
                   ),
                   if (visible.isEmpty)
                     SliverFillRemaining(
@@ -244,7 +252,8 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, i) => _bildirimCard(visible[i]),
+                          (context, i) =>
+                              kaydirSil(visible[i], _bildirimCard(visible[i])),
                           childCount: visible.length,
                         ),
                       ),
@@ -258,7 +267,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
     );
   }
 
-  Widget _headerBar(int total, int unread) {
+  Widget _headerBar(List<SistemBildirimleri> all, int unread) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 16, 8),
@@ -272,7 +281,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                 child: Row(
                   children: [
                     Text(
-                      total.toString(),
+                      all.length.toString(),
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -369,6 +378,8 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                 badge: unread > 0 ? unread.toString() : null,
                 onTap: () => setState(() => _filter = 1),
               ),
+              const Spacer(),
+              if (all.isNotEmpty) topluSilDugme(all),
             ],
           ),
         ],
@@ -567,7 +578,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 2, 12),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -675,13 +686,7 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 12,
-                            color: const Color(0xFF1A1A1A)
-                                .withValues(alpha: 0.30),
-                          ),
+                          copDugme(b),
                         ],
                       ),
                     ),
