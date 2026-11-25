@@ -1491,13 +1491,14 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   num _parseAmount(String raw) {
-    final cleaned = raw.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', '.');
+    var cleaned = raw.replaceAll(RegExp(r'[^0-9.,-]'), '');
+    // Sunucu '12.345,67' gonderir: noktalar binlik ayracidir
+    if (cleaned.contains(',')) cleaned = cleaned.replaceAll('.', '').replaceAll(',', '.');
     return num.tryParse(cleaned) ?? 0;
   }
 
   String _formatAmount(num v) {
-    if (v == v.roundToDouble()) return v.round().toString();
-    return v.toStringAsFixed(2);
+    return NumberFormat(v == v.roundToDouble() ? '#,##0' : '#,##0.00', 'tr_TR').format(v);
   }
 
   Widget _periodChips(BuildContext context) {
@@ -2231,13 +2232,16 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            '${_formatAmount(current)} ₺',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: scheme.onSurface,
-                              letterSpacing: -0.4,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '${_formatAmount(current)} ₺',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: scheme.onSurface,
+                                letterSpacing: -0.4,
+                              ),
                             ),
                           ),
                         ],
@@ -2263,13 +2267,16 @@ class _HomeState extends State<DashBoard> with WidgetsBindingObserver {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            '${_formatAmount(prev)} ₺',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onSurface.withValues(alpha: 0.65),
-                              letterSpacing: -0.4,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '${_formatAmount(prev)} ₺',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onSurface.withValues(alpha: 0.65),
+                                letterSpacing: -0.4,
+                              ),
                             ),
                           ),
                         ],
