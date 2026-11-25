@@ -2,7 +2,7 @@
 // Hero + Uyelik / Aldigim Hizmetler / Fatura Bilgileri / Faturalarim sekmeleri.
 // Satin alma/yukseltme YOK (Netflix modeli) — sadece bilgilendirme + fatura duzenleme.
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Frontend/lisans_uyari.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'hesabim_api.dart';

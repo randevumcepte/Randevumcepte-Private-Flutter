@@ -5,7 +5,8 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
@@ -109,6 +110,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
   @override
   void initState()  {
     super.initState();
+    Dil.oturumEsitle();
     // Lisans bittiyse panel yerine yalnizca Hesabim ekrani gosterilir;
     // bildirim yonlendirmeleri (bloklu ekranlara) ve token kaydi kurulmaz.
     final lisansBitti = lisansBittiMi(

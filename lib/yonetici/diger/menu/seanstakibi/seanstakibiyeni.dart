@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:printing/printing.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';

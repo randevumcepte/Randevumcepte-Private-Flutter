@@ -7,7 +7,7 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'hatirlatma_api.dart';

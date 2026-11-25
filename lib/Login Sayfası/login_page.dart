@@ -471,7 +471,7 @@ class _HomeState extends State<LoginPage> {
 
       localStorage.setString('musteri', json.encode(body['message']['musteri']));
       localStorage.setString('user_type', json.encode(body['message']['user_type']));
-      Dil.oturumDegisti(); // personel oturumu daima Türkçe
+      Dil.oturumDegisti(); // personel / müşteri kendi dili
 
       Map<String, dynamic> userMap  = body['message']['user_type'].toString() == '1'? json.decode(json.encode(body['message']['user'])) :json.decode(json.encode(body['message']['musteri'])) ;
 

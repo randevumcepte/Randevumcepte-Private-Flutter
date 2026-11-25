@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter/services.dart';
 
 /// Profil ekranları ortak tasarım: lavanta zemin, beyaz yuvarlak kartlar, mor dolgu ikonlar.

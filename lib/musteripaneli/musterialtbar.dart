@@ -105,7 +105,7 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    Dil.musteriEsitle();
+    Dil.oturumEsitle();
     NotificationNavigationBus.current.addListener(_handleNotificationIntent);
     // Cold-start: bus'ta onceden konmus intent varsa altbar mount olduktan
     // sonra tuket.

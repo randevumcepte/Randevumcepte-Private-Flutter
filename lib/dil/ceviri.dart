@@ -103,6 +103,7 @@ class Ceviri {
   static String? _tam(String s) {
     final v = _s[s] ?? _s[_bosluk(s)];
     if (v != null) return v;
+    if (s.trim().length < 3) return null; // "AD" baş harfleri "Ad" sanılmasın
     final k = _kucuk[_kucult(_bosluk(s))];
     if (k == null) return null;
     final hepBuyuk = s.length > 2 && s == s.toUpperCase() && s != s.toLowerCase();
@@ -122,7 +123,7 @@ class Ceviri {
       return k.ceviri.replaceAllMapped(RegExp(r'\{(\d?)#?\}'), (x) {
         final no = x.group(1)!.isEmpty ? ++sira : int.parse(x.group(1)!);
         final parca = (no <= m.groupCount ? m.group(no) : null) ?? '';
-        if (!_harf(parca)) return parca;
+        if (!_harf(parca) || _aylar.contains(parca.trim())) return parca; // "Sayın Eylül" kişi adı
         return _bul(parca.trim(), derin + 1) ?? parca;
       });
     }

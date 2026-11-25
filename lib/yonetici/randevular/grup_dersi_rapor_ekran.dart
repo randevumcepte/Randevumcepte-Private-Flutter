@@ -1,5 +1,5 @@
 // Grup dersi raporu (isletme) — ozet + egitmen/ders bazli. /api/v1/grup-dersi-rapor.
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 
 const Color _mor = Color(0xFF5C008E);

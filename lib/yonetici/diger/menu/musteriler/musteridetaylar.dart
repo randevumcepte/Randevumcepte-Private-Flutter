@@ -1,6 +1,7 @@
+import 'package:randevu_sistem/dil/dil.dart';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -701,7 +702,7 @@ class _MusteriDetaylariState extends State<MusteriDetaylari>
 			actions.add(Expanded(
 				child: _actionBtn(
 					Icons.call,
-					'Ara',
+					Dil.kod == 'tr' ? 'Ara' : 'Hemen Ara',
 					const Color(0xFF43A047),
 					enabled: hasTel,
 					onTap: hasTel ? _onCallPressed : null,

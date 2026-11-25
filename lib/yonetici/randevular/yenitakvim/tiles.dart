@@ -1,5 +1,5 @@
 import '../yenitakvim.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:kalender/kalender.dart';
 
 TileComponents<Event> get tileComponents {

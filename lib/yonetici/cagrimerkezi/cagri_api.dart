@@ -5,6 +5,7 @@
 // Tum istekler 'sube' (salon_id) gonderir: backend mevcutsube($request) once
 // $request->sube okur, boylece api guard'inda session'a ihtiyac duymaz.
 
+import 'package:randevu_sistem/dil/dil.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -256,7 +257,7 @@ class CagriApi {
 
   /// Arama butonu etiketi: Bria modunda belirtilir, digerlerinde sade 'Ara'.
   static String get araEtiketi =>
-      aramaModu == AramaModu.bria && !_dakikaEngelVar ? 'Ara (Bria)' : 'Ara';
+      aramaModu == AramaModu.bria && !_dakikaEngelVar ? 'Ara (Bria)' : (Dil.kod == 'tr' ? 'Ara' : 'Hemen Ara');
 
   // ---------------------------------------------------------------------------
   // Uygulama geneli "Ara" kapisi (musteri listesi/detay, takvim, adisyon, ...).

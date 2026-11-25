@@ -6,7 +6,7 @@
 // - user_id verilirse numara sunucudan alinir (maskeli personel de arayabilir,
 //   numara cihaza/ekrana gelmez). Yoksa ham telefon kullanilir.
 // - Softphone acik+kayitliysa uygulama icinden, degilse Bria dahilisi calar.
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 import '../cagri_api.dart';

@@ -18,8 +18,8 @@ class DilSecenek {
   const DilSecenek(this.kod, this.ad, this.bayrak);
 }
 
-/// Müşteri uygulamasının dili. Salon için açık değilse (sunucu /dil/ayar) ya da personel
-/// oturumundaysa daima Türkçe; ekran metinleri lib/dil/material.dart üzerinden çevrilir.
+/// Uygulama dili (müşteri ve personel, herkes kendi dilini seçer). Salon için açık değilse (sunucu
+/// /dil/ayar) daima Türkçe; ekran metinleri lib/dil/material.dart üzerinden çevrilir.
 class Dil {
   static const _kok = 'https://app.randevumcepte.com.tr/api/v1';
   static const _kKod = 'dil_kod';
@@ -32,7 +32,7 @@ class Dil {
 
   static SharedPreferences? _prefs;
   static List<DilSecenek> diller = const [];
-  static String _secili = 'tr';
+  static String _musteriSecili = 'tr'; // müşteri + giriş öncesi ekranlar
 
   static bool get acik => diller.length > 1;
   static bool get _personel {
@@ -40,8 +40,21 @@ class Dil {
     return t == '1' || t == '"1"';
   }
 
+  /// Personel seçimi kişiye özel saklanır (aynı telefonu birden çok personel kullanabilir).
+  static String get _kPersonel {
+    var id = '';
+    try {
+      final u = jsonDecode(_prefs?.getString('user') ?? '');
+      if (u is Map) id = (u['id'] ?? '').toString();
+    } catch (_) {}
+    return 'dil_kod_personel_$id';
+  }
+
+  /// Oturuma göre seçili dil: personel kendi seçimi, müşteri / giriş öncesi telefonun seçimi.
+  static String get _secili => _personel ? (_prefs?.getString(_kPersonel) ?? 'tr') : _musteriSecili;
+
   /// Etkin dil
-  static String get kod => (!acik || _personel || !diller.any((d) => d.kod == _secili)) ? 'tr' : _secili;
+  static String get kod => (!acik || !diller.any((d) => d.kod == _secili)) ? 'tr' : _secili;
   static Locale get locale => Locale(kod);
   static DilSecenek? get secili {
     for (final d in diller) {
@@ -59,7 +72,7 @@ class Dil {
     try {
       _prefs = await SharedPreferences.getInstance();
       _listeCoz(_prefs!.getString(_kListe));
-      _secili = _prefs!.getString(_kKod) ?? 'tr';
+      _musteriSecili = _prefs!.getString(_kKod) ?? 'tr';
       await _sozlukHazirla();
     } catch (e) {
       log('Dil.yukle: $e');
@@ -104,9 +117,17 @@ class Dil {
 
   static Future<void> _sozlukHazirla() async {
     if (_secili == 'tr' || Ceviri.dil == _secili) return;
-    String? ham = _prefs?.getString('$_kSozluk$_secili');
-    ham ??= await rootBundle.loadString('assets/dil/$_secili.json');
-    Ceviri.yukle(_secili, ham);
+    final dil = _secili;
+    // Uygulama güncellendiyse paketteki sözlük, sunucudan inmiş eskisinin yerine geçer
+    final paket = await rootBundle.loadString('assets/dil/$dil.json');
+    final paketSurum = RegExp(r'"surum":"(w+)"').firstMatch(paket)?.group(1) ?? '';
+    var ham = _prefs?.getString('$_kSozluk$dil');
+    if (ham == null || _prefs?.getString('${_kSozluk}paket_$dil') != paketSurum) {
+      ham = paket;
+      await _prefs?.remove('$_kSozluk$dil');
+      await _prefs?.setString('${_kSozluk}paket_$dil', paketSurum);
+    }
+    Ceviri.yukle(dil, ham);
   }
 
   static Future<void> _sozlukGuncelle(String bundle, String? surum) async {
@@ -130,9 +151,13 @@ class Dil {
   /// Müşteri dil seçti (ya da sunucudaki kaydı uygulandı).
   static Future<void> sec(String yeni, {bool kaydet = true}) async {
     if (!diller.any((d) => d.kod == yeni)) return;
-    _secili = yeni;
-    await _prefs?.setString(_kKod, yeni);
-    await _prefs?.setBool(_kSecildi, true);
+    if (_personel) {
+      await _prefs?.setString(_kPersonel, yeni);
+    } else {
+      _musteriSecili = yeni;
+      await _prefs?.setString(_kKod, yeni);
+      await _prefs?.setBool(_kSecildi, true);
+    }
     try {
       await _sozlukHazirla();
     } catch (e) {
@@ -164,12 +189,12 @@ class Dil {
     }
   }
 
-  /// Seçimi müşteri kaydına yazar: WhatsApp / bildirim de bu dilde gider (SMS Türkçe).
+  /// Seçimi müşteri / personel kaydına yazar: WhatsApp / bildirim de bu dilde gider (SMS Türkçe).
   static Future<void> sunucuyaYaz() async {
     final t = await _token();
-    if (t == null || !acik || _personel || !soruldu) return;
+    if (t == null || !acik || (!_personel && !soruldu)) return;
     try {
-      await http.post(Uri.parse('$_kok/musteri-profil/dil'),
+      await http.post(Uri.parse(_personel ? '$_kok/profil/dil' : '$_kok/musteri-profil/dil'),
           headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer $t'},
           body: jsonEncode({'dil': _secili})).timeout(const Duration(seconds: 15));
     } catch (e) {
@@ -177,27 +202,30 @@ class Dil {
     }
   }
 
-  /// Giriş yapan müşteri: bu telefonda seçim varsa sunucuya yazılır; yoksa salonun/önceki
+  /// Giriş yapan müşteri / personel: bu telefonda seçim varsa sunucuya yazılır; yoksa salonun/önceki
   /// telefonun kaydettiği dil uygulanır.
-  static Future<void> musteriEsitle() async {
-    if (!acik || _personel) return;
+  static Future<void> oturumEsitle() async {
+    if (!acik) return;
+    await _sozlukHazirla();
     _yenile();
-    if (soruldu) return sunucuyaYaz();
+    if (_personel ? _prefs?.getString(_kPersonel) != null : soruldu) return sunucuyaYaz();
     final t = await _token();
     if (t == null) return;
     try {
-      final res = await http.get(Uri.parse('$_kok/musteri-profil/dil'),
+      final res = await http.get(Uri.parse(_personel ? '$_kok/profil/dil' : '$_kok/musteri-profil/dil'),
           headers: {'Accept': 'application/json', 'Authorization': 'Bearer $t'}).timeout(const Duration(seconds: 15));
       final j = jsonDecode(res.body);
       final d = j is Map ? (j['dil'] ?? '').toString() : '';
       if (d.isNotEmpty && d != 'tr') await sec(d, kaydet: false);
     } catch (e) {
-      log('Dil.musteriEsitle: $e');
+      log('Dil.oturumEsitle: $e');
     }
   }
 
-  /// Giriş / çıkış sonrası etkin dil yeniden hesaplanır (personel: Türkçe).
-  static void oturumDegisti() => _yenile();
+  /// Giriş / çıkış sonrası etkin dil yeniden hesaplanır (personel kendi dili, müşteri kendi dili).
+  static void oturumDegisti() {
+    _sozlukHazirla().whenComplete(_yenile);
+  }
 
   /// Kullanıcı değişince / dil değişince ekrandaki her şey yeniden çizilir (const alt ağaçlar dahil).
   static void _yenile() {

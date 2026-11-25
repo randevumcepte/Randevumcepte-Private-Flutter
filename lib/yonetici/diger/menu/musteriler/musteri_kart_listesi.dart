@@ -1,7 +1,8 @@
+import 'package:randevu_sistem/dil/dil.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Backend/yetki.dart';
 import 'package:randevu_sistem/Frontend/sfdatatable.dart';
@@ -354,7 +355,7 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              'Son: ${m.son_randevu_tarihi}',
+                              Dil.kod == 'tr' ? 'Son: ${m.son_randevu_tarihi}' : 'Son Ziyaret: ${m.son_randevu_tarihi}',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.grey[500],
@@ -475,7 +476,7 @@ class _MusteriKartListesiState extends State<MusteriKartListesi> {
       itemBuilder: (context) => [
         _menuItem('bilgi', Icons.info_outline_rounded, 'Detaylı Bilgi'),
         if (MusteriAraButon.gosterilir(userId: m.id, telefon: m.cep_telefon))
-          _menuItem('ara', Icons.call, 'Ara'),
+          _menuItem('ara', Icons.call, Dil.kod == 'tr' ? 'Ara' : 'Hemen Ara'),
         if (Yetki.varMi('musteri.telefon_gor') &&
             Yetki.varMi('pazarlama.whatsapp_gonder') &&
             (m.cep_telefon).isNotEmpty)

@@ -1,7 +1,7 @@
 // Kaydirmali (wheel) saat secici — Material showTimePicker (kadran) yerine.
 // 5 dk araliklarla, 24 saat. Bottom sheet olarak acilir, TimeOfDay doner.
-import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
 
 const Color _mor = Color(0xFF5C008E);
 

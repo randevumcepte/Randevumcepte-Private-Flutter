@@ -1,7 +1,7 @@
 import 'dart:async';
 // Grup dersi katilimci yonetim ekrani — takvimde ders bloguna tiklayinca acilir.
 // Katilimci ekle/cikar/geldi-gelmedi + dersi duzenle/iptal. Web panel modalinin mobil karsiligi.
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show musterilistegetirSayfali;
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';

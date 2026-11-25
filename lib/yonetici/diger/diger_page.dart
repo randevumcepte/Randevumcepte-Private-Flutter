@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
 import 'package:page_transition/page_transition.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';

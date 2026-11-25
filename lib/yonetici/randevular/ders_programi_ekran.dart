@@ -1,5 +1,5 @@
 // Ders Programi (haftalik sablon) ekrani — sablon tanimla + "Programi Yayinla".
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
 import 'package:randevu_sistem/yonetici/randevular/grup_dersi_rapor_ekran.dart';

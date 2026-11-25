@@ -1,9 +1,9 @@
 import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:convert';
 import 'dart:developer';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:flutter/rendering.dart' hide TextSpan;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:page_transition/page_transition.dart';

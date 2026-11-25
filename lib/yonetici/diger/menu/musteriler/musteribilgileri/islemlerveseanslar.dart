@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/Frontend/altyuvarlakmenu.dart';
 import '../../seanstakibi/seansdetay.dart';

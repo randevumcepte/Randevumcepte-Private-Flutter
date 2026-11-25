@@ -1,6 +1,6 @@
-// Müşteri ekranlarının kullandığı Material: 'package:flutter/material.dart' ile aynı; farkı Text, TextSpan ve
-// InputDecoration metinlerinin seçili dile çevrilmesi (Dil). Türkçede birebir eski davranış.
-export 'package:flutter/material.dart' hide Text, TextSpan, InputDecoration;
+// Çevrilen ekranların kullandığı Material: 'package:flutter/material.dart' ile aynı; farkı Text, TextSpan,
+// InputDecoration, Tab ve alt menü metinlerinin seçili dile çevrilmesi (Dil). Türkçede birebir eski davranış.
+export 'package:flutter/material.dart' hide Text, TextSpan, InputDecoration, Tab, BottomNavigationBarItem;
 
 import 'package:flutter/material.dart' as m;
 
@@ -164,4 +164,24 @@ class InputDecoration extends m.InputDecoration {
   String? get errorText => _c(super.errorText);
   @override
   String? get counterText => _c(super.counterText);
+}
+
+class Tab extends m.Tab {
+  const Tab({super.key, super.text, super.icon, super.iconMargin, super.height, super.child});
+
+  @override
+  String? get text {
+    final s = super.text;
+    return s == null ? null : Dil.cevir(s);
+  }
+}
+
+class BottomNavigationBarItem extends m.BottomNavigationBarItem {
+  const BottomNavigationBarItem({super.key, required super.icon, super.label, super.activeIcon, super.backgroundColor, super.tooltip});
+
+  @override
+  String? get label {
+    final s = super.label;
+    return s == null ? null : Dil.cevir(s);
+  }
 }

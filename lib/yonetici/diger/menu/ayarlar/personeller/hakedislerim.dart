@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// Personelin KENDİ hakediş / maaş / prim / ödeme geçmişini gördüğü read-only ekran.

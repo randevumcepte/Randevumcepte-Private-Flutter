@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 /// Randevuya "Geldi" butonuna basildiginda, randevu paketli ise hangi
 /// seanslarin paketten dusulecegini ve kac adet dusulecegini salon

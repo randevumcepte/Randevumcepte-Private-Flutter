@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Models/personel.dart';
 import 'package:randevu_sistem/Models/odalar.dart';
 import 'package:randevu_sistem/Models/cihazlar.dart';

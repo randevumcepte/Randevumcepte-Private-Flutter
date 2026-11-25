@@ -1,3 +1,4 @@
+import 'package:randevu_sistem/dil/dil.dart';
 import 'package:randevu_sistem/yonetici/cagrimerkezi/widgets/musteri_ara_buton.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -5,7 +6,7 @@ import 'dart:developer';
 import 'dart:ui' as ui;
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -2449,7 +2450,7 @@ List<Widget> _buildAppointmentsForResource(
     final buttons = <Widget>[];
     if (hasAra) {
       buttons.add(_detayBtn(
-        label: 'Ara',
+        label: Dil.kod == 'tr' ? 'Ara' : 'Hemen Ara',
         icon: Icons.call,
         color: const Color(0xFF43A047),
         onTap: () => MusteriAraButon.ara(

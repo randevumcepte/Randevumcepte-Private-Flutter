@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/dil_secici.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -476,6 +478,16 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
             if (_k == null) return;
             await _ac(ProfilBilgileri(kullanici: _k!, mod: 'sifre'));
           }),
+      if (Dil.acik)
+        PTSatir(
+            ikon: Icons.language_rounded,
+            baslik: Dil.kod == 'tr' ? 'Dil / Language' : '${Dil.cevir('Dil')} / Language',
+            alt: 'Uygulamanın ve size gelen bildirimlerin dili',
+            rozet: Dil.secili == null ? null : '${Dil.secili!.bayrak} ${Dil.secili!.ad}',
+            onTap: () async {
+              await dilSeciciAc(context);
+              if (mounted) setState(() {});
+            }),
       PTSatir(
           ikon: Icons.edit_calendar_rounded,
           baslik: 'Çalışma Saatlerim',

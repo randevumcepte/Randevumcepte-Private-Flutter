@@ -1,5 +1,5 @@
 // Grup dersi olustur / duzenle ekrani (tek seferlik ders veya mevcut oturum duzenleme).
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
 import 'package:randevu_sistem/yonetici/randevular/saat_secici.dart';

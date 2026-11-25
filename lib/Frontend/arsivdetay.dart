@@ -4,7 +4,7 @@
 // Web'deki "..." menusunun mobil karsiligi: Formu Gor (uygulama ici PDF),
 // Indir, Formu Tekrar Gonder, Onayla, Iptal Et.
 import 'dart:developer';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:path/path.dart' as path;
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler.dart';

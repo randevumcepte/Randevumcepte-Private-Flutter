@@ -1,6 +1,6 @@
 // Isletme musteri detayinda: musterinin dahil oldugu GRUP DERSLERI bolumu.
 // Isletme buradan katildi/katilmadi isaretleyebilir veya kaydi silebilir.
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/grup_dersi_api.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
 import 'package:randevu_sistem/yonetici/adisyonlar/satislar/ders_slot_secici.dart';

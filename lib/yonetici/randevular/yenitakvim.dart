@@ -1,7 +1,7 @@
 import 'yenitakvim/layout_strategy.dart';
 import 'yenitakvim/tiles.dart';
 import 'yenitakvim/zoom.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:kalender/kalender.dart';
 
  
