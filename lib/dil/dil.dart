@@ -164,7 +164,7 @@ class Dil {
     }
   }
 
-  /// Seçimi müşteri kaydına yazar: SMS / WhatsApp / bildirim de bu dilde gider.
+  /// Seçimi müşteri kaydına yazar: WhatsApp / bildirim de bu dilde gider (SMS Türkçe).
   static Future<void> sunucuyaYaz() async {
     final t = await _token();
     if (t == null || !acik || _personel || !soruldu) return;

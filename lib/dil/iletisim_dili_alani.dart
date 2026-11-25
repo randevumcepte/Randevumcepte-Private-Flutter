@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'dil.dart';
 
-/// Personel: müşteri kartında iletişim dili (SMS, WhatsApp ve bildirimler bu dilde gider).
+/// Personel: müşteri kartında iletişim dili (WhatsApp ve bildirimler bu dilde gider; SMS Türkçe).
 /// Dil seçimi bu markada kapalıysa hiç görünmez. Müşteri kendi seçtiyse sunucu personelin seçimini yok sayar.
 class IletisimDiliAlani extends StatelessWidget {
   final String? secili;
