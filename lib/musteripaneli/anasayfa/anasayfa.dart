@@ -41,7 +41,7 @@ import 'package:randevu_sistem/musteripaneli/anasayfa/donen_cark.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/marka_isik_efekti.dart';
 import 'package:randevu_sistem/theme/musteri_palet.dart';
 import 'package:randevu_sistem/theme/theme_provider.dart';
-import 'package:randevu_sistem/yonetici/diger/menu/ikram/kampanya_ayarlari.dart' show ikramHazirGorsel;
+import 'package:randevu_sistem/musteripaneli/musteri_gorsel.dart';
 
 import '../randevularim/randevularim.dart';
 import 'musteribildirimleri/musteribildirimleri.dart';
@@ -142,7 +142,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     _kampanyalariYukle();
     _ikramYukle();
     _yaklasanYukle();
-    _profilResimOku();
+    _musteriBilgiOku();
     // İşletmenin Görünüm ayarında seçtiği renk müşteri uygulamasına da uygulanır
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _salonId.isNotEmpty) context.read<ThemeProvider>().bindSalon(_salonId);
@@ -368,7 +368,7 @@ class _MusteriAnsayfaState extends State<MusteriAnsayfa> {
     _ikramYukle();
     _kampanyalariYukle();
     _yaklasanYukle();
-    _profilResimOku();
+    _musteriBilgiOku();
     await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 

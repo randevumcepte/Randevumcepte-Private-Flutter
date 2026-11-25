@@ -133,7 +133,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
             button: true,
             label: 'Profilim',
             child: GestureDetector(
-              onTap: () => _git(MusteriProfilSayfasi(md: widget.md, isletmebilgi: widget.isletmebilgi), sonra: _profilResimOku),
+              onTap: () => _git(MusteriProfilSayfasi(md: widget.md, isletmebilgi: widget.isletmebilgi), sonra: _musteriBilgiOku),
               child: _daire(Icons.person_outline_rounded, resim: _profilResim),
             ),
           ),
@@ -191,19 +191,26 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
     );
   }
 
-  /// Profil resmi: cihazdaki müşteri kaydından (profilde değişince güncellenir), yoksa girişteki bilgiden
-  Future<void> _profilResimOku() async {
+  /// Profil resmi ve cinsiyet (hizmet görselleri): cihazdaki müşteri kaydından (profilde değişince güncellenir), yoksa girişteki bilgiden
+  Future<void> _musteriBilgiOku() async {
     var resim = widget.md.profil_resim ?? '';
+    var cinsiyet = widget.md.cinsiyet;
     try {
       final m = jsonDecode((await SharedPreferences.getInstance()).getString('musteri') ?? '{}');
-      if (m is Map && m['id'].toString() == widget.md.id.toString() && m.containsKey('profil_resim')) {
-        resim = (m['profil_resim'] ?? '').toString();
+      if (m is Map && m['id'].toString() == widget.md.id.toString()) {
+        if (m.containsKey('profil_resim')) resim = (m['profil_resim'] ?? '').toString();
+        if (m.containsKey('cinsiyet')) cinsiyet = m['cinsiyet'].toString();
       }
     } catch (_) {
       // kayıt okunamazsa girişteki bilgi kullanılır
     }
     resim = resim.trim() == 'null' ? '' : resim.trim();
-    if (mounted && resim != _profilResim) setState(() => _profilResim = resim);
+    final erkek = cinsiyet.trim() == '1';
+    if (!mounted || (resim == _profilResim && erkek == musteriErkek)) return;
+    setState(() {
+      _profilResim = resim;
+      musteriErkek = erkek;
+    });
   }
 
   /// İkram bakiyesi kartı.
@@ -597,7 +604,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
                 child: SizedBox(
                   width: _x(146),
                   height: _x(94),
-                  child: Image.asset(ikramHazirGorsel(hizmet), fit: BoxFit.cover),
+                  child: Image.asset(musteriHizmetGorseli(hizmet), fit: BoxFit.cover),
                 ),
               ),
               SizedBox(width: _x(24)),
@@ -710,7 +717,7 @@ extension _AnasayfaTasarim on _MusteriAnsayfaState {
     final ilerleme = hak > 0 ? gereken : _kn(k, 'ilerleme').clamp(0, gereken);
     final hizmet = (k['hizmet_adi'] ?? '').toString();
     final g = (k['gorsel'] ?? '').toString();
-    final hazir = Image.asset(ikramHazirGorsel(hizmet), fit: BoxFit.cover);
+    final hazir = Image.asset(musteriHizmetGorseli(hizmet), fit: BoxFit.cover);
     final bit = DateTime.tryParse((k['kampanya_bitis'] ?? '').toString());
     String? kalan;
     if (bit != null) {

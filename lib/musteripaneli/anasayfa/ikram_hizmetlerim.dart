@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/theme/musteri_palet.dart';
-import 'package:randevu_sistem/yonetici/diger/menu/ikram/kampanya_ayarlari.dart' show ikramHazirGorsel;
+import 'package:randevu_sistem/musteripaneli/musteri_gorsel.dart';
 
 /// Müşteri: Kampanyalarım (ikram hizmet / "N alana M ikram").
 /// Tasarım "Mor Işıltıda Güzellik Kampanyaları" (941 px genişlik) ölçüleri ekran
@@ -172,10 +172,11 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
 
     final hizmet = (k['hizmet_adi'] ?? '').toString();
     final g = (k['gorsel'] ?? '').toString();
-    final hazir = Image.asset(ikramHazirGorsel(hizmet), fit: BoxFit.cover);
+    final hazir = Image.asset(musteriHizmetGorseli(hizmet), fit: BoxFit.cover);
     final foto = g.isEmpty
         ? hazir
         : Image.network('https://app.randevumcepte.com.tr$g', fit: BoxFit.cover, errorBuilder: (_, __, ___) => hazir);
+    final ustErir = musteriErkek || g.isNotEmpty;
     final gereken = _n(k, 'gereken_adet');
     final hediye = _n(k, 'ucretsiz_adet');
     final acik = _kampanyaAcik(k);
@@ -198,11 +199,12 @@ class _IkramHizmetlerimPageState extends State<IkramHizmetlerimPage> {
             ).createShader(r),
             blendMode: BlendMode.dstIn,
             child: ShaderMask(
-              shaderCallback: (r) => const LinearGradient(
+              // Koyu fotoğrafta başlık okunsun diye üst kısım da erir (hazır kadın görselleri zaten açık renk)
+              shaderCallback: (r) => LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.black, Colors.black, Colors.transparent],
-                stops: [0, 0.9, 1],
+                colors: [ustErir ? Colors.black12 : Colors.black, ustErir ? Colors.black26 : Colors.black, Colors.black, Colors.black, Colors.transparent],
+                stops: [0, (ust + _x(92)) / (ust + _x(476)), (ust + _x(150)) / (ust + _x(476)), 0.9, 1],
               ).createShader(r),
               blendMode: BlendMode.dstIn,
               child: SizedBox.expand(child: foto),
