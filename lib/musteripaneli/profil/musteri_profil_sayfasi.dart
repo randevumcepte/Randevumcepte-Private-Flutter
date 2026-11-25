@@ -18,16 +18,9 @@ import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/musteridashboard.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/hesapkaldirma.dart';
-import 'package:randevu_sistem/musteripaneli/anasayfa/ikram_hizmetlerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/musteribildirimleri/musteribildirimleri.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/musteriprofilbilgileri.dart';
-import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
-import 'package:randevu_sistem/musteripaneli/anasayfa/raporlar/seanslar.dart';
-import 'package:randevu_sistem/musteripaneli/menu/musteriresimleri.dart' show ImageGallery;
-import 'package:randevu_sistem/musteripaneli/menu/musterisözlesmeleri.dart';
-import 'package:randevu_sistem/musteripaneli/menu/saglikbilgileri.dart';
-import 'package:randevu_sistem/musteripaneli/menu/siparislerim.dart';
 import 'package:randevu_sistem/musteripaneli/musteri_alt_menu.dart';
 import 'package:randevu_sistem/musteripaneli/randevularim/randevularim.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
@@ -412,11 +405,10 @@ class _MusteriProfilSayfasiState extends State<MusteriProfilSayfasi> {
     );
   }
 
+  /// Yalnız hesap işlemleri; Menü ve alt menüdeki sayfalar burada tekrarlanmaz
   List<Widget> _satirlar() {
     final md = widget.md;
-    final isletme = widget.isletmebilgi;
     String? sayi(dynamic v) => v is num && v > 0 ? binlik(v) : null;
-    final cihaz = _o['cihaz'];
     return [
       MPSatir(
           ikon: Icons.badge_rounded,
@@ -424,72 +416,15 @@ class _MusteriProfilSayfasiState extends State<MusteriProfilSayfasi> {
           alt: 'Ad, telefon, e-posta ve meslek bilgileriniz',
           onTap: () => _ac(MusteriProfilBilgileri(kullanici: md, mod: 'bilgi'))),
       MPSatir(
-          ikon: Icons.notifications_rounded,
-          baslik: 'Bildirimlerim',
-          alt: 'Randevu ve duyurularınız',
-          rozet: _okunmamis > 0 ? '$_okunmamis yeni' : null,
-          onTap: _bildirimler),
-      MPSatir(
           ikon: Icons.lock_rounded,
           baslik: 'Şifre Değiştir',
           alt: 'Hesap güvenliğiniz için şifrenizi güncelleyin',
           onTap: () => _ac(MusteriProfilBilgileri(kullanici: md, mod: 'sifre'))),
       MPSatir(
-          ikon: Icons.edit_calendar_rounded,
-          baslik: 'Randevularım',
-          alt: 'Yaklaşan ve geçmiş randevularınız',
-          rozet: sayi(_o['yaklasan']),
-          onTap: _randevularim),
-      MPSatir(
-          ikon: Icons.event_available_rounded,
-          baslik: 'Seanslarım',
-          alt: 'Paket ve seanslarınızın durumu',
-          onTap: () => _ac(SeanslarDashboard(isletmebilgi: isletme, md: md))),
-      MPSatir(
-          ikon: Icons.shopping_bag_rounded,
-          baslik: 'Satın Aldıklarım',
-          alt: 'Aldığınız hizmet, paket ve ürünler',
-          onTap: () => _ac(MusteriPaneliAdiayonlari(kullanici: md, isletmebilgi: isletme))),
-      if (!_studyo) ...[
-        MPSatir(
-            ikon: Icons.redeem_rounded,
-            baslik: 'Kampanyalarım',
-            alt: 'İkram kartlarınız ve kazandığınız haklar',
-            onTap: () => _ac(IkramHizmetlerimPage(md: md, salonId: _sube))),
-        MPSatir(
-            ikon: Icons.confirmation_number_rounded,
-            baslik: 'Kuponlarım',
-            alt: 'Kazandığınız indirim ve hediyeler',
-            rozet: sayi(_o['kupon']),
-            onTap: () => _ac(OdullerimPage(md: md))),
-        MPSatir(
-            ikon: Icons.star_rounded,
-            baslik: 'Puan Ödüllerim',
-            alt: 'Puanlarınızla alabileceğiniz ödüller',
-            rozet: sayi(_ozet?.sadakatPuani),
-            onTap: () => _ac(PuanOdullerimPage(md: md, salonId: _sube))),
-      ],
-      MPSatir(
-          ikon: Icons.health_and_safety_rounded,
-          baslik: 'Sağlık Bilgilerim',
-          alt: 'Alerji ve sağlık durumunuz',
-          onTap: () => _ac(MusteriPaneliSaglikBilgileri(md: md))),
-      if (!_studyo)
-        MPSatir(
-            ikon: Icons.description_rounded,
-            baslik: 'Sözleşme / Belgelerim',
-            alt: 'Onayladığınız form ve sözleşmeler',
-            onTap: () => _ac(MusteriPaneliArsivDetay(md: md, isletmebilgi: isletme))),
-      MPSatir(
-          ikon: Icons.photo_library_rounded,
-          baslik: 'Resimlerim',
-          alt: 'İşlem öncesi ve sonrası fotoğraflarınız',
-          onTap: () => _ac(ImageGallery(md: md, isletmebilgi: isletme))),
-      MPSatir(
           ikon: Icons.devices_rounded,
           baslik: 'Cihazlarım',
           alt: 'Hesabınızın açık olduğu cihazlar',
-          rozet: sayi(cihaz),
+          rozet: sayi(_o['cihaz']),
           onTap: () => _ac(MusteriCihazlarSayfasi(sube: _sube))),
       MPSatir(
           ikon: Icons.info_rounded,
