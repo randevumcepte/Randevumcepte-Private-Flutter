@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
+import 'package:randevu_sistem/musteripaneli/anasayfa/donen_cark.dart';
+import 'package:randevu_sistem/theme/musteri_palet.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/gecerli_sube_rozeti.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/odullerim.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/puan_odullerim.dart';
@@ -81,6 +83,7 @@ class _WheelPageState extends State<WheelPage>
     });
     try {
       final res = await carkDurum(_salonId, widget.md.id.toString());
+      if (!mounted) return;
       if (res['success'] != true) {
         setState(() {
           _isLoading = false;
@@ -97,18 +100,19 @@ class _WheelPageState extends State<WheelPage>
       setState(() {
         _aktif = aktif;
         _salonAdi = (salon['salon_adi'] ?? _salonAdi).toString();
-        _kalanHak = (res['kalanHak'] ?? 0) is int
-            ? res['kalanHak']
-            : int.tryParse(res['kalanHak'].toString()) ?? 0;
+        // Çark aktif değilken sunucu bu alanı göndermez
+        _kalanHak = int.tryParse((res['kalanHak'] ?? 0).toString()) ?? 0;
         _bugunCevirdi = res['bugunCevirdi'] == true;
         _yarinSaat = (res['yarinSaat'] ?? '').toString();
         _dilimler = list;
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('Cark durum: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _loadError = 'Bağlantı hatası: $e';
+        _loadError = 'Çark yüklenemedi. Lütfen tekrar deneyin.';
       });
     }
   }
@@ -472,8 +476,9 @@ class _WheelPageState extends State<WheelPage>
               ? const Center(child: CircularProgressIndicator())
               : _loadError != null
                   ? _buildError()
-                  // TEST MODU: !_aktif → _buildPasif() bypass'lı
-                  : RefreshIndicator(
+                  : !_aktif
+                      ? _buildPasif()
+                      : RefreshIndicator(
                           onRefresh: _yukle,
                           color: const Color(0xFF6C5CE7),
                           child: SingleChildScrollView(
@@ -542,26 +547,28 @@ class _WheelPageState extends State<WheelPage>
   }
 
   Widget _buildPasif() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('🎡', style: TextStyle(fontSize: 64)),
-            const SizedBox(height: 12),
-            const Text(
-              'Bu salonda çarkıfelek şu an aktif değil.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _salonAdi,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+    final p = MusteriPalet.of(context);
+    return RefreshIndicator(
+      onRefresh: _yukle,
+      color: p.ana,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(28, MediaQuery.of(context).size.height * 0.16, 28, 28),
+        children: [
+          Center(child: SizedBox(width: 180, child: DonenCark(filtre: p.gorselFiltre))),
+          const SizedBox(height: 24),
+          Text(
+            'Çarkıfelek şu an kapalı',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: p.baslik),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${_salonAdi.isEmpty ? 'Salonunuz' : _salonAdi} çarkı açtığında buradan çevirip hediye kazanabilirsiniz.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14.5, height: 1.45, color: p.metin),
+          ),
+        ],
       ),
     );
   }
