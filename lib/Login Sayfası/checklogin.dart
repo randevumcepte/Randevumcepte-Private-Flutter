@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/login_page.dart';
 import 'package:randevu_sistem/Login%20Sayfas%C4%B1/tanitim.dart';
 import 'package:randevu_sistem/Models/randevuhizmetleri.dart';

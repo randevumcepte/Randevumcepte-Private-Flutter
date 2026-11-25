@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:randevu_sistem/marka.dart';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/dil_secici.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
@@ -79,6 +81,10 @@ class _OnBoardingPageState extends State<OnBoardingPage>
     _loadCachedSalonAdi();
     _loadOnlineRandevuAyari();
     _renkleriYukle();
+    Dil.oturumDegisti();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ilkAcilistaDilSor(context, renk: _palet.koyu);
+    });
   }
 
   /// Logodan renk paletini çıkar; animasyon salon renklerine boyanır.
@@ -165,6 +171,8 @@ class _OnBoardingPageState extends State<OnBoardingPage>
         }
       },
       child: Scaffold(
+        floatingActionButton: DilDugmesi(renk: _palet.koyu),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
         body: Container(
           decoration: BoxDecoration(
             gradient: RadialGradient(

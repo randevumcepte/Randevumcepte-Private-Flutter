@@ -1,6 +1,8 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
 import 'package:randevu_sistem/marka.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/dil_secici.dart';
 import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
 import 'package:provider/provider.dart';
 import 'package:randevu_sistem/Frontend/popupdialogs.dart';
@@ -79,6 +81,8 @@ class _HomeState extends State<LoginPage> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
+      floatingActionButton: const DilDugmesi(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Stack(
@@ -246,7 +250,7 @@ class _HomeState extends State<LoginPage> {
                             ),
                             validator: (passwordValue) {
                               if (passwordValue!.isEmpty) {
-                                return 'Şifre gereklidir';
+                                return Dil.cevir('Şifre gereklidir');
                               }
                               password = passwordValue;
                               return null;
@@ -467,6 +471,7 @@ class _HomeState extends State<LoginPage> {
 
       localStorage.setString('musteri', json.encode(body['message']['musteri']));
       localStorage.setString('user_type', json.encode(body['message']['user_type']));
+      Dil.oturumDegisti(); // personel oturumu daima Türkçe
 
       Map<String, dynamic> userMap  = body['message']['user_type'].toString() == '1'? json.decode(json.encode(body['message']['user'])) :json.decode(json.encode(body['message']['musteri'])) ;
 

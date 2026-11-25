@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:randevu_sistem/marka.dart';
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/dil_secici.dart';
 import 'package:randevu_sistem/Frontend/telefon_ulke_alani.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
@@ -294,6 +296,8 @@ class _KayitOlState extends State<KayitOl> {
   Widget _sayfaIskeleti(ColorScheme scheme, List<Widget> icerik) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
+      floatingActionButton: const DilDugmesi(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Stack(
@@ -390,7 +394,8 @@ class _KayitOlState extends State<KayitOl> {
         'sms_username':'',
         'sms_secret':'',
         'isletmeadi': 'Saloon Cadde',
-        'appBundle': appBundle
+        'appBundle': appBundle,
+        if (Dil.acik && Dil.soruldu) 'dil': Dil.kod,
       };
 
       final response = await http.post(
