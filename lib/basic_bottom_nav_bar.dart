@@ -955,7 +955,8 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
                 isletmebilgi: widget.isletmebilgi,
                 isim: "",
                 telefon: "",
-                sadeceekranikapat: true,
+                // Kayittan sonra menuye donmek yerine Musteriler listesi acilsin
+                sadeceekranikapat: false,
               ),
             ),
           );

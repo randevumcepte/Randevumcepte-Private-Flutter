@@ -754,6 +754,7 @@ class _YenimusteriState extends State<Yenimusteri> {
       if (_iletisimDili != null) 'iletisim_dili': _iletisimDili,
     };
 
+    bool yuklemeKapandi = false;
     try {
       final response = await http.post(
         Uri.parse(
@@ -767,6 +768,7 @@ class _YenimusteriState extends State<Yenimusteri> {
       log('musteri ekle response body: ${response.body}');
 
       Navigator.of(context, rootNavigator: true).pop();
+      yuklemeKapandi = true;
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -808,9 +810,14 @@ class _YenimusteriState extends State<Yenimusteri> {
 
       return MusteriDanisan.fromJson(decoded as Map<String, dynamic>);
     } catch (e, stackTrace) {
-      try {
-        Navigator.of(context, rootNavigator: true).pop();
-      } catch (_) {}
+      // Yukleme dialog'u yalnizca istek atilirken (yanit gelmeden) hata
+      // olursa hala aciktir; yanit geldiyse zaten kapatildi. Ikinci kez
+      // pop etmek ekrani (Yeni Musteri sayfasini) kapatip menuye atiyordu.
+      if (!yuklemeKapandi) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+      }
       log('musteri ekle hata: $e');
       log('stack: $stackTrace');
       if (!e.toString().contains('zaten kayıtlı') &&
