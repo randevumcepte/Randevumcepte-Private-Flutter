@@ -25,7 +25,6 @@ import 'package:randevu_sistem/yonetici/diger/menu/wa_asistan/wa_sohbet_merkezi.
 import 'package:randevu_sistem/services/notification_service.dart';
 import 'package:randevu_sistem/Backend/backend.dart' show kullanicibilgimusteri;
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/musteridetaylar.dart';
-import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'package:randevu_sistem/yonetici/dashboard/home_screen.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler.dart';
 import 'package:randevu_sistem/yonetici/diger/diger_page.dart';
@@ -1146,7 +1145,6 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         resizeToAvoidBottomInset: false,
         body: Column(
           children: [
-            const NotificationStatusBanner(),
             Expanded(
               child: Stack(
                 children: List.generate(_pages.length, (i) {

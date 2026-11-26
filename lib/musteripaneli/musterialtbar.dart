@@ -27,7 +27,6 @@ import 'package:randevu_sistem/Login Sayfası/tanitim.dart';
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'package:randevu_sistem/services/notification_service.dart';
-import 'package:randevu_sistem/services/notification_status_banner.dart';
 import 'anasayfa/anasayfa.dart';
 import 'anasayfa/carkifelek.dart';
 import 'anasayfa/ikram_hizmetlerim.dart';
@@ -272,7 +271,6 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
         extendBody: _selectedTab == 0,
         body: Column(
           children: [
-            const NotificationStatusBanner(),
             Expanded(child: _pages[_selectedTab]),
           ],
         ),

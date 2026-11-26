@@ -108,7 +108,9 @@ Future<void> _rmcClearSession() async {
   }
 }
 
-/// Token / izin durumu. UI bunu dinleyip uyarı banner'ı gösterebilir.
+/// Token / izin durumu. Kullaniciya ekranda GOSTERILMEZ (eski "Bildirimler
+/// calismiyor" seridi kaldirildi); _durumBildir ile sunucuya yazilir ve
+/// Sistem Yonetimi > Bildirim Sorunlari'ndan takip edilir.
 enum NotificationStatus {
   unknown,           // henuz init olmadi
   ok,                // token alindi
@@ -128,12 +130,22 @@ class NotificationService {
   String? _currentToken;
   StreamSubscription<String>? _tokenRefreshSub;
 
-  /// UI tarafi bunu dinler. Token yoksa banner gosterilebilir.
+  /// Token / izin durumu. Degistikce sunucuya bildirilir (_durumBildir).
   static final ValueNotifier<NotificationStatus> status =
       ValueNotifier<NotificationStatus>(NotificationStatus.unknown);
 
   Timer? _retryTimer;
   int _retryAttempt = 0;
+
+  /// Son token hatasi (sunucuya 'hata' olarak gider; panelde teshis icin).
+  String? _sonHata;
+
+  /// Son gonderilen durum imzasi + zamani. Ayni durum 12 saatte bir tekrar
+  /// yazilir (panelde "son bildirim" taze kalsin), degisirse hemen yazilir.
+  static const _durumPrefAnahtar = 'notif_durum_son';
+  static const _durumTekrarSuresi = Duration(hours: 12);
+  bool _durumGonderiliyor = false;
+  bool _durumTekrarGerek = false;
 
   /// Bu cihazin FCM token'i (Profil > Cihazlarim'da "Bu cihaz" isareti icin).
   Future<String?> mevcutToken() async {
@@ -215,6 +227,10 @@ class NotificationService {
     // uygulama acilir acilmaz gecerli token sisteme yazilir (idempotent upsert).
     await _reRegisterIfLoggedIn();
 
+    // 8c) Bildirim durumunu sunucuya yaz (ekranda uyari yok) + degisiklikleri izle.
+    status.addListener(() => _durumBildir());
+    unawaited(_durumBildir());
+
     // 9) Token refresh listener
     _tokenRefreshSub?.cancel();
     _tokenRefreshSub = _fcm.onTokenRefresh.listen((token) async {
@@ -293,16 +309,19 @@ class NotificationService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', token);
         log('✅ FCM token: ${token.substring(0, 24)}...');
+        _sonHata = null;
         status.value = NotificationStatus.ok;
         _retryAttempt = 0;
         _stopRetryTimer();
         return true;
       }
       log('⚠️ FCM token bos dondu');
+      _sonHata = 'FCM token bos dondu';
       _markTokenUnavailable();
       return false;
     } catch (e) {
       log('❌ FCM token alınamadı: $e');
+      _sonHata = e.toString();
       _markTokenUnavailable();
       return false;
     }
@@ -313,7 +332,7 @@ class NotificationService {
   /// durumda timer baslatma anlamsiz (retry yine de denenebilir, kullanici
   /// ayarlardan izin actiysa yakalariz).
   void _markTokenUnavailable() {
-    // iOS Simulator'da APNS hicbir zaman gelmez — banner yanlis pozitif olur.
+    // iOS Simulator'da APNS hicbir zaman gelmez — panele yanlis pozitif dusmesin.
     // (18 Tem 'Kurtarma' commit'i bu blogu silmisti, geri eklendi.)
     if (_isIosSimulator) return;
     if (status.value != NotificationStatus.permissionDenied) {
@@ -370,6 +389,147 @@ class NotificationService {
       await _refreshLocalToken();
     }
     await _reRegisterIfLoggedIn();
+    // Kullanici ayarlardan izni acip/kapatmis olabilir — durum degistiyse yaz.
+    await _durumBildir();
+  }
+
+  /// Oturumdaki kullanicinin kimligi (cihaz-kaydet ile ayni alanlar).
+  /// Oncelik notif_* anahtarlari; yoksa oturumdan (user_type + user + sube)
+  /// turetilir. Login degilse null.
+  Future<Map<String, String>?> _oturumKimligi(SharedPreferences prefs) async {
+    final tip = prefs.getString('notif_kullanici_tipi');
+    if (tip != null && tip.isNotEmpty) {
+      return {
+        'kullanici_tipi': tip,
+        'user_id': prefs.getString('notif_user_id') ?? '',
+        'personel_id': prefs.getString('notif_personel_id') ?? '',
+        'yetkili_id': prefs.getString('notif_yetkili_id') ?? '',
+        'salon_id': prefs.getString('notif_salon_id') ?? '',
+      };
+    }
+    final userTypeRaw = prefs.getString('user_type');
+    final userJson = prefs.getString('user');
+    if (userTypeRaw == null || userJson == null || userJson.isEmpty) return null;
+    try {
+      final id = jsonDecode(userJson)['id']?.toString();
+      if (id == null || id.isEmpty) return null;
+      if (userTypeRaw.contains('1')) {
+        return {
+          'kullanici_tipi': 'yetkili',
+          'user_id': '',
+          'personel_id': '',
+          'yetkili_id': id,
+          'salon_id': prefs.getString('sube') ?? '',
+        };
+      }
+      return {
+        'kullanici_tipi': 'musteri',
+        'user_id': id,
+        'personel_id': '',
+        'yetkili_id': '',
+        'salon_id': '',
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Bildirimlerin bu cihazda calisip calismadigini sunucuya yazar
+  /// (musteri_portfoy / salon_personelleri.bildirim_durum). Kullaniciya hicbir
+  /// sey gostermez. Token gerektirmez — token alinamamasi da raporlanan durumdur.
+  /// Durum veya kimlik degismediyse 12 saatte bir tekrar yazar.
+  Future<void> _durumBildir() async {
+    if (_isIosSimulator) return;
+    if (_durumGonderiliyor) {
+      _durumTekrarGerek = true; // gonderim surerken durum degisti; bitince tekrar
+      return;
+    }
+    final st = status.value;
+    if (st == NotificationStatus.unknown) return;
+    _durumGonderiliyor = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final kimlik = await _oturumKimligi(prefs);
+      if (kimlik == null) return; // login degil
+
+      // Izin durumu token'dan bagimsiz okunur: Android'de izin kapaliyken de
+      // token alinabildigi icin status 'ok' olabilir ama bildirim gorunmez.
+      var izinKapali = st == NotificationStatus.permissionDenied;
+      try {
+        final ayar = await _fcm.getNotificationSettings();
+        izinKapali = ayar.authorizationStatus == AuthorizationStatus.denied;
+      } catch (_) {}
+
+      final durum = izinKapali
+          ? 'izin_kapali'
+          : (st == NotificationStatus.ok ? 'ok' : 'token_yok');
+
+      final imza = [
+        durum,
+        kimlik['kullanici_tipi'],
+        kimlik['user_id'],
+        kimlik['personel_id'],
+        kimlik['yetkili_id'],
+        kimlik['salon_id'],
+      ].join('|');
+      final son = prefs.getString(_durumPrefAnahtar);
+      if (son != null) {
+        final i = son.lastIndexOf('#');
+        if (i > 0 && son.substring(0, i) == imza) {
+          final ms = int.tryParse(son.substring(i + 1)) ?? 0;
+          final gecen = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ms));
+          if (gecen < _durumTekrarSuresi) return;
+        }
+      }
+
+      String appBundle = '';
+      String surum = '';
+      try {
+        final p = await PackageInfo.fromPlatform();
+        appBundle = p.packageName;
+        surum = p.version;
+      } catch (_) {}
+
+      String cihazBilgi = Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'diger');
+      try {
+        final info = DeviceInfoPlugin();
+        if (Platform.isAndroid) {
+          final a = await info.androidInfo;
+          cihazBilgi = 'android ${a.version.release} · ${a.manufacturer} ${a.model}';
+        } else if (Platform.isIOS) {
+          final a = await info.iosInfo;
+          cihazBilgi = 'ios ${a.systemVersion} · ${a.utsname.machine}';
+        }
+      } catch (_) {}
+      if (surum.isNotEmpty) cihazBilgi = '$cihazBilgi · v$surum';
+
+      final res = await http.post(
+        Uri.parse('$_apiBase/bildirim/durum'),
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode({
+          ...kimlik,
+          'durum': durum,
+          'app_bundle': appBundle,
+          'hata': durum == 'token_yok' ? (_sonHata ?? '') : '',
+          'cihaz_bilgi': cihazBilgi,
+        }),
+      );
+      if (res.statusCode == 200) {
+        await prefs.setString(
+            _durumPrefAnahtar, '$imza#${DateTime.now().millisecondsSinceEpoch}');
+        log('📶 Bildirim durumu sunucuya yazildi: $durum');
+      } else {
+        log('⚠️ Bildirim durumu yazilamadi ${res.statusCode}');
+      }
+    } catch (e) {
+      log('Bildirim durumu gonderim hatasi: $e');
+    } finally {
+      _durumGonderiliyor = false;
+      if (_durumTekrarGerek) {
+        _durumTekrarGerek = false;
+        unawaited(_durumBildir());
+      }
+    }
   }
 
   /// Oturum aciksa mevcut FCM token'i backend'e (yeniden) kaydeder.
@@ -449,10 +609,12 @@ class NotificationService {
     final t = _currentToken ?? prefs.getString('fcm_token');
     if (t == null || t.isEmpty) {
       log('⚠️ Token yok, kimlik prefs\'e yazildi; token gelince otomatik kaydedilecek');
+      unawaited(_durumBildir()); // token_yok durumu panelde gorunsun
       return;
     }
 
     await _sendRegisterRequest(prefs, t, kullaniciTipi);
+    unawaited(_durumBildir());
   }
 
   /// iOS Keychain / Android encrypted storage'da saklanan KALICI cihaz kimligi.
