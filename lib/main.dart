@@ -201,10 +201,23 @@ class _MyHomePageState extends State<MyHomePage> {
       Future.delayed(Duration(seconds: 3), () {
         if (!mounted) return;
         print("6️⃣ Navigate to CheckAuth");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => CheckAuth()),
-        );
+        final splashRoute = ModalRoute.of(context);
+        if (splashRoute == null || splashRoute.isCurrent) {
+          // Normal acilis (splash en ustte): eskisiyle birebir ayni.
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => CheckAuth()),
+          );
+        } else {
+          // Splash'in ustunde baska ekran var (or. iOS'ta CallKit "Cevapla"
+          // sonrasi acilan arama ekrani). pushReplacement EN USTTEKI ekrani
+          // degistirirdi -> arama ekrani kapanirdi. Yalniz splash'in kendi
+          // yerini degistir; ustteki ekran yerinde kalir.
+          Navigator.of(context).replace(
+            oldRoute: splashRoute,
+            newRoute: MaterialPageRoute(builder: (context) => CheckAuth()),
+          );
+        }
       });
     }
   }

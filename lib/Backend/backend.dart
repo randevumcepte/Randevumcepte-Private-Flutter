@@ -5362,12 +5362,6 @@ async {
 
 
 }
-String arayanBilgiVer(String phone){
-
-  dynamic musteriAdi = arayanbilgi(phone,'236');
-  log('ad soyad arayan : '+musteriAdi["musteri_adi"]);
-  return musteriAdi["musteri_adi"];
-}
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 

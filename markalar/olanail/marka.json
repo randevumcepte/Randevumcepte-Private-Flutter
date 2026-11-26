@@ -1,0 +1,14 @@
+{
+  "kod": "olanail",
+  "ad": "Ola Nail",
+  "paket": "com.randevumcepte.olanail",
+  "surum": "1.0.5",
+  "build": 10,
+  "ios_profil": "Ola Nail 2026",
+  "ikon": "olanailicon.png",
+  "logo": "olanail.png",
+  "splash": "olanail.png",
+  "ikon_arka_plan_ios": "#FFFFFF",
+  "splash_renk": "#ffffff",
+  "softphone": true
+}

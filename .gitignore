@@ -56,3 +56,9 @@ app.*.map.json
 
 # SIP/pjsip kaynak klasoru (build cache dahil) - repoya girmesin
 pjproject/**/.gradle/
+
+# Marka (tool/marka.sh gec <kod> uretir; kaynak markalar/<kod>/)
+android/marka.properties
+ios/Flutter/Marka.xcconfig
+assets/marka/aktif.json
+assets/marka/logo.png

@@ -43,6 +43,14 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
 
   private static let tokenAnahtari = "rc_softphone_voip_token"
 
+  /// Kullanicinin hoparlor secimi (CallKit sistem dugmesi ya da uygulama
+  /// dugmesi). nil = secim yok. Baglantinin ilk anlarinda WebRTC / CallKit ses
+  /// oturumunu yeniden ayarlayinca iOS cikis yonlendirmesini sifirliyor
+  /// (ilk basista hoparlor 1 sn acilip kapaniyordu); secim varsa geri konur.
+  private var hoparlorIstek: Bool?
+  /// Ayni cagride sonsuz donguye girmesin diye geri koyma siniri.
+  private var hoparlorGeriKoyma = 0
+
   public static func register(with registrar: FlutterPluginRegistrar) {
     // Birden fazla engine olusursa tek ornek + tek PushKit kaydi kullanilir.
     let ornek = ortak ?? RcSoftphonePlugin()
@@ -68,9 +76,58 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
   private func sesYonuDinle() {
     NotificationCenter.default.addObserver(
       forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main
-    ) { [weak self] _ in
-      self?.sesKanal?.invokeMethod("hoparlorDegisti", arguments: RcSoftphonePlugin.hoparlorAcik())
+    ) { [weak self] bildirim in
+      guard let self = self else { return }
+      let hamSebep = bildirim.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+      let sebep = hamSebep.flatMap { AVAudioSession.RouteChangeReason(rawValue: $0) }
+      let hoparlorde = RcSoftphonePlugin.hoparlorAcik()
+      switch sebep {
+      case .override?:
+        // Kullanici (CallKit ekrani ya da uygulama) cikisi degistirdi: secimi hatirla.
+        self.hoparlorIstek = hoparlorde
+      case .categoryChange?, .routeConfigurationChange?:
+        // Oturum yeniden ayarlandi ve yonlendirme sifirlandi: secim hoparlorse geri koy.
+        // Kulaklik / Bluetooth bagliyken dokunma.
+        if self.hoparlorIstek == true, !hoparlorde, !RcSoftphonePlugin.haricCikisVar(),
+          self.hoparlorGeriKoyma < 5
+        {
+          self.hoparlorGeriKoyma += 1
+          self.hoparlorYonlendir(true)
+          return  // geri koyma yeni bir route degisikligi uretir; Dart'a o bildirir
+        }
+      default:
+        break
+      }
+      self.sesKanal?.invokeMethod("hoparlorDegisti", arguments: hoparlorde)
     }
+  }
+
+  /// Kulaklik, Bluetooth, arac vb. harici cikis var mi.
+  private static func haricCikisVar() -> Bool {
+    let harici: Set<AVAudioSession.Port> = [
+      .headphones, .bluetoothA2DP, .bluetoothHFP, .bluetoothLE, .carAudio,
+      .airPlay, .usbAudio, .lineOut, .HDMI,
+    ]
+    return AVAudioSession.sharedInstance().currentRoute.outputs.contains {
+      harici.contains($0.portType)
+    }
+  }
+
+  private func hoparlorYonlendir(_ ac: Bool) {
+    let rtc = RTCAudioSession.sharedInstance()
+    rtc.lockForConfiguration()
+    defer { rtc.unlockForConfiguration() }
+    do {
+      try rtc.overrideOutputAudioPort(ac ? .speaker : .none)
+    } catch {
+      NSLog("[rc_softphone] hoparlor degistirilemedi: \(error)")
+    }
+  }
+
+  /// Yeni cagri basladi / cagri bitti: hoparlor secimi sifirlanir.
+  private func hoparlorSeciminiSifirla() {
+    hoparlorIstek = nil
+    hoparlorGeriKoyma = 0
   }
 
   private static func hoparlorAcik() -> Bool {
@@ -96,6 +153,7 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
       // Gelen cagri: sesi CallKit acana kadar WebRTC beklesin.
       rtc.useManualAudio = true
       rtc.isAudioEnabled = false
+      hoparlorSeciminiSifirla()
       result(nil)
 
     case "callkitSesAktif":
@@ -112,6 +170,7 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
         sesAcik = false
       }
       rtc.isAudioEnabled = false
+      hoparlorSeciminiSifirla()
       result(nil)
 
     case "otomatikSeseDon":
@@ -122,6 +181,7 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
       }
       rtc.useManualAudio = false
       rtc.isAudioEnabled = true
+      hoparlorSeciminiSifirla()
       result(nil)
 
     case "hoparlor":
@@ -129,13 +189,9 @@ public class RcSoftphonePlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate 
       // oturumu yeniden kurup setActive dener; CallKit oturumu yonettigi icin
       // sessizce basarisiz oluyordu (uygulamadaki Hoparlor butonu calismiyordu).
       let ac = (call.arguments as? Bool) ?? false
-      rtc.lockForConfiguration()
-      defer { rtc.unlockForConfiguration() }
-      do {
-        try rtc.overrideOutputAudioPort(ac ? .speaker : .none)
-      } catch {
-        NSLog("[rc_softphone] hoparlor degistirilemedi: \(error)")
-      }
+      hoparlorIstek = ac
+      hoparlorGeriKoyma = 0
+      hoparlorYonlendir(ac)
       result(RcSoftphonePlugin.hoparlorAcik())
 
     case "hoparlorAcikMi":

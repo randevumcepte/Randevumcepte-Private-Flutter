@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:randevu_sistem/dil/dil.dart';
 import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/marka.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -986,7 +987,7 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('Randevumcepte Patron Asistanı ile hazırlandı',
+                pw.Text('${Marka.ad} Patron Asistanı ile hazırlandı',
                     style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
                 pw.Text(tarih, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
               ],

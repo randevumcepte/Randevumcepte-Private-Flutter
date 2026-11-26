@@ -1,0 +1,276 @@
+{
+  "project_info": {
+    "project_number": "279726530132",
+    "project_id": "randevumcepte-uygulamala-5ff4d",
+    "storage_bucket": "randevumcepte-uygulamala-5ff4d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:32537cae8b1eaf129f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.cerenceviz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:5600fccbacc1a6639f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.drmetestetik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:faeff5f4d5ab4e339f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.escaladeinc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:8768bad0d5b26dc09f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.esemavci"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:33faa72e23f641b89f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.esrakocak"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:07a8835d4a5e29429f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.eymlife"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:3e42422e1b5af98f9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.ezgitakmaz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:cae43b6367cb36069f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.gulayersoy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:5bb41c61c80e89989f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.randevumcepteprivate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:a25f92b9c38170fd9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.realform"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:5fd414022c60657e9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.senailbeauty"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:ce6140df4d41949b9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.shemallbeauty"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:ea21ab8ca7dc83ed9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.vionnaguzellik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279726530132:android:0e63e243fd2e661a9f57c1",
+        "android_client_info": {
+          "package_name": "com.randevumcepte.yasemintuzun"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLLIyVqkInr-GsrCkFrgLTRw_nEx81Ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

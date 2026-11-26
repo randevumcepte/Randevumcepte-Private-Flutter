@@ -1,0 +1,14 @@
+{
+  "kod": "KOD",
+  "ad": "Isletme Adi",
+  "paket": "com.randevumcepte.KOD",
+  "surum": "1.0.0",
+  "build": 1,
+  "ios_profil": "",
+  "ikon": "ikon.png",
+  "logo": "ikon.png",
+  "splash": "ikon.png",
+  "ikon_arka_plan_ios": "#FFFFFF",
+  "splash_renk": "#ffffff",
+  "softphone": false
+}

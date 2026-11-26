@@ -1,4 +1,5 @@
 ﻿import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/marka.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
@@ -110,7 +111,7 @@ class _BildirimPageState extends State<BildirimPage> {
                         },
                         errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
                           return Image.asset(
-                            'images/fizyofly.png', // Replace with your image path
+                            Marka.logo,
                             width: 30, // Adjust width as needed
                             height: 30, // Adjust height as needed
                           );

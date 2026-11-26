@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Beyaz etiket marka logosu: uygulamanın paket adından (applicationId) seçilir.
@@ -49,11 +52,33 @@ class Marka {
   /// Açılış, giriş, kayıt ve şifre ekranlarında gösterilen logo
   static String logo = _varsayilan;
 
+  /// Aktif marka kodu (markalar/KOD), config yoksa paket adının son parçası.
+  static String kod = '';
+
   /// main() içinde runApp'ten önce bir kez çağrılır.
+  /// Önce tool/marka.sh'in ürettiği assets/marka/aktif.json (tek config),
+  /// yoksa paket adına göre aşağıdaki tablo.
   static Future<void> yukle() async {
+    try {
+      final j = jsonDecode(await rootBundle.loadString('assets/marka/aktif.json'));
+      if (j is Map) {
+        final k = (j['kod'] ?? '').toString();
+        final l = (j['logo'] ?? '').toString();
+        final a = (j['ad'] ?? '').toString();
+        if (k.isNotEmpty && l.isNotEmpty && a.isNotEmpty) {
+          kod = k;
+          logo = l;
+          ad = a;
+          return;
+        }
+      }
+    } catch (_) {
+      // Config yok (eski kurulum) -> paket adı tablosu.
+    }
     try {
       final bilgi = await PackageInfo.fromPlatform();
       final marka = bilgi.packageName.split('.').last;
+      kod = marka;
       logo = _logolar[marka] ?? _varsayilan;
       final uygulamaAdi = bilgi.appName.trim();
       ad = _adlar[marka] ?? (uygulamaAdi.isEmpty ? ad : uygulamaAdi);

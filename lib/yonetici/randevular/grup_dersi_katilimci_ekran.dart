@@ -350,7 +350,7 @@ class _MusteriAraSheetState extends State<_MusteriAraSheet> {
     }
     setState(() { _ara = true; _hata = null; });
     try {
-      final r = await musterilistegetirSayfali('', widget.salonId, q, '389', '0');
+      final r = await musterilistegetirSayfali('', widget.salonId, q, '200', '0');
       if (!mounted) return;
       setState(() { _sonuc = r; _ara = false; });
     } catch (e) {

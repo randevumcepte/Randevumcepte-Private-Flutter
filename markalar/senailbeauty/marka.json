@@ -1,0 +1,14 @@
+{
+  "kod": "senailbeauty",
+  "ad": "Senail Beauty",
+  "paket": "com.randevumcepte.senailbeauty",
+  "surum": "1.0.6",
+  "build": 8,
+  "ios_profil": "Senail2026",
+  "ikon": "ikon.png",
+  "logo": "images/senailbeauty.png",
+  "splash": "images/senailbeauty.png",
+  "ikon_arka_plan_ios": "#FFFFFF",
+  "splash_renk": "#ffffff",
+  "softphone": false
+}

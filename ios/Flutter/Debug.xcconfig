@@ -1,3 +1,5 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
     
+// Marka (tool/marka.sh gec <kod> uretir; git disi). Generated.xcconfig SONRASI: surum de buradan.
+#include? "Marka.xcconfig"

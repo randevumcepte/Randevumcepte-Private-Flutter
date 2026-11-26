@@ -5,6 +5,17 @@ val keystoreProperties = Properties().apply {
         load(keystorePropertiesFile.inputStream())
     }
 }
+// Marka: tool/marka.sh gec <kod> -> android/marka.properties (git disi, uretilir).
+// Kaynak: markalar/<kod>/marka.json. Burada marka degeri ELLE yazilmaz.
+val markaPropsFile = rootProject.file("marka.properties")
+val markaProps = Properties().apply {
+    if (markaPropsFile.exists()) {
+        markaPropsFile.reader(Charsets.UTF_8).use { load(it) }
+    }
+}
+fun marka(anahtar: String): String = markaProps.getProperty(anahtar)
+    ?: throw GradleException("android/marka.properties eksik ($anahtar): once 'tool/marka.sh gec <kod>' calistir")
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -14,7 +25,8 @@ plugins {
 }
 
 android {
-    namespace = "com.randevumcepte.olanail"
+    // Sabit kod paketi (MainActivity burada). Markadan bagimsiz; magaza kimligi applicationId.
+    namespace = "com.randevumcepte.randevusistem"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -30,14 +42,14 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.randevumcepte.olanail"
+        applicationId = marka("paket")
+        manifestPlaceholders["markaAd"] = marka("ad")
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = marka("build").toInt()
+        versionName = marka("surum")
     }
 
     signingConfigs {

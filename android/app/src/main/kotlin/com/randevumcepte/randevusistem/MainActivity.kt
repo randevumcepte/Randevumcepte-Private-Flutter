@@ -1,4 +1,4 @@
-package com.randevumcepte.olanail
+package com.randevumcepte.randevusistem
 
 import io.flutter.embedding.android.FlutterActivity
 

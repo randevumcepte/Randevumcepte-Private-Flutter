@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:randevu_sistem/dil/material.dart';
+import 'package:randevu_sistem/marka.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'wa_asistan_api.dart';
@@ -1142,7 +1143,7 @@ class _WaSohbetDetayState extends State<WaSohbetDetay> {
     final bildirim = [
       if (ulasti.isNotEmpty) 'Telefonuna ulaştı: ${ulasti.join(', ')}',
       'Panelde zil bildirimi olarak görünür.',
-      if (ulasmadi.isNotEmpty) 'Ulaşmadı (Randevumcepte uygulamasında oturum yok ya da bildirim izni kapalı): ${ulasmadi.join(', ')}',
+      if (ulasmadi.isNotEmpty) 'Ulaşmadı (${Marka.ad} uygulamasında oturum yok ya da bildirim izni kapalı): ${ulasmadi.join(', ')}',
       if (eski.isNotEmpty) 'Bildirim gönderilenler: ${eski.join(', ')}',
       if ('${t['ozet'] ?? ''}'.isNotEmpty) 'Müşteri: “${'${t['ozet']}'.length > 160 ? '${t['ozet']}'.substring(0, 160) : t['ozet']}”',
     ].join('\n');

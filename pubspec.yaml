@@ -1,7 +1,9 @@
 name: randevu_sistem
-description: Ola Nail Randevu Sistemi Uygulaması
+description: "Randevumcepte beyaz etiket randevu uygulamasi. Marka icin tool/marka.sh ve markalar/ klasoru."
 publish_to: 'none'
-version: 1.0.5+3
+# Gercek surum/build MARKAYA ozel: markalar/<kod>/marka.json (surum, build).
+# Android build.gradle.kts ve iOS Marka.xcconfig oradan okur; bu satir kullanilmaz.
+version: 1.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -57,6 +59,7 @@ dependencies:
   # Utils & Helpers
   provider: ^6.1.5+1
   shared_preferences: ^2.0.7
+  flutter_secure_storage: ^10.3.4
   fluttertoast: ^8.2.12
   path_provider: ^2.1.1
   flutter_screenutil: ^5.7.0
@@ -140,7 +143,6 @@ dependencies:
   kalender: ^0.15.0
   fl_chart: ^0.68.0  # veya 0.69.0
   signature: ^6.4.0
-  flutter_secure_storage: ^10.3.4
 
 
 dev_dependencies:
@@ -158,8 +160,7 @@ flutter:
   assets:
     - images/
     - assets/dil/
-    - images/olanail.png
-    - images/olanailicon.png
+    - assets/marka/
     - images/ring.mp3
     - images/bip6.wav
     - images/announcement.png
@@ -167,16 +168,5 @@ flutter:
     - assets/google_fonts/Poppins-Regular.ttf
     - assets/google_fonts/Poppins-Bold.ttf
 
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "images/olanailicon.png"
-  remove_alpha_ios: true
-  background_color_ios: "#FFFFFF"  # <-- Ola Nail logoya uygun renk kodu (örn: pembe #FFC0CB). Kendi logo rengini gir.
-
-flutter_native_splash:
-  color: "#ffffff"
-  image: images/olanail.png
-  android: true
-  ios: true
-  web: false
+# Ikon ve acilis (splash) ayarlari MARKAYA gore tool/marka.sh tarafindan
+# markalar/<kod>/marka.json'dan uretilip calistirilir; burada marka yazilmaz.

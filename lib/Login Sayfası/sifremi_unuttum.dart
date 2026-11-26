@@ -386,7 +386,7 @@ TextEditingController ceptelefon = TextEditingController();
       'cep_telefon':tel,
       'sms_baslik' : '',
       'sms_apikey' : '',
-      'salonidler' : '236',
+      'salonidler' : '', // Salon, backend'de appBundle'dan cozulur (salonlar.app_bundle); kodda marka id'si yok.
       'sms_username':'',
       'sms_secret':'',
       'isletmeadi': Marka.ad,
