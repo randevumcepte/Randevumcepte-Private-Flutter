@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/yonetici/diger/raporlar/senet_guncelle.dart';
 
 import '../menu/senetler/senetekle.dart';

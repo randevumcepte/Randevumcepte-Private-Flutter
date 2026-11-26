@@ -5,7 +5,7 @@
 // yazdirma (Yazdir) + paylasma/indirme aksiyonlarini hazir sunar.
 // Dosya URL'den bytes olarak cekilir (uzanti zaten .pdf olmali).
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:printing/printing.dart';
 

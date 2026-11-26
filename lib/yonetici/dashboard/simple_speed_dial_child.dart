@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 
 const double figmaDesingHeight=812.0;
 const double figmaDesingWidth=375.0;

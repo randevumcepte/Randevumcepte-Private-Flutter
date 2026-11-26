@@ -1,7 +1,8 @@
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -257,7 +258,7 @@ class _KampanyaDetayState extends State<KampanyaDetay>{
         isloading = false;
       });
       Fluttertoast.showToast(
-        msg: "Mesajınız gönderildi!",
+        msg: Dil.cevir("Mesajınız gönderildi!"),
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.green,

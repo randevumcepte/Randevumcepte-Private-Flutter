@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+ import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';
 import 'musteri_bilgi.dart';

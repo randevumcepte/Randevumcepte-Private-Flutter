@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 
 typedef AppBarBuilder = Widget Function(
     BuildContext context,

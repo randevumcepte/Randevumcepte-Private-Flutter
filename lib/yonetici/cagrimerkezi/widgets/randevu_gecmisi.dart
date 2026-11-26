@@ -2,7 +2,7 @@
 // Web paneldeki "Randevu Gecmisi" popup'inin mobil karsiligi.
 // CAGRI gecmisi (ses/not) ile KARISTIRMA — bu RANDEVU gecmisi.
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import '../cagri_api.dart';
 import '../cagri_models.dart';
 

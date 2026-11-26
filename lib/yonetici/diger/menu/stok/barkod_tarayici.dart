@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Modern barkod tarayıcı — mobile_scanner üzerine ince bir kabuk.

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:csc_picker/csc_picker.dart';
 import 'package:randevu_sistem/Frontend/yukseltbutonu.dart';

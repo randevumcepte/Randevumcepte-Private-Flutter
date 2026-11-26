@@ -1,5 +1,5 @@
 /*import 'package:circular_menu/circular_menu.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/yonetici/adisyonlar/satislar/tahsilat.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/musteriler/yeni_musteri.dart';

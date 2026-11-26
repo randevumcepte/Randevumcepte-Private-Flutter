@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import '../diger/menu/senetler/yazdir.dart';
 import 'satislar/tahsilat.dart';

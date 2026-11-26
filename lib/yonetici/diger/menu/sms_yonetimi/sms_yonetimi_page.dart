@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'sms_yonetimi_state.dart';
 import 'tabs/sms_ayarlari_tab.dart';

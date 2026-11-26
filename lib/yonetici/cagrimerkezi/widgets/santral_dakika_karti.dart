@@ -4,7 +4,7 @@
 //  - Personel (rol 5): yalniz kendi dahilisinin giden dakikasi; havuz bittiyse uyari.
 //  - Salonda santral hatti da tanimli dakika da yoksa hic yer kaplamaz.
 // [kompakt]: Cagri Merkezi sekmelerinin ustunde tek satirlik serit.
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 import '../cagri_api.dart';

@@ -5,7 +5,7 @@
 // Yalnız salon yöneticileri (rol < 5) — backend aynı kapıyı uygular.
 // "WhatsApp Asistanı" talep push'una tıklanınca ilgili sohbet doğrudan açılır (acilacakSohbetId).
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'wa_asistan_api.dart';
 import 'wa_widgets.dart';

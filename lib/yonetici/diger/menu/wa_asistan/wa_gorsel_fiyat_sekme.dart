@@ -2,7 +2,7 @@
 // Ana işlem: kural yoksa hizmet listesinden OTOMATİK eşleşme (WaGorselDanisman::otomatikKurallar; asistan da aynısını kullanır).
 // Fiyat deneme: web'deki hesapla() ile aynı hesap ve müşteriye gidecek metin ("-den başlıyor" + eksik ek notu dahil).
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 

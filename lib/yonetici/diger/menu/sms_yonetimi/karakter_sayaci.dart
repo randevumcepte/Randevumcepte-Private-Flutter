@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 /// Web'deki SMS karakter sayacı ile aynı kuralları uygular.
 class KarakterSayaci extends StatelessWidget {

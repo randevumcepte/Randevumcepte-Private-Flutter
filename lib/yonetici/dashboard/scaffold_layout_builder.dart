@@ -1,6 +1,6 @@
 ﻿import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 typedef AppBarAnimatedBuilder = Widget Function(
     BuildContext context,

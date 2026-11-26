@@ -1,7 +1,7 @@
 
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'fiyat.dart';
 

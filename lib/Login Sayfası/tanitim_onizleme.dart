@@ -9,7 +9,7 @@
 // NOT: Görsel + renk mantığı tanitim.dart ile aynıdır; burada butonlar statiktir.
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/theme/logo_renk.dart';
 
 void main() {

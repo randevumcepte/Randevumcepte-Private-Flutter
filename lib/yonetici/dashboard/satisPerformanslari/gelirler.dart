@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 
 
 class GelirlerDashboard extends StatefulWidget {

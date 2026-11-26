@@ -1,8 +1,8 @@
 
 import 'dart:developer';
 
-import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
 import 'package:randevu_sistem/Models/katilimcilar.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 

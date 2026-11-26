@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// Reklam Raporu — web reklam-detay-modal paritesi.

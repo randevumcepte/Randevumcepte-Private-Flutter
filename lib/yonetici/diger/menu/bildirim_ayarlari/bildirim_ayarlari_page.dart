@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 
 /// Ayarlar > Bildirim Yönetim Merkezi (web paneli "Bildirim Yönetim Merkezi" ile aynı).

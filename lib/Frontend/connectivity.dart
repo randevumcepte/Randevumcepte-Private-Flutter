@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 
 class ConnectivityService with ChangeNotifier {
 /*  final Connectivity _connectivity = Connectivity();

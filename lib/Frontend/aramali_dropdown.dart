@@ -6,7 +6,7 @@ export 'package:dropdown_button2/dropdown_button2.dart'
         DropdownStyleData,
         MenuItemStyleData,
         DropdownSearchData;
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/dil/dil.dart';
 
 /// Uygulama genelinde kullanilan ortak "aranabilir" dropdown bilesenleri.

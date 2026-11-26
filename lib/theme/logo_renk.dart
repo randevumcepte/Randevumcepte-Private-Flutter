@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:palette_generator/palette_generator.dart';
 
 /// Salon logosundan otomatik türetilen renk paleti.

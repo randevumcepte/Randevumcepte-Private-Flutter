@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Models/tedarikci.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/Models/urun_kategorisi.dart';

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 
 class IndexedStackState with ChangeNotifier {
   int _selectedIndex = 0; // Private variable to hold the current index

@@ -2,7 +2,7 @@
 // Bu kampanyanın KPI'ları (Ulaşılan / Açtı / Randevu / Gelen / Kazanç / İndirim), dönemi ve kampanyayı
 // alan müşteriler. Backend: GET /api/v1/wa-asistan/reklam-kazanc?reklam_id=<id>&gun=0 (tüm zamanlar).
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'wa_asistan_api.dart';
 import 'wa_asistan_page.dart';

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/seanstakibi/seansduzenle.dart';
 
 class SeansDetay extends StatefulWidget {

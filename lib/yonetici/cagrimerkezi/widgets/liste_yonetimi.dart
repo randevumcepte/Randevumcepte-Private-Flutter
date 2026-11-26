@@ -3,7 +3,7 @@
 // liste durumu (Pasife Al / Arsivle / Aktif Yap), sonuc segmentleri (sayim), segment Indir (CSV paylas),
 // Secili Segmenti Tasi (yeni listeye baska personele), Sonuc Alinamayanlari Aktar (toplu).
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 

@@ -56,6 +56,9 @@ class Dil {
   /// Etkin dil
   static String get kod => (!acik || !diller.any((d) => d.kod == _secili)) ? 'tr' : _secili;
   static Locale get locale => Locale(kod);
+
+  /// Ses tanıma / seslendirme dili (Patron AI)
+  static String get sesDili => const {'en': 'en-US', 'ru': 'ru-RU', 'de': 'de-DE'}[kod] ?? 'tr-TR';
   static DilSecenek? get secili {
     for (final d in diller) {
       if (d.kod == kod) return d;

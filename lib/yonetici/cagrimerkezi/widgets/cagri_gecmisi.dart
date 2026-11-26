@@ -2,7 +2,7 @@
 // santralraporlari.dart'taki audioplayers desenini izler.
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import '../cagri_api.dart';

@@ -8,7 +8,7 @@
 // Menu gate'i (diger_page.dart): uyelik_turu == 3.
 // Arama: WebRTC YOK — Bria (santral originate) uzerinden (alt ekranlarda).
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:randevu_sistem/Frontend/dialpad.dart';
 import 'package:randevu_sistem/Models/user.dart';

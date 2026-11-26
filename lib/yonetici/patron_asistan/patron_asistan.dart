@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/dil.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -108,8 +109,8 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
       }
     } catch (_) {}
     try {
-      await _tts.setLanguage('tr-TR');
-      await _erkekSesSec(); // erkek Turkce ses (sesli randevu ile ayni)
+      await _tts.setLanguage(Dil.sesDili); // personel kendi dilini seçtiyse o dilde konuşur
+      if (Dil.kod == 'tr') await _erkekSesSec(); // erkek Turkce ses (sesli randevu ile ayni)
       await _tts.setSpeechRate(0.46);
       await _tts.setPitch(1.0);
       await _tts.awaitSpeakCompletion(true);
@@ -215,7 +216,7 @@ class _PatronAsistanEkraniState extends State<PatronAsistanEkrani>
         // (motor hic bitirmezse mikrofon sonsuza acik kalmasin).
         listenFor: const Duration(seconds: 60),
         listenOptions: stt.SpeechListenOptions(
-          localeId: 'tr_TR',
+          localeId: Dil.sesDili.replaceAll('-', '_'),
           partialResults: true,
           cancelOnError: true,
           autoPunctuation: false,

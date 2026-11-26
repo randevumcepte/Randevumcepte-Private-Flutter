@@ -1,7 +1,7 @@
 // Gun sekmeli + egitmen filtreli kompakt ders slotu secici (bottom sheet).
 // Paket ve hizmet satis ekranlarinda ortak kullanilir (studyo modu otomatik ders plani).
 // Donus: onaylanan sablon id kumesi (Set<int>) veya null (kapatildi).
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Models/grup_dersi.dart';
 
 class DersSlotSecici extends StatefulWidget {

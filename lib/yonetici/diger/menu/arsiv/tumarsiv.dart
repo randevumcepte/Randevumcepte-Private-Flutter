@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/theme/premium_components.dart';
 import 'arsiv_kart_liste.dart';
 

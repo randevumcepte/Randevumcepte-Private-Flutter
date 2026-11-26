@@ -1,5 +1,5 @@
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 class SatisYapilmadiNot extends StatefulWidget {
     const SatisYapilmadiNot({Key? key}) : super(key: key);

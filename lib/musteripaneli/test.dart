@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/musteripaneli/anasayfa/anasayfa.dart';
 import 'package:video_player/video_player.dart';
 

@@ -1,6 +1,6 @@
 
-import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:randevu_sistem/dil/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
 import 'package:randevu_sistem/Models/etkinlikler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';

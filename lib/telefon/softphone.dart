@@ -8,7 +8,7 @@
 // KURAL: bu dosya ve paket disindaki her cagri, kapaliyken no-op olmali ve
 // her zaman derlenebilir kalmali. Yarim is yalnizca packages/rc_softphone'da.
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'softphone_kayit.dart';
 

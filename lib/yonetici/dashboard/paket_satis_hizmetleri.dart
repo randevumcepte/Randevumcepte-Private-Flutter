@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/Models/paket_hizmetleri.dart';
 import 'package:randevu_sistem/Models/paketler.dart';

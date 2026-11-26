@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/yonetici/diger/kurulum/S%C3%BCre/sure.dart';
 
 class KadinlarSure extends StatefulWidget {

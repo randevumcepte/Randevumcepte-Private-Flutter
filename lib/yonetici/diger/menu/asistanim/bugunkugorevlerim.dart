@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'gorev_list_view.dart';
 
 class BugunlukGorevler extends StatelessWidget {

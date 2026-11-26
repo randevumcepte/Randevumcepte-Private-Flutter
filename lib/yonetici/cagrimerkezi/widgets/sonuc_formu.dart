@@ -5,7 +5,7 @@
 //     takvim _IslemSheet ve liste detay _MusteriDetaySheet bunu kullanir.
 // Her ikisi de ayni form mantigini (CagriApi.notEkle) paylasir.
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';

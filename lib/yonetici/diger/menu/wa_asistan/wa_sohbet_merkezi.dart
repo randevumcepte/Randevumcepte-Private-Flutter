@@ -3,7 +3,7 @@
 // (Bekleyen / Tümü / Personel yazdı). Yöneticiler tam WhatsApp Asistanı sayfasını kullanır (Sohbetler sekmesi aynı ekran).
 // "Sohbete katılsın" yetkisi varsa sohbet ekranında mesaj kutusu çıkar; backend aynı yetkiyi uygular.
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'wa_asistan_page.dart';
 import 'wa_sohbetler_sekme.dart';

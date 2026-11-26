@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text, TextSpan;
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/yonetici/diger/menu/kampanya/kampanyalar.dart';
 

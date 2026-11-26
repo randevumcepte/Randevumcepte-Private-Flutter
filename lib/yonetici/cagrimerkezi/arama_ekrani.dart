@@ -2,7 +2,7 @@
 // Liste kartlari (ilerleme) + zamani gelen geri-arama hatirlatmalari.
 
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'cagri_api.dart';

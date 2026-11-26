@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Backend/backend.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/kampanya/reklam_ekle_sihirbaz.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/kampanya/reklam_raporu.dart';

@@ -1,6 +1,6 @@
 // WhatsApp Asistanı > Genel Bakış + Kazandırdıkları sekmeleri (web: genelYukle / kazandirdiklariHtml).
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'wa_asistan_api.dart';
 import 'wa_asistan_page.dart';

@@ -3,7 +3,7 @@
 // yontemi secilir -> CagriApi.hizliSatis GERCEK satis/adisyon olusturur (kasa).
 // Kaydedilirse satis tutarini (double) dondurur; cagiran durum=7 isaretler.
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 
 import 'package:randevu_sistem/theme/app_tokens.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';

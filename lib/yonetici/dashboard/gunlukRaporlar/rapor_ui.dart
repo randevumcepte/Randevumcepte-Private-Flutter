@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
 
 /// Günlük rapor sayfaları (Randevular, Ön Görüşme, Paket/Ürün Satışı,

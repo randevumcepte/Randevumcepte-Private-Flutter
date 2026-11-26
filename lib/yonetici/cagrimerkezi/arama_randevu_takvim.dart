@@ -10,7 +10,7 @@
 // Arama: WebRTC YOK. CagriApi.aramaBaslat -> santral AMI originate -> personelin
 // Bria dahilisi calar -> acinca musteriye baglanir (numara cihaza gitmez, KVKK).
 
-import 'package:flutter/material.dart';
+import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/Frontend/aramali_dropdown.dart';
 import 'package:randevu_sistem/yonetici/randevular/appointment-editor.dart';
 import 'package:randevu_sistem/yonetici/randevular/saat_secici.dart';
