@@ -169,10 +169,9 @@ packages:
   flutter_callkit_incoming:
     dependency: "direct main"
     description:
-      name: flutter_callkit_incoming
-      sha256: "993fb0f0cd990961072f0d13ff815a91773f92bfa1895be17d3366b2225ec9cd"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../flutter_callkit_incoming"
+      relative: true
+    source: path
     version: "2.5.8"
   flutter_test:
     dependency: transitive
@@ -515,10 +514,9 @@ packages:
   sip_ua:
     dependency: "direct main"
     description:
-      name: sip_ua
-      sha256: fb4d64902aa949f8940061932cbbb6cceb1ecab8560f4d87dd5165a6d528934a
-      url: "https://pub.dev"
-    source: hosted
+      path: "../sip_ua"
+      relative: true
+    source: path
     version: "1.0.1"
   sky_engine:
     dependency: transitive

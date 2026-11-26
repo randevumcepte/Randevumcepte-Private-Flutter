@@ -543,6 +543,7 @@ class SipService implements SipUaHelperListener {
           bitisNedeni.value = null;
           _gelenCagriyiKarsila(call);
         } else {
+          _gidenCagriBildirimi();
           _ekraniAc();
         }
         break;
@@ -713,6 +714,23 @@ class SipService implements SipUaHelperListener {
     await FlutterCallkitIncoming.showCallkitIncoming(params);
     // Gec gelen VoIP push ikinci bir CallKit ekrani acmasin.
     IosPush.dartCagrisi(id);
+  }
+
+  /// Android: giden aramada "suren arama" bildirimi + on plan servisi
+  /// (phoneCall|microphone). Bu olmadan uygulamadan cikinca Android
+  /// mikrofonu susturur ve gorusmeyi kesebilir. iOS'ta CallKit'e giden
+  /// arama bildirilmez (ses oturumu akisi degismesin).
+  void _gidenCagriBildirimi() {
+    if (kIsWeb || !Platform.isAndroid) return;
+    final String id = const Uuid().v4();
+    _currentCallkitId = id;
+    FlutterCallkitIncoming.startCall(_callkitParams(
+      id,
+      karsiTarafAdi ?? karsiTarafNumara ?? 'Arama',
+      karsiTarafNumara ?? '',
+    )).catchError((Object e) {
+      if (kDebugMode) debugPrint('[SIP] suren arama bildirimi acilamadi: $e');
+    });
   }
 
   Future<void> _endCallkit() async {
@@ -1005,6 +1023,14 @@ class SipService implements SipUaHelperListener {
       duration: 30000,
       textAccept: 'Cevapla',
       textDecline: 'Reddet',
+      // Android "suren arama" bildirimi (on plan servisi): eklentinin
+      // varsayilanlari Ingilizce ("Calling…", "Hang up").
+      callingNotification: const NotificationParams(
+        showNotification: true,
+        subtitle: 'Görüşme sürüyor',
+        callbackText: 'Kapat',
+        isShowCallback: true,
+      ),
       extra: <String, dynamic>{if (pushtan) 'kaynak': 'softphone_push'},
       android: const AndroidParams(
         isCustomNotification: true,

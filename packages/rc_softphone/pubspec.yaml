@@ -14,7 +14,10 @@ dependencies:
   sip_ua:
     path: ../sip_ua
   flutter_webrtc: ^0.12.12
-  flutter_callkit_incoming: ^2.5.5
+  # 2.5.8 yerel yamali kopya (VoIP on plan servisine microphone tipi)
+  # -> packages/flutter_callkit_incoming/YAMA.md
+  flutter_callkit_incoming:
+    path: ../flutter_callkit_incoming
   uuid: ^4.4.0
   http: ^1.3.0
   shared_preferences: ^2.0.7
