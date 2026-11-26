@@ -7,7 +7,8 @@ class Marka {
   static const String _varsayilan = 'images/randevumcepteicon.png';
 
   static const Map<String, String> _logolar = {
-    'olanail': 'images/olanailicon.png',
+    'olanail': 'images/senailbeauty.png',
+    'senailbeauty': 'images/senailbeauty.png',
     'salooncadde': 'images/salooncaddeicon.png',
     'fizyofly': 'images/fizyoflyic.png',
     'eymlife': 'images/eymlifeicon.png',
@@ -30,7 +31,8 @@ class Marka {
 
   /// Müşteriye giden mesajda (kayıt şifresi) geçen işletme adı. Tabloda olmayan markada uygulamanın telefondaki adı kullanılır.
   static const Map<String, String> _adlar = {
-    'olanail': 'Ola Nail',
+    'olanail': 'Senail Beauty',
+    'senailbeauty': 'Senail Beauty',
     'salooncadde': 'Saloon Cadde',
     'fizyofly': 'FizyoFLY',
     'eymlife': 'EYM Life Güzellik Merkezi',
