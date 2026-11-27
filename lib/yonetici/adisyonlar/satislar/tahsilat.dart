@@ -1299,7 +1299,7 @@ class _TahsilatState extends State<TahsilatEkrani> {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(children: [
                       SizedBox(width: 78, child: Text('${z['tarih']}', style: const TextStyle(fontSize: 11.5))),
-                      Expanded(child: Text('#${z['randevu_id']}', style: const TextStyle(fontSize: 11.5))),
+                      Expanded(child: Text(z['randevu_id'] is num ? '#${z['randevu_id']}' : '${z['randevu_id']}', style: const TextStyle(fontSize: 11.5))),
                       Flexible(
                         flex: 2,
                         child: Text(
