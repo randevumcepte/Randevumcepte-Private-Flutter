@@ -21,6 +21,7 @@ import 'package:randevu_sistem/navigatorkey.dart';
 import 'package:randevu_sistem/telefon/softphone.dart';
 import 'package:randevu_sistem/services/notification_popup.dart';
 import 'package:randevu_sistem/services/notification_router.dart';
+import 'package:randevu_sistem/services/randevu_yanit.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
 
 /// Backend host'u sabit. Build'e göre değişiyorsa burayı tek noktadan değiştir.
@@ -91,6 +92,11 @@ Future<void> rmcNotificationBackgroundHandler(RemoteMessage message) async {
     return;
   }
 
+  // Randevu hatirlatmasi (yeni Android surumune yalniz-veri gelir): "Geliyorum / Gecikeceğim" dugmeli goster
+  if (message.data['goster']?.toString() == '1') {
+    await RandevuYanit.arkaPlandaGoster(Map<String, dynamic>.from(message.data));
+    return;
+  }
 }
 
 /// force_logout durumunda yereldeki oturum anahtarlarini siler. UI'siz calisir,
@@ -227,7 +233,14 @@ class NotificationService {
           if (veri.containsKey('type') || veri.containsKey('deep_link')) {
             final p = NotificationPayload.fromMap(veri);
             await _ensureSalonSelectedForPayload(p);
-            WidgetsBinding.instance.addPostFrameCallback((_) => _handleTap(p));
+            final aksiyon = acilis?.notificationResponse?.actionId ?? '';
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (aksiyon == RandevuYanit.geliyorum || aksiyon == RandevuYanit.gecikecegim) {
+                RandevuYanit.dugmeyeBasildi(aksiyon, p);
+              } else {
+                _handleTap(p);
+              }
+            });
           }
         }
       } catch (e) {
@@ -311,6 +324,11 @@ class NotificationService {
         if (payload == null || payload.isEmpty) return;
         try {
           final data = Map<String, dynamic>.from(jsonDecode(payload));
+          final aksiyon = resp.actionId ?? '';
+          if (aksiyon == RandevuYanit.geliyorum || aksiyon == RandevuYanit.gecikecegim) {
+            RandevuYanit.dugmeyeBasildi(aksiyon, NotificationPayload.fromMap(data));
+            return;
+          }
           _handleTap(NotificationPayload.fromMap(data));
         } catch (e) {
           log('Local notif payload parse hata: $e');
@@ -685,6 +703,8 @@ class NotificationService {
       'salon_id': prefs.getString('notif_salon_id') ?? '',
       'cihaz': cihazId ?? '',
       'app_bundle': appBundle,
+      // aksiyon_v1: bildirimde Geliyorum/Gecikecegim dugmesi; acildi_v1: dokunuldugunu sunucuya bildirir
+      'yetenek': 'aksiyon_v1,acildi_v1',
     };
 
     try {
@@ -832,6 +852,11 @@ class NotificationService {
       return;
     }
 
+    // Musteri randevu bildirimine dokundu: sunucuya bildir (once-bildirim SMS yedegi gonderilmesin)
+    if ((payload.randevuId ?? '').isNotEmpty) {
+      unawaited(NotificationRouter.musteriMi().then((m) { if (m) RandevuYanit.acildiBildir(payload); }));
+    }
+
     // Popup tipleri tıklamada da popup'la açılır
     if (NotificationTypes.isPopup(payload.type)) {
       showPromoNotificationPopup(ctx, payload: payload);
@@ -921,6 +946,7 @@ class NotificationService {
     final title = payload.title ?? n?.title ?? 'Bildirim';
     final body  = payload.body  ?? n?.body  ?? '';
     final sessiz = message.data['sessiz']?.toString() == '1';
+    final dugmeler = RandevuYanit.dugmeli(payload.raw) ? RandevuYanit.aksiyonlar : null;
 
     final channelId = sessiz
         ? _channelSessiz.id
@@ -947,6 +973,7 @@ class NotificationService {
         playSound: !sessiz,
         enableVibration: !sessiz,
         sound: sessiz ? null : _ringSound,
+        actions: dugmeler,
         styleInformation: BigPictureStyleInformation(
           await _resolveBigPicture(payload.image!),
           contentTitle: title,
@@ -968,6 +995,7 @@ class NotificationService {
         playSound: !sessiz,
         enableVibration: !sessiz,
         sound: sessiz ? null : _ringSound,
+        actions: dugmeler,
         styleInformation: BigTextStyleInformation(body, contentTitle: title),
       );
     }
@@ -983,7 +1011,9 @@ class NotificationService {
     );
 
     await _local.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      dugmeler != null
+          ? RandevuYanit.bildirimNo(payload.randevuId)
+          : DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title,
       body,
       NotificationDetails(android: androidDetails, iOS: iosDetails),

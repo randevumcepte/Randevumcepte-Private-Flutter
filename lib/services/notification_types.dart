@@ -35,6 +35,7 @@ class NotificationTypes {
   static const leaveDecision           = 'leave_decision';  // personele: izin karari -> Izinlerim
   static const breakInfo               = 'break_info';      // personele: mola onay / red
   static const adCampaign              = 'ad_campaign';     // reklam kampanyasi bilgisi
+  static const appointmentReply        = 'appointment_reply'; // personele: musteri Geliyorum / Gecikecegim dedi
 
   // Sistem
   static const membershipExpiring      = 'membership_expiring';

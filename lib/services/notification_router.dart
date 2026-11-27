@@ -137,6 +137,7 @@ class NotificationRouter {
       case NotificationTypes.appointmentReminder:
       case NotificationTypes.appointmentReminderHour:
       case NotificationTypes.staffAssigned:
+      case NotificationTypes.appointmentReply:
         return randevu();
       case NotificationTypes.sessionReminder:
       case NotificationTypes.sessionUsed:

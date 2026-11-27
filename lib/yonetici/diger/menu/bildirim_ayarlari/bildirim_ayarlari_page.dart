@@ -241,6 +241,9 @@ class _BildirimAyarlariPageState extends State<BildirimAyarlariPage>
     if (_hatirlatmaSaat(_veri) != _hatirlatmaSaat(_orj)) {
       d['hatirlatma_saat'] = _hatirlatmaSaat(_veri);
     }
+    if (_i(_veri!['push_once_sms']) != _i(_orj?['push_once_sms'])) {
+      d['push_once_sms'] = _i(_veri!['push_once_sms']);
+    }
     return d;
   }
 
@@ -568,6 +571,10 @@ class _BildirimAyarlariPageState extends State<BildirimAyarlariPage>
       ..._durumKartlari(),
       const SizedBox(height: 12),
       _kurallarKarti(),
+      if (_veri?['gelmeme'] is Map) ...[
+        const SizedBox(height: 12),
+        _gelmemeKarti(_veri!['gelmeme'] as Map),
+      ],
     ];
     for (final g in _gruplar(_veri)) {
       final liste = _bildirimler(g);
@@ -930,6 +937,41 @@ class _BildirimAyarlariPageState extends State<BildirimAyarlariPage>
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 1, right: 10),
+                child: Icon(Icons.phone_iphone_rounded, color: _mor, size: 22),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Expanded(
+                        child: Text('Önce uygulama bildirimi, açılmazsa SMS',
+                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                      ),
+                      if (_i(_veri?['push_once_sms']) != _i(_orj?['push_once_sms'])) _degistiNoktasi(),
+                      Switch(
+                        value: _i(_veri?['push_once_sms']) == 1,
+                        activeColor: _mor,
+                        onChanged: (v) => setState(() => _veri!['push_once_sms'] = v ? 1 : 0),
+                      ),
+                    ]),
+                    Text(
+                      'Randevu hatırlatmasında: müşterinin telefonunda uygulamanın yeni sürümü varsa önce '
+                      'bildirim gider. Müşteri 30 dakika içinde bildirimi açmaz ya da "Geliyorum" demezse '
+                      'SMS gönderilir. Açarsa SMS gitmez, kontörünüz harcanmaz.',
+                      style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, height: 1.3),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -948,6 +990,68 @@ class _BildirimAyarlariPageState extends State<BildirimAyarlariPage>
           ),
         ],
       ),
+    );
+  }
+
+  /// "2026-11" -> "Kas 2026"
+  String _ayAdi(dynamic ay) {
+    const adlar = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    final p = ay.toString().split('-');
+    final m = p.length == 2 ? int.tryParse(p[1]) : null;
+    return (m == null || m < 1 || m > 12) ? ay.toString() : '${adlar[m - 1]} ${p[0]}';
+  }
+
+  /// Son 90 gün: randevuya gelmeme oranı ve "Geliyorum" diyenlerde oran.
+  Widget _gelmemeKarti(Map g) {
+    String yuzde(dynamic v) => v == null ? '—' : '%' + v.toString().replaceAll('.', ',');
+    final isaretli = _sayi(g['geldi']) + _sayi(g['gelmedi']);
+    final aylik = (g['aylik'] is List) ? (g['aylik'] as List).whereType<Map>().toList() : <Map>[];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: _kartSusu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [
+          Icon(Icons.insights_rounded, color: _mor, size: 18),
+          SizedBox(width: 8),
+          Text('Randevuya Gelmeme (son 90 gün)',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1F1633))),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          _miniSayi(yuzde(g['oran']), 'Gelmeme oranı', const Color(0xFFFDECEC), const Color(0xFFB91C1C)),
+          const SizedBox(width: 8),
+          _miniSayi(_binlik(_sayi(g['gelmedi'])), 'Gelmedi', const Color(0xFFF4F1FA), const Color(0xFF3B2A5C)),
+          const SizedBox(width: 8),
+          _miniSayi(_binlik(_sayi(g['geldi'])), 'Geldi', const Color(0xFFDCF6E6), const Color(0xFF15803D)),
+        ]),
+        const SizedBox(height: 8),
+        Text(
+          isaretli == 0
+              ? 'Henüz "Geldi / Gelmedi" işaretlenmiş randevu yok. Oran, randevular işaretlendikçe oluşur.'
+              : 'Oran, "Geldi" ya da "Gelmedi" işaretlenmiş onaylı randevulardan hesaplanır. '
+                  '${_binlik(_sayi(g['isaretsiz']))} randevu işaretlenmemiş.',
+          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, height: 1.3),
+        ),
+        if (_sayi(g['yanitli']) > 0) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Hatırlatmaya "Geliyorum" diyen ${_binlik(_sayi(g['yanitli']))} müşteride gelmeme oranı: ${yuzde(g['yanitli_oran'])}',
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF3B2A5C)),
+          ),
+        ],
+        if (aylik.length > 1) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 6, children: [
+            for (final a in aylik)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: const Color(0xFFF4F1FA), borderRadius: BorderRadius.circular(10)),
+                child: Text('${_ayAdi(a['ay'])}: ${yuzde(a['oran'])}',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+              ),
+          ]),
+        ],
+      ]),
     );
   }
 

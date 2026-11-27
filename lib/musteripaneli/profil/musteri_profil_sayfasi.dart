@@ -60,11 +60,17 @@ class _MusteriProfilSayfasiState extends State<MusteriProfilSayfasi> {
     return s == 'null' ? '' : s;
   }
 
+  /// Kampanya / fırsat bildirimleri izni (null: henüz okunmadı)
+  bool? _kampanyaIzni;
+
   @override
   void initState() {
     super.initState();
     _musteriOku();
     _yukle();
+    ProfilApi.get('/musteri-profil/kampanya-izni', _sube).then((r) {
+      if (mounted && ProfilApi.ok(r)) setState(() => _kampanyaIzni = r['kampanya'].toString() == '1');
+    });
     PackageInfo.fromPlatform().then((p) {
       if (mounted) setState(() => _surum = p.version);
     }).catchError((_) {});
@@ -433,6 +439,12 @@ class _MusteriProfilSayfasiState extends State<MusteriProfilSayfasi> {
               if (mounted) setState(() {});
             }),
       MPSatir(
+          ikon: Icons.campaign_rounded,
+          baslik: 'Kampanya Bildirimleri',
+          alt: 'İndirim ve fırsat bildirimleri (randevu bildirimleri hep gelir)',
+          rozet: _kampanyaIzni == null ? null : (_kampanyaIzni! ? 'Açık' : 'Kapalı'),
+          onTap: _kampanyaAyari),
+      MPSatir(
           ikon: Icons.devices_rounded,
           baslik: 'Cihazlarım',
           alt: 'Hesabınızın açık olduğu cihazlar',
@@ -451,6 +463,57 @@ class _MusteriProfilSayfasiState extends State<MusteriProfilSayfasi> {
           alt: 'Hesabınızı kalıcı olarak kaldırın',
           onTap: () => _ac(HesapKaldirma(kullanici: md))),
     ];
+  }
+
+  /// Kampanya bildirimleri ac / kapat. Randevu, ödeme, seans bildirimleri etkilenmez;
+  /// kampanyalar 21:00-09:00 arası gönderilmez (sabah gelir).
+  Future<void> _kampanyaAyari() async {
+    var acik = _kampanyaIzni ?? true;
+    final renk = MusteriPalet.of(context).ana;
+    final yeni = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (c) => StatefulBuilder(
+        builder: (c, ss) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Text('Kampanya Bildirimleri', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Text('İndirim, fırsat, çarkıfelek ve doğum günü bildirimleri. Randevu hatırlatmaları ve '
+                  'diğer bilgilendirmeler her zaman gelir. Kampanya bildirimleri gece 21:00 ile sabah 09:00 '
+                  'arasında gönderilmez.',
+                  style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.black.withValues(alpha: 0.6))),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                activeColor: renk,
+                title: const Text('Kampanya bildirimleri gelsin', style: TextStyle(fontWeight: FontWeight.w600)),
+                value: acik,
+                onChanged: (v) => ss(() => acik = v),
+              ),
+              const SizedBox(height: 6),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: renk, padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                onPressed: () => Navigator.pop(c, acik),
+                child: const Text('Kaydet'),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+    if (yeni == null || yeni == _kampanyaIzni || !mounted) return;
+    final r = await ProfilApi.post('/musteri-profil/kampanya-izni', _sube, {'kampanya': yeni ? 1 : 0});
+    if (!mounted) return;
+    if (ProfilApi.ok(r)) {
+      setState(() => _kampanyaIzni = r['kampanya'].toString() == '1');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text((r['hata'] ?? 'Kaydedilemedi.').toString())));
+    }
   }
 
   /// Tek eylem: kartın tamamına dokununca çıkış

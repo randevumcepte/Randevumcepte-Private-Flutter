@@ -9,6 +9,7 @@ import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
 import 'package:randevu_sistem/Models/randevular.dart';
 import 'package:randevu_sistem/randevualma/randevual.dart';
 import 'package:randevu_sistem/theme/app_tokens.dart';
+import 'package:randevu_sistem/services/randevu_yanit.dart';
 
 class MusteriRandevulari extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -142,6 +143,14 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
   void _goToPage(int page) {
     if (_ds == null) return;
     _ds!.setPage(page, _selectedDurum, _selectedOlusturma, _selectedTarih);
+  }
+
+  /// Yaklasan (onay bekleyen / onayli, saati gelmemis) randevuya Geliyorum / Gecikeceğim cevabi verilebilir.
+  bool _yanitVerilebilir(Randevu r) {
+    if (r.durum != '0' && r.durum != '1') return false;
+    if (!(widget.isletmebilgi is Map)) return false;
+    final dt = _parseTarih(r.tarih);
+    return dt == null || !dt.isBefore(DateTime.now());
   }
 
   // Sadece aktif (onay bekleyen/onayli), tahsilati eklenmemis ve gelecek tarihli
@@ -1173,6 +1182,14 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
                     icon: Icons.history_rounded,
                     label: 'Oluşturulma',
                     value: _safeText(r.olusturulma)),
+                // Yaklasan randevu: salona "Geliyorum / Gecikeceğim" haberi
+                if (_yanitVerilebilir(r)) ...[
+                  const SizedBox(height: 18),
+                  RandevuYanitKarti(
+                    randevuId: r.id.toString(),
+                    salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id'].toString() : '',
+                  ),
+                ],
                 if (_iptalEdilebilir(r)) ...[
                   const SizedBox(height: 22),
                   SizedBox(

@@ -25,6 +25,11 @@ void main() {
       expect(i?.target, NotificationIntent.adminAppointment);
       expect(i?.params['randevu_id'], '77');
     });
+    test('musteri cevabi (Geliyorum / Gecikecegim) personelde o randevuyu acar', () {
+      final i = _hedef({'type': 'appointment_reply', 'randevu_id': '42', 'deep_link': 'appointment_detail?randevu_id=42'}, musteri: false);
+      expect(i?.target, NotificationIntent.adminAppointment);
+      expect(i?.params['randevu_id'], '42');
+    });
     test('randevu numarasi yoksa: musteri Randevularim sekmesi, personel Takvim', () {
       expect(_hedef({'type': 'appointment_cancelled', 'randevu_id': ''}, musteri: true)?.target,
           NotificationIntent.appointments);
