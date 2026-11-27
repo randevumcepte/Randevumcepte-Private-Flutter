@@ -749,8 +749,9 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
       setState(() => _bit = null);
       return;
     }
-    // Başlangıç geçmişe alınamaz (geçmiş randevulara ikram dağıtılmaz); mevcut başlangıç korunabilir
-    final ilk = _bas != null && _bas!.isBefore(_bugun) ? DateTime(_bas!.year, _bas!.month, _bas!.day) : _bugun;
+    // Başlangıç geçmişe alınabilir (sistemi önceden kullanan işletme kampanyayı geriye dönük açar;
+    // o tarihten beri "Geldi" ziyaretler sayılır). En fazla 5 yıl geriye.
+    final ilk = DateTime(_bugun.year - 5, _bugun.month, _bugun.day);
     final basVars = _bas != null && !_bas!.isBefore(ilk) ? _bas! : _bugun;
     final aralik = await showDateRangePicker(
       context: context,
@@ -800,7 +801,7 @@ class _KampanyaAyarlariSayfasiState extends State<KampanyaAyarlariSayfasi> {
             '• X + 1: Müşteri seçtiğiniz hizmeti belirlediğiniz adet kadar ücretli alınca hediye hizmet kazanır.\n'
             '• Yüzde indirim kampanyaları için Kampanyalar bölümünü kullanın.\n\n'
             '• Sayım "Geldi" işaretli ücretli randevulara göre yapılır; paket/seanslı satış ve telafi seansları sayılmaz.\n'
-            '• Yalnız kampanya tarihleri içindeki ziyaretler sayılır; geçmiş randevulara dağıtılmaz.\n'
+            '• Yalnız kampanya tarihleri içindeki ziyaretler sayılır. Başlangıcı geçmiş bir tarih seçerseniz o tarihten beri gelinen ziyaretler de sayılır.\n'
             '• Müşteri kazandığını uygulamasında görür, ne zaman kullanacağına kendisi karar verir. '
             'Kullanmak istediğinde tahsilat ekranından işlenir.\n'
             '• Kullanım süresi seçerseniz hak, kazanıldığı günden itibaren o süre içinde kullanılmazsa düşer.\n'
