@@ -13,8 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirim_silme.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
 import 'package:randevu_sistem/Frontend/filedownload.dart';
-import '../../diger/menu/randvular/randevularmenu.dart';
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
+import 'package:randevu_sistem/services/notification_router.dart';
+import 'package:randevu_sistem/Backend/yetki.dart';
 
 class BildirimlerScreen extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -656,10 +657,6 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> with BildirimSilm
     }
   }
 
-  bool _randevuVar(SistemBildirimleri b) =>
-      (b.randevuid.isNotEmpty && b.randevuid != 'null' && b.randevuid != '0') ||
-      (b.deepLink ?? '').startsWith('appointment_detail');
-
   bool _pdfVar(SistemBildirimleri b) =>
       b.arsiv != null && b.arsiv is Map && b.arsiv['uzanti'] != null;
 
@@ -668,67 +665,54 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> with BildirimSilm
       b.tip == 'wa_asistan_talep' ||
       b.url.contains('whatsapp-asistan');
 
+  /// Bildirimin gidecegi ekran. Bildirime dokununca acilanla AYNI (NotificationRouter.hedef);
+  /// eski WhatsApp kayitlarinda deep_link yok, sohbet id'si web adresinden alinir.
+  NotificationIntent? _hedef(SistemBildirimleri b) {
+    if (_waBildirimi(b)) {
+      final p = _dlParam(b.deepLink);
+      final sohbet = p['oturum_id'] ??
+          RegExp(r'[?&]sohbet=(\d+)').firstMatch(b.url)?.group(1);
+      return NotificationIntent(NotificationIntent.adminWaAssistant,
+          {'salon_id': p['salon_id'] ?? _salonId, 'oturum_id': sohbet});
+    }
+    return NotificationRouter.hedef(
+      NotificationRouter.listeKaydi(
+          tip: b.tip, deepLink: b.deepLink, randevuId: b.randevuid, salonId: _salonId),
+      isMusteri: false,
+    );
+  }
+
   /// Bildirimin uygulamada gidebilecegi ekranin adi; yoksa null (yalniz metin).
   String? _hedefAdi(SistemBildirimleri b) {
-    final dl = b.deepLink ?? '';
     final rol = widget.kullanicirolu;
-    if (_waBildirimi(b)) {
-      // WhatsApp Asistani sayfasi yalniz rol 1-3'e acik
-      return (rol >= 1 && rol <= 3) ? 'WhatsApp Asistanı' : null;
+    switch (_hedef(b)?.target) {
+      case NotificationIntent.adminWaAssistant:
+        // WhatsApp Asistani sayfasi yalniz rol 1-3'e acik
+        return (rol >= 1 && rol <= 3) ? 'WhatsApp Asistanı' : null;
+      case NotificationIntent.adminAssistantCalls:
+        return (rol >= 1 && rol <= 4) ? 'Asistan Görüşmeleri' : null;
+      case NotificationIntent.adminCustomerDetail:
+        return 'Müşteri Detayı';
+      case NotificationIntent.adminAppointment:
+        return 'Randevu';
+      case NotificationIntent.adminCalendar:
+        return 'Takvim';
+      case NotificationIntent.adminSales:
+        return 'Satış Takibi';
+      case NotificationIntent.adminTeam:
+        return rol < 5 ? 'Ekibim' : null;
+      case NotificationIntent.adminLeaves:
+        return 'İzinlerim';
+      case NotificationIntent.adminIkram:
+        return Yetki.varMi('pazarlama.kampanya_yonet') ? 'İkram Hizmet' : null;
     }
-    if (dl.startsWith('assistant_calls')) {
-      return (rol >= 1 && rol <= 4) ? 'Asistan Görüşmeleri' : null;
-    }
-    if (dl.startsWith('customer_detail') &&
-        (_dlParam(dl)['user_id'] ?? '').isNotEmpty) {
-      return 'Müşteri Detayı';
-    }
-    if (_randevuVar(b)) return 'Randevular';
-    if (_pdfVar(b)) return 'PDF';
-    return null;
+    return _pdfVar(b) ? 'PDF' : null;
   }
 
   Future<void> _hedefeGit(SistemBildirimleri b) async {
-    final dl = b.deepLink ?? '';
-    final p = _dlParam(dl);
-    if (_waBildirimi(b)) {
-      // Eski kayitlarda deep_link yok: sohbet id'si web url'sinden (sohbet=)
-      final sohbet = p['oturum_id'] ??
-          RegExp(r'[?&]sohbet=(\d+)').firstMatch(b.url)?.group(1);
-      NotificationNavigationBus.publish(NotificationIntent(
-        NotificationIntent.adminWaAssistant,
-        {'salon_id': p['salon_id'] ?? _salonId, 'oturum_id': sohbet},
-      ));
-      return;
-    }
-    if (dl.startsWith('assistant_calls')) {
-      NotificationNavigationBus.publish(NotificationIntent(
-        NotificationIntent.adminAssistantCalls,
-        {'salon_id': p['salon_id'] ?? _salonId, 'oturum_id': p['oturum_id']},
-      ));
-      return;
-    }
-    if (dl.startsWith('customer_detail')) {
-      NotificationNavigationBus.publish(NotificationIntent(
-        NotificationIntent.adminCustomerDetail,
-        {'user_id': p['user_id']},
-      ));
-      return;
-    }
-    if (_randevuVar(b)) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RandevularMenu(
-            kullanicirolu: widget.kullanicirolu,
-            isletmebilgi: widget.isletmebilgi,
-            personelid: '',
-            cihazid: '',
-            personel_adi: '',
-            cihaz_adi: '',
-          ),
-        ),
-      );
+    final hedef = _hedef(b);
+    if (hedef != null && hedef.target != NotificationIntent.adminNotifications) {
+      NotificationNavigationBus.publish(hedef);
       return;
     }
     if (_pdfVar(b)) {
@@ -747,6 +731,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> with BildirimSilm
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -761,17 +746,7 @@ class _BildirimlerScreenState extends State<BildirimlerScreen> with BildirimSilm
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
+                // Tutma cizgisini tema ciziyor (showDragHandle); ikincisi cizilmez
                 if (baslik.isNotEmpty) ...[
                   Text(baslik,
                       style: const TextStyle(

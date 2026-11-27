@@ -26,6 +26,8 @@ class NotificationIntent {
   /// Puan Ödüllerim (damga kartları dahil) — damga kartı dolunca gelen push.
   /// params: {'salon_id': String?}
   static const loyaltyPoints = 'loyalty_points';
+  /// Tek randevu: Randevularim acilir ve o randevunun detayi kendiliginden gelir. params: {'randevu_id'}
+  static const appointmentDetail = 'appointment_detail';
 
   /// İşletme tarafı hedefleri
   static const adminCalendar      = 'admin_calendar';
@@ -39,6 +41,14 @@ class NotificationIntent {
   static const adminAssistantCalls = 'admin_assistant_calls';
   // WhatsApp asistani talep bildirimi -> Diger > WhatsApp Asistani (ilgili sohbet)
   static const adminWaAssistant = 'admin_wa_assistant';
+  /// Tek randevu (isletme): Randevular acilir, o randevunun detay penceresi gelir. params: {'randevu_id'}
+  static const adminAppointment = 'admin_appointment';
+  /// Profil > Ekibim (izin / mola talepleri). Yalniz yonetici.
+  static const adminTeam = 'admin_team';
+  /// Profil > Izinlerim (izin karari)
+  static const adminLeaves = 'admin_leaves';
+  /// Ikram Hizmet (damga karti) yonetimi
+  static const adminIkram = 'admin_ikram';
 }
 
 /// Pub-sub. Router publish eder, altbar dinler ve consume eder.

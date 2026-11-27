@@ -174,7 +174,20 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
         ));
         break;
       case NotificationIntent.appointments:
+        // Ustte acik sayfa varsa once kapat: yoksa sekme arkada degisir, kullanici hicbir sey gormez
+        _ustSayfalariKapat();
         setState(() => _selectedTab = 1);
+        break;
+      case NotificationIntent.appointmentDetail:
+        // Tek randevu: Randevularim acilir ve o randevunun detayi kendiliginden gelir
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => MusteriRandevulari(
+            isletmebilgi: widget.isletmebilgi,
+            md: widget.musteriId,
+            geriButonu: true,
+            acilacakRandevuId: intent.params['randevu_id']?.toString(),
+          ),
+        ));
         break;
       case NotificationIntent.sessions:
         Navigator.of(context).push(MaterialPageRoute(
@@ -219,6 +232,13 @@ class _BottomNavigationExampleState extends State<MusteriAltBar> with WidgetsBin
         ));
         break;
     }
+  }
+
+  /// Bu iskeletin ustune acilmis sayfalari (ve pencereleri) kapatir; iskeletin kendisine dokunmaz.
+  void _ustSayfalariKapat() {
+    final bu = ModalRoute.of(context);
+    if (bu == null || bu.isCurrent) return;
+    Navigator.of(context).popUntil((r) => r == bu || r.isFirst);
   }
 
   @override

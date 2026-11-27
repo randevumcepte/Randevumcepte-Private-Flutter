@@ -29,6 +29,13 @@ class NotificationTypes {
   // Geri besleme
   static const survey                  = 'survey';
 
+  // Isletme ici (Laravel NotificationTypes ile ayni)
+  static const alacakReminder          = 'alacak_reminder'; // personele: musteri detayi
+  static const teamRequest             = 'team_request';    // yoneticiye: izin / mola talebi -> Ekibim
+  static const leaveDecision           = 'leave_decision';  // personele: izin karari -> Izinlerim
+  static const breakInfo               = 'break_info';      // personele: mola onay / red
+  static const adCampaign              = 'ad_campaign';     // reklam kampanyasi bilgisi
+
   // Sistem
   static const membershipExpiring      = 'membership_expiring';
   static const systemAnnouncement      = 'system_announcement';

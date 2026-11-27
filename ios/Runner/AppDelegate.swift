@@ -2,6 +2,7 @@ import UIKit
 import Flutter
 import FirebaseCore
 import FirebaseMessaging
+import UserNotifications
 
 // SIP/softphone (VoIP push + CallKit) tamamen kaldirildi. Yalnizca Firebase
 // bildirim (APNS -> FCM) altyapisi korunuyor.
@@ -16,6 +17,9 @@ import FirebaseMessaging
     // anda FirebaseApp henuz hazir olmaz ve APNS->FCM baglanmaz. eczella'da
     // bu satir var ve iOS bildirimleri bu sayede calisiyor.
     FirebaseApp.configure()
+    // Bildirime dokunma (uygulama acikken gosterilen yerel bildirim dahil) Flutter eklentilerine
+    // ulassin: flutter_local_notifications + firebase_messaging belgelerindeki ayar.
+    UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

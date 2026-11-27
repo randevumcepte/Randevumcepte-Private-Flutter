@@ -8,6 +8,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:randevu_sistem/dil/dil.dart';
 import 'package:randevu_sistem/dil/material.dart';
 import 'package:randevu_sistem/yonetici/diger/menu/randvular/randevularmenu.dart';
+import 'package:randevu_sistem/yonetici/diger/menu/ikram/ikram_hizmet.dart';
+import 'package:randevu_sistem/yonetici/profil/profil_sayfalar.dart' show EkipSayfasi, IzinlerSayfasi;
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -213,6 +215,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       case NotificationIntent.adminCalendar:
         // Takvim sekmesi (index 1) — yetki kontrolu de yapilir
         if (_tabGoster(1)) {
+          _ustSayfalariKapat();
           try {
             Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(1);
           } catch (_) {}
@@ -230,6 +233,7 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
       case NotificationIntent.adminSales:
         // Satis Takibi / On Gorusmeler tab'i (index 3)
         if (_tabGoster(3)) {
+          _ustSayfalariKapat();
           try {
             Provider.of<IndexedStackState>(context, listen: false).setSelectedIndex(3);
           } catch (_) {}
@@ -249,6 +253,43 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
             isletmebilgi: widget.isletmebilgi,
             kullanicirolu: kullanicirolu,
           ),
+        ));
+        break;
+      case NotificationIntent.adminAppointment:
+        // Tek randevu: Randevular listesi acilir, o randevunun detay penceresi kendiliginden gelir.
+        // Yetki kisiti (yalniz kendi randevulari) RandevularMenu icinde uygulanir.
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => RandevularMenu(
+            kullanicirolu: kullanicirolu,
+            isletmebilgi: widget.isletmebilgi,
+            personelid: '',
+            cihazid: '',
+            personel_adi: '',
+            cihaz_adi: '',
+            acilacakRandevuId: intent.params['randevu_id']?.toString(),
+          ),
+        ));
+        break;
+      case NotificationIntent.adminTeam:
+        // Izin / mola talebi -> Profil > Ekibim (yalniz yonetici; degilse Bildirimler)
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => kullanicirolu < 5
+              ? EkipSayfasi(sube: _intentSube(intent))
+              : BildirimlerScreen(isletmebilgi: widget.isletmebilgi, kullanicirolu: kullanicirolu),
+        ));
+        break;
+      case NotificationIntent.adminLeaves:
+        // Izin karari -> Profil > Izinlerim
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => IzinlerSayfasi(sube: _intentSube(intent)),
+        ));
+        break;
+      case NotificationIntent.adminIkram:
+        // Ikram Hizmet (menudeki ayni yetki); yetki yoksa Bildirimler
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => Yetki.varMi('pazarlama.kampanya_yonet')
+              ? IkramHizmetPage(isletmebilgi: widget.isletmebilgi, kullanicirolu: kullanicirolu)
+              : BildirimlerScreen(isletmebilgi: widget.isletmebilgi, kullanicirolu: kullanicirolu),
         ));
         break;
       case NotificationIntent.adminCustomerDetail:
@@ -292,6 +333,19 @@ class _BottomNavigationExampleState extends State<BottomNavigationExample> with 
         ));
         break;
     }
+  }
+
+  /// Bu iskeletin ustune acilmis sayfalari (ve pencereleri) kapatir; iskeletin kendisine dokunmaz.
+  void _ustSayfalariKapat() {
+    final bu = ModalRoute.of(context);
+    if (bu == null || bu.isCurrent) return;
+    Navigator.of(context).popUntil((r) => r == bu || r.isFirst);
+  }
+
+  /// Bildirimin salonu (yoksa secili salon)
+  String _intentSube(NotificationIntent intent) {
+    final s = intent.params['salon_id']?.toString() ?? '';
+    return (s.isNotEmpty && s != 'null') ? s : widget.isletmebilgi['id'].toString();
   }
 
   Future<void> _adminMusteriDetayAc(String? userId) async {

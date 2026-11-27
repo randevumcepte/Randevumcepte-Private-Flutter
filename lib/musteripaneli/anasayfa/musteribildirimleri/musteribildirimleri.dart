@@ -11,13 +11,11 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'package:randevu_sistem/Backend/backend.dart' show appBundleAl;
 import 'package:randevu_sistem/Models/musteri_danisanlar.dart';
-import 'package:randevu_sistem/services/notification_types.dart';
+import 'package:randevu_sistem/services/notification_navigation_bus.dart';
+import 'package:randevu_sistem/services/notification_router.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirim_silme.dart';
 import 'package:randevu_sistem/yonetici/dashboard/bildirimler/bildirimler_class.dart';
 
-import '../../menu/indirimler.dart';
-import '../../randevularim/randevularim.dart';
-import '../carkifelek.dart';
 
 class MusteriBildirimlerScreen extends StatefulWidget {
   final dynamic isletmebilgi;
@@ -483,39 +481,19 @@ class _MusteriBildirimlerScreenState extends State<MusteriBildirimlerScreen> wit
             }
             if (!mounted) return;
 
-            // Bildirim tipine gore yonlendirme (FCM push tap'i ile ayni).
-            final t = b.tip;
-            if (t == NotificationTypes.wheelChance) {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => WheelPage(md: widget.md, isletmebilgi: widget.isletmebilgi),
-              ));
-              return;
-            }
-            if (t == NotificationTypes.campaign ||
-                t == NotificationTypes.discount ||
-                t == NotificationTypes.birthday) {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => KazanilanIndirimlerPage(md: widget.md, isletmebilgi: widget.isletmebilgi),
-              ));
-              return;
-            }
-            // Randevu hareketleri / hatirlatma / odeme -> randevu listesi
-            final randevuTipi = t == NotificationTypes.appointmentCreated ||
-                t == NotificationTypes.appointmentApproved ||
-                t == NotificationTypes.appointmentCancelled ||
-                t == NotificationTypes.appointmentTimeChanged ||
-                t == NotificationTypes.appointmentReminder ||
-                t == NotificationTypes.appointmentReminderHour ||
-                t == NotificationTypes.staffAssigned ||
-                t == NotificationTypes.paymentReceived;
-            if (randevuTipi || b.randevuid != 'null') {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => MusteriRandevulari(
-                  isletmebilgi: widget.isletmebilgi,
-                  md: widget.md,
-                  geriButonu: true,
-                ),
-              ));
+            // Bildirime dokununca acilan ekranla AYNI hedef (NotificationRouter.hedef):
+            // randevu -> o randevunun detayi, ikram -> Ikram Hizmetlerim, seans, cark, indirim...
+            final hedef = NotificationRouter.hedef(
+              NotificationRouter.listeKaydi(
+                tip: b.tip,
+                deepLink: b.deepLink,
+                randevuId: b.randevuid,
+                salonId: widget.isletmebilgi is Map ? widget.isletmebilgi['id']?.toString() : null,
+              ),
+              isMusteri: true,
+            );
+            if (hedef != null && hedef.target != NotificationIntent.notifications) {
+              NotificationNavigationBus.publish(hedef);
               return;
             }
             if (b.arsiv != null && b.arsiv['uzanti'] != null) {

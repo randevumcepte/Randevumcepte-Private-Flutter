@@ -14,12 +14,15 @@ class MusteriRandevulari extends StatefulWidget {
   final dynamic isletmebilgi;
   final MusteriDanisan md;
   final bool geriButonu;
+  /// Bildirime dokunarak gelindiyse: liste acilir ve bu randevunun detayi kendiliginden gosterilir.
+  final String? acilacakRandevuId;
 
   const MusteriRandevulari({
     Key? key,
     required this.isletmebilgi,
     required this.md,
     required this.geriButonu,
+    this.acilacakRandevuId,
   }) : super(key: key);
 
   @override
@@ -86,7 +89,38 @@ class _MusteriRandevulariState extends State<MusteriRandevulari> {
       );
       _ds!.isLoadingNotifier.addListener(_onLoadChange);
       setState(() => _initialized = true);
+      final acilacak = widget.acilacakRandevuId;
+      if (acilacak != null && acilacak.isNotEmpty) _tekRandevuAc(acilacak);
     });
+  }
+
+  /// Bildirimden gelen randevuyu sunucudan (musteri kisitiyla) getirip detayini acar.
+  /// Bulunamazsa (silinmis / baska hesaba ait) aciklama gosterilir.
+  Future<void> _tekRandevuAc(String id) async {
+    Randevu? r;
+    try {
+      final cevap = await randevularigetir(widget.md.id.toString(), '', 'Tümü', 'Tümü', 'Tümü', '1', '', '', '', true, randevuId: id);
+      final data = (cevap['data'] as List?) ?? const [];
+      for (final j in data) {
+        final aday = Randevu.fromJson(Map<String, dynamic>.from(j as Map));
+        if (aday.id.toString() == id) { r = aday; break; }
+      }
+    } catch (_) {}
+    // Liste kendi "yukleniyor" penceresini acar ve bitince EN USTTEKI pencereyi kapatir: detay
+    // penceresi ondan once acilirsa liste onu kapatir, yukleniyor takili kalir. Yuklemenin bitmesini bekle.
+    final sinir = DateTime.now().add(const Duration(seconds: 20));
+    while (mounted && (_ds?.isLoadingNotifier.value ?? false) && DateTime.now().isBefore(sinir)) {
+      await Future.delayed(const Duration(milliseconds: 150));
+    }
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    if (r == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Bu randevu bulunamadı. İptal edilmiş ya da silinmiş olabilir.'),
+      ));
+      return;
+    }
+    _openDetailSheet(r);
   }
 
   void _onLoadChange() {

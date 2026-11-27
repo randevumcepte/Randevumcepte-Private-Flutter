@@ -6,167 +6,213 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:randevu_sistem/services/notification_navigation_bus.dart';
 import 'package:randevu_sistem/services/notification_types.dart';
 
-/// Bildirim tipine göre uygulama içi ekran yönlendirmesini yapar.
+/// Bildirime dokununca (push) ve Bildirimler listesinde bir satira dokununca
+/// gidilecek ekrani TEK yerde cozer. Ikisi de [hedef] kullanir; boylece ayni
+/// bildirim her iki yerden de ayni ekrani acar.
 ///
-/// Yeni bir tip eklendiğinde:
-///   1. NotificationTypes'a sabit ekle
-///   2. Buradaki switch'e route adımı ekle
-///   3. (Gerekiyorsa) Laravel tarafına da aynı sabiti ekle
+/// Sira: once bildirimin tasidigi adres (deep_link, ornek "appointment_detail?randevu_id=5"),
+/// yoksa bildirim turu. Hicbiri eslesmezse null: push'ta Bildirimler ekrani acilir,
+/// listede bildirimin tam metni gosterilir.
 ///
-/// Bilinmeyen tip / hata durumunda fallback olarak
-/// kullanıcı tipine uygun bildirim listesi açılır.
+/// Yeni bir tur/adres eklendiginde: NotificationTypes'a sabit, buraya eslesme,
+/// gerekiyorsa NotificationIntent'e hedef + ilgili altbar'a sayfa acma.
 class NotificationRouter {
   static Future<void> route(
       BuildContext context, NotificationPayload payload) async {
-    final type = payload.type;
-    log('🚏 Router → tip=$type deepLink=${payload.deepLink}');
-
-    final prefs = await SharedPreferences.getInstance();
-    final tip = prefs.getString('notif_kullanici_tipi'); // 'musteri' | 'yetkili' | 'personel'
-    final isMusteri = tip == 'musteri';
-
+    log('🚏 Router → tip=${payload.type} deepLink=${payload.deepLink} randevu=${payload.randevuId}');
     try {
-      // Grup dersi katilim sorusu: type'tan bagimsiz, deepLink 'group_classes' ise
-      // musteriyi Derslerim ekranina yonlendir.
-      if (isMusteri && (payload.deepLink ?? '').startsWith('group_classes')) {
-        NotificationNavigationBus.publish(
-            const NotificationIntent(NotificationIntent.groupClasses));
-        return;
-      }
-      // AI santral asistani "geri aranacak musteri" -> Asistanim > Asistan Gorusmeleri
-      if (!isMusteri && (payload.deepLink ?? '').startsWith('assistant_calls')) {
-        NotificationNavigationBus.publish(NotificationIntent(
-          NotificationIntent.adminAssistantCalls,
-          {
-            'salon_id': _deepLinkParam(payload.deepLink, 'salon_id'),
-            'oturum_id': _deepLinkParam(payload.deepLink, 'oturum_id'),
-          },
-        ));
-        return;
-      }
-      // WhatsApp asistani "isletmeye soruldu" talebi -> WhatsApp Asistani > ilgili sohbet
-      if (!isMusteri && (payload.deepLink ?? '').startsWith('wa_assistant')) {
-        NotificationNavigationBus.publish(NotificationIntent(
-          NotificationIntent.adminWaAssistant,
-          {
-            'salon_id': _deepLinkParam(payload.deepLink, 'salon_id'),
-            'oturum_id': _deepLinkParam(payload.deepLink, 'oturum_id'),
-          },
-        ));
-        return;
-      }
-      switch (type) {
-        // Fotograf yukleme bildirimleri:
-        //  - isletme_resim_yuklendi: musteri kendi fotograf ekranina gider
-        //  - musteri_resim_yuklendi: yetkili musteri detay ekranina gider (user_id ile)
-        // deepLink URL'sinden gelen params (ornek: "customer_detail?user_id=46120")
-        // Uri.parse ile ayristirilir.
-        case NotificationTypes.isletmeResimYukledi:
-          NotificationNavigationBus.publish(
-              const NotificationIntent(NotificationIntent.myPhotos));
-          break;
-        case NotificationTypes.musteriResimYukledi:
-          final userIdParam = _deepLinkParam(payload.deepLink, 'user_id');
-          NotificationNavigationBus.publish(NotificationIntent(
-            NotificationIntent.adminCustomerDetail,
-            {'user_id': userIdParam},
-          ));
-          break;
-
-        // Randevu ile dogrudan ilgili tipler -> musteri: randevular tab, yetkili: takvim
-        case NotificationTypes.appointmentCreated:
-        case NotificationTypes.appointmentApproved:
-        case NotificationTypes.appointmentCancelled:
-        case NotificationTypes.appointmentTimeChanged:
-        case NotificationTypes.appointmentReminder:
-        case NotificationTypes.appointmentReminderHour:
-        case NotificationTypes.staffAssigned:
-          NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri
-                ? NotificationIntent.appointments
-                : NotificationIntent.adminCalendar,
-            {'randevu_id': payload.randevuId},
-          ));
-          break;
-
-        // Seans hatirlatmasi / seans kullanim bilgilendirme -> musteri: seanslarim, yetkili: takvim
-        case NotificationTypes.sessionReminder:
-        case NotificationTypes.sessionUsed:
-          NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri
-                ? NotificationIntent.sessions
-                : NotificationIntent.adminCalendar,
-            {'randevu_id': payload.randevuId},
-          ));
-          break;
-
-        // Odeme alindi -> musteri: satin aldiklarim, yetkili: satis takibi
-        case NotificationTypes.paymentReceived:
-          NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri
-                ? NotificationIntent.purchases
-                : NotificationIntent.adminSales,
-            {'randevu_id': payload.randevuId},
-          ));
-          break;
-
-        case NotificationTypes.newMessage:
-          NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri
-                ? NotificationIntent.notifications
-                : NotificationIntent.adminNotifications,
-          ));
-          break;
-
-        case NotificationTypes.wheelChance:
-          NotificationNavigationBus.publish(
-              const NotificationIntent(NotificationIntent.wheel));
-          break;
-
-        // Damga karti doldu -> musteri: Puan Odullerim (damga kartlari orada)
-        case NotificationTypes.stampReward:
-          NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri
-                ? NotificationIntent.loyaltyPoints
-                : NotificationIntent.adminNotifications,
-            {'salon_id': payload.salonId},
-          ));
-          break;
-
-        case NotificationTypes.campaign:
-        case NotificationTypes.discount:
-        case NotificationTypes.birthday:
-          NotificationNavigationBus.publish(
-              const NotificationIntent(NotificationIntent.discounts));
-          break;
-
-        case NotificationTypes.survey:
-        case NotificationTypes.membershipExpiring:
-        case NotificationTypes.systemAnnouncement:
-        default:
-          NotificationNavigationBus.publish(NotificationIntent(
-            isMusteri
-                ? NotificationIntent.notifications
-                : NotificationIntent.adminNotifications,
-          ));
-      }
+      final isMusteri = await musteriMi();
+      final intent = hedef(payload, isMusteri: isMusteri) ??
+          NotificationIntent(isMusteri
+              ? NotificationIntent.notifications
+              : NotificationIntent.adminNotifications);
+      NotificationNavigationBus.publish(intent);
     } catch (e) {
       log('Router hatası: $e');
     }
   }
 
-  /// Backend'in `deepLink('route', ['user_id' => 42])` çağrısı payload'a
-  /// "route?user_id=42" formatında iner. Belirli bir query param'ı çeker.
-  /// null / boş / parse hatası → null döner.
-  static String? _deepLinkParam(String? deepLink, String key) {
+  /// Oturumdaki kisi musteri mi? Once bildirim kaydindaki tip; o yoksa (eski
+  /// kurulum / tip yazilamamis) oturum bilgisinden: user_type '1' isletme.
+  static Future<bool> musteriMi() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tip = prefs.getString('notif_kullanici_tipi');
+    if (tip != null && tip.isNotEmpty) return tip == 'musteri';
+    final userType = prefs.getString('user_type');
+    if (userType != null && userType.contains('1')) return false;
+    return (prefs.getString('musteri') ?? '').isNotEmpty;
+  }
+
+  /// Bildirimin acacagi ekran; yoksa null.
+  static NotificationIntent? hedef(NotificationPayload p,
+      {required bool isMusteri}) {
+    final dl = p.deepLink ?? '';
+    final rota = _rota(dl);
+    final randevuId = _dolu(p.randevuId) ?? _param(dl, 'randevu_id');
+    final salonId = _dolu(p.salonId) ?? _param(dl, 'salon_id');
+
+    NotificationIntent randevu() => randevuId != null
+        ? NotificationIntent(
+            isMusteri
+                ? NotificationIntent.appointmentDetail
+                : NotificationIntent.adminAppointment,
+            {'randevu_id': randevuId})
+        : NotificationIntent(isMusteri
+            ? NotificationIntent.appointments
+            : NotificationIntent.adminCalendar);
+
+    // 1) Adres (deep link)
+    switch (rota) {
+      case 'appointment_detail':
+        return randevu();
+      case 'group_classes':
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.groupClasses)
+            : null;
+      case 'assistant_calls':
+        return isMusteri
+            ? null
+            : NotificationIntent(NotificationIntent.adminAssistantCalls,
+                {'salon_id': salonId, 'oturum_id': _param(dl, 'oturum_id')});
+      case 'wa_assistant':
+        return isMusteri
+            ? null
+            : NotificationIntent(NotificationIntent.adminWaAssistant,
+                {'salon_id': salonId, 'oturum_id': _param(dl, 'oturum_id')});
+      case 'customer_detail':
+        final uid = _param(dl, 'user_id');
+        return (!isMusteri && uid != null)
+            ? NotificationIntent(
+                NotificationIntent.adminCustomerDetail, {'user_id': uid})
+            : null;
+      case 'musteri_resimlerim':
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.myPhotos)
+            : null;
+      case 'sessions':
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.sessions)
+            : randevu();
+      case 'ikram_hizmet':
+        return NotificationIntent(
+            isMusteri
+                ? NotificationIntent.loyaltyPoints
+                : NotificationIntent.adminIkram,
+            {'salon_id': salonId});
+      case 'wheel':
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.wheel)
+            : null;
+      case 'reklam_detay':
+      case 'campaign_detail':
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.discounts)
+            : null;
+      case 'ekibim':
+        return isMusteri
+            ? null
+            : NotificationIntent(NotificationIntent.adminTeam, {'salon_id': salonId});
+      case 'izinlerim':
+        return isMusteri
+            ? null
+            : NotificationIntent(NotificationIntent.adminLeaves, {'salon_id': salonId});
+    }
+
+    // 2) Tur
+    switch (p.type) {
+      case NotificationTypes.isletmeResimYukledi:
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.myPhotos)
+            : null;
+      case NotificationTypes.musteriResimYukledi:
+        final uid = _param(dl, 'user_id');
+        return (!isMusteri && uid != null)
+            ? NotificationIntent(
+                NotificationIntent.adminCustomerDetail, {'user_id': uid})
+            : null;
+      case NotificationTypes.appointmentCreated:
+      case NotificationTypes.appointmentApproved:
+      case NotificationTypes.appointmentCancelled:
+      case NotificationTypes.appointmentTimeChanged:
+      case NotificationTypes.appointmentReminder:
+      case NotificationTypes.appointmentReminderHour:
+      case NotificationTypes.staffAssigned:
+        return randevu();
+      case NotificationTypes.sessionReminder:
+      case NotificationTypes.sessionUsed:
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.sessions)
+            : randevu();
+      case NotificationTypes.paymentReceived:
+        return NotificationIntent(isMusteri
+            ? NotificationIntent.purchases
+            : NotificationIntent.adminSales);
+      case NotificationTypes.wheelChance:
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.wheel)
+            : null;
+      case NotificationTypes.stampReward:
+        return NotificationIntent(
+            isMusteri
+                ? NotificationIntent.loyaltyPoints
+                : NotificationIntent.adminIkram,
+            {'salon_id': salonId});
+      case NotificationTypes.campaign:
+      case NotificationTypes.discount:
+      case NotificationTypes.birthday:
+        return isMusteri
+            ? const NotificationIntent(NotificationIntent.discounts)
+            : null;
+      case NotificationTypes.teamRequest:
+        return isMusteri
+            ? null
+            : NotificationIntent(NotificationIntent.adminTeam, {'salon_id': salonId});
+      case NotificationTypes.leaveDecision:
+        return isMusteri
+            ? null
+            : NotificationIntent(NotificationIntent.adminLeaves, {'salon_id': salonId});
+    }
+
+    // 3) Turu belirsiz ama randevuya bagli bildirim (eski kayitlar)
+    if (randevuId != null) return randevu();
+    return null;
+  }
+
+  /// Bildirimler listesindeki kayit icin payload (push ile ayni alanlar).
+  static NotificationPayload listeKaydi({
+    String? tip,
+    String? deepLink,
+    String? randevuId,
+    String? salonId,
+  }) =>
+      NotificationPayload.fromMap({
+        'type': tip ?? '',
+        'deep_link': deepLink ?? '',
+        'randevu_id': _dolu(randevuId) ?? '',
+        'salon_id': salonId ?? '',
+      });
+
+  /// "appointment_detail?randevu_id=5" -> "appointment_detail"
+  static String _rota(String deepLink) {
+    if (deepLink.isEmpty) return '';
+    final i = deepLink.indexOf('?');
+    return (i < 0 ? deepLink : deepLink.substring(0, i)).trim();
+  }
+
+  /// Deep link'ten tek parametre; yoksa / bossa null.
+  static String? _param(String? deepLink, String key) {
     if (deepLink == null || deepLink.isEmpty) return null;
     try {
-      // Uri.parse "route?..." formatını path + queryParameters olarak ayırır.
-      final uri = Uri.parse(deepLink);
-      final v = uri.queryParameters[key];
-      return (v == null || v.isEmpty) ? null : v;
+      return _dolu(Uri.parse(deepLink).queryParameters[key]);
     } catch (_) {
       return null;
     }
+  }
+
+  /// 'null', '0', bos -> null
+  static String? _dolu(String? v) {
+    if (v == null) return null;
+    final s = v.trim();
+    return (s.isEmpty || s == 'null' || s == '0') ? null : s;
   }
 }

@@ -32,6 +32,8 @@ class RandevularMenu extends StatefulWidget {
   // Alt navigasyonda sekme olarak gosterildiginde (takvim yetkisi kapali)
   // geri butonu route pop yerine bu callback'i cagirir.
   final VoidCallback? onGeriDon;
+  /// Bildirime dokunarak gelindiyse: liste acilir ve bu randevunun detay penceresi kendiliginden gelir.
+  final String? acilacakRandevuId;
 
   const RandevularMenu({
     Key? key,
@@ -43,6 +45,7 @@ class RandevularMenu extends StatefulWidget {
     required this.personel_adi,
     this.musteriId,
     this.onGeriDon,
+    this.acilacakRandevuId,
   }) : super(key: key);
 
   @override
@@ -205,6 +208,38 @@ class _RandevularMenuState extends State<RandevularMenu> {
       _randevuDataGridSource.addListener(_onLoadingChanged);
       _isLoading = false;
     });
+    final acilacak = widget.acilacakRandevuId;
+    if (acilacak != null && acilacak.isNotEmpty) _tekRandevuAc(acilacak);
+  }
+
+  /// Bildirimden gelen randevuyu ayni yetki kisitlariyla (yalniz kendi randevulari vb.) getirip
+  /// detay penceresini acar. Bulunamazsa / yetki yoksa aciklama gosterilir.
+  Future<void> _tekRandevuAc(String id) async {
+    Randevu? r;
+    try {
+      final cevap = await randevularigetir(widget.musteriId ?? '', seciliisletme ?? '', 'Tümü', 'Tümü', 'Tümü', '1', '',
+          _yetkiyeGorePersonelid, widget.cihazid, false, randevuId: id);
+      final data = (cevap['data'] as List?) ?? const [];
+      for (final j in data) {
+        final aday = Randevu.fromJson(Map<String, dynamic>.from(j as Map));
+        if (aday.id.toString() == id) { r = aday; break; }
+      }
+    } catch (_) {}
+    // Liste kendi "yukleniyor" penceresini acar ve bitince EN USTTEKI pencereyi kapatir: detay
+    // penceresi ondan once acilirsa liste onu kapatir, yukleniyor takili kalir. Yuklemenin bitmesini bekle.
+    final sinir = DateTime.now().add(const Duration(seconds: 20));
+    while (mounted && (_randevuDataGridSource.isLoadingNotifier.value ?? false) && DateTime.now().isBefore(sinir)) {
+      await Future.delayed(const Duration(milliseconds: 150));
+    }
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    if (r == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Bu randevu bulunamadı. Silinmiş olabilir ya da görme yetkiniz yok.'),
+      ));
+      return;
+    }
+    _detayDialog(r);
   }
 
   void _onLoadingChanged() {

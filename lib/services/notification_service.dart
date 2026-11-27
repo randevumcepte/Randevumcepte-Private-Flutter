@@ -215,6 +215,24 @@ class NotificationService {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _onMessageOpened(initial);
       });
+    } else {
+      // 7b) Uygulama acikken gosterilen (yerel) bildirime, uygulama kapandiktan sonra dokunuldu:
+      // FCM getInitialMessage bunu bilmez; yerel eklentinin acilis bilgisinden yonlendir.
+      // Yalniz bizim bildirim verimizi (type / deep_link) tasiyanlar; arama bildirimleri karismaz.
+      try {
+        final acilis = await _local.getNotificationAppLaunchDetails();
+        final pl = acilis?.notificationResponse?.payload;
+        if (acilis?.didNotificationLaunchApp == true && pl != null && pl.isNotEmpty) {
+          final veri = Map<String, dynamic>.from(jsonDecode(pl));
+          if (veri.containsKey('type') || veri.containsKey('deep_link')) {
+            final p = NotificationPayload.fromMap(veri);
+            await _ensureSalonSelectedForPayload(p);
+            WidgetsBinding.instance.addPostFrameCallback((_) => _handleTap(p));
+          }
+        }
+      } catch (e) {
+        log('Yerel bildirim acilis bilgisi okunamadi: $e');
+      }
     }
 
     // 8) Token al ve local'e yaz

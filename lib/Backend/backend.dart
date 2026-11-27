@@ -1171,7 +1171,7 @@ Future<List<Cdr>> santralraporlari(
 }
 
 
-Future <Map<String, dynamic>>   randevularigetir(String musteri_id,String Salonid,String olusturma,String durum,String tarih, String currpage,String musteridanisanadi,String personelid,String cihazid,bool musteriMi) async {
+Future <Map<String, dynamic>>   randevularigetir(String musteri_id,String Salonid,String olusturma,String durum,String tarih, String currpage,String musteridanisanadi,String personelid,String cihazid,bool musteriMi, {String? randevuId}) async {
   bool web = false;
   bool salon = false;
   bool uygulama = false;
@@ -1286,6 +1286,8 @@ Future <Map<String, dynamic>>   randevularigetir(String musteri_id,String Saloni
     // Istegi yapan isletme kullanicisi (yalniz isletme ekranlari): backend
     // "sadece kendi randevulari" kisitini rolden bagimsiz buna gore uygular.
     if (!musteriMi && usertype == '1') 'istek_yapan_id': user['id'].toString(),
+    // Bildirime dokununca tek randevu (sunucu diger kisitlari aynen uygular)
+    if (randevuId != null && randevuId.isNotEmpty) 'randevu_id': randevuId,
 
 
     // Add other form fields
